@@ -1,0 +1,278 @@
+[
+  {
+    "title": "Insert, Update, and Validate Record",
+    "description": "This test case inserts a record into the 'test_table' table, updates the 'code' field, and validates the update by selecting the record.",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code, credited) VALUES (?, ?, ?, ?)",
+        "query_desc": "Insert a new record to set up the update operation.",
+        "query_type": "INSERT",
+        "params": [
+          { "value": "Liam", "datatype": "text" },
+          { "value": 44, "datatype": "bigint" },
+          { "value": 678, "datatype": "int" },
+          { "value": 8888, "datatype": "double" }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "UPDATE bigtabledevinstance.user_info SET code = ? WHERE name = ? AND age = ?",
+        "query_desc": "Update the 'code' field for the existing record.",
+        "query_type": "UPDATE",
+        "params": [
+          { "value": 789, "datatype": "int" },
+          { "value": "Liam", "datatype": "text" },
+          { "value": 44, "datatype": "bigint" }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT name, age, code FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_type": "SELECT",
+        "query_desc": "Validate the 'code' field update by selecting the record.",
+        "params": [
+          { "value": "Liam", "datatype": "text" },
+          { "value": 44, "datatype": "bigint" }
+        ],
+        "expected_result": [
+          { "name": "Liam", "datatype": "text" },
+          { "age": 44, "datatype": "bigint" },
+          { "code": 789, "datatype": "int" }
+        ]
+      }
+    ],
+    "success_message": "Record updated and validated successfully.",
+    "failure_message": "Failed to update or validate the record."
+  },
+  {
+    "title": "Insert and Update with FUTURE TIMESTAMP Validation",
+    "description": "This test case inserts a record into the 'test_table' table with a specific TIMESTAMP, updates the 'code' field using a future TIMESTAMP, and validates the update through a SELECT query. The SELECT query ensures that the record reflects the updated value",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code, credited) VALUES (?, ?, ?, ?) USING TIMESTAMP ?",
+        "query_desc": "Insert a record with the current TIMESTAMP.",
+        "query_type": "INSERT",
+        "params": [
+          { "value": "Richard", "datatype": "text" },
+          { "value": 67, "datatype": "bigint" },
+          { "value": 12312, "datatype": "int" },
+          { "value": 876543, "datatype": "double" },
+          { "value": "current", "datatype": "bigintTimestamp" }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "UPDATE bigtabledevinstance.user_info USING TIMESTAMP ? SET code = ? WHERE name = ? AND age = ?",
+        "query_desc": "Update the 'code' field with a future TIMESTAMP.",
+        "query_type": "UPDATE",
+        "params": [
+          { "value": "future", "datatype": "bigintTimestamp" },
+          { "value": 7899, "datatype": "int" },
+          { "value": "Richard", "datatype": "text" },
+          { "value": 67, "datatype": "bigint" }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT name, age, code FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_type": "SELECT",
+        "query_desc": "Validate the updated 'code' field using a SELECT query.",
+        "params": [
+          { "value": "Richard", "datatype": "text" },
+          { "value": 67, "datatype": "bigint" }
+        ],
+        "expected_result": [
+          { "name": "Richard", "datatype": "text" },
+          { "age": 67, "datatype": "bigint" },
+          { "code": 7899, "datatype": "int" }
+        ]
+      }
+    ],
+    "success_message": "Record updated with TIMESTAMP and validated successfully.",
+    "failure_message": "Failed to update or validate the record with TIMESTAMP."
+  },
+  {
+    "title": "Insert and Update with Past TIMESTAMP Validation",
+    "description": "This test case inserts a record into the 'test_table' table with the current TIMESTAMP and attempts to update the 'code' field using a past TIMESTAMP. The SELECT query validates that the record does not reflect the past TIMESTAMP update, preserving the initial value.",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code, credited) VALUES (?, ?, ?, ?) USING TIMESTAMP ?",
+        "query_desc": "Insert a record with the current TIMESTAMP.",
+        "query_type": "INSERT",
+        "params": [
+          { "value": "Charles", "datatype": "text" },
+          { "value": 55, "datatype": "bigint" },
+          { "value": 799, "datatype": "int" },
+          { "value": 456465, "datatype": "double" },
+          { "value": "current", "datatype": "bigintTimestamp" }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "UPDATE bigtabledevinstance.user_info USING TIMESTAMP ? SET code = ? WHERE name = ? AND age = ?",
+        "query_desc": "Attempt to update the 'code' field with a past TIMESTAMP. The update will not take effect if a more recent TIMESTAMP already exists.",
+        "query_type": "UPDATE",
+        "params": [
+          { "value": "past", "datatype": "bigintTimestamp" },
+          { "value": 677, "datatype": "int" },
+          { "value": "Charles", "datatype": "text" },
+          { "value": 55, "datatype": "bigint" }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT name, age, code FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_type": "SELECT",
+        "query_desc": "Validate that the initial 'code' value is retained, as the past TIMESTAMP update should not overwrite it.",
+        "params": [
+          { "value": "Charles", "datatype": "text" },
+          { "value": 55, "datatype": "bigint" }
+        ],
+        "expected_result": [
+          { "name": "Charles", "datatype": "text" },
+          { "age": 55, "datatype": "bigint" },
+          { "code": 799, "datatype": "int" }
+        ]
+      }
+    ],
+    "success_message": "Record retained original value as expected despite past TIMESTAMP update.",
+    "failure_message": "Unexpected update occurred, the past TIMESTAMP may have overwritten the current value."
+  },
+  {
+    "title": "Data Handling: Insert, Update, and Validate in User Information",
+    "description": "This test case demonstrates inserting a record into the 'user_info' table, updating the 'credited' field, and validating the update through a SELECT operation.",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+        "query_desc": "Insert a new record for user 'Adam' with initial details to prepare for an update test.",
+        "query_type": "INSERT",
+        "params": [
+          { "value": "Adam", "datatype": "text" },
+          { "value": 50, "datatype": "bigint" },
+          { "value": 713, "datatype": "int" }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "UPDATE bigtabledevinstance.user_info SET credited = ? WHERE name = ? AND age = ? IF EXISTS",
+        "query_desc": "Update the 'credited' field for 'Adam' if the record exists, ensuring conditional update logic.",
+        "query_type": "UPDATE",
+        "params": [
+          { "value": 8000, "datatype": "double" },
+          { "value": "Adam", "datatype": "text" },
+          { "value": 50, "datatype": "bigint" }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT name, age, code, credited FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_desc": "Select the record to validate that the 'credited' field update has been applied correctly.",
+        "query_type": "SELECT",
+        "params": [
+          { "value": "Adam", "datatype": "text" },
+          { "value": 50, "datatype": "bigint" }
+        ],
+        "expected_result": [
+          { "name": "Adam", "datatype": "text" },
+          { "age": 50, "datatype": "bigint" },
+          { "code": 713, "datatype": "int" },
+          { "credited": 8000, "datatype": "double" }
+        ]
+      }
+    ],
+    "success_message": "Record updated and validated successfully.",
+    "failure_message": "Failed to update or validate the record."
+  },
+  {
+    "title": "Negative Test Cases for Update Operations",
+    "description": "This test suite covers various negative scenarios for UPDATE operations to ensure the system correctly handles errors.",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "UPDATE user_info SET code=? where name=? and age=?",
+        "query_desc": "Attempt to update without specifying a keyspace.",
+        "query_type": "UPDATE",
+        "params": [
+          { "value": 724, "datatype": "int" },
+          { "value": "Smith", "datatype": "text" },
+          { "value": 36, "datatype": "bigint" }
+        ],
+        "expected_result": [
+          {
+            "expect_error": true,
+            "error_message": "invalid input paramaters found for table or keyspace"
+          }
+        ]
+      },
+      {
+        "query": "UPDATE randomkeyspace.user_info SET code=? where name=? and age=?",
+        "query_desc": "Attempt to update with an incorrect keyspace name.",
+        "query_type": "UPDATE",
+        "params": [
+          { "value": 724, "datatype": "int" },
+          { "value": "Smith", "datatype": "text" },
+          { "value": 36, "datatype": "bigint" }
+        ],
+        "expected_result": [
+          {
+            "expect_error": true,
+            "error_message": "keyspace randomkeyspace does not exist"
+          }
+        ]
+      },
+      {
+        "query": "UPDATE bigtabledevinstance.random_table SET code=? where name=? and age=?",
+        "query_desc": "Attempt to UPDATE a nonexistent table within a valid keyspace.",
+        "query_type": "UPDATE",
+        "params": [
+          { "value": 724, "datatype": "int" },
+          { "value": "Smith", "datatype": "text" },
+          { "value": 36, "datatype": "bigint" }
+        ],
+        "expected_result": [
+          {
+            "expect_error": true,
+            "error_message": "table random_table does not exist"
+          }
+        ]
+      },
+      {
+        "query": "UPDATE bigtabledevinstance.user_info SET random_column=? where name=? and age=?",
+        "query_desc": "Attempt to update with an incorrect column name in a valid table.",
+        "query_type": "UPDATE",
+        "params": [
+          { "value": 724, "datatype": "int" },
+          { "value": "Smith", "datatype": "text" },
+          { "value": 36, "datatype": "bigint" }
+        ],
+        "expected_result": [
+          {
+            "expect_error": true,
+            "error_message": "Undefined column name random_column in table bigtabledevinstance.user_info"
+          }
+        ]
+      },
+      {
+        "query": "UPDATE bigtabledevinstance.user_info SET code=? where name=?",
+        "query_desc": "Attempt to update with missing partition or clustering keys.",
+        "query_type": "UPDATE",
+        "params": [
+          { "value": 724, "datatype": "int" },
+          { "value": "Smith", "datatype": "text" }
+        ],
+        "expected_result": [
+          {
+            "expect_error": true,
+            "error_message": "Some partition key parts are missing: age"
+          }
+        ]
+      }
+    ],
+    "success_message": "Records successfully validated for error handling.",
+    "failure_message": "Failed to detect duplication errors as expected."
+  }
+]

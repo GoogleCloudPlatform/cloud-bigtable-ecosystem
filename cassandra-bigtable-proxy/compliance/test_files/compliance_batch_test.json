@@ -1,0 +1,860 @@
+[
+  {
+    "title": "Simple Batch to insert on same row key",
+    "description": "Perform a batch operation to insert a record on the same row key but other fields will gets updated. Validate the the result by selecting a record, other fields should have last updated value.",
+    "kind": "BATCH",
+    "operations": [
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code, credited) VALUES (?, ?, ?, ?)",
+        "query_desc": "Batch insert a record with initial values.",
+        "query_type": "BATCH",
+        "params": [
+          { "value": "John", "datatype": "text" },
+          { "value": 45, "datatype": "bigint" },
+          { "value": 123, "datatype": "int" },
+          { "value": 1500.5, "datatype": "double" }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code, credited) VALUES (?, ?, ?, ?)",
+        "query_desc": "Batch insert a record with initial values.",
+        "query_type": "BATCH",
+        "params": [
+          { "value": "John", "datatype": "text" },
+          { "value": 45, "datatype": "bigint" },
+          { "value": 456, "datatype": "int" },
+          { "value": 1500.5, "datatype": "double" }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code, credited) VALUES (?, ?, ?, ?)",
+        "query_desc": "Batch insert a record with initial values.",
+        "query_type": "BATCH",
+        "params": [
+          { "value": "John", "datatype": "text" },
+          { "value": 45, "datatype": "bigint" },
+          { "value": 789, "datatype": "int" },
+          { "value": 1500.5, "datatype": "double" }
+        ],
+        "expected_result": null
+      },
+      
+      {
+        "query": "SELECT name, age, code, credited FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_desc": "Validate that the record was inserted using batch operation",
+        "query_type": "VALIDATE",
+        "params": [
+          { "value": "John", "datatype": "text" },
+          { "value": 45, "datatype": "bigint" }
+        ],
+        "expected_result": [
+          { "name": "John", "datatype": "text" },
+          { "age": 45, "datatype": "bigint" },
+          { "code": 789, "datatype": "int" },
+          { "credited": 1500.5, "datatype": "double" }
+        ]
+      }
+    ],
+    "success_message": "Batch insert, update, and delete validated successfully. Record is deleted as expected.",
+    "failure_message": "Batch operation failed, or the record still exists after deletion."
+  },
+  {
+    "title": "Batch Insert with Different Composite Keys and Values",
+    "description": "Perform a batch operation to insert records with different composite keys (name + age) and different values for 'code' and 'credited'. Validate that all records are inserted correctly.",
+    "kind": "BATCH",
+    "operations": [
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code, credited) VALUES (?, ?, ?, ?)",
+        "query_desc": "Batch insert record for Jhony.",
+        "query_type": "BATCH",
+        "params": [
+          { "value": "Jhony", "datatype": "text" },
+          { "value": 32, "datatype": "bigint" },
+          { "value": 101, "datatype": "int" },
+          { "value": 1500.5, "datatype": "double" }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code, credited) VALUES (?, ?, ?, ?)",
+        "query_desc": "Batch insert record for Jamess.",
+        "query_type": "BATCH",
+        "params": [
+          { "value": "Jamess", "datatype": "text" },
+          { "value": 32, "datatype": "bigint" },
+          { "value": 102, "datatype": "int" },
+          { "value": 1600.0, "datatype": "double" }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code, credited) VALUES (?, ?, ?, ?)",
+        "query_desc": "Batch insert record for Ronny.",
+        "query_type": "BATCH",
+        "params": [
+          { "value": "Ronny", "datatype": "text" },
+          { "value": 32, "datatype": "bigint" },
+          { "value": 103, "datatype": "int" },
+          { "value": 1700.75, "datatype": "double" }
+        ],
+        "expected_result": null
+      },
+      
+      {
+        "query": "SELECT name, age, code, credited FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_desc": "Validate record for Jhony.",
+        "query_type": "VALIDATE",
+        "params": [
+          { "value": "Jhony", "datatype": "text" },
+          { "value": 32, "datatype": "bigint" }
+        ],
+        "expected_result": [
+          { "name": "Jhony", "datatype": "text" },
+          { "age": 32, "datatype": "bigint" },
+          { "code": 101, "datatype": "int" },
+          { "credited": 1500.5, "datatype": "double" }
+        ]
+      },
+      {
+        "query": "SELECT name, age, code, credited FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_desc": "Validate record for Jamess.",
+        "query_type": "VALIDATE",
+        "params": [
+          { "value": "Jamess", "datatype": "text" },
+          { "value": 32, "datatype": "bigint" }
+        ],
+        "expected_result": [
+          { "name": "Jamess", "datatype": "text" },
+          { "age": 32, "datatype": "bigint" },
+          { "code": 102, "datatype": "int" },
+          { "credited": 1600.0, "datatype": "double" }
+        ]
+      },
+      {
+        "query": "SELECT name, age, code, credited FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_desc": "Validate record for Ronny.",
+        "query_type": "VALIDATE",
+        "params": [
+          { "value": "Ronny", "datatype": "text" },
+          { "value": 32, "datatype": "bigint" }
+        ],
+        "expected_result": [
+          { "name": "Ronny", "datatype": "text" },
+          { "age": 32, "datatype": "bigint" },
+          { "code": 103, "datatype": "int" },
+          { "credited": 1700.75, "datatype": "double" }
+        ]
+      }
+    ],
+    "success_message": "Batch insert with different composite keys and values validated successfully.",
+    "failure_message": "Batch operation failed, or records with different composite keys and values were not inserted correctly."
+  },
+  {
+    "title": "Insert and Update on Same Composite Key",
+    "description": "Perform insert and update on the same key. Validate the updated record.",
+    "kind": "BATCH",
+    "operations": [
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code, credited) VALUES (?, ?, ?, ?)",
+        "query_desc": "Insert record for Steave.",
+        "query_type": "BATCH",
+        "params": [
+          { "value": "Steave", "datatype": "text" },
+          { "value": 32, "datatype": "bigint" },
+          { "value": 123, "datatype": "int" },
+          { "value": 1500.5, "datatype": "double" }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "UPDATE bigtabledevinstance.user_info SET code = ? WHERE name = ? AND age = ?",
+        "query_desc": "Update code for Steave.",
+        "query_type": "BATCH",
+        "params": [
+          { "value": 678, "datatype": "int" },
+          { "value": "Steave", "datatype": "text" },
+          { "value": 32, "datatype": "bigint" }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT code FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_desc": "Validate updated record for Steave.",
+        "query_type": "VALIDATE",
+        "params": [
+          { "value": "Steave", "datatype": "text" },
+          { "value": 32, "datatype": "bigint" }
+        ],
+        "expected_result": [
+          { "code": 678, "datatype": "int" }
+        ]
+      }
+    ],
+    "success_message": "Insert and update validated successfully.",
+    "failure_message": "Insert or update operation failed."
+  },
+  {
+    "title": "Insert and Delete on Same Composite Key",
+    "description": "Delete the record for Steave and validate the deletion.",
+    "kind": "BATCH",
+    "operations": [
+{
+      "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code, credited) VALUES (?, ?, ?, ?)",
+      "query_desc": "Insert record for Steave.",
+      "query_type": "BATCH",
+      "params": [
+        { "value": "Hazzlewood", "datatype": "text" },
+        { "value": 32, "datatype": "bigint" },
+        { "value": 123, "datatype": "int" },
+        { "value": 1500.5, "datatype": "double" }
+      ],
+      "expected_result": null
+    },
+      {
+        "query": "DELETE FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_desc": "Delete record for Hazzlewood.",
+        "query_type": "BATCH",
+        "params": [
+          { "value": "Hazzlewood", "datatype": "text" },
+          { "value": 32, "datatype": "bigint" }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT code FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_desc": "Validate that record for Steave is deleted.",
+        "query_type": "VALIDATE",
+        "params": [
+          { "value": "Hazzlewood", "datatype": "text" },
+          { "value": 32, "datatype": "bigint" }
+        ],
+        "expected_result": null
+      }
+    ],
+    "success_message": "Deletion validated successfully. Record is removed.",
+    "failure_message": "Delete operation failed, or the record still exists."
+  },
+  {
+    "title": "Mixed Data Type Insert and Validate",
+    "description": "Perform a batch operation to insert and validate records with mixed data types including maps, sets, and primitive types.",
+    "kind": "BATCH",
+    "operations": [
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, credited, balance, is_active, birth_date, zip_code, extra_info, map_text_int, tags, set_float) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "query_desc": "Insert a record with mixed data types including maps, sets, and primitive types.",
+        "query_type": "BATCH",
+        "params": [
+          {
+            "value": "Alice",
+            "datatype": "text"
+          },
+          {
+            "value": 30,
+            "datatype": "bigint"
+          },
+          {
+            "value": 1500.75,
+            "datatype": "double"
+          },
+          {
+            "value": 2000.5,
+            "datatype": "float"
+          },
+          {
+            "value": true,
+            "datatype": "boolean"
+          },
+          {
+            "value": 1736541455000000,
+            "datatype": "timestamp"
+          },
+          {
+            "value": 123456,
+            "datatype": "bigint"
+          },
+          {
+            "value": {
+              "key1": "value1",
+              "key2": "value2"
+            },
+            "datatype": "map<text,text>"
+          },
+          {
+            "value": {
+              "field1": 100,
+              "field2": 200
+            },
+            "datatype": "map<text,int>"
+          },
+          {
+            "value": [
+              "tag1",
+              "tag2",
+              "tag3"
+            ],
+            "datatype": "set<text>"
+          },
+          {
+            "value": [
+              10.5,
+              20.5,
+              30.75
+            ],
+            "datatype": "set<float>"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT name, age, credited, balance, is_active, birth_date, zip_code, extra_info, map_text_int, tags, set_float FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_desc": "Validate the inserted record with mixed data types.",
+        "query_type": "VALIDATE",
+        "params": [
+          {
+            "value": "Alice",
+            "datatype": "text"
+          },
+          {
+            "value": 30,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_result": [
+          {
+            "name": "Alice",
+            "datatype": "text"
+          },
+          {
+            "age": 30,
+            "datatype": "bigint"
+          },
+          {
+            "credited": 1500.75,
+            "datatype": "double"
+          },
+          {
+            "balance": 2000.5,
+            "datatype": "float"
+          },
+          {
+            "is_active": true,
+            "datatype": "boolean"
+          },
+          {
+            "birth_date": 1736541455000000,
+            "datatype": "timestamp"
+          },
+          {
+            "zip_code": 123456,
+            "datatype": "bigint"
+          },
+          {
+            "extra_info": {
+              "key1": "value1",
+              "key2": "value2"
+            },
+            "datatype": "map<text,text>"
+          },
+          {
+            "map_text_int": {
+              "field1": 100,
+              "field2": 200
+            },
+            "datatype": "map<text,int>"
+          },
+          {
+            "tags": [
+              "tag1",
+              "tag2",
+              "tag3"
+            ],
+            "datatype": "set<text>"
+          },
+          {
+            "set_float": [
+              10.5,
+              20.5,
+              30.75
+            ],
+            "datatype": "set<float>"
+          }
+        ]
+      }
+    ],
+    "success_message": "Record with mixed data types inserted and validated successfully.",
+    "failure_message": "Batch operation failed or record with mixed data types validation did not match expected values."
+  },
+  {
+    "title": "Mixed Data Type Batch Operations",
+    "description": "Perform a series of batch operations with mixed data types, including insert, update, and delete, followed by a single validation.",
+    "kind": "BATCH",
+    "operations": [
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, credited, balance, is_active, birth_date, zip_code, extra_info, map_text_int, tags, set_float) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "query_desc": "Insert a record with mixed data types including maps, sets, and primitive types.",
+        "query_type": "BATCH",
+        "params": [
+          {
+            "value": "Alice",
+            "datatype": "text"
+          },
+          {
+            "value": 30,
+            "datatype": "bigint"
+          },
+          {
+            "value": 1500.75,
+            "datatype": "double"
+          },
+          {
+            "value": 2000.5,
+            "datatype": "float"
+          },
+          {
+            "value": true,
+            "datatype": "boolean"
+          },
+          {
+            "value": "1995-05-15 10:30:00",
+            "datatype": "timestamp"
+          },
+          {
+            "value": 123456,
+            "datatype": "bigint"
+          },
+          {
+            "value": {
+              "key1": "value1",
+              "key2": "value2"
+            },
+            "datatype": "map<text,text>"
+          },
+          {
+            "value": {
+              "field1": 100,
+              "field2": 200
+            },
+            "datatype": "map<text,int>"
+          },
+          {
+            "value": [
+              "tag1",
+              "tag2",
+              "tag3"
+            ],
+            "datatype": "set<text>"
+          },
+          {
+            "value": [
+              10.5,
+              20.5,
+              30.75
+            ],
+            "datatype": "set<float>"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "UPDATE bigtabledevinstance.user_info SET credited = ?, extra_info = ?, tags = ? WHERE name = ? AND age = ?",
+        "query_desc": "Update the credited amount, extra_info map, and tags set for the record.",
+        "query_type": "BATCH",
+        "params": [
+          {
+            "value": 2500.0,
+            "datatype": "double"
+          },
+          {
+            "value": {
+              "key1": "updated_value",
+              "key3": "new_value"
+            },
+            "datatype": "map<text,text>"
+          },
+          {
+            "value": [
+              "tag1",
+              "tag4"
+            ],
+            "datatype": "set<text>"
+          },
+          {
+            "value": "Alice",
+            "datatype": "text"
+          },
+          {
+            "value": 30,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "DELETE FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_desc": "Delete the record based on primary key values.",
+        "query_type": "BATCH",
+        "params": [
+          {
+            "value": "Alice",
+            "datatype": "text"
+          },
+          {
+            "value": 30,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT name, age, credited, extra_info, tags FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_desc": "Validate the entire batch operation including insert, update, and delete.",
+        "query_type": "VALIDATE",
+        "params": [
+          {
+            "value": "Alice",
+            "datatype": "text"
+          },
+          {
+            "value": 30,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_result": []
+      }
+    ],
+    "success_message": "Batch operation with mixed data types validated successfully.",
+    "failure_message": "Batch operation failed or validation did not match expected results."
+  },
+  {
+    "title": "Batch Insert and Validate Primary Key Uniqueness",
+    "description": "Perform a batch insert with records having the same primary key. Validate that only the last inserted record with the same primary key is retained.",
+    "kind": "BATCH",
+    "operations": [
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, credited, balance, is_active) VALUES (?, ?, ?, ?, ?)",
+        "query_desc": "Insert a record with the primary key (name, age) and initial values.",
+        "query_type": "BATCH",
+        "params": [
+          {
+            "value": "Bob",
+            "datatype": "text"
+          },
+          {
+            "value": 40,
+            "datatype": "bigint"
+          },
+          {
+            "value": 1200.0,
+            "datatype": "double"
+          },
+          {
+            "value": 300.5,
+            "datatype": "float"
+          },
+          {
+            "value": true,
+            "datatype": "boolean"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, credited, balance, is_active) VALUES (?, ?, ?, ?, ?)",
+        "query_desc": "Insert another record with the same primary key but updated values.",
+        "query_type": "BATCH",
+        "params": [
+          {
+            "value": "Bob",
+            "datatype": "text"
+          },
+          {
+            "value": 40,
+            "datatype": "bigint"
+          },
+          {
+            "value": 1500.0,
+            "datatype": "double"
+          },
+          {
+            "value": 400.5,
+            "datatype": "float"
+          },
+          {
+            "value": false,
+            "datatype": "boolean"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, credited, balance, is_active) VALUES (?, ?, ?, ?, ?)",
+        "query_desc": "Insert a final record with the same primary key but further updated values.",
+        "query_type": "BATCH",
+        "params": [
+          {
+            "value": "Bob",
+            "datatype": "text"
+          },
+          {
+            "value": 40,
+            "datatype": "bigint"
+          },
+          {
+            "value": 2000.0,
+            "datatype": "double"
+          },
+          {
+            "value": 500.5,
+            "datatype": "float"
+          },
+          {
+            "value": true,
+            "datatype": "boolean"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT name, age, credited, balance, is_active FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_desc": "Validate that only the last inserted record with the same primary key is retained.",
+        "query_type": "VALIDATE",
+        "params": [
+          {
+            "value": "Bob",
+            "datatype": "text"
+          },
+          {
+            "value": 40,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_result": [
+          {
+            "name": "Bob",
+            "datatype": "text"
+          },
+          {
+            "age": 40,
+            "datatype": "bigint"
+          },
+          {
+            "credited": 2000.0,
+            "datatype": "double"
+          },
+          {
+            "balance": 500.5,
+            "datatype": "float"
+          },
+          {
+            "is_active": true,
+            "datatype": "boolean"
+          }
+        ]
+      }
+    ],
+    "success_message": "Primary key uniqueness validated successfully. Only the last inserted record is retained.",
+    "failure_message": "Primary key uniqueness validation failed. More than one record with the same primary key exists, or the data is incorrect."
+  },
+  {
+    "title": "Batch Insert with Partial Record Update",
+    "description": "Perform a batch operation to insert a record and partially update some fields using an insert with the same primary key.",
+    "kind": "BATCH",
+    "operations": [
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, credited, balance, is_active) VALUES (?, ?, ?, ?, ?)",
+        "query_desc": "Insert a record with initial values.",
+        "query_type": "BATCH",
+        "params": [
+          {
+            "value": "Eve",
+            "datatype": "text"
+          },
+          {
+            "value": 35,
+            "datatype": "bigint"
+          },
+          {
+            "value": 1200.0,
+            "datatype": "double"
+          },
+          {
+            "value": 300.5,
+            "datatype": "float"
+          },
+          {
+            "value": true,
+            "datatype": "boolean"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, balance, is_active) VALUES (?, ?, ?, ?)",
+        "query_desc": "Insert another record with the same primary key to update partial fields.",
+        "query_type": "BATCH",
+        "params": [
+          {
+            "value": "Eve",
+            "datatype": "text"
+          },
+          {
+            "value": 35,
+            "datatype": "bigint"
+          },
+          {
+            "value": 400.0,
+            "datatype": "float"
+          },
+          {
+            "value": false,
+            "datatype": "boolean"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT name, age, credited, balance FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_desc": "Validate that the record is updated partially.",
+        "query_type": "VALIDATE",
+        "params": [
+          {
+            "value": "Eve",
+            "datatype": "text"
+          },
+          {
+            "value": 35,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_result": [
+          {
+            "name": "Eve",
+            "datatype": "text"
+          },
+          {
+            "age": 35,
+            "datatype": "bigint"
+          },
+          {
+            "credited": 1200.0,
+            "datatype": "double"
+          },
+          {
+            "balance": 400.0,
+            "datatype": "float"
+          }
+        ]
+      }
+    ],
+    "success_message": "Record is updated partially as expected.",
+    "failure_message": "Partial update failed or record is missing."
+  },
+  {
+    "title": "Batch Insert and Validate Record with All Supported Datatypes",
+    "description": "This test case inserts a record with all supported datatypes into the 'user_info' table and validates its presence using batch SELECT queries.",
+    "kind": "BATCH",
+    "operations": [
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code, credited, balance, is_active, birth_date, zip_code, extra_info, map_text_int, map_text_bigint, map_text_boolean, map_text_ts, map_text_float, map_text_double, ts_text_map, ts_boolean_map, ts_float_map, ts_double_map, ts_bigint_map, ts_ts_map, ts_int_map, tags, set_boolean, set_int, set_bigint, set_float, set_double, set_timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "query_desc": "Insert record with all supported datatypes including extended map and set data.",
+        "query_type": "BATCH",
+        "params": [
+          { "value": "James_new", "datatype": "text" },
+          { "value": 56, "datatype": "bigint" },
+          { "value": 678, "datatype": "int" },
+          { "value": 555.67, "datatype": "double" },
+          { "value": 23.43, "datatype": "float" },
+          { "value": true, "datatype": "boolean" },
+          { "value": 1734516444000, "datatype": "timestamp" },
+          { "value": 411057, "datatype": "bigint" },
+          { "value": { "info_key_one": "info_value_one", "info_key_two": "info_value_two" }, "datatype": "map<text,text>" },
+          { "value": { "info_key_one": 1234, "info_key_two": 5678 }, "datatype": "map<text,int>" },
+          { "value": { "key1": 1111111111, "key2": 2222222222 }, "datatype": "map<text,bigint>" },
+          { "value": { "key1": true, "key2": false }, "datatype": "map<text,boolean>" },
+          { "value": { "key1": 1734517434000, "key2": 1734517435000 }, "datatype": "map<text,timestamp>" },
+          { "value": { "key1": 45.56, "key2": 67.89 }, "datatype": "map<text,float>" },
+          { "value": { "key1": 4335.56, "key2": 1234.78 }, "datatype": "map<text,double>" },
+          { "value": { "1734516434000": "value_one", "1734516435000": "value_two" }, "datatype": "map<timestamp,text>" },
+          { "value": { "1734516436000": true, "1734516437000": false }, "datatype": "map<timestamp,boolean>" },
+          { "value": { "1734516438000": 45.67, "1734516439000": 78.12 }, "datatype": "map<timestamp,float>" },
+          { "value": { "1734516440000": 1234.56, "1734516441000": 7890.12 }, "datatype": "map<timestamp,double>" },
+          { "value": { "1734601126": 456823345, "1734601127": 789012345 }, "datatype": "map<timestamp,bigint>" },
+          { "value": { "1734516442000": 1734516442000, "1734516443000": 1734516443000 }, "datatype": "map<timestamp,timestamp>" },
+          { "value": { "1734516444000": 123, "1734516445000": 456 }, "datatype": "map<timestamp,int>" },
+          { "value": [ "tag_one", "tag_two", "tag_three" ], "datatype": "set<text>" },
+          { "value": [ true, false ], "datatype": "set<boolean>" },
+          { "value": [ 12, 45, 67, 89 ], "datatype": "set<int>" },
+          { "value": [ 1234567, 98765432, 11111111 ], "datatype": "set<bigint>" },
+          { "value": [ 55.66, 23.34, 12.78 ], "datatype": "set<float>" },
+          { "value": [ 456.782, 654.13, 789.456 ], "datatype": "set<double>" },
+          { "value": [ 1734526439000, 1732516429000, 1734516831000, 1734511234000 ], "datatype": "set<timestamp>" }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT name, age, code, credited, balance, is_active, birth_date, zip_code FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_desc": "Validate basic data values.",
+        "query_type": "VALIDATE",
+        "params": [
+          { "value": "James_new", "datatype": "text" },
+          { "value": 56, "datatype": "bigint" }
+        ],
+        "expected_result": [
+          { "name": "James_new", "datatype": "text" },
+          { "age": 56, "datatype": "bigint" },
+          { "code": 678, "datatype": "int" },
+          { "credited": 555.67, "datatype": "double" },
+          { "balance": 23.43, "datatype": "float" },
+          { "is_active": true, "datatype": "boolean" },
+          { "birth_date": 1734516444000000, "datatype": "timestamp" },
+          { "zip_code": 411057, "datatype": "bigint" }
+        ]
+      },
+      {
+        "query": "SELECT extra_info, map_text_int, map_text_bigint, map_text_boolean, map_text_ts, map_text_float, map_text_double, ts_text_map, ts_boolean_map, ts_float_map, ts_double_map, ts_bigint_map, ts_ts_map, ts_int_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_desc": "Validate all map types data.",
+        "query_type": "VALIDATE",
+        "params": [
+          { "value": "James_new", "datatype": "text" },
+          { "value": 56, "datatype": "bigint" }
+        ],
+        "expected_result": [
+          { "extra_info": { "info_key_one": "info_value_one", "info_key_two": "info_value_two" }, "datatype": "map<text,text>" },
+          { "map_text_int": { "info_key_one": 1234, "info_key_two": 5678 }, "datatype": "map<text,int>" },
+          { "map_text_bigint": { "key1": 1111111111, "key2": 2222222222 }, "datatype": "map<text,bigint>" },
+          { "map_text_boolean": { "key1": true, "key2": false }, "datatype": "map<text,boolean>" },
+          { "map_text_ts": { "key1": 1734517434000, "key2": 1734517435000 }, "datatype": "map<text,timestamp>" },
+          { "map_text_float": { "key1": 45.56, "key2": 67.89 }, "datatype": "map<text,float>" },
+          { "map_text_double": { "key1": 4335.56, "key2": 1234.78 }, "datatype": "map<text,double>" },
+          { "ts_text_map": { "1734516434000": "value_one", "1734516435000": "value_two" }, "datatype": "map<timestamp,text>" },
+          { "ts_boolean_map": { "1734516436000": true, "1734516437000": false }, "datatype": "map<timestamp,boolean>" },
+          { "ts_float_map": { "1734516438000": 45.67, "1734516439000": 78.12 }, "datatype": "map<timestamp,float>" },
+          { "ts_double_map": { "1734516440000": 1234.56, "1734516441000": 7890.12 }, "datatype": "map<timestamp,double>" },
+          { "ts_bigint_map": { "1734601126": 456823345, "1734601127": 789012345 }, "datatype": "map<timestamp,bigint>" },
+          { "ts_ts_map": { "1734516442000": 1734516442000, "1734516443000": 1734516443000 }, "datatype": "map<timestamp,timestamp>" },
+          { "ts_int_map": { "1734516444000": 123, "1734516445000": 456 }, "datatype": "map<timestamp,int>" }
+        ]
+      },
+      {
+        "query": "SELECT tags, set_boolean, set_int, set_bigint, set_float, set_double FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_desc": "Validate all set types data.",
+        "query_type": "VALIDATE",
+        "params": [
+          { "value": "James_new", "datatype": "text" },
+          { "value": 56, "datatype": "bigint" }
+        ],
+        "expected_result": [
+          { "tags": [ "tag_one", "tag_three", "tag_two" ], "datatype": "set<text>" },
+          { "set_boolean": [ false, true ], "datatype": "set<boolean>" },
+          { "set_int": [ 12, 45, 67, 89 ], "datatype": "set<int>" },
+          { "set_bigint": [ 11111111, 1234567, 98765432 ], "datatype": "set<bigint>" },
+          { "set_float": [ 12.78, 23.34, 55.66 ], "datatype": "set<float>" },
+          { "set_double": [ 456.782, 654.13, 789.456 ], "datatype": "set<double>" }
+        ]
+      }
+    ]
+  }
+  
+]

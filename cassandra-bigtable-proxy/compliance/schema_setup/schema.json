@@ -1,0 +1,621 @@
+{
+  "tables": [
+    {
+      "table_name": "schema_mapping",
+      "column_families": [
+        "cf"
+      ],
+      "columns": [
+        {
+          "ColumnName": "ColumnName",
+          "ColumnType": "text",
+          "IsCollection": "false",
+          "IsPrimaryKey": "true",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "schema_mapping"
+        },
+        {
+          "ColumnName": "ColumnType",
+          "ColumnType": "text",
+          "IsCollection": "false",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "schema_mapping"
+        }
+      ]
+    },
+    {
+      "table_name": "user_info",
+      "column_families": [
+        "cf1",
+        "extra_info",
+        "tags",
+        "map_text_int",
+        "map_text_bigint",
+        "map_text_boolean",
+        "map_text_ts",
+        "map_text_float",
+        "map_text_double",
+        "ts_text_map",
+        "ts_boolean_map",
+        "ts_float_map",
+        "ts_double_map",
+        "ts_bigint_map",
+        "ts_ts_map",
+        "ts_int_map",
+        "set_boolean",
+        "set_int",
+        "set_bigint",
+        "set_float",
+        "set_double",
+        "set_timestamp",
+        "list_text",
+        "list_int",
+        "list_bigint",
+        "list_float",
+        "list_double",
+        "list_boolean",
+        "list_timestamp"
+      ],
+      "columns": [
+        {
+          "ColumnName": "name",
+          "ColumnType": "text",
+          "IsCollection": "false",
+          "IsPrimaryKey": "true",
+          "KeyType": "clustering",
+          "PK_Precedence": "2",
+          "TableName": "user_info"
+        },
+        {
+          "ColumnName": "age",
+          "ColumnType": "bigint",
+          "IsCollection": "false",
+          "KeyType": "partition",
+          "IsPrimaryKey": "true",
+          "PK_Precedence": "1",
+          "TableName": "user_info"
+        },
+        {
+          "ColumnName": "code",
+          "ColumnType": "int",
+          "IsCollection": "false",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "user_info"
+        },
+        {
+          "ColumnName": "credited",
+          "ColumnType": "double",
+          "IsCollection": "false",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "user_info"
+        },
+        {
+          "ColumnName": "balance",
+          "ColumnType": "float",
+          "IsCollection": "false",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "user_info"
+        },
+        {
+          "ColumnName": "is_active",
+          "ColumnType": "boolean",
+          "IsCollection": "false",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "user_info"
+        },
+        {
+          "ColumnName": "birth_date",
+          "ColumnType": "timestamp",
+          "IsCollection": "false",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "user_info"
+        },
+        {
+          "ColumnName": "zip_code",
+          "ColumnType": "bigint",
+          "IsCollection": "false",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "user_info"
+        },
+        {
+          "ColumnName": "extra_info",
+          "ColumnType": "map<text,text>",
+          "IsCollection": "true",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "user_info"
+        },
+        {
+          "ColumnName": "map_text_int",
+          "ColumnType": "map<text,int>",
+          "IsCollection": "true",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "user_info"
+        },
+        {
+          "ColumnName": "map_text_bigint",
+          "ColumnType": "map<text,bigint>",
+          "IsCollection": "true",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "user_info"
+        },
+        {
+          "ColumnName": "map_text_boolean",
+          "ColumnType": "map<text,boolean>",
+          "IsCollection": "true",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "user_info"
+        },
+        {
+          "ColumnName": "map_text_ts",
+          "ColumnType": "map<text,timestamp>",
+          "IsCollection": "true",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "user_info"
+        },
+        {
+          "ColumnName": "map_text_float",
+          "ColumnType": "map<text,float>",
+          "IsCollection": "true",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "user_info"
+        },
+        {
+          "ColumnName": "map_text_double",
+          "ColumnType": "map<text,double>",
+          "IsCollection": "true",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "user_info"
+        },
+        {
+          "ColumnName": "ts_text_map",
+          "ColumnType": "map<timestamp,text>",
+          "IsCollection": "true",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "user_info"
+        },
+        {
+          "ColumnName": "ts_boolean_map",
+          "ColumnType": "map<timestamp,boolean>",
+          "IsCollection": "true",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "user_info"
+        },
+        {
+          "ColumnName": "ts_float_map",
+          "ColumnType": "map<timestamp,float>",
+          "IsCollection": "true",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "user_info"
+        },
+        {
+          "ColumnName": "ts_double_map",
+          "ColumnType": "map<timestamp,double>",
+          "IsCollection": "true",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "user_info"
+        },
+        {
+          "ColumnName": "ts_bigint_map",
+          "ColumnType": "map<timestamp,bigint>",
+          "IsCollection": "true",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "user_info"
+        },
+        {
+          "ColumnName": "ts_ts_map",
+          "ColumnType": "map<timestamp,timestamp>",
+          "IsCollection": "true",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "user_info"
+        },
+        {
+          "ColumnName": "ts_int_map",
+          "ColumnType": "map<timestamp,int>",
+          "IsCollection": "true",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "user_info"
+        },
+        {
+          "ColumnName": "tags",
+          "ColumnType": "set<text>",
+          "IsCollection": "true",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "user_info"
+        },
+        {
+          "ColumnName": "set_boolean",
+          "ColumnType": "set<boolean>",
+          "IsCollection": "true",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "user_info"
+        },
+        {
+          "ColumnName": "set_int",
+          "ColumnType": "set<int>",
+          "IsCollection": "true",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "user_info"
+        },
+        {
+          "ColumnName": "set_bigint",
+          "ColumnType": "set<bigint>",
+          "IsCollection": "true",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "user_info"
+        },
+        {
+          "ColumnName": "set_float",
+          "ColumnType": "set<float>",
+          "IsCollection": "true",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "user_info"
+        },
+        {
+          "ColumnName": "set_double",
+          "ColumnType": "set<double>",
+          "IsCollection": "true",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "user_info"
+        },
+        {
+          "ColumnName": "set_timestamp",
+          "ColumnType": "set<timestamp>",
+          "IsCollection": "true",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "user_info"
+        },
+        {
+          "ColumnName": "list_text",
+          "ColumnType": "list<text>",
+          "IsCollection": "true",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "user_info"
+        },
+        {
+          "ColumnName": "list_int",
+          "ColumnType": "list<int>",
+          "IsCollection": "true",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "user_info"
+        },
+        {
+          "ColumnName": "list_bigint",
+          "ColumnType": "list<bigint>",
+          "IsCollection": "true",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "user_info"
+        },
+        {
+          "ColumnName": "list_float",
+          "ColumnType": "list<float>",
+          "IsCollection": "true",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "user_info"
+        },
+        {
+          "ColumnName": "list_double",
+          "ColumnType": "list<double>",
+          "IsCollection": "true",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "user_info"
+        },
+        {
+          "ColumnName": "list_boolean",
+          "ColumnType": "list<boolean>",
+          "IsCollection": "true",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "user_info"
+        },
+        {
+          "ColumnName": "list_timestamp",
+          "ColumnType": "list<timestamp>",
+          "IsCollection": "true",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "user_info"
+        }
+      ]
+    },
+    {
+      "table_name": "emp_table",
+      "column_families": [
+        "cf1",
+        "address",
+        "skills",
+        "list_text",
+        "list_int",
+        "list_bigint",
+        "list_float",
+        "list_double",
+        "list_boolean",
+        "list_timestamp"
+      ],
+      "columns": [
+        {
+          "ColumnName": "name",
+          "ColumnType": "text",
+          "IsCollection": "false",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "emp_table"
+        },
+        {
+          "ColumnName": "age",
+          "ColumnType": "int",
+          "IsCollection": "false",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "emp_table"
+        },
+        {
+          "ColumnName": "department_id",
+          "ColumnType": "text",
+          "IsCollection": "false",
+          "IsPrimaryKey": "true",
+          "KeyType": "clustering",
+          "PK_Precedence": "2",
+          "TableName": "emp_table"
+        },
+        {
+          "ColumnName": "salary",
+          "ColumnType": "float",
+          "IsCollection": "false",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "emp_table"
+        },
+        {
+          "ColumnName": "employee_id",
+          "ColumnType": "text",
+          "IsCollection": "false",
+          "IsPrimaryKey": "true",
+          "KeyType": "partition",
+          "PK_Precedence": "1",
+          "TableName": "emp_table"
+        },
+        {
+          "ColumnName": "address",
+          "ColumnType": "map<text,text>",
+          "IsCollection": "true",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "emp_table"
+        },
+        {
+          "ColumnName": "skills",
+          "ColumnType": "set<text>",
+          "IsCollection": "true",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "emp_table"
+        },
+        {
+          "ColumnName": "updated_at",
+          "ColumnType": "timestamp",
+          "IsCollection": "false",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "emp_table"
+        },
+        {
+          "ColumnName": "profile_picture",
+          "ColumnType": "blob",
+          "IsCollection": "false",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "emp_table"
+        },
+        {
+          "ColumnName": "performance_score",
+          "ColumnType": "double",
+          "IsCollection": "false",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "emp_table"
+        },
+        {
+          "ColumnName": "list_int",
+          "ColumnType": "list<int>",
+          "IsCollection": "true",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "emp_table"
+        },
+        {
+          "ColumnName": "list_bigint",
+          "ColumnType": "list<bigint>",
+          "IsCollection": "true",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "emp_table"
+        },
+        {
+          "ColumnName": "list_boolean",
+          "ColumnType": "list<boolean>",
+          "IsCollection": "true",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "emp_table"
+        },
+        {
+          "ColumnName": "list_float",
+          "ColumnType": "list<float>",
+          "IsCollection": "true",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "emp_table"
+        },
+        {
+          "ColumnName": "list_double",
+          "ColumnType": "list<double>",
+          "IsCollection": "true",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "emp_table"
+        },
+        {
+          "ColumnName": "list_timestamp",
+          "ColumnType": "list<timestamp>",
+          "IsCollection": "true",
+          "IsPrimaryKey": "false",
+          "KeyType": "regular",
+          "PK_Precedence": "0",
+          "TableName": "emp_table"
+        }
+      ]
+    },
+    {
+      "table_name": "employee",
+      "column_families": [
+        "cf1"
+      ],
+      "columns": [
+        {
+          "ColumnName": "name",
+          "ColumnType": "text",
+          "IsCollection": "false",
+          "IsPrimaryKey": "true",
+          "PK_Precedence": "1",
+          "KeyType": "partition",
+          "TableName": "employee"
+        },
+        {
+          "ColumnName": "age",
+          "ColumnType": "bigint",
+          "IsCollection": "false",
+          "IsPrimaryKey": "false",
+          "PK_Precedence": "0",
+          "KeyType": "regular",
+          "TableName": "employee"
+        },
+        {
+          "ColumnName": "code",
+          "ColumnType": "int",
+          "IsCollection": "false",
+          "IsPrimaryKey": "false",
+          "PK_Precedence": "0",
+          "TableName": "employee"
+        },
+        {
+          "ColumnName": "credited",
+          "ColumnType": "double",
+          "IsCollection": "false",
+          "IsPrimaryKey": "false",
+          "PK_Precedence": "0",
+          "KeyType": "regular",
+          "TableName": "employee"
+        },
+        {
+          "ColumnName": "balance",
+          "ColumnType": "float",
+          "IsCollection": "false",
+          "IsPrimaryKey": "false",
+          "PK_Precedence": "0",
+          "KeyType": "regular",
+          "TableName": "employee"
+        },
+        {
+          "ColumnName": "is_active",
+          "ColumnType": "boolean",
+          "IsCollection": "false",
+          "IsPrimaryKey": "false",
+          "PK_Precedence": "0",
+          "KeyType": "regular",
+          "TableName": "employee"
+        },
+        {
+          "ColumnName": "birth_date",
+          "ColumnType": "timestamp",
+          "IsCollection": "false",
+          "IsPrimaryKey": "false",
+          "PK_Precedence": "0",
+          "KeyType": "regular",
+          "TableName": "employee"
+        }
+      ]
+    }
+  ]
+}

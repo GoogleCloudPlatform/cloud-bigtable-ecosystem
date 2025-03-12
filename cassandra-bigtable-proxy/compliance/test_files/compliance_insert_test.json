@@ -1,0 +1,968 @@
+[
+  {
+    "title": "Basic Insert and Validation Test",
+    "description": "This test case verifies a basic INSERT operation into the 'test_table' table. After inserting a new record, the test performs a SELECT query to validate that the data has been correctly inserted.",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+        "query_desc": "Perform an INSERT operation to add a new user record with 'name', 'age', and 'code'.",
+        "query_type": "INSERT",
+        "params": [
+          {
+            "value": "John Doe",
+            "datatype": "text"
+          },
+          {
+            "value": 30,
+            "datatype": "bigint"
+          },
+          {
+            "value": 123,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT name, age, code FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_type": "SELECT",
+        "query_desc": "Run a SELECT query to retrieve and validate the inserted user record based on 'name' and 'age'.",
+        "params": [
+          {
+            "value": "John Doe",
+            "datatype": "text"
+          },
+          {
+            "value": 30,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_result": [
+          {
+            "name": "John Doe",
+            "datatype": "text"
+          },
+          {
+            "age": 30,
+            "datatype": "bigint"
+          },
+          {
+            "code": 123,
+            "datatype": "int"
+          }
+        ]
+      }
+    ],
+    "success_message": "User record successfully inserted and validated.",
+    "failure_message": "Failed to validate the inserted user record. Data mismatch or insertion error."
+  },
+  {
+    "title": "Upsert Operation with Validation",
+    "description": "This test case verifies the upsert operation by performing two consecutive INSERT operations with different values for the same primary key. The second insert should overwrite the first. A SELECT query is executed to validate that the latest inserted value is present.",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+        "query_desc": "Initial upsert - Insert record with initial 'code' value.",
+        "query_type": "INSERT",
+        "params": [
+          {
+            "value": "Lorem",
+            "datatype": "text"
+          },
+          {
+            "value": 33,
+            "datatype": "bigint"
+          },
+          {
+            "value": 123,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+        "query_desc": "Upsert (overwrite) - Insert with the same key but update 'code' value.",
+        "query_type": "INSERT",
+        "params": [
+          {
+            "value": "Lorem",
+            "datatype": "text"
+          },
+          {
+            "value": 33,
+            "datatype": "bigint"
+          },
+          {
+            "value": 456,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT name, age, code FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_type": "SELECT",
+        "query_desc": "Validate the upsert by selecting the record and ensuring 'code' reflects the latest value.",
+        "params": [
+          {
+            "value": "Lorem",
+            "datatype": "text"
+          },
+          {
+            "value": 33,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_result": [
+          {
+            "name": "Lorem",
+            "datatype": "text"
+          },
+          {
+            "age": 33,
+            "datatype": "bigint"
+          },
+          {
+            "code": 456,
+            "datatype": "int"
+          }
+        ]
+      }
+    ],
+    "success_message": "Upsert operation successfully validated. Latest 'code' value is present.",
+    "failure_message": "Upsert validation failed. The 'code' value does not reflect the latest insert, indicating an issue with the upsert logic."
+  },
+  {
+    "title": "Insert and Validate Collection Data",
+    "description": "This test case validates the insertion of records containing collection data types, such as sets and maps. The test inserts a record with collection fields ('tags' and 'extra_info') and performs a SELECT query to ensure the data is correctly stored and retrieved.",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code, tags, extra_info) VALUES (?, ?, ?, ?, ?)",
+        "query_desc": "Insert record with collection fields - 'tags' (set) and 'extra_info' (map).",
+        "query_type": "INSERT",
+        "params": [
+          {
+            "value": "Lilly",
+            "datatype": "text"
+          },
+          {
+            "value": 25,
+            "datatype": "bigint"
+          },
+          {
+            "value": 456,
+            "datatype": "int"
+          },
+          {
+            "value": [
+              "tag1",
+              "tag2"
+            ],
+            "datatype": "set<text>"
+          },
+          {
+            "value": {
+              "info_key": "info_value"
+            },
+            "datatype": "map<text,text>"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT name, age, code, tags, extra_info FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_type": "SELECT",
+        "query_desc": "Retrieve and validate the inserted record with collection fields.",
+        "params": [
+          {
+            "value": "Lilly",
+            "datatype": "text"
+          },
+          {
+            "value": 25,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_result": [
+          {
+            "name": "Lilly",
+            "datatype": "text"
+          },
+          {
+            "age": 25,
+            "datatype": "bigint"
+          },
+          {
+            "code": 456,
+            "datatype": "int"
+          },
+          {
+            "tags": [
+              "tag1",
+              "tag2"
+            ],
+            "datatype": "set<text>"
+          },
+          {
+            "extra_info": {
+              "info_key": "info_value"
+            },
+            "datatype": "map<text,text>"
+          }
+        ]
+      }
+    ],
+    "success_message": "Collection data inserted and validated successfully.",
+    "failure_message": "Validation failed for collection data. The retrieved record does not match the expected values."
+  },
+  {
+    "title": "Insert and Validate with Future Timestamp",
+    "description": "This test case inserts a record with a future timestamp into the 'test_table' table. A subsequent SELECT query is performed to ensure the data is correctly inserted and retrievable after the future timestamp becomes valid.",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code, tags, extra_info) VALUES (?, ?, ?, ?, ?) USING TIMESTAMP ?",
+        "query_desc": "Insert record with a future timestamp and collection fields ('tags' and 'extra_info').",
+        "query_type": "INSERT",
+        "params": [
+          {
+            "value": "Danial",
+            "datatype": "text"
+          },
+          {
+            "value": 55,
+            "datatype": "bigint"
+          },
+          {
+            "value": 678,
+            "datatype": "int"
+          },
+          {
+            "value": [
+              "tag_one",
+              "tag_two"
+            ],
+            "datatype": "set<text>"
+          },
+          {
+            "value": {
+              "info_key_one": "info_value_one"
+            },
+            "datatype": "map<text,text>"
+          },
+          {
+            "value": "current",
+            "datatype": "bigintTimestamp"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT name, age, code, tags, extra_info FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_type": "SELECT",
+        "query_desc": "Validate that the record with the future timestamp is retrievable after insertion.",
+        "params": [
+          {
+            "value": "Danial",
+            "datatype": "text"
+          },
+          {
+            "value": 55,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_result": [
+          {
+            "name": "Danial",
+            "datatype": "text"
+          },
+          {
+            "age": 55,
+            "datatype": "bigint"
+          },
+          {
+            "code": 678,
+            "datatype": "int"
+          },
+          {
+            "tags": [
+              "tag_one",
+              "tag_two"
+            ],
+            "datatype": "set<text>"
+          },
+          {
+            "extra_info": {
+              "info_key_one": "info_value_one"
+            },
+            "datatype": "map<text,text>"
+          }
+        ]
+      }
+    ],
+    "success_message": "Record with future timestamp successfully inserted and validated.",
+    "failure_message": "Validation failed for record with future timestamp. The data may not be available yet or an issue occurred during insertion."
+  },
+  {
+    "title": "Insert and Validate with Past Timestamp",
+    "description": "This test case inserts a record with a past timestamp into the 'test_table' table and validates its presence through a SELECT query.",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code, tags, extra_info) VALUES (?, ?, ?, ?, ?) USING TIMESTAMP ?",
+        "query_desc": "Insert record with past timestamp and collection fields.",
+        "query_type": "INSERT",
+        "params": [
+          {
+            "value": "Vitory",
+            "datatype": "text"
+          },
+          {
+            "value": 34,
+            "datatype": "bigint"
+          },
+          {
+            "value": 678,
+            "datatype": "int"
+          },
+          {
+            "value": [
+              "tag_one",
+              "tag_two"
+            ],
+            "datatype": "set<text>"
+          },
+          {
+            "value": {
+              "info_key_one": "info_value_one"
+            },
+            "datatype": "map<text,text>"
+          },
+          {
+            "value": "past",
+            "datatype": "bigintTimestamp"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT name, age, code, tags, extra_info FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_type": "SELECT",
+        "query_desc": "Validate the inserted record with past timestamp.",
+        "params": [
+          {
+            "value": "Vitory",
+            "datatype": "text"
+          },
+          {
+            "value": 34,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_result": [
+          {
+            "name": "Vitory",
+            "datatype": "text"
+          },
+          {
+            "age": 34,
+            "datatype": "bigint"
+          },
+          {
+            "code": 678,
+            "datatype": "int"
+          },
+          {
+            "tags": [
+              "tag_one",
+              "tag_two"
+            ],
+            "datatype": "set<text>"
+          },
+          {
+            "extra_info": {
+              "info_key_one": "info_value_one"
+            },
+            "datatype": "map<text,text>"
+          }
+        ]
+      }
+    ],
+    "success_message": "Record with past timestamp inserted and validated successfully.",
+    "failure_message": "Failed to validate record with past timestamp."
+  },
+  {
+    "title": "Insert and Validate Record with All Supported Datatypes",
+    "description": "This test case inserts a record into the 'user_info' table with all supported datatypes and validates its presence through a SELECT query to ensure correct insertion.",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code, credited, balance, is_active, birth_date, zip_code, extra_info, map_text_int, map_text_bigint, map_text_boolean, map_text_ts, map_text_float, map_text_double, ts_text_map, ts_boolean_map, ts_float_map, ts_double_map, ts_bigint_map, ts_ts_map, ts_int_map, tags, set_boolean, set_int, set_bigint, set_float, set_double, set_timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "query_desc": "Insert record with all supported datatypes.",
+        "query_type": "INSERT",
+        "params": [
+          {
+            "value": "James",
+            "datatype": "text"
+          },
+          {
+            "value": 56,
+            "datatype": "bigint"
+          },
+          {
+            "value": 678,
+            "datatype": "int"
+          },
+          {
+            "value": 555.67,
+            "datatype": "double"
+          },
+          {
+            "value": 23.43,
+            "datatype": "float"
+          },
+          {
+            "value": true,
+            "datatype": "boolean"
+          },
+          {
+            "value": 1734516444000,
+            "datatype": "timestamp"
+          },
+          {
+            "value": 411057,
+            "datatype": "bigint"
+          },
+          {
+            "value": {
+              "info_key_one": "info_value_one"
+            },
+            "datatype": "map<text,text>"
+          },
+          {
+            "value": {
+              "info_key_int": 1234
+            },
+            "datatype": "map<text,int>"
+          },
+          {
+            "value": {
+              "info_key_bigint": 567879999
+            },
+            "datatype": "map<text,bigint>"
+          },
+          {
+            "value": {
+              "info_key_bigint": true
+            },
+            "datatype": "map<text,boolean>"
+          },
+          {
+            "value": {
+              "info_key_bigint": 1734517434000
+            },
+            "datatype": "map<text,timestamp>"
+          },
+          {
+            "value": {
+              "info_key_bigint": 45.56
+            },
+            "datatype": "map<text,float>"
+          },
+          {
+            "value": {
+              "info_key_bigint": 4335.56
+            },
+            "datatype": "map<text,double>"
+          },
+          {
+            "value": {
+              "1734516434000": "timestamp_as_key"
+            },
+            "datatype": "map<timestamp,text>"
+          },
+          {
+            "value": {
+              "1734516435000": true
+            },
+            "datatype": "map<timestamp,boolean>"
+          },
+          {
+            "value": {
+              "1734516436000": 45.67
+            },
+            "datatype": "map<timestamp,float>"
+          },
+          {
+            "value": {
+              "1734516437000": 455.667
+            },
+            "datatype": "map<timestamp,double>"
+          },
+          {
+            "value": {
+              "1734601126": 456823345
+            },
+            "datatype": "map<timestamp,bigint>"
+          },
+          {
+            "value": {
+              "1734516439000": 1734516439000
+            },
+            "datatype": "map<timestamp,timestamp>"
+          },
+          {
+            "value": {
+              "1734516449000": 456
+            },
+            "datatype": "map<timestamp,int>"
+          },
+          {
+            "value": [
+              "tag_one",
+              "tag_two"
+            ],
+            "datatype": "set<text>"
+          },
+          {
+            "value": [
+              true,
+              false
+            ],
+            "datatype": "set<boolean>"
+          },
+          {
+            "value": [
+              12,
+              45,
+              67
+            ],
+            "datatype": "set<int>"
+          },
+          {
+            "value": [
+              1234567,
+              98765432
+            ],
+            "datatype": "set<bigint>"
+          },
+          {
+            "value": [
+              55.66,
+              23.34
+            ],
+            "datatype": "set<float>"
+          },
+          {
+            "value": [
+              456.782,
+              654.13
+            ],
+            "datatype": "set<double>"
+          },
+          {
+            "value": [
+              1734526439000,
+              1732516429000,
+              1734516831000
+            ],
+            "datatype": "set<timestamp>"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT name, age, code, credited FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_desc": "Validate the inserted record by selecting and comparing all values.",
+        "query_type": "SELECT",
+        "params": [
+          {
+            "value": "James",
+            "datatype": "text"
+          },
+          {
+            "value": 56,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_result": [
+          {
+            "name": "James",
+            "datatype": "text"
+          },
+          {
+            "age": 56,
+            "datatype": "bigint"
+          },
+          {
+            "code": 678,
+            "datatype": "int"
+          },
+          {
+            "credited": 555.67,
+            "datatype": "double"
+          }
+        ]
+      }
+    ],
+    "success_message": "Record with all datatypes inserted and validated successfully.",
+    "failure_message": "Failed to validate record with all datatypes or data mismatch found."
+  },
+  {
+    "title": "Insert with IF NOT EXISTS and Validation",
+    "description": "This test case inserts a record using the IF NOT EXISTS clause to ensure that duplicate records are not inserted. A subsequent attempt to insert the same record with a different value will be ignored. The validation step ensures the initial insert remains unchanged.",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code, credited) VALUES (?, ?, ?, ?) IF NOT EXISTS",
+        "query_desc": "Insert record using IF NOT EXISTS to prevent duplicates.",
+        "query_type": "INSERT",
+        "params": [
+          {
+            "value": "Jaiswal",
+            "datatype": "text"
+          },
+          {
+            "value": 56,
+            "datatype": "bigint"
+          },
+          {
+            "value": 678,
+            "datatype": "int"
+          },
+          {
+            "value": 3445,
+            "datatype": "double"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code, credited) VALUES (?, ?, ?, ?) IF NOT EXISTS",
+        "query_desc": "Attempt to insert duplicate record, which should be ignored.",
+        "query_type": "INSERT",
+        "params": [
+          {
+            "value": "Jaiswal",
+            "datatype": "text"
+          },
+          {
+            "value": 56,
+            "datatype": "bigint"
+          },
+          {
+            "value": 678,
+            "datatype": "int"
+          },
+          {
+            "value": 8888,
+            "datatype": "double"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT name, age, code, credited FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_type": "SELECT",
+        "query_desc": "Validate that the initial record remains unchanged after the duplicate insert attempt.",
+        "params": [
+          {
+            "value": "Jaiswal",
+            "datatype": "text"
+          },
+          {
+            "value": 56,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_result": [
+          {
+            "name": "Jaiswal",
+            "datatype": "text"
+          },
+          {
+            "age": 56,
+            "datatype": "bigint"
+          },
+          {
+            "code": 678,
+            "datatype": "int"
+          },
+          {
+            "credited": 3445,
+            "datatype": "double"
+          }
+        ]
+      }
+    ],
+    "success_message": "Record inserted and validated successfully without duplication.",
+    "failure_message": "Duplicate record insertion failed to respect IF NOT EXISTS clause."
+  },
+  {
+    "title": "Insert Special Characters",
+    "description": "Insert a record containing special characters to verify if text fields can handle non-alphanumeric characters.",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+        "query_desc": "Insert record with special characters in 'name'.",
+        "query_type": "INSERT",
+        "params": [
+          {
+            "value": "@John#Doe!",
+            "datatype": "text"
+          },
+          {
+            "value": 40,
+            "datatype": "bigint"
+          },
+          {
+            "value": 505,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT name FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_desc": "Validate insertion of special characters.",
+        "query_type": "SELECT",
+        "params": [
+          {
+            "value": "@John#Doe!",
+            "datatype": "text"
+          },
+          {
+            "value": 40,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_result": [
+          {
+            "name": "@John#Doe!",
+            "datatype": "text"
+          }
+        ]
+      }
+    ],
+    "success_message": "Special characters inserted and validated successfully.",
+    "failure_message": "Failed to handle special characters in text fields."
+  },
+  {
+    "title": "Insert with Empty String",
+    "description": "Insert a record with an empty string to verify if the system accepts empty strings for text fields.",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+        "query_desc": "Insert record with empty string for 'name'.",
+        "query_type": "INSERT",
+        "params": [
+          {
+            "value": "",
+            "datatype": "text"
+          },
+          {
+            "value": 27,
+            "datatype": "bigint"
+          },
+          {
+            "value": 303,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": [
+          {
+            "expect_error": true,
+            "error_message": "invalid null value in condition for column name"
+          }
+        ]
+      }
+    ],
+    "success_message": "Empty string inserted and validated successfully.",
+    "failure_message": "Failed to insert or validate empty string."
+  },
+  {
+    "title": "Negative Test Cases for Insert Operations",
+    "description": "This test suite covers various negative scenarios for INSERT operations to ensure the system correctly handles errors.",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "INSERT INTO user_info (name, age, code, credited) VALUES (?, ?, ?, ?)",
+        "query_desc": "Attempt to insert without specifying a keyspace.",
+        "query_type": "INSERT",
+        "params": [
+          {
+            "value": "Smith",
+            "datatype": "text"
+          },
+          {
+            "value": 36,
+            "datatype": "bigint"
+          },
+          {
+            "value": 724,
+            "datatype": "int"
+          },
+          {
+            "value": 8323,
+            "datatype": "double"
+          }
+        ],
+        "expected_result": [
+          {
+            "expect_error": true,
+            "error_message": "invalid input paramaters found for keyspace"
+          }
+        ]
+      },
+      {
+        "query": "INSERT INTO randomkeyspace.user_info (name, age, code, credited) VALUES (?, ?, ?, ?)",
+        "query_desc": "Attempt to insert with an incorrect keyspace name.",
+        "query_type": "INSERT",
+        "params": [
+          {
+            "value": "Smith",
+            "datatype": "text"
+          },
+          {
+            "value": 36,
+            "datatype": "bigint"
+          },
+          {
+            "value": 724,
+            "datatype": "int"
+          },
+          {
+            "value": 8323,
+            "datatype": "double"
+          }
+        ],
+        "expected_result": [
+          {
+            "expect_error": true,
+            "error_message": "keyspace randomkeyspace does not exist"
+          }
+        ]
+      },
+      {
+        "query": "INSERT INTO bigtabledevinstance.random_table (name, age, code, credited) VALUES (?, ?, ?, ?)",
+        "query_desc": "Attempt to insert into a nonexistent table within a valid keyspace.",
+        "query_type": "INSERT",
+        "params": [
+          {
+            "value": "Smith",
+            "datatype": "text"
+          },
+          {
+            "value": 36,
+            "datatype": "bigint"
+          },
+          {
+            "value": 724,
+            "datatype": "int"
+          },
+          {
+            "value": 8323,
+            "datatype": "double"
+          }
+        ],
+        "expected_result": [
+          {
+            "expect_error": true,
+            "error_message": "table random_table does not exist"
+          }
+        ]
+      },
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, random_column, credited) VALUES (?, ?, ?, ?)",
+        "query_desc": "Attempt to insert with an incorrect column name in a valid table.",
+        "query_type": "INSERT",
+        "params": [
+          {
+            "value": "Smith",
+            "datatype": "text"
+          },
+          {
+            "value": 36,
+            "datatype": "bigint"
+          },
+          {
+            "value": 724,
+            "datatype": "int"
+          },
+          {
+            "value": 8323,
+            "datatype": "double"
+          }
+        ],
+        "expected_result": [
+          {
+            "expect_error": true,
+            "error_message": "Undefined column name random_column in table bigtabledevinstance.user_info"
+          }
+        ]
+      },
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, code, credited) VALUES (?, ?, ?)",
+        "query_desc": "Attempt to insert with missing partition or clustering keys.",
+        "query_type": "INSERT",
+        "params": [
+          {
+            "value": "Smith",
+            "datatype": "text"
+          },
+          {
+            "value": 724,
+            "datatype": "int"
+          },
+          {
+            "value": 8323,
+            "datatype": "double"
+          }
+        ],
+        "expected_result": [
+          {
+            "expect_error": true,
+            "error_message": "Some partition key parts are missing: age"
+          }
+        ]
+      },
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code, credited) VALUES (?, ?, ?, ?)",
+        "query_desc": "Attempt to insert with a null value for a non-nullable column.",
+        "query_type": "INSERT",
+        "params": [
+          {
+            "value": null,
+            "datatype": "text"
+          },
+          {
+            "value": 36,
+            "datatype": "bigint"
+          },
+          {
+            "value": 724,
+            "datatype": "int"
+          },
+          {
+            "value": 8323,
+            "datatype": "double"
+          }
+        ],
+        "expected_result": [
+          {
+            "expect_error": true,
+            "error_message": "invalid null value in condition for column name"
+          }
+        ]
+      }
+    ],
+    "success_message": "Records successfully validated for error handling.",
+    "failure_message": "Failed to detect duplication errors as expected."
+  }
+]

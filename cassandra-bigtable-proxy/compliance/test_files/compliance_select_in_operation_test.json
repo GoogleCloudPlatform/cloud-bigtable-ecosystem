@@ -1,0 +1,281 @@
+[
+    {
+        "title": "Select and Validate Data for limit opeeration",
+        "description": "This test inserts a record into the 'test_table' table and performs a SELECT query to validate that the correct data is retrieved.",
+        "kind": "dml",
+        "operations": [
+          {
+            "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code, credited, balance, is_active) VALUES (?, ?, ?, ?, ?, ?)",
+            "query_desc": "Insert a record to set up for the SELECT operation.",
+            "query_type": "INSERT",
+            "params": [
+              { "value": "Ram", "datatype": "text" },
+              { "value": 45, "datatype": "bigint" },
+              { "value": 123, "datatype": "int" },
+              { "value": 12.14127, "datatype": "double" },
+              { "value": 12.1, "datatype": "float" },
+              { "value": true, "datatype": "boolean" }
+            ],
+            "expected_result": null
+          },
+          {
+            "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code, credited, balance, is_active) VALUES (?, ?, ?, ?, ?, ?)",
+            "query_desc": "Insert a record to set up for the SELECT operation.",
+            "query_type": "INSERT",
+            "params": [
+              { "value": "Bob", "datatype": "text" },
+              { "value": 11, "datatype": "bigint" },
+              { "value": 173, "datatype": "int" },
+              { "value": 3.8014127, "datatype": "double" },
+              { "value": 10.71, "datatype": "float" },
+              { "value": false, "datatype": "boolean" }
+            ],
+            "expected_result": null
+          },
+          {
+            "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+            "query_desc": "Insert a record to set up for the SELECT operation.",
+            "query_type": "INSERT",
+            "params": [
+              { "value": "Ram", "datatype": "text" },
+              { "value": 98, "datatype": "bigint" },
+              { "value": 1, "datatype": "int" }
+            ],
+            "expected_result": null
+          },
+          {
+            "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+            "query_desc": "Insert a record to set up for the SELECT operation.",
+            "query_type": "INSERT",
+            "params": [
+              { "value": "Smith", "datatype": "text" },
+              { "value": 245, "datatype": "bigint" },
+              { "value": 8433, "datatype": "int" }
+            ],
+            "expected_result": null
+          },
+          {
+            "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+            "query_desc": "Insert a record to set up for the SELECT operation.",
+            "query_type": "INSERT",
+            "params": [
+              { "value": "Bob", "datatype": "text" },
+              { "value": 90, "datatype": "bigint" },
+              { "value": 0, "datatype": "int" }
+            ],
+            "expected_result": null
+          },
+          {
+            "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+            "query_desc": "Insert a record to set up for the SELECT operation.",
+            "query_type": "INSERT",
+            "params": [
+              { "value": "Ram", "datatype": "text" },
+              { "value": 50, "datatype": "bigint" },
+              { "value": 150, "datatype": "int" }
+            ],
+            "expected_result": null
+          },
+          {
+            "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+            "query_desc": "Insert a record to set up for the SELECT operation.",
+            "query_type": "INSERT",
+            "params": [
+              { "value": "Rahul", "datatype": "text" },
+              { "value": 298, "datatype": "bigint" },
+              { "value": 140, "datatype": "int" }
+            ],
+            "expected_result": null
+          },
+          {
+            "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+            "query_desc": "Insert a record to set up for the SELECT operation.",
+            "query_type": "INSERT",
+            "params": [
+              { "value": "Bob", "datatype": "text" },
+              { "value": 1001, "datatype": "bigint" },
+              { "value": 743, "datatype": "int" }
+            ],
+            "expected_result": null
+          },
+          {
+            "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+            "query_desc": "Insert a record to set up for the SELECT operation.",
+            "query_type": "INSERT",
+            "params": [
+              { "value": "Ram", "datatype": "text" },
+              { "value":732, "datatype": "bigint" },
+              { "value": 10213, "datatype": "int" }
+            ],
+            "expected_result": null
+          },
+          {
+            "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+            "query_desc": "Insert a record to set up for the SELECT operation.",
+            "query_type": "INSERT",
+            "params": [
+              { "value": "Ram", "datatype": "text" },
+              { "value": 85, "datatype": "bigint" },
+              { "value": 1193, "datatype": "int" }
+            ],
+            "expected_result": null
+          },
+          {
+            "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+            "query_desc": "Insert a record to set up for the SELECT operation.",
+            "query_type": "INSERT",
+            "params": [
+              { "value": "Vishnu", "datatype": "text" },
+              { "value": 82, "datatype": "bigint" },
+              { "value": 934, "datatype": "int" }
+            ],
+            "expected_result": null
+          },
+          {
+            "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+            "query_desc": "Insert a record to set up for the SELECT operation.",
+            "query_type": "INSERT",
+            "params": [
+              { "value": "Ram", "datatype": "text" },
+              { "value": 10, "datatype": "bigint" },
+              { "value": 11, "datatype": "int" }
+            ],
+            "expected_result": null
+          },
+          {
+            "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+            "query_desc": "Insert a record to set up for the SELECT operation.",
+            "query_type": "INSERT",
+            "params": [
+              { "value": "Abc", "datatype": "text" },
+              { "value": 10, "datatype": "bigint" },
+              { "value": 2347, "datatype": "int" }
+            ],
+            "expected_result": null
+          },
+          {
+            "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+            "query_desc": "Insert a record to set up for the SELECT operation.",
+            "query_type": "INSERT",
+            "params": [
+              { "value": "Xyz", "datatype": "text" },
+              { "value": 10, "datatype": "bigint" },
+              { "value": 5847, "datatype": "int" }
+            ],
+            "expected_result": null
+          },
+          {
+            "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+            "query_desc": "Insert a record to set up for the SELECT operation.",
+            "query_type": "INSERT",
+            "params": [
+              { "value": "Ram", "datatype": "text" },
+              { "value": 93, "datatype": "bigint" },
+              { "value": 13, "datatype": "int" }
+            ],
+            "expected_result": null
+          },
+          {
+            "query": "SELECT name, age  FROM bigtabledevinstance.user_info WHERE age IN ?",
+            "query_desc": "Retrieve the first N records with specified filter.",
+            "query_type": "SELECT",
+            "is_in_operation": true,
+            "params": [
+              { "value": "82", "datatype": "createlist<bigint>" }
+            ],
+            "expected_multi_row_result": [
+                [
+                    { "name": "Vishnu", "datatype": "text" },
+                    { "age": 82, "datatype": "bigint" }
+                ]
+            ]
+          },
+          {
+            "query": "SELECT name, age  FROM bigtabledevinstance.user_info WHERE age IN ?",
+            "query_desc": "Retrieve the first N records with specified filter.",
+            "query_type": "SELECT",
+            "is_in_operation": true,
+            "params": [
+              { "value": "82", "datatype": "createlist<bigint>" }
+            ],
+            "expected_multi_row_result": [
+                [
+                    { "name": "Vishnu", "datatype": "text" },
+                    { "age": 82, "datatype": "bigint" }
+                ]
+            ]
+          },
+          {
+            "query": "SELECT name, age  FROM bigtabledevinstance.user_info WHERE age IN ?",
+            "query_desc": "Retrieve the first N records with specified filter.",
+            "query_type": "SELECT",
+            "is_in_operation": true,
+            "params": [
+              { "value": "298, 82", "datatype": "createlist<bigint>" }
+            ],
+            "expected_multi_row_result": [
+                [
+                    { "name": "Rahul", "datatype": "text" },
+                    { "age": 298, "datatype": "bigint" }
+                ],
+                [
+                    { "name": "Vishnu", "datatype": "text" },
+                    { "age": 82, "datatype": "bigint" }
+                ]
+            ]
+          },
+          {
+            "query": "SELECT name, age  FROM bigtabledevinstance.user_info WHERE name IN ?",
+            "query_desc": "Retrieve the first N records with specified filter.",
+            "query_type": "SELECT",
+            "is_in_operation": true,
+            "params": [
+              { "value": "Vishnu", "datatype": "createlist<text>" }
+            ],
+            "expect_cassandra_specific_error": "Cannot execute this query as it might involve data filtering and thus may have unpredictable performance. If you want to execute this query despite the performance unpredictability, use ALLOW FILTERING",
+            "default_diff": true,
+            "expected_multi_row_result": [
+                [
+                    { "name": "Vishnu", "datatype": "text" },
+                    { "age": 82, "datatype": "bigint" }
+                ]
+            ]
+          },
+          {
+            "query": "SELECT name, age  FROM bigtabledevinstance.user_info WHERE code IN ?",
+            "query_desc": "Retrieve the first N records with specified filter.",
+            "query_type": "SELECT",
+            "is_in_operation": true,
+            "params": [
+              { "value": "11", "datatype": "createlist<int>" }
+            ],
+            "expected_result": [
+                {
+                    "expect_error": true,
+                    "avoid_compare_error_message": true,
+                    "cassandra_error_message": "Cannot execute this query as it might involve data filtering and thus may have unpredictable performance. If you want to execute this query despite the performance unpredictability, use ALLOW FILTERING"
+                }
+            ]
+          },
+          {
+            "query": "SELECT name, age  FROM bigtabledevinstance.user_info WHERE credited IN ?",
+            "query_desc": "Retrieve the first N records with specified filter.",
+            "query_type": "SELECT",
+            "is_in_operation": true,
+            "params": [
+              { "value": "12.14127", "datatype": "createlist<double>" }
+            ],
+            "expect_cassandra_specific_error": "Cannot execute this query as it might involve data filtering and thus may have unpredictable performance. If you want to execute this query despite the performance unpredictability, use ALLOW FILTERING",
+            "default_diff": true,
+            "expected_multi_row_result": [
+                [
+                    { "name": "Ram", "datatype": "text" },
+                    { "age": 45, "datatype": "bigint" }
+                ]
+            ]
+          }
+        ],
+        "success_message": "Record retrieved successfully with `in` operation from user_details table.",
+        "failure_message": "Failed to retrieve the expected record from user_details table."
+    }
+]

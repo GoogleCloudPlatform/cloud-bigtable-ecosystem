@@ -1,0 +1,120 @@
+[
+    {
+        "title": "Manipulation of Set and Map Data Types in User Information",
+        "description": "This test suite focuses on INSERT, UPDATE, and SELECT operations involving set and map data types in the user_info table.",
+        "operations": [
+          {
+            "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code, tags, extra_info) VALUES (?, ?, ?, ?, ?)",
+            "query_desc": "Insert a record with collection fields 'tags' (set) and 'extra_info' (map).",
+            "query_type": "INSERT",
+            "params": [
+              { "value": "Lilly", "datatype": "text" },
+              { "value": 25, "datatype": "bigint" },
+              { "value": 456, "datatype": "int" },
+              { "value": ["tag1", "tag2"], "datatype": "set<text>" },
+              {
+                "value": { "info_key": "info_value" },
+                "datatype": "map<text,text>"
+              }
+            ],
+            "expected_result": null
+          },
+          {
+            "query": "UPDATE bigtabledevinstance.user_info SET tags=? WHERE name=? and age=?",
+            "query_desc": "Update the 'tags' set for a specific user by name and age.",
+            "query_type": "UPDATE",
+            "params": [
+              { "value": ["tag3", "tag4"], "datatype": "set<text>" },
+              { "value": "Lilly", "datatype": "text" },
+              { "value": 25, "datatype": "bigint" }
+            ],
+            "expected_result": null
+          },
+          {
+            "query": "SELECT name, age, code, tags, extra_info FROM bigtabledevinstance.user_info WHERE name=? AND age=?",
+            "query_desc": "Select user record to verify the update of 'tags'.",
+            "query_type": "SELECT",
+            "params": [
+              { "value": "Lilly", "datatype": "text" },
+              { "value": 25, "datatype": "bigint" }
+            ],
+            "expected_result": [
+              { "name": "Lilly", "datatype": "text" },
+              { "age": 25, "datatype": "bigint" },
+              { "code": 456, "datatype": "int" },
+              { "tags": ["tag3", "tag4"], "datatype": "set<text>" },
+              {
+                "extra_info": { "info_key": "info_value" },
+                "datatype": "map<text,text>"
+              }
+            ]
+          },
+          {
+            "query": "UPDATE bigtabledevinstance.user_info SET extra_info=? WHERE name=? and age=?",
+            "query_desc": "Update the 'extra_info' map for a specific user by name and age.",
+            "query_type": "UPDATE",
+            "params": [
+              {
+                "value": { "updated_info_key": "updated_info_value" },
+                "datatype": "map<text,text>"
+              },
+              { "value": "Lilly", "datatype": "text" },
+              { "value": 25, "datatype": "bigint" }
+            ],
+            "expected_result": null
+          },
+          {
+            "query": "SELECT name, age, code, tags, extra_info FROM bigtabledevinstance.user_info WHERE name=? AND age=?",
+            "query_desc": "Select user record to verify the update of 'extra_info'.",
+            "query_type": "SELECT",
+            "params": [
+              { "value": "Lilly", "datatype": "text" },
+              { "value": 25, "datatype": "bigint" }
+            ],
+            "expected_result": [
+              { "name": "Lilly", "datatype": "text" },
+              { "age": 25, "datatype": "bigint" },
+              { "code": 456, "datatype": "int" },
+              { "tags": ["tag3", "tag4"], "datatype": "set<text>" },
+              {
+                "extra_info": { "updated_info_key": "updated_info_value" },
+                "datatype": "map<text,text>"
+              }
+            ]
+          },
+          {
+            "query": "UPDATE bigtabledevinstance.user_info SET extra_info=? WHERE name=? and age=?",
+            "query_desc": "Update the 'extra_info' map with additional key-value pairs.",
+            "query_type": "UPDATE",
+            "params": [
+              {
+                "value": { "updated_info_key": "updated_info_value", "info_key": "updated_info_value" },
+                "datatype": "map<text,text>"
+              },
+              { "value": "Lilly", "datatype": "text" },
+              { "value": 25, "datatype": "bigint" }
+            ],
+            "expected_result": null
+          },
+          {
+            "query": "SELECT name, age, code, tags, extra_info FROM bigtabledevinstance.user_info WHERE name=? AND age=?",
+            "query_desc": "Select user record to verify the latest update of 'extra_info'.",
+            "query_type": "SELECT",
+            "params": [
+              { "value": "Lilly", "datatype": "text" },
+              { "value": 25, "datatype": "bigint" }
+            ],
+            "expected_result": [
+              { "name": "Lilly", "datatype": "text" },
+              { "age": 25, "datatype": "bigint" },
+              { "code": 456, "datatype": "int" },
+              { "tags": ["tag3", "tag4"], "datatype": "set<text>" },
+              {
+                "extra_info": { "updated_info_key": "updated_info_value", "info_key": "updated_info_value" },
+                "datatype": "map<text,text>"
+              }
+            ]
+          }
+        ]
+    }
+]

@@ -1,0 +1,193 @@
+[
+  {
+    "title": "Unsupported Function in SELECT Query",
+    "description": "This test attempts to perform a SELECT operation using an unsupported function 'xxxx', validating that the query fails with the expected error.",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "SELECT xxxx(name) FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_desc": "Perform a SELECT query using an unsupported function 'xxxx'.",
+        "query_type": "SELECT",
+        "params": [
+          { "value": "Carls", "datatype": "text" },
+          { "value": 45, "datatype": "bigint" }
+        ],
+        "expected_result": [
+          {
+            "error_message": "Unknown function 'xxxx'"
+          }
+        ]
+      }
+    ],
+    "success_message": "Unsupported function in SELECT query failed as expected.",
+    "failure_message": "Query succeeded unexpectedly or returned incorrect error message for unsupported function."
+  },
+  {
+    "title": "Select and Validate Data from test_table Table",
+    "description": "This test inserts a record into the 'test_table' table and performs a SELECT query to validate that the correct data is retrieved.",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code, credited, balance, is_active, birth_date, zip_code, extra_info, tags) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "query_desc": "Insert a record to set up for the SELECT operation.",
+        "query_type": "INSERT",
+        "params": [
+          { "value": "Carls", "datatype": "text" },
+          { "value": 45, "datatype": "bigint" },
+          { "value": 123, "datatype": "int" },
+          { "value": 1500.5, "datatype": "double" },
+          { "value": 500.0, "datatype": "float" },
+          { "value": true, "datatype": "boolean" },
+          { "value": 9151488000000000, "datatype": "timestamp" },
+          { "value": 12345, "datatype": "bigint" },
+          {
+            "value": { "info_key": "info_value" },
+            "datatype": "map<text,text>"
+          },
+          { "value": ["tag1", "tag2"], "datatype": "set<text>" }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT name, age  FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_desc": "Perform SELECT query to validate inserted data.",
+        "query_type": "SELECT",
+        "params": [
+          { "value": "Carls", "datatype": "text" },
+          { "value": 45, "datatype": "bigint" }
+        ],
+        "expected_result": [
+          { "name": "Carls", "datatype": "text" },
+          { "age": 45, "datatype": "bigint" }
+
+        ]
+      }
+    ],
+    "success_message": "Record retrieved successfully from user_details table.",
+    "failure_message": "Failed to retrieve the expected record from user_details table."
+  },
+  {
+    "title": "SELECT All Rows Without WHERE Clause",
+    "description": "Select all rows from 'user_info' without specifying a WHERE condition. Validate the count of returned rows.",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+        "query_desc": "Insert a record to ensure the table has at least one entry.",
+        "query_type": "INSERT",
+        "params": [
+          { "value": "Arena", "datatype": "text" },
+          { "value": 30, "datatype": "bigint" },
+          { "value": 999, "datatype": "int" }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT name, age, code FROM bigtabledevinstance.user_info",
+        "query_desc": "Count all rows without a WHERE condition.",
+        "query_type": "SELECT",
+        "params": [],
+        "expected_result": [
+          {
+            "row_count": 1,
+            "datatype": "bigint"
+          }
+        ]
+      }
+    ],
+    "success_message": "Successfully counted rows in the table without a WHERE clause.",
+    "failure_message": "Failed to validate row count without a WHERE clause."
+  },
+  {
+    "title": "Validating WRITETIME Functionality with and without Alias",
+    "description": "This test case involves inserting records into the 'user_info' table and validating the write timestamps of the 'code' column using the WRITETIME function, both with and without aliases.",
+    "operations": [
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?) USING TIMESTAMP ?",
+        "query_desc": "Insert a record for validating the WRITETIME function on the 'code' column.",
+        "query_type": "INSERT",
+        "params": [
+          { "value": "Alice", "datatype": "text" },
+          { "value": 35, "datatype": "bigint" },
+          { "value": 999, "datatype": "int" },
+          { "value": 1734516831000000, "datatype": "bigint" }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?) USING TIMESTAMP ?",
+        "query_desc": "Insert a record with a future timestamp for testing timestamp comparison.",
+        "query_type": "INSERT",
+        "params": [
+          { "value": "Bob", "datatype": "text" },
+          { "value": 40, "datatype": "bigint" },
+          { "value": 123, "datatype": "int" },
+          { "value": 2683260983500000, "datatype": "bigint" }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT name, age, code, WRITETIME(code) FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_desc": "Retrieve the write timestamp of the 'code' column for 'Alice' without using aliases.",
+        "query_type": "SELECT",
+        "params": [
+          { "value": "Alice", "datatype": "text" },
+          { "value": 35, "datatype": "bigint" }
+        ],
+        "expected_result": [
+          { "name": "Alice", "datatype": "text" },
+          { "age": 35, "datatype": "bigint" },
+          { "code": 999, "datatype": "int" },
+          { "writetime(code)": 1734516831000000, "datatype": "bigint" }
+        ]
+      },
+      {
+        "query": "SELECT name, age, code, writetime(code) FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_desc": "Retrieve the write timestamp of the 'code' column for 'Alice' without using aliases.",
+        "query_type": "SELECT",
+        "params": [
+          { "value": "Alice", "datatype": "text" },
+          { "value": 35, "datatype": "bigint" }
+        ],
+        "expected_result": [
+          { "name": "Alice", "datatype": "text" },
+          { "age": 35, "datatype": "bigint" },
+          { "code": 999, "datatype": "int" },
+          { "writetime(code)": 1734516831000000, "datatype": "bigint" }
+        ]
+      },
+      {
+        "query": "SELECT name, age, code, WRITETIME(code) as abcd FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_desc": "Retrieve the write timestamp of the 'code' column for 'Alice' using the alias 'abcd'.",
+        "query_type": "SELECT",
+        "params": [
+          { "value": "Alice", "datatype": "text" },
+          { "value": 35, "datatype": "bigint" }
+        ],
+        "expected_result": [
+          { "name": "Alice", "datatype": "text" },
+          { "age": 35, "datatype": "bigint" },
+          { "code": 999, "datatype": "int" },
+          { "abcd": 1734516831000000, "datatype": "bigint" }
+        ]
+      },
+      {
+        "query": "SELECT name, age, code, writetime(code) as code_timestamp FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_desc": "Retrieve the write timestamp of the 'code' column for 'Alice' using the alias 'age_timestamp'.",
+        "query_type": "SELECT",
+        "params": [
+          { "value": "Alice", "datatype": "text" },
+          { "value": 35, "datatype": "bigint" }
+        ],
+        "expected_result": [
+          { "name": "Alice", "datatype": "text" },
+          { "age": 35, "datatype": "bigint" },
+          { "code": 999, "datatype": "int" },
+          { "code_timestamp": 1734516831000000, "datatype": "bigint" }
+        ]
+      }
+    ],
+    "success_message": "WRITETIME with and without alias returned the expected result.",
+    "failure_message": "WRITETIME with and without alias did not return the expected result."
+  }
+]

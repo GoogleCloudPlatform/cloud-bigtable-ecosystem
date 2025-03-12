@@ -1,0 +1,424 @@
+[
+    {
+        "title": "Select and Validate Data for limit opeeration",
+        "description": "This test inserts a record into the 'test_table' table and performs a SELECT query to validate that the correct data is retrieved.",
+        "kind": "dml",
+        "operations": [
+          {
+            "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+            "query_desc": "Insert a record to set up for the SELECT operation.",
+            "query_type": "INSERT",
+            "params": [
+              { "value": "Ram", "datatype": "text" },
+              { "value": 45, "datatype": "bigint" },
+              { "value": 123, "datatype": "int" }
+            ],
+            "expected_result": null
+          },
+          {
+            "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+            "query_desc": "Insert a record to set up for the SELECT operation.",
+            "query_type": "INSERT",
+            "params": [
+              { "value": "Ram", "datatype": "text" },
+              { "value": 11, "datatype": "bigint" },
+              { "value": 173, "datatype": "int" }
+            ],
+            "expected_result": null
+          },
+          {
+            "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+            "query_desc": "Insert a record to set up for the SELECT operation.",
+            "query_type": "INSERT",
+            "params": [
+              { "value": "Ram", "datatype": "text" },
+              { "value": 98, "datatype": "bigint" },
+              { "value": 1, "datatype": "int" }
+            ],
+            "expected_result": null
+          },
+          {
+            "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+            "query_desc": "Insert a record to set up for the SELECT operation.",
+            "query_type": "INSERT",
+            "params": [
+              { "value": "Ram", "datatype": "text" },
+              { "value": 245, "datatype": "bigint" },
+              { "value": 8433, "datatype": "int" }
+            ],
+            "expected_result": null
+          },
+          {
+            "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+            "query_desc": "Insert a record to set up for the SELECT operation.",
+            "query_type": "INSERT",
+            "params": [
+              { "value": "Ram", "datatype": "text" },
+              { "value": 90, "datatype": "bigint" },
+              { "value": 0, "datatype": "int" }
+            ],
+            "expected_result": null
+          },
+          {
+            "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+            "query_desc": "Insert a record to set up for the SELECT operation.",
+            "query_type": "INSERT",
+            "params": [
+              { "value": "Ram", "datatype": "text" },
+              { "value": 50, "datatype": "bigint" },
+              { "value": 150, "datatype": "int" }
+            ],
+            "expected_result": null
+          },
+          {
+            "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+            "query_desc": "Insert a record to set up for the SELECT operation.",
+            "query_type": "INSERT",
+            "params": [
+              { "value": "Ram", "datatype": "text" },
+              { "value": 40, "datatype": "bigint" },
+              { "value": 140, "datatype": "int" }
+            ],
+            "expected_result": null
+          },
+          {
+            "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+            "query_desc": "Insert a record to set up for the SELECT operation.",
+            "query_type": "INSERT",
+            "params": [
+              { "value": "Ram", "datatype": "text" },
+              { "value": 1001, "datatype": "bigint" },
+              { "value": 743, "datatype": "int" }
+            ],
+            "expected_result": null
+          },
+          {
+            "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+            "query_desc": "Insert a record to set up for the SELECT operation.",
+            "query_type": "INSERT",
+            "params": [
+              { "value": "Ram", "datatype": "text" },
+              { "value":732, "datatype": "bigint" },
+              { "value": 10213, "datatype": "int" }
+            ],
+            "expected_result": null
+          },
+          {
+            "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+            "query_desc": "Insert a record to set up for the SELECT operation.",
+            "query_type": "INSERT",
+            "params": [
+              { "value": "Ram", "datatype": "text" },
+              { "value": 85, "datatype": "bigint" },
+              { "value": 1193, "datatype": "int" }
+            ],
+            "expected_result": null
+          },
+          {
+            "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+            "query_desc": "Insert a record to set up for the SELECT operation.",
+            "query_type": "INSERT",
+            "params": [
+              { "value": "Ram", "datatype": "text" },
+              { "value": 832, "datatype": "bigint" },
+              { "value": 934, "datatype": "int" }
+            ],
+            "expected_result": null
+          },
+          {
+            "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+            "query_desc": "Insert a record to set up for the SELECT operation.",
+            "query_type": "INSERT",
+            "params": [
+              { "value": "Ram", "datatype": "text" },
+              { "value": 10, "datatype": "bigint" },
+              { "value": 11, "datatype": "int" }
+            ],
+            "expected_result": null
+          },
+          {
+            "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+            "query_desc": "Insert a record to set up for the SELECT operation.",
+            "query_type": "INSERT",
+            "params": [
+              { "value": "Abc", "datatype": "text" },
+              { "value": 10, "datatype": "bigint" },
+              { "value": 2347, "datatype": "int" }
+            ],
+            "expected_result": null
+          },
+          {
+            "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+            "query_desc": "Insert a record to set up for the SELECT operation.",
+            "query_type": "INSERT",
+            "params": [
+              { "value": "Xyz", "datatype": "text" },
+              { "value": 10, "datatype": "bigint" },
+              { "value": 5847, "datatype": "int" }
+            ],
+            "expected_result": null
+          },
+          {
+            "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+            "query_desc": "Insert a record to set up for the SELECT operation.",
+            "query_type": "INSERT",
+            "params": [
+              { "value": "Ram", "datatype": "text" },
+              { "value": 93, "datatype": "bigint" },
+              { "value": 13, "datatype": "int" }
+            ],
+            "expected_result": null
+          },
+          {
+            "query": "SELECT name, age  FROM bigtabledevinstance.user_info WHERE name = ? ORDER BY age LIMIT ?",
+            "query_desc": "Retrieve the first N records with specified name, ordered by age.",
+            "query_type": "SELECT",
+            "params": [
+              { "value": "Ram", "datatype": "text" },
+              { "value": 4, "datatype": "bigint" }
+            ],
+            "expect_cassandra_specific_error": "ORDER BY is only supported when the partition key is restricted by an EQ or an IN.",
+            "default_diff": true,
+            "expected_multi_row_result": [
+                [
+                    { "name": "Ram", "datatype": "text" },
+                    { "age": 10, "datatype": "bigint" }
+                ],
+                [
+                    { "name": "Ram", "datatype": "text" },
+                    { "age":11, "datatype": "bigint" }
+                ],
+                [
+                    { "name": "Ram", "datatype": "text" },
+                    { "age": 40, "datatype": "bigint" }
+                ],
+                [
+                    { "name": "Ram", "datatype": "text" },
+                    { "age": 45, "datatype": "bigint" }
+                ]
+            ]
+          },
+          {
+            "query": "SELECT name, age  FROM bigtabledevinstance.user_info WHERE name = ? ORDER BY age desc LIMIT ?",
+            "query_desc": "Retrieve the top N records with specified name, ordered by age descending.",
+            "query_type": "SELECT",
+            "params": [
+              { "value": "Ram", "datatype": "text" },
+              { "value": 4, "datatype": "bigint" }
+            ],
+            "default_diff": true,
+            "expect_cassandra_specific_error": "ORDER BY is only supported when the partition key is restricted by an EQ or an IN.",
+            "expected_multi_row_result": [
+                [
+                    { "name": "Ram", "datatype": "text" },
+                    { "age": 1001, "datatype": "bigint" }
+                ],
+                [
+                    { "name": "Ram", "datatype": "text" },
+                    { "age": 832, "datatype": "bigint" }
+                ],
+                [
+                    { "name": "Ram", "datatype": "text" },
+                    { "age": 732, "datatype": "bigint" }
+                ],
+                [
+                    { "name": "Ram", "datatype": "text" },
+                    { "age": 245, "datatype": "bigint" }
+                ]
+            ]
+          },
+          {
+            "query": "SELECT name, age  FROM bigtabledevinstance.user_info WHERE age = ? ORDER BY name LIMIT ?",
+            "query_desc": "Retrieve the first N records with specified age, ordered by name.",
+            "query_type": "SELECT",
+            "params": [
+              { "value": 10, "datatype": "bigint" },
+              { "value": 2, "datatype": "bigint" }
+            ],
+            "default_diff": true,
+            "expected_multi_row_result": [
+                [
+                    { "name": "Abc", "datatype": "text" },
+                    { "age": 10, "datatype": "bigint" }
+                ],
+                [
+                    { "name": "Ram", "datatype": "text" },
+                    { "age": 10, "datatype": "bigint" }
+                ]
+            ]
+          },
+          {
+            "query": "SELECT name, age  FROM bigtabledevinstance.user_info WHERE age = ? ORDER BY name",
+            "query_desc": "Retrieve all records with specified age, ordered by name.",
+            "query_type": "SELECT",
+            "params": [
+              { "value": 10, "datatype": "bigint" }
+            ],
+            "default_diff": true,
+            "expected_multi_row_result": [
+                [
+                    { "name": "Abc", "datatype": "text" },
+                    { "age": 10, "datatype": "bigint" }
+                ],
+                [
+                    { "name": "Ram", "datatype": "text" },
+                    { "age": 10, "datatype": "bigint" }
+                ],
+                [
+                    { "name": "Xyz", "datatype": "text" },
+                    { "age": 10, "datatype": "bigint" }
+                ]
+            ]
+          },
+          {
+            "query": "SELECT name, age  FROM bigtabledevinstance.user_info WHERE age = ? ORDER BY name desc LIMIT ?",
+            "query_desc": "Retrieve the top N records with specified age, ordered by name descending.",
+            "query_type": "SELECT",
+            "params": [
+              { "value": 10, "datatype": "bigint" },
+              { "value": 3, "datatype": "bigint" }
+            ],
+            "default_diff": true,
+            "expected_multi_row_result": [
+                [
+                    { "name": "Xyz", "datatype": "text" },
+                    { "age": 10, "datatype": "bigint" }
+                ],
+                [
+                    { "name": "Ram", "datatype": "text" },
+                    { "age": 10, "datatype": "bigint" }
+                ], 
+                [
+                    { "name": "Abc", "datatype": "text" },
+                    { "age": 10, "datatype": "bigint" }
+                ]
+            ]
+          },
+          {
+            "query": "SELECT name, age  FROM bigtabledevinstance.user_info WHERE age = ? ORDER BY name desc",
+            "query_desc": "Retrieve all records with specified age, ordered by name descending.",
+            "query_type": "SELECT",
+            "params": [
+              { "value": 10, "datatype": "bigint" }
+            ],
+            "default_diff": true,
+            "expected_multi_row_result": [
+                [
+                    { "name": "Xyz", "datatype": "text" },
+                    { "age": 10, "datatype": "bigint" }
+                ],
+                [
+                    { "name": "Ram", "datatype": "text" },
+                    { "age": 10, "datatype": "bigint" }
+                ], 
+                [
+                    { "name": "Abc", "datatype": "text" },
+                    { "age": 10, "datatype": "bigint" }
+                ]
+            ]
+          },
+          {
+            "query": "SELECT name, age  FROM bigtabledevinstance.user_info WHERE age = ? LIMIT ?",
+            "query_desc": "Retrieve the first N records with specified age.",
+            "query_type": "SELECT",
+            "params": [
+              { "value": 10, "datatype": "bigint" },
+              { "value": 3, "datatype": "bigint" }
+            ],
+            "default_diff": true,
+            "expected_multi_row_result": [
+                [
+                    { "name": "Abc", "datatype": "text" },
+                    { "age": 10, "datatype": "bigint" }
+                ],
+                [
+                    { "name": "Ram", "datatype": "text" },
+                    { "age": 10, "datatype": "bigint" }
+                ], 
+                [
+                    { "name": "Xyz", "datatype": "text" },
+                    { "age": 10, "datatype": "bigint" }
+                ]
+            ]
+          },
+          {
+            "query": "SELECT name, age  FROM bigtabledevinstance.user_info WHERE age = ? LIMIT ?",
+            "query_desc": "Try to get records with specified age with negative limit value.",
+            "query_type": "SELECT",
+            "params": [
+              { "value": 10, "datatype": "bigint" },
+              { "value": -3, "datatype": "bigint" }
+            ],
+            "expected_result": [
+                {
+                    "expect_error": true,
+                    "error_message": "LIMIT must be strictly positive"
+                }
+            ]
+          },
+          {
+            "query": "SELECT name, age  FROM bigtabledevinstance.user_info WHERE age = ? LIMIT ?",
+            "query_desc": "Retrieve records with specified age with '0' limit value.",
+            "query_type": "SELECT",
+            "params": [
+              { "value": 10, "datatype": "bigint" },
+              { "value": 0, "datatype": "bigint" }
+            ],
+            "expected_result": [
+                {
+                    "expect_error": true,
+                    "error_message": "LIMIT must be strictly positive"
+                }
+            ]
+          },
+          {
+            "query": "SELECT name, age  FROM bigtabledevinstance.user_info WHERE age = ? LIMIT ? Order By name",
+            "query_desc": "Trying to run invalid query",
+            "query_type": "SELECT",
+            "params": [
+              { "value": 10, "datatype": "bigint" },
+              { "value": 5, "datatype": "bigint" }
+            ],
+            "expected_result": [
+                {
+                    "expect_error": true,
+                    "avoid_compare_error_message": true,
+                    "cassandra_error_message": "line 1:75 mismatched input 'Order' expecting EOF (...age = ? LIMIT ? [Order]...)"
+                }
+            ]
+          },
+          {
+            "query": "SELECT name, age  FROM bigtabledevinstance.user_info WHERE age = ? Order By name LIMIT",
+            "query_desc": "Trying to run invalid query without Limit value",
+            "query_type": "SELECT",
+            "params": [
+              { "value": 10, "datatype": "bigint" }
+            ],
+            "expected_result": [
+                {
+                    "expect_error": true,
+                    "avoid_compare_error_message": true,
+                    "cassandra_error_message": "line 0:-1 no viable alternative at input '<EOF>'"
+                }
+            ]
+          },
+          {
+            "query": "SELECT name, age  FROM bigtabledevinstance.user_info WHERE age = ? Order By LIMIT 100",
+            "query_desc": "Trying to run invalid query without Order By value",
+            "query_type": "SELECT",
+            "params": [
+              { "value": 10, "datatype": "bigint" }
+            ],
+            "expected_result": [
+                {
+                    "expect_error": true,
+                    "avoid_compare_error_message": true,
+                    "cassandra_error_message": ""
+                }
+            ]
+          }
+        ],
+        "success_message": "Record retrieved successfully with LIMIT and Order By keywords from user_details table.",
+        "failure_message": "Failed to retrieve the expected record from user_details table."
+    }
+]

@@ -1,0 +1,613 @@
+[
+  {
+    "title": "Delete Operation with Record Validation",
+    "description": "This test case focuses on deleting a record from the 'test_table' table. The process involves inserting a record, validating its existence, performing the delete operation, and verifying the record's absence through a final SELECT query.",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code, credited) VALUES (?, ?, ?, ?)",
+        "query_desc": "Insert a record to set up for the delete operation.",
+        "query_type": "INSERT",
+        "params": [
+          {
+            "value": "Michael",
+            "datatype": "text"
+          },
+          {
+            "value": 45,
+            "datatype": "bigint"
+          },
+          {
+            "value": 987,
+            "datatype": "int"
+          },
+          {
+            "value": 5000,
+            "datatype": "double"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT name, age, code FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_desc": "Validate the record insertion before proceeding with deletion.",
+        "query_type": "SELECT",
+        "params": [
+          {
+            "value": "Michael",
+            "datatype": "text"
+          },
+          {
+            "value": 45,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_result": [
+          {
+            "name": "Michael",
+            "datatype": "text"
+          },
+          {
+            "age": 45,
+            "datatype": "bigint"
+          },
+          {
+            "code": 987,
+            "datatype": "int"
+          }
+        ]
+      },
+      {
+        "query": "DELETE FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_desc": "Delete the record by 'name' and 'age'.",
+        "query_type": "DELETE",
+        "params": [
+          {
+            "value": "Michael",
+            "datatype": "text"
+          },
+          {
+            "value": 45,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT name, age, code FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_desc": "Ensure the record is deleted by verifying no rows are returned.",
+        "query_type": "SELECT",
+        "params": [
+          {
+            "value": "Michael",
+            "datatype": "text"
+          },
+          {
+            "value": 45,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_result": null
+      }
+    ],
+    "success_message": "Record successfully deleted and verified as non-existent.",
+    "failure_message": "Record was not deleted or still exists after deletion."
+  },
+  {
+    "title": "Delete Operation with Timestamp, Cassandra should work fine but Bigtable should return error",
+    "description": "This test inserts a record into the 'test_table' table, attempts to delete it using a timestamp, and verifies that the delete operation fails with the expected error on Bigtable as USING TIMESTAMP could lead to data inconsistency due to the limitation of applying USING TIMESTAMP on scalar columns, we have not added the support of UT for delete operations but it will work on cassandra.",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code, credited) VALUES (?, ?, ?, ?)",
+        "query_desc": "Insert a record to set up for the delete operation test.",
+        "query_type": "INSERT",
+        "params": [
+          {
+            "value": "Jhon",
+            "datatype": "text"
+          },
+          {
+            "value": 33,
+            "datatype": "bigint"
+          },
+          {
+            "value": 123,
+            "datatype": "int"
+          },
+          {
+            "value": 1500.5,
+            "datatype": "double"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT name, age, code FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_desc": "Validate the record insertion before proceeding with deletion.",
+        "query_type": "SELECT",
+        "params": [
+          {
+            "value": "Jhon",
+            "datatype": "text"
+          },
+          {
+            "value": 33,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_result": [
+          {
+            "name": "Jhon",
+            "datatype": "text"
+          },
+          {
+            "age": 33,
+            "datatype": "bigint"
+          },
+          {
+            "code": 123,
+            "datatype": "int"
+          }
+        ]
+      },
+      {
+        "query": "DELETE FROM bigtabledevinstance.user_info USING TIMESTAMP ? WHERE name = ? AND age = ?",
+        "query_desc": "Attempt to delete the record using a timestamp. Expect this to fail.",
+        "query_type": "DELETE",
+        "params": [
+          {
+            "value": "current",
+            "datatype": "bigintTimestamp"
+          },
+          {
+            "value": "Jhon",
+            "datatype": "text"
+          },
+          {
+            "value": 33,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_result": [
+          {
+            "expect_error": true,
+            "error_message": "error delete prepare query: delete using timestamp is not allowed"
+          }
+        ]
+      }
+    ],
+    "success_message": "Delete operation failed as expected with the correct error message.",
+    "failure_message": "Delete operation succeeded unexpectedly or returned an incorrect error message."
+  },
+  {
+    "title": "Delete Specific Record by Primary Key",
+    "description": "Tests deleting a specific record from the 'user_info' table using the primary key (name and age).",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code, credited) VALUES (?, ?, ?, ?)",
+        "query_desc": "Insert a record to set up for the delete operation.",
+        "query_type": "INSERT",
+        "params": [
+          {
+            "value": "John",
+            "datatype": "text"
+          },
+          {
+            "value": 30,
+            "datatype": "bigint"
+          },
+          {
+            "value": 123,
+            "datatype": "int"
+          },
+          {
+            "value": 2000.0,
+            "datatype": "double"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "DELETE FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_desc": "Delete the record using the primary key (name and age).",
+        "query_type": "DELETE",
+        "params": [
+          {
+            "value": "John",
+            "datatype": "text"
+          },
+          {
+            "value": 30,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT name, age, code FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_desc": "Verify the record is deleted by ensuring no rows are returned.",
+        "query_type": "SELECT",
+        "params": [
+          {
+            "value": "John",
+            "datatype": "text"
+          },
+          {
+            "value": 30,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_result": null
+      }
+    ],
+    "success_message": "Record successfully deleted and verified as non-existent.",
+    "failure_message": "Record was not deleted or still exists after deletion."
+  },
+  {
+    "title": "Delete Non-Existent Record",
+    "description": "Tests deleting a record that does not exist in the 'user_info' table.",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "DELETE FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_desc": "Attempt to delete a record that does not exist.",
+        "query_type": "DELETE",
+        "params": [
+          {
+            "value": "NonExistent",
+            "datatype": "text"
+          },
+          {
+            "value": 99,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT name, age, code FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_desc": "Verify that no rows are returned as the record does not exist.",
+        "query_type": "SELECT",
+        "params": [
+          {
+            "value": "NonExistent",
+            "datatype": "text"
+          },
+          {
+            "value": 99,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_result": null
+      }
+    ],
+    "success_message": "Delete operation on non-existent record executed successfully without errors.",
+    "failure_message": "Delete operation on non-existent record resulted in unexpected behavior."
+  },
+  {
+    "title": "Delete Record with IF EXISTS Clause",
+    "description": "Tests deleting a record from the 'user_info' table using the IF EXISTS clause.",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code, credited) VALUES (?, ?, ?, ?)",
+        "query_desc": "Insert a record to set up for the delete operation.",
+        "query_type": "INSERT",
+        "params": [
+          {
+            "value": "Emma",
+            "datatype": "text"
+          },
+          {
+            "value": 28,
+            "datatype": "bigint"
+          },
+          {
+            "value": 112,
+            "datatype": "int"
+          },
+          {
+            "value": 2500.0,
+            "datatype": "double"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "DELETE FROM bigtabledevinstance.user_info WHERE name = ? AND age = ? IF EXISTS",
+        "query_desc": "Delete the record using the IF EXISTS clause.",
+        "query_type": "DELETE",
+        "params": [
+          {
+            "value": "Emma",
+            "datatype": "text"
+          },
+          {
+            "value": 28,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT name, age, code FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_desc": "Verify the record is deleted by ensuring no rows are returned.",
+        "query_type": "SELECT",
+        "params": [
+          {
+            "value": "Emma",
+            "datatype": "text"
+          },
+          {
+            "value": 28,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_result": null
+      }
+    ],
+    "success_message": "Record successfully deleted using the IF EXISTS clause.",
+    "failure_message": "Record deletion with IF EXISTS clause failed or resulted in unexpected behavior."
+  },
+  {
+    "title": "Fail to Delete Record with Additional Conditions in WHERE Clause",
+    "description": "Tests Error in deleting a record with additional non-primary key conditions in the WHERE clause.",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code, credited, balance) VALUES (?, ?, ?, ?, ?)",
+        "query_desc": "Insert a record to set up for the delete operation.",
+        "query_type": "INSERT",
+        "params": [
+          {
+            "value": "Oliver",
+            "datatype": "text"
+          },
+          {
+            "value": 50,
+            "datatype": "bigint"
+          },
+          {
+            "value": 654,
+            "datatype": "int"
+          },
+          {
+            "value": 1200.0,
+            "datatype": "double"
+          },
+          {
+            "value": 100.0,
+            "datatype": "float"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "DELETE FROM bigtabledevinstance.user_info WHERE name = ? AND age = ? AND balance = ?",
+        "query_desc": "Delete the record with an additional condition on the 'balance' column.",
+        "query_type": "DELETE",
+        "params": [
+          {
+            "value": "Oliver",
+            "datatype": "text"
+          },
+          {
+            "value": 50,
+            "datatype": "bigint"
+          },
+          {
+            "value": 100.0,
+            "datatype": "float"
+          }
+        ],
+        "expected_result": [
+          {
+            "expect_error": true,
+            "error_message": "Non PRIMARY KEY columns found in where clause: balance "
+          }
+        ]
+      }
+    ],
+    "success_message": "Failed to delete the record with additional conditions in WHERE clause.",
+    "failure_message": "Record successfully deleted with additional conditions in WHERE clause."
+  },
+  {
+    "title": "Delete Record with IF EXISTS Clause Where Row Is Not Present",
+    "description": "Tests the behavior of the DELETE operation with IF EXISTS when the specified row does not exist in the 'user_info' table.",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "DELETE FROM bigtabledevinstance.user_info WHERE name = ? AND age = ? IF EXISTS",
+        "query_desc": "Attempt to delete a non-existent record using the IF EXISTS clause.",
+        "query_type": "DELETE",
+        "params": [
+          {
+            "value": "NonExistentName",
+            "datatype": "text"
+          },
+          {
+            "value": 99,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_result": null
+      }
+    ],
+    "success_message": "The DELETE operation correctly returned '[applied] = false' for a non-existent row.",
+    "failure_message": "The DELETE operation did not return the expected result when attempting to delete a non-existent row with IF EXISTS."
+  },
+  {
+    "title": "Delete Record with Missing Primary Key",
+    "description": "This test case attempts to delete a record without providing the complete primary key. Since Cassandra requires the full primary key to identify the record, this should result in an error or no deletion.",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "DELETE FROM bigtabledevinstance.user_info WHERE name = ? IF EXISTS",
+        "query_desc": "Attempt to delete a record with only a partial primary key.",
+        "query_type": "DELETE",
+        "params": [
+          {
+            "value": "Michael",
+            "datatype": "text"
+          }
+        ],
+        "expected_result": [
+          {
+            "expect_error": true,
+            "error_message": "some partition key parts are missing: age"
+          }
+        ]
+      }
+    ],
+    "success_message": "The DELETE operation failed as expected due to a missing primary key part.",
+    "failure_message": "The DELETE operation did not fail as expected when attempting to delete a record with a missing primary key."
+  },
+  {
+    "title": "Delete with Non-Existent Condition on Non-Primary Key Column",
+    "description": "This test case attempts to delete a record based on a non-primary key column (e.g., 'credited'). Since Cassandra doesn't support DELETE based on non-primary key columns, this operation should not succeed.",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "DELETE FROM bigtabledevinstance.user_info WHERE credited = ? IF EXISTS",
+        "query_desc": "Attempt to delete a record using a non-primary key column ('credited').",
+        "query_type": "DELETE",
+        "params": [
+          {
+            "value": 5000,
+            "datatype": "double"
+          }
+        ],
+        "expected_result": [
+          {
+            "expect_error": true,
+            "error_message": "Non PRIMARY KEY columns found in where clause: credited "
+          }
+        ]
+      }
+    ],
+    "success_message": "The DELETE operation failed as expected when attempting to delete using a non-primary key column.",
+    "failure_message": "The DELETE operation did not fail as expected when attempting to delete using a non-primary key column."
+  },
+  {
+    "title": "Delete Record with Invalid Data Type",
+    "description": "This test case tests the behavior of the DELETE operation when an invalid data type is provided for one of the columns (e.g., providing a string where an integer is expected). The operation should fail with a type mismatch error.",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "DELETE FROM bigtabledevinstance.user_info WHERE name = ? AND age = ? IF EXISTS",
+        "query_desc": "Attempt to delete a record with an invalid data type for the 'age' column.",
+        "query_type": "DELETE",
+        "params": [
+          {
+            "value": "Michael",
+            "datatype": "text"
+          },
+          {
+            "value": "invalid_age",
+            "datatype": "text"
+          }
+        ],
+        "expected_result": [
+          {
+            "expect_error": true,
+            "error_message": "can not marshal string to bigint: strconv.ParseInt: parsing \"invalid_age\": invalid syntax"
+          }
+        ]
+      }
+    ],
+    "success_message": "The DELETE operation failed as expected due to an invalid data type for the 'age' column.",
+    "failure_message": "The DELETE operation did not fail as expected when providing an invalid data type."
+  },
+  {
+    "title": "Delete Record with Invalid Table Name",
+    "description": "This test case tests the DELETE operation with an invalid table name. Cassandra should return an error indicating that the table does not exist.",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "DELETE FROM bigtabledevinstance.non_existent_table WHERE name = ? AND age = ? IF EXISTS",
+        "query_desc": "Attempt to delete a record from a non-existent table.",
+        "query_type": "DELETE",
+        "params": [
+          {
+            "value": "Michael",
+            "datatype": "text"
+          },
+          {
+            "value": 45,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_result": [
+          {
+            "expect_error": true,
+            "error_message": "table non_existent_table does not exist"
+          }
+        ]
+      }
+    ],
+    "success_message": "The DELETE operation failed as expected due to the non-existent table.",
+    "failure_message": "The DELETE operation did not fail as expected when the table name was invalid."
+  },
+  {
+    "title": "Delete Record from Invalid Keyspace",
+    "description": "This test case attempts to perform a DELETE operation on a non-existent keyspace and verifies the error response.",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "DELETE FROM invalid_keyspace.user_info WHERE name = ? AND age = ?",
+        "query_desc": "Attempt to delete a record from a table in a non-existent keyspace.",
+        "query_type": "DELETE",
+        "params": [
+          {
+            "value": "Michael",
+            "datatype": "text"
+          },
+          {
+            "value": 45,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_result": [
+          {
+            "expect_error": true,
+            "error_message": "keyspace invalid_keyspace does not exist"
+          }
+        ]
+      }
+    ],
+    "success_message": "The DELETE operation correctly resulted in an error for the non-existent keyspace.",
+    "failure_message": "The DELETE operation did not return the expected error for the non-existent keyspace."
+  },
+  {
+    "title": "Delete Record with Missing Keyspace",
+    "description": "This test case attempts to perform a DELETE operation without specifying a keyspace and verifies the error response.",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "DELETE FROM user_info WHERE name = ? AND age = ?",
+        "query_desc": "Attempt to delete a record from a table without specifying the keyspace.",
+        "query_type": "DELETE",
+        "params": [
+          {
+            "value": "Michael",
+            "datatype": "text"
+          },
+          {
+            "value": 45,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_result": [
+          {
+            "expect_error": true,
+            "error_message": "could not find table or keyspace name"
+          }
+        ]
+      }
+    ],
+    "success_message": "The DELETE operation correctly resulted in an error for the missing keyspace.",
+    "failure_message": "The DELETE operation did not return the expected error for the missing keyspace."
+  }
+]
