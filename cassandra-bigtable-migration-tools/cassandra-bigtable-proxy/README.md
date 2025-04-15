@@ -8,7 +8,7 @@ For more details on this release, please refer to the [CHANGELOG.md](./CHANGELOG
 
 ## Introduction
 
-Cassandra to Cloud Bigtable Proxy Adaptor is designed to forward your application's CQL traffic to Bigtable database service. It listens on a local address and securely forwards that traffic.
+The Cassandra to Bigtable Proxy Adapter allows existing Cassandra-based applications to connect seamlessly to Bigtable. This adapter functions as a wire-compatible Cassandra interface, enabling interaction via CQL with minimal configuration. It can be deployed on the same compute as your application or standalone.
 
 ## Table of Contents
 
@@ -42,7 +42,7 @@ Cassandra to Cloud Bigtable Proxy Adaptor is designed to forward your applicatio
 
 ## When to use Cassandra to Bigtable Proxy?
 
-`cassandra-to-bigtable-proxy` enables applications that are currently using Apache Cassandra or DataStax Enterprise (DSE) and would like to switch to use Cloud Bigtable. This Proxy Adaptor can be used as Plug-N-Play for the Client Application without the need of any code changes in the Client Application.
+`cassandra-to-bigtable-proxy` enables applications that are currently using Apache Cassandra or DataStax Enterprise (DSE) and would like to switch to use Cloud Bigtable. This Proxy Adapter can be used as Plug-N-Play for the Client Application without the need of any code changes in the Client Application.
 
 ## Pre-requisites
 
@@ -118,7 +118,7 @@ This method uses your Google Cloud user account credentials, which are typically
 
 ---
 ## Setting Up Bigtable Instance and Schema Configuration
-Before starting the `cassandra-to-bigtable-proxy` Adaptor, it's essential to set up the necessary infrastructure within Cloud Bigtable. This involves creating a Bigtable instance and configuring the schema using DDL commands.
+Before starting the `cassandra-to-bigtable-proxy` adapter, it's essential to set up the necessary infrastructure within Cloud Bigtable. This involves creating a Bigtable instance and configuring the schema using DDL commands.
 
 The `schema_mapping` table acts as a metadata repository, holding the schema configuration for your Cassandra-like tables in Bigtable. It stores details such as column names, data types, and primary key information.
 
@@ -229,7 +229,7 @@ If you prefer to manually create your Bigtable infrastructure, follow these step
 
 ## Proxy Configuration: YAML Configuration Explained
 
-The `cassandra-to-bigtable-proxy` Adaptor is configured using the `config.yaml` file located in the root directory of the application. This file allows you to specify various settings, including listener configurations, Bigtable connection details, open telemetry configurations and logging options.
+The `cassandra-to-bigtable-proxy` adapter is configured using the `config.yaml` file located in the root directory of the application. This file allows you to specify various settings, including listener configurations, Bigtable connection details, open telemetry configurations and logging options.
 
 Below is a detailed breakdown of the configuration variables:
 
@@ -325,17 +325,17 @@ loggerConfig:
   ```
 
 **Important Note:** 
-* These configurations are essential and must be configured correctly before starting the proxy adaptor. Incorrect configurations can lead to connection failures or unexpected behavior.
+* These configurations are essential and must be configured correctly before starting the proxy adapter. Incorrect configurations can lead to connection failures or unexpected behavior.
 * Ensure that you replace the placeholder values (e.g., YOUR_GCP_PROJECT, PORT_NUMBER) with your actual configuration settings.
 * The defaultColumnFamily must be specified.
 * If you have created application profile then you can specify otherwise comment out it in `config.yaml` so that it will pick `default` column family automatically
 * When using multiple bigtable instances, ensure that the schema mapping table is available in all the bigtable instances.
 * When using OTEL, ensure that the OTEL collector service is configured correctly.
-* If you modify any value in the config.yaml file, you must restart the proxy adaptor for the changes to take effect.
+* If you modify any value in the config.yaml file, you must restart the proxy adapter for the changes to take effect.
 
 ## Getting started
 
-We can setup the `cassandra-to-bigtable-proxy` adaptor via 3 different methods as mentioned below
+We can setup the `cassandra-to-bigtable-proxy` adapter via 3 different methods as mentioned below
 
 - Locally build and run `cassandra-to-bigtable-proxy`
 - Run a docker image that has `cassandra-to-bigtable-proxy` installed
@@ -343,7 +343,7 @@ We can setup the `cassandra-to-bigtable-proxy` adaptor via 3 different methods a
 
 ### Build and Run Proxy Locally
 
-Steps to run the adaptor locally are as mentioned below:
+Steps to run the adapter locally are as mentioned below:
 
 - Clone the repository (https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy.git)
 - Update `config.yaml`
@@ -404,8 +404,8 @@ Steps to run the adaptor locally are as mentioned below:
   ```sh
     docker run -d --name cassandra-bigtable-proxy \
     -p 9042:9042 \
-    -e GOOGLE_APPLICATION_CREDENTIALS="/var/run/secret/cloud.google.com/bigtable-adaptor-service-account.json" \
-    -v <<path to service account>>/bigtable-adaptor-service-account.json:/var/run/secret/cloud.google.com/ \
+    -e GOOGLE_APPLICATION_CREDENTIALS="/var/run/secret/cloud.google.com/bigtable-adapter-service-account.json" \
+    -v <<path to service account>>/bigtable-adapter-service-account.json:/var/run/secret/cloud.google.com/ \
     cassandra-to-bigtable-proxy:local
   ```
 
@@ -419,7 +419,7 @@ Detailed document - [Limitations](./docs/limitations.md)
 
 ## Guidelines for Proxy Application
 
-- The Proxy Adaptor supports DML operations such as INSERT, DELETE, UPDATE and SELECT.
+- The Proxy adapter supports DML operations such as INSERT, DELETE, UPDATE and SELECT.
 - To run the Raw DML queries, it is mandatory for all values except numerics to have single quotes added to it. For eg.
 
   ```sh
@@ -430,7 +430,7 @@ Detailed document - [Limitations](./docs/limitations.md)
 
 - Before running the proxy application, stop the Cassandra service as both run on the same port 9042.
 
-- All the required tables should be created on Cloud Bigtable and its schema should be updated in schema_mapping table before running the Proxy Adaptor.
+- All the required tables should be created on Cloud Bigtable and its schema should be updated in schema_mapping table before running the Proxy adapter.
 
 - Bigtable does not allow conditional WRITES operations. Currently, for UPDATE and DELETE operations, we accept columns that are part of the primary key and help us construct the rowkey that is required for these operations.
 
