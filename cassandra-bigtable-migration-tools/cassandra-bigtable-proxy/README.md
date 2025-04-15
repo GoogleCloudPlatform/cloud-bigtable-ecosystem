@@ -1,4 +1,4 @@
-# Cassandra to Cloud Bigtable Proxy Adaptor
+# Cassandra to Cloud Bigtable Proxy Adapter
 
 ## Current Released Version
 
