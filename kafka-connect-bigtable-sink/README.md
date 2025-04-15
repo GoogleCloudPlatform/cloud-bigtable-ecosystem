@@ -1,3 +1,6 @@
+# Introduction
+This repository contains the source code for kafka-connect-bigtable-sink, an open-source Kafka Connect sink connector. This tool enables the streaming of data records from Apache Kafka topics directly into Google Cloud Bigtable tables.
+
 # Code organization
 The maven project is split into two modules:
 - [sink](sink) - the sink and its unit tests
