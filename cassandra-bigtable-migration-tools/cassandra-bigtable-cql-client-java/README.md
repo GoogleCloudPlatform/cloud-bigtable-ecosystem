@@ -1,4 +1,4 @@
-#Introduction
+# Introduction
 
 The Bigtable CQL Client for Java allows your Java applications using Apache Cassandra, to connect seamlessly to a Bigtable instance.
 
