@@ -15,20 +15,21 @@
 package com.google.bigtable.cassandra;
 
 import java.io.IOException;
+import java.net.SocketAddress;
 
 /**
  * Internal use only.
  */
 interface Proxy {
 
-  static final String BIGTABLE_PROXY_LOCAL_DATACENTER = "bigtable-proxy-local-datacenter";
+  /**
+   * Internal use only.
+   */
+  SocketAddress start() throws IOException;
 
-  void start() throws IOException;
-
+  /**
+   * Internal use only.
+   */
   void stop();
-
-  int getProxyPort();
-
-  boolean isRunning();
 
 }

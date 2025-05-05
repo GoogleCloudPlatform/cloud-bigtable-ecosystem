@@ -32,9 +32,9 @@ import java.util.concurrent.CompletionStage;
 class BigtableCqlSession implements CqlSession {
 
   private final CqlSession delegate;
-  private final ProxyManager proxy;
+  private final Proxy proxy;
 
-  protected BigtableCqlSession(CqlSession delegate, ProxyManager proxy) {
+  protected BigtableCqlSession(CqlSession delegate, Proxy proxy) {
     this.delegate = delegate;
     this.proxy = proxy;
   }

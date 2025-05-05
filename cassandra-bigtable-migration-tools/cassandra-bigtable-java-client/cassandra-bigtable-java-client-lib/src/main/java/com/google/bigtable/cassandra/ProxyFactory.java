@@ -14,32 +14,27 @@
 
 package com.google.bigtable.cassandra;
 
-import java.io.IOException;
+import com.google.bigtable.cassandra.BigtableCqlConfiguration;
 
-public class ProxyStub implements Proxy {
+/**
+ * Internal use only.
+ */
+class ProxyFactory {
 
-  private int proxyPort = 0;
-  private boolean isRunning = false;
+  BigtableCqlConfiguration bigtableCqlConfiguration;
 
-  @Override
-  public void start() throws IOException {
-    proxyPort = 1;
-    isRunning = true;
+  /**
+   * Internal use only.
+   */
+  ProxyFactory(BigtableCqlConfiguration bigtableCqlConfiguration) {
+    this.bigtableCqlConfiguration = bigtableCqlConfiguration;
   }
 
-  @Override
-  public void stop() {
-    proxyPort = 0;
-    isRunning = false;
+  /**
+   * Internal use only.
+   */
+  Proxy newProxy() {
+     return new ProxyImpl(bigtableCqlConfiguration);
   }
 
-  @Override
-  public int getProxyPort() {
-    return proxyPort;
-  }
-
-  @Override
-  public boolean isRunning() {
-    return isRunning && proxyPort != 0;
-  }
 }

@@ -14,13 +14,23 @@
 
 package com.google.bigtable.cassandra;
 
+import com.google.bigtable.cassandra.BigtableCqlConfiguration;
+import com.google.common.base.Preconditions;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.InetSocketAddress;
+import java.net.ServerSocket;
+import java.net.SocketAddress;
 import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -45,48 +55,150 @@ class ProxyImpl implements Proxy {
   private static final String PROJECT_VERSION_PROPERTY = "lib.version";
   private static final String PROXY_STARTUP_LOG_MESSAGE = "Starting to serve on listener";
   private static final String DATA_CENTER_ENV_VAR = "DATA_CENTER";
+  private static final String PROXY_BINARY_NAME = "cassandra-to-bigtable-proxy";
+  private static final String PROXY_TEMP_DIR_PREFIX = "bigtable_cassandra_proxy_";
+  private static final String WINDOWS_EXE_EXTENSION = ".exe";
+  private static final String PROXY_CONFIG_FILENAME = "config.yaml";
+  private static final int UNSPECIFIED_PORT = 0;
+  private static final String PROXY_LOCAL_HOSTNAME = "localhost";
+  private static final String PERMS_700 = "rwx------";
+  private static final String BIGTABLE_PROXY_LOCAL_DATACENTER = "bigtable-proxy-local-datacenter";
+
   private static final Logger LOGGER = LoggerFactory.getLogger(ProxyImpl.class);
 
-  private final Path proxyExecutablePath;
-  private final Path proxyConfigFilePath;
-  private final int proxyPort;
+  private final BigtableCqlConfiguration bigtableCqlConfiguration;
 
+  private Path proxyExecutablePath;
+  private Path proxyConfigFilePath;
+  private int proxyPort;
   private Process proxyProcess;
-  private boolean isRunning;
-  private CompletableFuture<Boolean> isProxyStarted;
+  private CompletableFuture<Boolean> isProxyProcessListening;
+  private boolean isProxyStarted;
+  private InetSocketAddress proxyAddress;
 
   /**
-   * @param proxyExecutablePath Path to the proxy executable.
-   * @param proxyConfigFilePath Path to the proxy configuration file.
-   * @param proxyPort Port number that proxy will listen on
-   *
-   * <p>Example:
-   * <pre>
-   * ProxyImpl proxy = new ProxyImpl("path/to/proxy-executable", "path/to/config.yaml", 1234);
-   * </pre>
+   * Internal use only.
    */
-  protected ProxyImpl(Path proxyExecutablePath, Path proxyConfigFilePath, int proxyPort) {
+  protected ProxyImpl(BigtableCqlConfiguration bigtableCqlConfiguration) {
+    Preconditions.checkNotNull(bigtableCqlConfiguration, "Valid BigtableCqlConfig must be supplied");
+    this.bigtableCqlConfiguration = bigtableCqlConfiguration;
+  }
+
+  @Override
+  public SocketAddress start() throws IOException {
+    Preconditions.checkState(!isProxyStarted, "Proxy already started");
+
+    LOGGER.debug("Setting up proxy");
+    setupProxy();
+    LOGGER.debug("Starting proxy");
+    startProxy();
+    isProxyStarted = true;
+    return proxyAddress;
+  }
+
+  private void setupProxy() throws IOException {
+    // TODO: handle potential race between finding a free port and another process taking it
+    int proxyPort = findFreeProxyPort();
+
+    // Create temp directory
+    Path tempProxyDir = Files.createTempDirectory(PROXY_TEMP_DIR_PREFIX);
+    LOGGER.debug("Proxy temp directory: " + tempProxyDir.toAbsolutePath());
+    tempProxyDir.toFile().deleteOnExit();
+
+    // Copy proxy binary to temp directory
+    Path proxyExecutablePath = copyProxyBinaryToTempDir(tempProxyDir);
+
+    // Write proxy config to temp directory
+    ProxyConfig proxyConfig = ProxyConfigUtils.createProxyConfig(bigtableCqlConfiguration, proxyPort);
+    Path proxyConfigFilePath = createProxyConfigFile(proxyConfig, tempProxyDir);
+
     this.proxyExecutablePath = proxyExecutablePath;
     this.proxyConfigFilePath = proxyConfigFilePath;
     this.proxyPort = proxyPort;
   }
 
-  @Override
-  public void start() throws IOException {
+  private int findFreeProxyPort() throws IOException {
+    try (ServerSocket socket = new ServerSocket(UNSPECIFIED_PORT)) {
+      if (socket.getLocalPort() == 0) {
+        throw new IOException("Could not find a free port for the proxy");
+      }
+      return socket.getLocalPort();
+    } catch (IOException e) {
+      throw new IOException("Could not find a free port for the proxy", e);
+    }
+  }
+
+  private Path createProxyConfigFile(ProxyConfig proxyConfig, Path tempProxyDir)
+      throws IOException {
+    // Serialize proxy config to YAML
+    String proxyConfigContents = proxyConfig.toYaml();
+
+    // Write proxy config to temp dir
+    Path configTempPath = tempProxyDir.resolve(PROXY_CONFIG_FILENAME);
+    Files.createFile(configTempPath);
+    configTempPath.toFile().deleteOnExit();
+
+    String proxyConfigFilePath = configTempPath.toAbsolutePath().toString();
+    try (BufferedWriter writer = new BufferedWriter(new FileWriter(proxyConfigFilePath))) {
+      writer.write(proxyConfigContents);
+      LOGGER.debug("Successfully wrote proxy config to " + proxyConfigFilePath);
+      return configTempPath;
+    } catch (IOException e) {
+      throw new IllegalStateException("Failed to write proxy config", e);
+    }
+  }
+
+  private Path copyProxyBinaryToTempDir(Path tempProxyDir) throws IOException {
+    // Copy proxy binary from resources
+    try (InputStream inputStream = ProxyImpl.class.getClassLoader()
+        .getResourceAsStream(PROXY_BINARY_NAME)) {
+      if (inputStream == null) {
+        throw new IOException("Proxy binary not found. Expected to find: " + PROXY_BINARY_NAME);
+      }
+
+      // Determine OS-specific binary name
+      String os = System.getProperty("os.name").trim().toLowerCase();
+      boolean isWindows = os.contains("win");
+      String fullProxyBinaryName =
+          isWindows ? PROXY_BINARY_NAME + WINDOWS_EXE_EXTENSION : PROXY_BINARY_NAME;
+
+      // Copy proxy binary to temp directory
+      Path targetProxyBinaryPath = tempProxyDir.resolve(fullProxyBinaryName);
+      Files.copy(inputStream, targetProxyBinaryPath);
+      targetProxyBinaryPath.toFile().deleteOnExit();
+
+      // Set file permissions
+      if (FileSystems.getDefault().supportedFileAttributeViews().contains("posix")) {
+        // If Posix permissions are supported
+        Files.setPosixFilePermissions(targetProxyBinaryPath, PosixFilePermissions.fromString(PERMS_700));
+      } else {
+        if (!targetProxyBinaryPath.toFile().setExecutable(true)) {
+          throw new IOException("Failed to make proxy binary executable");
+        }
+      }
+
+      return targetProxyBinaryPath;
+    } catch (Exception e) {
+      LOGGER.error("Error while deploying packaged proxy binary: " + e.getMessage());
+      throw e;
+    }
+  }
+
+  private void startProxy() throws IOException {
     ProcessBuilder pb = createProxyProcessBuilder();
     startProxyProcess(pb);
-    isProxyStarted = new CompletableFuture<>();
+    isProxyProcessListening = new CompletableFuture<>();
     startThreadToConsumeProxyOutputStream();
     startThreadToConsumeProxyErrorStream();
     waitForProxyProcessToStartup();
-    isRunning = true;
+    proxyAddress = new InetSocketAddress(PROXY_LOCAL_HOSTNAME, proxyPort);
   }
 
   @Override
   public void stop() {
-    if (proxyProcess == null) {
-      throw new IllegalStateException("Proxy not started");
-    }
+    Preconditions.checkState(isProxyStarted, "Proxy not started");
+    Preconditions.checkNotNull(proxyProcess, "Proxy not started");
+
     LOGGER.debug("Stopping proxy process...");
     try {
       // Try to stop the proxy with SIGINT. The Go process should trap this.
@@ -102,22 +214,8 @@ class ProxyImpl implements Proxy {
       proxyProcess.destroyForcibly();
       Thread.currentThread().interrupt(); // Restore interrupted status
     }
-    isRunning = false;
+    isProxyStarted = false;
     LOGGER.debug("Proxy process stopped.");
-  }
-
-  @Override
-  public int getProxyPort() {
-    return proxyPort;
-  }
-
-  @Override
-  public boolean isRunning() {
-    return isRunning && proxyPort != 0;
-  }
-
-  public String getDatacenter() {
-    return BIGTABLE_PROXY_LOCAL_DATACENTER;
   }
 
   private ProcessBuilder createProxyProcessBuilder() {
@@ -188,7 +286,7 @@ class ProxyImpl implements Proxy {
           proxyProcessOutputLogger.debug(logLine);
           if (logLine.contains(PROXY_STARTUP_LOG_MESSAGE)) {
             LOGGER.debug("Proxy started on port: " + proxyPort);
-            isProxyStarted.complete(true);
+            isProxyProcessListening.complete(true);
           }
         }
       } catch (IOException e) {
@@ -197,7 +295,7 @@ class ProxyImpl implements Proxy {
         } else {
           LOGGER.error("Error reading proxy output: " + e.getMessage());
         }
-        isProxyStarted.complete(false);
+        isProxyProcessListening.complete(false);
       }
     });
     outputConsumerThread.setDaemon(true);  // Make it a daemon thread
@@ -228,7 +326,7 @@ class ProxyImpl implements Proxy {
   private void waitForProxyProcessToStartup() {
     LOGGER.debug("Waiting for proxy process to start");
     try {
-      boolean proxyStarted = isProxyStarted.get(PROXY_STARTUP_TIMEOUT_SECS.getSeconds(), TimeUnit.SECONDS);
+      boolean proxyStarted = isProxyProcessListening.get(PROXY_STARTUP_TIMEOUT_SECS.getSeconds(), TimeUnit.SECONDS);
       if (!proxyStarted) {
         throw new IllegalStateException("Proxy process failed to start");
       }
