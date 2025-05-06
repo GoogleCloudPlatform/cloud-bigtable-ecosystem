@@ -187,6 +187,9 @@ limitations under the License.
               <classesDirectory>${project.build.directory}/${project.version}/linux/386</classesDirectory>
               <includes>
                 <include>${go.binary.name}</include>
+                <include>LICENSE</include>
+                <include>NOTICE.md</include>
+                <include>third_party/licenses/*</include>
               </includes>
             </configuration>
           </execution>
@@ -201,6 +204,9 @@ limitations under the License.
               <classesDirectory>${project.build.directory}/${project.version}/linux/amd64</classesDirectory>
               <includes>
                 <include>${go.binary.name}</include>
+                <include>LICENSE</include>
+                <include>NOTICE.md</include>
+                <include>third_party/licenses/*</include>
               </includes>
             </configuration>
           </execution>
@@ -215,6 +221,9 @@ limitations under the License.
               <classesDirectory>${project.build.directory}/${project.version}/linux/arm64</classesDirectory>
               <includes>
                 <include>${go.binary.name}</include>
+                <include>LICENSE</include>
+                <include>NOTICE.md</include>
+                <include>third_party/licenses/*</include>
               </includes>
             </configuration>
           </execution>
@@ -229,6 +238,9 @@ limitations under the License.
               <classesDirectory>${project.build.directory}/${project.version}/darwin/amd64</classesDirectory>
               <includes>
                 <include>${go.binary.name}</include>
+                <include>LICENSE</include>
+                <include>NOTICE.md</include>
+                <include>third_party/licenses/*</include>
               </includes>
             </configuration>
           </execution>
@@ -243,6 +255,9 @@ limitations under the License.
               <classesDirectory>${project.build.directory}/${project.version}/darwin/arm64</classesDirectory>
               <includes>
                 <include>${go.binary.name}</include>
+                <include>LICENSE</include>
+                <include>NOTICE.md</include>
+                <include>third_party/licenses/*</include>
               </includes>
             </configuration>
           </execution>
@@ -257,6 +272,9 @@ limitations under the License.
               <classesDirectory>${project.build.directory}/${project.version}/windows/386</classesDirectory>
               <includes>
                 <include>${go.binary.name}</include>
+                <include>LICENSE</include>
+                <include>NOTICE.md</include>
+                <include>third_party/licenses/*</include>
               </includes>
             </configuration>
           </execution>
@@ -271,6 +289,9 @@ limitations under the License.
               <classesDirectory>${project.build.directory}/${project.version}/windows/amd64</classesDirectory>
               <includes>
                 <include>${go.binary.name}</include>
+                <include>LICENSE</include>
+                <include>NOTICE.md</include>
+                <include>third_party/licenses/*</include>
               </includes>
             </configuration>
           </execution>

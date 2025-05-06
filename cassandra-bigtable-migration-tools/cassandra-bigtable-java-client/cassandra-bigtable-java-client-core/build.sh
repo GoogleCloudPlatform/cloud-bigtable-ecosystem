@@ -49,10 +49,15 @@ function build() {
 
   mkdir -p ${target_dir} || return 1
   cd $source_dir
-  echo "Building for target: ${env} ${arch}"
-  mkdir -p ${target_subdir}
+  mkdir -p ${target_subdir} || return 1
+  # Build binary
   CGO_ENABLED=${CGO_ENABLED} GOOS=${env} GOARCH=${arch} go build -o ${target_subdir}/${binary_name} . || return 1
   mv ${target_subdir}/${binary_name} ${target_dir}/ || return 1
+  # Copy NOTICE and licenses
+  cp LICENSE ${target_dir}/LICENSE || return 1
+  cp NOTICE.md ${target_dir}/NOTICE.md || return 1
+  mkdir -p ${target_dir}/third_party/licenses || return 1
+  cp -r third_party/licenses ${target_dir}/third_party || return 1
   cd $base_dir
 }
 
@@ -95,9 +100,10 @@ function main() {
     usage
   fi
 
-  echo "Building cassandra-to-bigtable-proxy binaries"
-  echo "Using source code: ${base_dir}/${RELATIVE_SOURCE_DIR}"
+  echo "Building cassandra-to-bigtable-proxy binary"
+  echo "Building for target: ${env} ${arch}"
   echo "Building version: ${version}"
+  echo "Using source code: ${base_dir}/${RELATIVE_SOURCE_DIR}"
 
   mkdir -p ${base_dir}/target
   builds=()
