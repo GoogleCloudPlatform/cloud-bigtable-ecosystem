@@ -35,9 +35,8 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import com.google.cloud.bigtable.admin.v2.BigtableTableAdminClient;
-import com.google.cloud.bigtable.data.v2.BigtableDataClient;
 import com.google.cloud.kafka.connect.bigtable.util.BasicPropertiesFactory;
+import com.google.cloud.kafka.connect.bigtable.wrappers.BigtableTableAdminClientInterface;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -124,20 +123,6 @@ public class BigtableSinkConfigTest {
   }
 
   @Test
-  public void testGetBigtableDataClient() {
-    BigtableSinkConfig config = new BigtableSinkConfig(BasicPropertiesFactory.getSinkProps());
-    BigtableDataClient client = config.getBigtableDataClient();
-    client.close();
-  }
-
-  @Test
-  public void testGetBigtableAdminClient() {
-    BigtableSinkConfig config = new BigtableSinkConfig(BasicPropertiesFactory.getSinkProps());
-    BigtableTableAdminClient client = config.getBigtableAdminClient();
-    client.close();
-  }
-
-  @Test
   public void testEnumCaseInsensitivity() {
     Map<String, String> props = BasicPropertiesFactory.getSinkProps();
     props.put(INSERT_MODE_CONFIG, "uPsErT");
@@ -153,7 +138,7 @@ public class BigtableSinkConfigTest {
   public void testIsBigtableConfigurationValidBasicSuccess() {
     Map<String, String> props = BasicPropertiesFactory.getSinkProps();
     BigtableSinkConfig config = spy(new BigtableSinkConfig(props));
-    BigtableTableAdminClient bigtable = mock(BigtableTableAdminClient.class);
+    BigtableTableAdminClientInterface bigtable = mock(BigtableTableAdminClientInterface.class);
     doReturn(emptyList()).when(bigtable).listTables();
     doReturn(bigtable).when(config).getBigtableAdminClient(any(), any());
     assertTrue(config.isBigtableConfigurationValid());
@@ -172,7 +157,7 @@ public class BigtableSinkConfigTest {
   public void testIsBigtableConfigurationValidOperationError() {
     Map<String, String> props = BasicPropertiesFactory.getSinkProps();
     BigtableSinkConfig config = spy(new BigtableSinkConfig(props));
-    BigtableTableAdminClient bigtable = mock(BigtableTableAdminClient.class);
+    BigtableTableAdminClientInterface bigtable = mock(BigtableTableAdminClientInterface.class);
     doThrow(new RuntimeException()).when(bigtable).listTables();
     doReturn(bigtable).when(config).getBigtableAdminClient(any(), any());
     assertFalse(config.isBigtableConfigurationValid());

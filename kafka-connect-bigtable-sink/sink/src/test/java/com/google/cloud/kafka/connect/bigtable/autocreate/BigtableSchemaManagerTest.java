@@ -35,7 +35,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.google.api.core.ApiFuture;
-import com.google.cloud.bigtable.admin.v2.BigtableTableAdminClient;
 import com.google.cloud.bigtable.admin.v2.models.ColumnFamily;
 import com.google.cloud.bigtable.admin.v2.models.CreateTableRequest;
 import com.google.cloud.bigtable.admin.v2.models.ModifyColumnFamiliesRequest;
@@ -43,6 +42,7 @@ import com.google.cloud.bigtable.admin.v2.models.Table;
 import com.google.cloud.kafka.connect.bigtable.autocreate.BigtableSchemaManager.ResourceAndRecords;
 import com.google.cloud.kafka.connect.bigtable.mapping.MutationData;
 import com.google.cloud.kafka.connect.bigtable.util.ApiExceptionFactory;
+import com.google.cloud.kafka.connect.bigtable.wrappers.BigtableTableAdminClientInterface;
 import io.grpc.Status;
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -62,12 +62,12 @@ import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class BigtableSchemaManagerTest {
-  BigtableTableAdminClient bigtable;
+  BigtableTableAdminClientInterface bigtable;
   TestBigtableSchemaManager bigtableSchemaManager;
 
   @Before
   public void setUp() {
-    bigtable = mock(BigtableTableAdminClient.class);
+    bigtable = mock(BigtableTableAdminClientInterface.class);
     bigtableSchemaManager = spy(new TestBigtableSchemaManager(bigtable));
   }
 
@@ -704,7 +704,7 @@ public class BigtableSchemaManagerTest {
   }
 
   private void mockCreateTableSuccess(
-      BigtableTableAdminClient bigtable, String tableName, Set<String> tableColumnFamilies) {
+      BigtableTableAdminClientInterface bigtable, String tableName, Set<String> tableColumnFamilies) {
     Table table = mockTable(tableName, tableColumnFamilies);
     doAnswer(ignored -> completedApiFuture(table))
         .when(bigtable)
@@ -712,7 +712,7 @@ public class BigtableSchemaManagerTest {
   }
 
   private void mockCreateColumnFamilySuccess(
-      BigtableTableAdminClient bigtable, String tableName, Set<String> tableColumnFamilies) {
+      BigtableTableAdminClientInterface bigtable, String tableName, Set<String> tableColumnFamilies) {
     Table table = mockTable(tableName, tableColumnFamilies);
     doAnswer(ignored -> completedApiFuture(table))
         .when(bigtable)
@@ -720,7 +720,7 @@ public class BigtableSchemaManagerTest {
   }
 
   private void mockGetTableSuccess(
-      BigtableTableAdminClient bigtable, String tableName, Set<String> tableColumnFamilies) {
+      BigtableTableAdminClientInterface bigtable, String tableName, Set<String> tableColumnFamilies) {
     Table table = mockTable(tableName, tableColumnFamilies);
     doAnswer(ignored -> completedApiFuture(table)).when(bigtable).getTableAsync(tableName);
   }
@@ -739,7 +739,7 @@ public class BigtableSchemaManagerTest {
   }
 
   private static class TestBigtableSchemaManager extends BigtableSchemaManager {
-    public TestBigtableSchemaManager(BigtableTableAdminClient bigtable) {
+    public TestBigtableSchemaManager(BigtableTableAdminClientInterface bigtable) {
       super(bigtable);
       this.logger = spy(this.logger);
     }

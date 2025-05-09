@@ -18,9 +18,10 @@ package com.google.cloud.kafka.connect.bigtable.integration;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import com.google.cloud.bigtable.admin.v2.BigtableTableAdminClient;
 import com.google.cloud.bigtable.admin.v2.models.CreateTableRequest;
 import com.google.cloud.kafka.connect.bigtable.config.BigtableSinkConfig;
+import com.google.cloud.kafka.connect.bigtable.wrappers.BigtableTableAdminClientInterface;
+import com.google.common.util.concurrent.Futures;
 import java.util.Map;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -33,13 +34,13 @@ public class BigtableClientIT extends BaseIT {
     Map<String, String> props = baseConnectorProps();
     BigtableSinkConfig config = new BigtableSinkConfig(props);
 
-    BigtableTableAdminClient admin = config.getBigtableAdminClient();
+    BigtableTableAdminClientInterface admin = config.getBigtableAdminClient();
     String tableId = getTestCaseId() + System.currentTimeMillis();
     String columnFamily = "columnFamily";
 
     CreateTableRequest createTableRequest = CreateTableRequest.of(tableId).addFamily(columnFamily);
     assertFalse(admin.listTables().contains(tableId));
-    admin.createTable(createTableRequest);
+    Futures.getUnchecked(admin.createTableAsync(createTableRequest));
     assertTrue(admin.listTables().contains(tableId));
   }
 }
