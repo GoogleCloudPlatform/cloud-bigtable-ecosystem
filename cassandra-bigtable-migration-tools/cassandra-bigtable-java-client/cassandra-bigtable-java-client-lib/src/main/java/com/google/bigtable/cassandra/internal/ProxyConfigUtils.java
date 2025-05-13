@@ -12,25 +12,36 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.google.bigtable.cassandra;
+package com.google.bigtable.cassandra.internal;
 
-import com.google.bigtable.cassandra.ProxyConfig.Bigtable;
-import com.google.bigtable.cassandra.ProxyConfig.CassandraToBigTableConfig;
-import com.google.bigtable.cassandra.ProxyConfig.HealthCheck;
-import com.google.bigtable.cassandra.ProxyConfig.Listener;
-import com.google.bigtable.cassandra.ProxyConfig.ListenerOtel;
-import com.google.bigtable.cassandra.ProxyConfig.LoggerConfig;
-import com.google.bigtable.cassandra.ProxyConfig.Metrics;
-import com.google.bigtable.cassandra.ProxyConfig.OtelConfig;
-import com.google.bigtable.cassandra.ProxyConfig.Session;
-import com.google.bigtable.cassandra.ProxyConfig.Traces;
+import com.google.bigtable.cassandra.BigtableCqlConfiguration;
+import com.google.bigtable.cassandra.OpenTelemetryCollectorConfiguration;
+import com.google.bigtable.cassandra.internal.ProxyConfig.Bigtable;
+import com.google.bigtable.cassandra.internal.ProxyConfig.CassandraToBigTableConfig;
+import com.google.bigtable.cassandra.internal.ProxyConfig.HealthCheck;
+import com.google.bigtable.cassandra.internal.ProxyConfig.Listener;
+import com.google.bigtable.cassandra.internal.ProxyConfig.ListenerOtel;
+import com.google.bigtable.cassandra.internal.ProxyConfig.LoggerConfig;
+import com.google.bigtable.cassandra.internal.ProxyConfig.Metrics;
+import com.google.bigtable.cassandra.internal.ProxyConfig.OtelConfig;
+import com.google.bigtable.cassandra.internal.ProxyConfig.Session;
+import com.google.bigtable.cassandra.internal.ProxyConfig.Traces;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Internal use only.
  */
-class ProxyConfigUtils {
+final class ProxyConfigUtils {
+
+  private ProxyConfigUtils() {}
+
+  private static final String DEFAULT_SCHEMA_MAPPING_TABLE = "schema_mapping";
+  private static final String DEFAULT_COLUMN_FAMILY = "cf1";
+  private static final int DEFAULT_BIGTABLE_CHANNEL_POOL_SIZE = 4;
+  private static final String DEFAULT_APP_PROFILE_ID = "default";
+  private static final String LOGGER_STDOUT = "stdout";
+  private static final String DEFAULT_LISTENER_NAME = "cluster1";
 
   static protected ProxyConfig createProxyConfig(BigtableCqlConfiguration bigtableCqlConfiguration,
       int proxyPort) {
@@ -53,33 +64,33 @@ class ProxyConfigUtils {
     return CassandraToBigTableConfig.builder()
         .setProjectId(bigtableCqlConfiguration.getProjectId())
         .setSchemaMappingTable(bigtableCqlConfiguration.getSchemaMappingTable()
-            .orElse(BigtableCqlConfiguration.DEFAULT_SCHEMA_MAPPING_TABLE))
+            .orElse(DEFAULT_SCHEMA_MAPPING_TABLE))
         .setDefaultColumnFamily(bigtableCqlConfiguration.getDefaultColumnFamily()
-            .orElse(BigtableCqlConfiguration.DEFAULT_COLUMN_FAMILY))
+            .orElse(DEFAULT_COLUMN_FAMILY))
         .build();
   }
 
   static private LoggerConfig createLoggerConfig() {
-    return new LoggerConfig(ProxyConfig.LOGGER_STDOUT);
+    return new LoggerConfig(LOGGER_STDOUT);
   }
 
   static private List<Listener> createListeners(BigtableCqlConfiguration bigtableCqlConfiguration,
       int proxyPort) {
     Listener e = Listener.builder()
-        .name(ProxyConfig.DEFAULT_LISTENER_NAME)
+        .name(DEFAULT_LISTENER_NAME)
         .port(proxyPort)
         .bigtable(Bigtable.builder()
             .projectId(bigtableCqlConfiguration.getProjectId())
             .instanceIds(bigtableCqlConfiguration.getInstanceId())
             .schemaMappingTable(bigtableCqlConfiguration.getSchemaMappingTable()
-                .orElse(BigtableCqlConfiguration.DEFAULT_SCHEMA_MAPPING_TABLE))
+                .orElse(DEFAULT_SCHEMA_MAPPING_TABLE))
             .appProfileId(bigtableCqlConfiguration.getAppProfileId()
-                .orElse(BigtableCqlConfiguration.DEFAULT_APP_PROFILE_ID))
+                .orElse(DEFAULT_APP_PROFILE_ID))
             .defaultColumnFamily(
                 bigtableCqlConfiguration.getDefaultColumnFamily()
-                    .orElse(BigtableCqlConfiguration.DEFAULT_COLUMN_FAMILY))
+                    .orElse(DEFAULT_COLUMN_FAMILY))
             .session(new Session(bigtableCqlConfiguration.getBigtableChannelPoolSize()
-                .orElse(BigtableCqlConfiguration.DEFAULT_BIGTABLE_CHANNEL_POOL_SIZE)))
+                .orElse(DEFAULT_BIGTABLE_CHANNEL_POOL_SIZE)))
             .build())
         .otel(
             new ListenerOtel(!bigtableCqlConfiguration.getOpenTelemetryConfiguration().isPresent()))

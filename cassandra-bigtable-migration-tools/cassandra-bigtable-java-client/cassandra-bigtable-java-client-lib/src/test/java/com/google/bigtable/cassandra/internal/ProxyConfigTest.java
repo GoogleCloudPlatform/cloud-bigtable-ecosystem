@@ -12,24 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.google.bigtable.cassandra;
+package com.google.bigtable.cassandra.internal;
 
-import com.google.bigtable.cassandra.ProxyConfig.Bigtable;
-import com.google.bigtable.cassandra.ProxyConfig.CassandraToBigTableConfig;
-import com.google.bigtable.cassandra.ProxyConfig.HealthCheck;
-import com.google.bigtable.cassandra.ProxyConfig.Listener;
-import com.google.bigtable.cassandra.ProxyConfig.ListenerOtel;
-import com.google.bigtable.cassandra.ProxyConfig.LoggerConfig;
-import com.google.bigtable.cassandra.ProxyConfig.Metrics;
-import com.google.bigtable.cassandra.ProxyConfig.OtelConfig;
-import com.google.bigtable.cassandra.ProxyConfig.Session;
-import com.google.bigtable.cassandra.ProxyConfig.Traces;
+import com.google.bigtable.cassandra.internal.ProxyConfig.Bigtable;
+import com.google.bigtable.cassandra.internal.ProxyConfig.CassandraToBigTableConfig;
+import com.google.bigtable.cassandra.internal.ProxyConfig.HealthCheck;
+import com.google.bigtable.cassandra.internal.ProxyConfig.Listener;
+import com.google.bigtable.cassandra.internal.ProxyConfig.ListenerOtel;
+import com.google.bigtable.cassandra.internal.ProxyConfig.LoggerConfig;
+import com.google.bigtable.cassandra.internal.ProxyConfig.Metrics;
+import com.google.bigtable.cassandra.internal.ProxyConfig.OtelConfig;
+import com.google.bigtable.cassandra.internal.ProxyConfig.Session;
+import com.google.bigtable.cassandra.internal.ProxyConfig.Traces;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+/**
+ * Internal use only.
+ */
 public class ProxyConfigTest {
 
   @Test

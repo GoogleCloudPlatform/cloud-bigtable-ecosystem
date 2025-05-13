@@ -12,29 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.google.bigtable.cassandra;
+package com.google.bigtable.cassandra.internal;
 
-import com.google.bigtable.cassandra.BigtableCqlConfiguration;
+import java.io.IOException;
+import java.net.SocketAddress;
 
 /**
  * Internal use only.
  */
-class ProxyFactory {
-
-  BigtableCqlConfiguration bigtableCqlConfiguration;
+interface Proxy {
 
   /**
    * Internal use only.
    */
-  ProxyFactory(BigtableCqlConfiguration bigtableCqlConfiguration) {
-    this.bigtableCqlConfiguration = bigtableCqlConfiguration;
-  }
+  SocketAddress start() throws IOException;
 
   /**
    * Internal use only.
    */
-  Proxy newProxy() {
-     return new ProxyImpl(bigtableCqlConfiguration);
-  }
+  void stop();
 
 }

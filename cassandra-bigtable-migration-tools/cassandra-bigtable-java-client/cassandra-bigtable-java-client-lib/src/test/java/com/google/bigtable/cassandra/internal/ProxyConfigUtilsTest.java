@@ -12,12 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.google.bigtable.cassandra;
+package com.google.bigtable.cassandra.internal;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.google.bigtable.cassandra.BigtableCqlConfiguration;
+import com.google.bigtable.cassandra.OpenTelemetryCollectorConfiguration;
 import org.junit.jupiter.api.Test;
 
+/**
+ * Internal use only.
+ */
 public class ProxyConfigUtilsTest {
 
   private static final int SOME_PORT_NUMBER = 123;

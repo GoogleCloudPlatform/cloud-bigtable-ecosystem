@@ -27,10 +27,10 @@ import java.util.OptionalInt;
 @AutoValue
 public abstract class BigtableCqlConfiguration {
 
-  protected static final String DEFAULT_SCHEMA_MAPPING_TABLE = "schema_mapping";
-  protected static final String DEFAULT_COLUMN_FAMILY = "cf1";
-  protected static final int DEFAULT_BIGTABLE_CHANNEL_POOL_SIZE = 4;
-  protected static final String DEFAULT_APP_PROFILE_ID = "default";
+  private static final String DEFAULT_SCHEMA_MAPPING_TABLE = "schema_mapping";
+  private static final String DEFAULT_COLUMN_FAMILY = "cf1";
+  private static final int DEFAULT_BIGTABLE_CHANNEL_POOL_SIZE = 4;
+  private static final String DEFAULT_APP_PROFILE_ID = "default";
 
   /**
    * @see BigtableCqlConfiguration.Builder#setProjectId(String)

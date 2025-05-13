@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.google.bigtable.cassandra;
+package com.google.bigtable.cassandra.internal;
 
 import com.google.auto.value.AutoValue;
 import java.io.StringWriter;
@@ -33,8 +33,6 @@ import org.yaml.snakeyaml.representer.Representer;
 abstract class ProxyConfig {
 
   private static final int YAML_INDENT = 2;
-  protected static final String LOGGER_STDOUT = "stdout";
-  protected static final String DEFAULT_LISTENER_NAME = "cluster1";
 
   abstract CassandraToBigTableConfig getCassandraToBigtableConfigs();
   abstract List<Listener> getListeners();

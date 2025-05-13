@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.google.bigtable.cassandra;
+package com.google.bigtable.cassandra.internal;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -20,6 +20,9 @@ import com.google.bigtable.cassandra.BigtableCqlConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+/**
+ * Internal use only.
+ */
 public class ProxyImplTest {
 
   private Proxy proxy;

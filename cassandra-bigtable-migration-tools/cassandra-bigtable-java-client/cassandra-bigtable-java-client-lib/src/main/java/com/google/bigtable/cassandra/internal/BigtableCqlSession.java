@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.google.bigtable.cassandra;
+package com.google.bigtable.cassandra.internal;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.context.DriverContext;
@@ -112,12 +112,12 @@ class BigtableCqlSession implements CqlSession {
 
   @Override
   public CompletionStage<AsyncResultSet> executeAsync(String query) {
-    return delegate.executeAsync(SimpleStatement.newInstance(query)); // Direct Delegation!
+    return delegate.executeAsync(SimpleStatement.newInstance(query));
   }
 
   @Override
   public CompletionStage<AsyncResultSet> executeAsync(Statement<?> statement) {
-    return delegate.executeAsync(statement); // Direct Delegation!
+    return delegate.executeAsync(statement);
   }
 
   @Override
@@ -140,7 +140,7 @@ class BigtableCqlSession implements CqlSession {
     try {
       delegate.close();
     } finally {
-      proxy.stop(); // Ensure proxy is stopped even if delegate.close() throws
+      proxy.stop();
     }
   }
 
