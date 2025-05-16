@@ -44,21 +44,21 @@ public final class BigtableCqlSessionUtilsInternal {
     try {
       SocketAddress address = proxy.start();
 
-      LOGGER.info("Building CqlSession...");
+      LOGGER.info("Starting CqlSession...");
       CqlSession delegate = CqlSession.builder()
           .withApplicationName(BIGTABLE_CQLSESSION_NAME)
           .addContactPoint((InetSocketAddress) address)
           .withLocalDatacenter(BIGTABLE_PROXY_LOCAL_DATACENTER)
           .build();
-      LOGGER.info("Built CqlSession.");
+      LOGGER.info("Started CqlSession.");
 
       return new BigtableCqlSession(delegate, proxy);
     } catch (IOException e) {
       proxy.stop();
-      throw new UncheckedIOException("Failed to build BigtableCqlSession", e);
+      throw new UncheckedIOException("Failed to start CqlSession", e);
     } catch (Exception e) {
       proxy.stop();
-      LOGGER.error("Failed to build BigtableCqlSession", e);
+      LOGGER.error("Failed to start CqlSession", e);
       throw e;
     }
   }
