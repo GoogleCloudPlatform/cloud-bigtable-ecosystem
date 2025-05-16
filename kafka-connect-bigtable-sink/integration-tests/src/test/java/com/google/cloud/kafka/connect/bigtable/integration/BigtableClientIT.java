@@ -18,9 +18,9 @@ package com.google.cloud.kafka.connect.bigtable.integration;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import com.google.cloud.bigtable.admin.v2.BigtableTableAdminClient;
 import com.google.cloud.bigtable.admin.v2.models.CreateTableRequest;
 import com.google.cloud.kafka.connect.bigtable.config.BigtableSinkConfig;
+import com.google.cloud.kafka.connect.bigtable.wrappers.BigtableTableAdminClientInterface;
 import java.util.Map;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -28,12 +28,13 @@ import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class BigtableClientIT extends BaseIT {
+
   @Test
   public void testClient() {
     Map<String, String> props = baseConnectorProps();
     BigtableSinkConfig config = new BigtableSinkConfig(props);
 
-    BigtableTableAdminClient admin = config.getBigtableAdminClient();
+    BigtableTableAdminClientInterface admin = config.getBigtableAdminClient();
     String tableId = getTestCaseId() + System.currentTimeMillis();
     String columnFamily = "columnFamily";
 

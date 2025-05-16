@@ -18,12 +18,12 @@ package com.google.cloud.kafka.connect.bigtable.autocreate;
 import com.google.api.core.ApiFuture;
 import com.google.api.gax.rpc.ApiException;
 import com.google.api.gax.rpc.StatusCode;
-import com.google.cloud.bigtable.admin.v2.BigtableTableAdminClient;
 import com.google.cloud.bigtable.admin.v2.models.ColumnFamily;
 import com.google.cloud.bigtable.admin.v2.models.CreateTableRequest;
 import com.google.cloud.bigtable.admin.v2.models.ModifyColumnFamiliesRequest;
 import com.google.cloud.bigtable.admin.v2.models.Table;
 import com.google.cloud.kafka.connect.bigtable.mapping.MutationData;
+import com.google.cloud.kafka.connect.bigtable.wrappers.BigtableTableAdminClientInterface;
 import com.google.common.annotations.VisibleForTesting;
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -54,7 +54,7 @@ import org.slf4j.LoggerFactory;
 public class BigtableSchemaManager {
   @VisibleForTesting protected Logger logger = LoggerFactory.getLogger(BigtableSchemaManager.class);
 
-  private final BigtableTableAdminClient bigtable;
+  private final BigtableTableAdminClientInterface bigtable;
 
   /**
    * A {@link Map} storing the names of existing Cloud Bigtable tables as keys and existing column
@@ -73,7 +73,7 @@ public class BigtableSchemaManager {
    * @param bigtable The Cloud Bigtable admin client used to auto-create {@link Table Table(s)} and
    *     {@link ColumnFamily ColumnFamily(s)}.
    */
-  public BigtableSchemaManager(BigtableTableAdminClient bigtable) {
+  public BigtableSchemaManager(BigtableTableAdminClientInterface bigtable) {
     this.bigtable = bigtable;
     tableNameToColumnFamilies = new HashMap<>();
   }

@@ -46,7 +46,6 @@ import static org.mockito.MockitoAnnotations.openMocks;
 import com.google.api.gax.batching.Batcher;
 import com.google.api.gax.rpc.ApiException;
 import com.google.bigtable.admin.v2.Table;
-import com.google.cloud.bigtable.admin.v2.BigtableTableAdminClient;
 import com.google.cloud.bigtable.data.v2.BigtableDataClient;
 import com.google.cloud.bigtable.data.v2.models.Mutation;
 import com.google.cloud.bigtable.data.v2.models.RowMutationEntry;
@@ -65,6 +64,7 @@ import com.google.cloud.kafka.connect.bigtable.mapping.ValueMapper;
 import com.google.cloud.kafka.connect.bigtable.util.ApiExceptionFactory;
 import com.google.cloud.kafka.connect.bigtable.util.BasicPropertiesFactory;
 import com.google.cloud.kafka.connect.bigtable.util.FutureUtil;
+import com.google.cloud.kafka.connect.bigtable.wrappers.BigtableTableAdminClientInterface;
 import com.google.common.collect.Collections2;
 import com.google.protobuf.ByteString;
 import java.nio.charset.StandardCharsets;
@@ -97,15 +97,23 @@ import org.slf4j.Logger;
 
 @RunWith(JUnit4.class)
 public class BigtableSinkTaskTest {
+
   TestBigtableSinkTask task;
   BigtableSinkTaskConfig config;
-  @Mock BigtableDataClient bigtableData;
-  @Mock BigtableTableAdminClient bigtableAdmin;
-  @Mock KeyMapper keyMapper;
-  @Mock ValueMapper valueMapper;
-  @Mock BigtableSchemaManager schemaManager;
-  @Mock SinkTaskContext context;
-  @Mock ErrantRecordReporter errorReporter;
+  @Mock
+  BigtableDataClient bigtableData;
+  @Mock
+  BigtableTableAdminClientInterface bigtableAdmin;
+  @Mock
+  KeyMapper keyMapper;
+  @Mock
+  ValueMapper valueMapper;
+  @Mock
+  BigtableSchemaManager schemaManager;
+  @Mock
+  SinkTaskContext context;
+  @Mock
+  ErrantRecordReporter errorReporter;
 
   @Before
   public void setUp() {
@@ -133,7 +141,7 @@ public class BigtableSinkTaskTest {
       int expectedAdminCloseCallCount = adminIsNotNull ? 1 : 0;
       int expectedDataCloseCallCount = dataIsNotNull ? 1 : 0;
 
-      BigtableTableAdminClient maybeAdmin = adminIsNotNull ? bigtableAdmin : null;
+      BigtableTableAdminClientInterface maybeAdmin = adminIsNotNull ? bigtableAdmin : null;
       BigtableDataClient maybeData = dataIsNotNull ? bigtableData : null;
       task = new TestBigtableSinkTask(null, maybeData, maybeAdmin, null, null, null, null);
       Batcher<RowMutationEntry, Void> batcher = mock(Batcher.class);
@@ -446,7 +454,7 @@ public class BigtableSinkTaskTest {
     doReturn(ByteString.copyFrom("ignored".getBytes(StandardCharsets.UTF_8)))
         .when(commonMutationData)
         .getRowKey();
-    doReturn(mock(Mutation.class)).when(commonMutationData).getInsertMutation();
+    doReturn(Mutation.create()).when(commonMutationData).getInsertMutation();
 
     // LinkedHashMap, because we mock consecutive return values of Bigtable client mock and thus
     // rely on the order.
@@ -478,11 +486,11 @@ public class BigtableSinkTaskTest {
     String batcherTable = "batcherTable";
     Batcher<RowMutationEntry, Void> batcher = mock(Batcher.class);
     doAnswer(
-            invocation -> {
-              TestBigtableSinkTask task = (TestBigtableSinkTask) invocation.getMock();
-              task.getBatchers().computeIfAbsent(batcherTable, ignored -> batcher);
-              return null;
-            })
+        invocation -> {
+          TestBigtableSinkTask task = (TestBigtableSinkTask) invocation.getMock();
+          task.getBatchers().computeIfAbsent(batcherTable, ignored -> batcher);
+          return null;
+        })
         .when(task)
         .performUpsertBatch(any(), any());
 
@@ -583,11 +591,11 @@ public class BigtableSinkTaskTest {
       byte[] rowKey = "rowKey".getBytes(StandardCharsets.UTF_8);
       doReturn(rowKey).when(keyMapper).getKey(any());
       doAnswer(
-              i -> {
-                MutationDataBuilder builder = new MutationDataBuilder();
-                builder.deleteRow();
-                return builder;
-              })
+          i -> {
+            MutationDataBuilder builder = new MutationDataBuilder();
+            builder.deleteRow();
+            return builder;
+          })
           .when(valueMapper)
           .getRecordMutationDataBuilder(any(), anyString(), anyLong());
 
@@ -622,10 +630,11 @@ public class BigtableSinkTaskTest {
   }
 
   private static class TestBigtableSinkTask extends BigtableSinkTask {
+
     public TestBigtableSinkTask(
         BigtableSinkTaskConfig config,
         BigtableDataClient bigtableData,
-        BigtableTableAdminClient bigtableAdmin,
+        BigtableTableAdminClientInterface bigtableAdmin,
         KeyMapper keyMapper,
         ValueMapper valueMapper,
         BigtableSchemaManager schemaManager,

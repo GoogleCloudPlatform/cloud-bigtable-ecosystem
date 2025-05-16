@@ -33,9 +33,11 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+import org.apache.curator.shaded.com.google.common.util.concurrent.Futures;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -49,6 +51,7 @@ import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class ResourceAutoCreationIT extends BaseKafkaConnectBigtableIT {
+
   private static final JsonConverter JSON_CONVERTER = JsonConverterFactory.create(true, false);
   private static final String KEY1 = "key1";
   private static final String KEY2 = "key2";
@@ -59,7 +62,8 @@ public class ResourceAutoCreationIT extends BaseKafkaConnectBigtableIT {
   private static final String COLUMN_QUALIFIER = "cq";
 
   @Test
-  public void testDisabledResourceAutoCreation() throws InterruptedException, ExecutionException {
+  public void testDisabledResourceAutoCreation()
+      throws InterruptedException, ExecutionException, TimeoutException {
     String dlqTopic = createDlq();
     Map<String, String> props = baseConnectorProps();
     configureDlq(props, dlqTopic);
@@ -91,10 +95,12 @@ public class ResourceAutoCreationIT extends BaseKafkaConnectBigtableIT {
     connect.kafka().produce(testId, KEY1, serializedValue1);
     assertSingleDlqEntry(dlqTopic, KEY1, null, null);
     assertConnectorAndAllTasksAreRunning(testId);
-
+    // wait for the missing table cache to clear...
+    Thread.sleep(15 * 1000);
     // With the table and column family created.
     createTablesAndColumnFamilies(Map.of(testId, Set.of(COLUMN_FAMILY1)));
     connect.kafka().produce(testId, KEY2, serializedValue1);
+    assertDlqSize(dlqTopic, 1);
     waitUntilBigtableContainsNumberOfRows(testId, 1);
     assertTrue(
         readAllRows(bigtableData, testId)
@@ -111,7 +117,8 @@ public class ResourceAutoCreationIT extends BaseKafkaConnectBigtableIT {
             .anyMatch(r -> Arrays.equals(KEY3.getBytes(StandardCharsets.UTF_8), r.key())));
     assertConnectorAndAllTasksAreRunning(testId);
     // With the column family created.
-    bigtableAdmin.modifyFamilies(ModifyColumnFamiliesRequest.of(testId).addFamily(COLUMN_FAMILY2));
+    bigtableAdmin.modifyFamilies(
+        ModifyColumnFamiliesRequest.of(testId).addFamily(COLUMN_FAMILY2));
     connect.kafka().produce(testId, KEY4, serializedValue2);
     waitUntilBigtableContainsNumberOfRows(testId, 2);
     assertTrue(
@@ -141,7 +148,8 @@ public class ResourceAutoCreationIT extends BaseKafkaConnectBigtableIT {
     assertSingleDlqEntry(dlqTopic, KEY1, value, null);
 
     createTablesAndColumnFamilies(Map.of(testId, Set.of()));
-    assertTrue(bigtableAdmin.getTable(testId).getColumnFamilies().isEmpty());
+    assertTrue(
+        bigtableAdmin.getTable(testId).getColumnFamilies().isEmpty());
     connect.kafka().produce(testId, KEY2, value);
     waitUntilBigtableTableHasExactSetOfColumnFamilies(testId, Set.of(testId));
     waitUntilBigtableContainsNumberOfRows(testId, 1);
@@ -215,7 +223,8 @@ public class ResourceAutoCreationIT extends BaseKafkaConnectBigtableIT {
     assertFalse(bigtableAdmin.listTables().contains(testId));
     connect.kafka().produce(testId, KEY1, rowDeletionValue);
     waitUntilBigtableTableExists(testId);
-    assertTrue(bigtableAdmin.getTable(testId).getColumnFamilies().isEmpty());
+    assertTrue(
+        bigtableAdmin.getTable(testId).getColumnFamilies().isEmpty());
 
     assertSingleDlqEntry(dlqTopic, KEY1, null, null);
     assertConnectorAndAllTasksAreRunning(testId);
@@ -285,9 +294,10 @@ public class ResourceAutoCreationIT extends BaseKafkaConnectBigtableIT {
   }
 
   /**
-   * This test checks consequences of design choices described in comments in {@link
-   * com.google.cloud.kafka.connect.bigtable.mapping.MutationDataBuilder#deleteCells(String,
-   * ByteString, Range.TimestampRange)} and {@link
+   * This test checks consequences of design choices described in comments in
+   * {@link com.google.cloud.kafka.connect.bigtable.mapping.MutationDataBuilder#deleteCells(String,
+   * ByteString, Range.TimestampRange)} and
+   * {@link
    * com.google.cloud.kafka.connect.bigtable.mapping.MutationDataBuilder#deleteFamily(String)}.
    */
   @Test

@@ -22,10 +22,10 @@ import static org.apache.kafka.connect.runtime.ConnectorConfig.TASKS_MAX_CONFIG;
 import static org.apache.kafka.connect.runtime.WorkerConfig.KEY_CONVERTER_CLASS_CONFIG;
 import static org.apache.kafka.connect.runtime.WorkerConfig.VALUE_CONVERTER_CLASS_CONFIG;
 
-import com.google.cloud.bigtable.admin.v2.BigtableTableAdminClient;
 import com.google.cloud.bigtable.data.v2.BigtableDataClient;
 import com.google.cloud.kafka.connect.bigtable.config.BigtableSinkConfig;
 import com.google.cloud.kafka.connect.bigtable.util.TestId;
+import com.google.cloud.kafka.connect.bigtable.wrappers.BigtableTableAdminClientInterface;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -76,7 +76,7 @@ public abstract class BaseIT {
     return new BigtableSinkConfig(configProps).getBigtableDataClient();
   }
 
-  public BigtableTableAdminClient getBigtableAdminClient(Map<String, String> configProps) {
+  public BigtableTableAdminClientInterface getBigtableAdminClient(Map<String, String> configProps) {
     return new BigtableSinkConfig(configProps).getBigtableAdminClient();
   }
 

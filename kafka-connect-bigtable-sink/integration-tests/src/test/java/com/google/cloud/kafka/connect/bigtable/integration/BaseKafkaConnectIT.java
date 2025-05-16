@@ -230,6 +230,11 @@ public abstract class BaseKafkaConnectIT extends BaseIT {
 
   public void assertDlqIsEmpty(String dlqTopic)
       throws ExecutionException, InterruptedException, TimeoutException {
+    assertDlqSize(dlqTopic, 0);
+  }
+
+  public void assertDlqSize(String dlqTopic, int size)
+      throws ExecutionException, InterruptedException, TimeoutException {
     ConsumerRecords<byte[], byte[]> dlqRecords =
         connect
             .kafka()
@@ -238,7 +243,7 @@ public abstract class BaseKafkaConnectIT extends BaseIT {
                 Collections.emptyMap(),
                 Collections.emptyMap(),
                 dlqTopic);
-    assertEquals(0, dlqRecords.count());
+    assertEquals(size, dlqRecords.count());
   }
 
   public void assertConnectorAndAllTasksAreRunning(String connectorId) throws InterruptedException {
@@ -276,8 +281,8 @@ public abstract class BaseKafkaConnectIT extends BaseIT {
                   h ->
                       h.key().equals(DeadLetterQueueReporter.ERROR_HEADER_EXCEPTION)
                           && Arrays.equals(
-                              h.value(),
-                              exceptionClass.getName().getBytes(StandardCharsets.UTF_8))));
+                          h.value(),
+                          exceptionClass.getName().getBytes(StandardCharsets.UTF_8))));
     }
   }
 }
