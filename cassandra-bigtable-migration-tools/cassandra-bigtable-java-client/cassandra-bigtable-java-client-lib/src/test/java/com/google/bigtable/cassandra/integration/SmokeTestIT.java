@@ -45,7 +45,8 @@ public class SmokeTestIT {
     projectId = System.getProperty("cassandra.bigtable.projectid");
     instanceId = System.getProperty("cassandra.bigtable.instanceid");
     smokeTestTable = System.getProperty("cassandra.bigtable.smoketesttable", "smoke_test_table");
-    schemaMappingTable = System.getProperty("cassandra.bigtable.schemamappingtable", "smoke_test_schema_mapping_table");
+    schemaMappingTable = System.getProperty("cassandra.bigtable.schemamappingtable",
+        "smoke_test_schema_mapping_table");
   }
 
   @Test
@@ -53,7 +54,8 @@ public class SmokeTestIT {
     // Create BigtableCqlConfiguration
     BigtableCqlConfiguration bigtableCqlConfiguration = createBigtableCqlConfiguration();
 
-    LOGGER.info("Creating BigtableCqlSessionFactory with bigtableCqlConfiguration: " + bigtableCqlConfiguration.toString());
+    LOGGER.info("Creating BigtableCqlSessionFactory with bigtableCqlConfiguration: "
+        + bigtableCqlConfiguration.toString());
 
     // Create CqlSession with BigtableCqlConfiguration
     BigtableCqlSessionFactory bigtableCqlSessionFactory = new BigtableCqlSessionFactory(
@@ -67,12 +69,16 @@ public class SmokeTestIT {
       String qualifiedTestTableName = instanceId + "." + smokeTestTable;
 
       // Create table
-      String createTableQuery = String.format("CREATE TABLE IF NOT EXISTS %s (column1 varchar PRIMARY KEY, column2 float);", qualifiedTestTableName);
+      String createTableQuery = String.format(
+          "CREATE TABLE IF NOT EXISTS %s (column1 varchar PRIMARY KEY, column2 float, column3 int, column4 double, column5 bigint);",
+          qualifiedTestTableName);
       LOGGER.info("creating table with query: " + createTableQuery);
       session.execute(createTableQuery);
 
       // Prepare an insert statement
-      String insertQuery = String.format("INSERT INTO %s (column1, column2) VALUES (?, ?)", qualifiedTestTableName);
+      String insertQuery = String.format(
+          "INSERT INTO %s (column1, column2, column3, column4, column5) VALUES (?, ?, ?, ?, ?)",
+          qualifiedTestTableName);
       LOGGER.info("Inserting data with query: " + insertQuery);
       PreparedStatement preparedInsert = session.prepare(insertQuery);
 
@@ -80,13 +86,19 @@ public class SmokeTestIT {
       BoundStatement boundInsert1 = preparedInsert
           .bind()
           .setString("column1", "string1")
-          .setFloat("column2", 1234.5f);
+          .setFloat("column2", 1234.5f)
+          .setInt("column3", 12345)
+          .setDouble("column4", 1234.5d)
+          .setLong("column5", 12345L);
       session.execute(boundInsert1);
 
       BoundStatement boundInsert2 = preparedInsert
           .bind()
           .setString("column1", "string2")
-          .setFloat("column2", 6789.9f);
+          .setFloat("column2", 6789.0f)
+          .setInt("column3", 67890)
+          .setDouble("column4", 6789.0d)
+          .setLong("column5", 67890L);
       session.execute(boundInsert2);
 
       // Query for all entries
@@ -105,8 +117,15 @@ public class SmokeTestIT {
       assertEquals(2, rows.size());
       assertEquals("string1", rows.get(0).getString("column1"));
       assertEquals(1234.5f, rows.get(0).getFloat("column2"));
+      assertEquals(12345, rows.get(0).getInt("column3"));
+      assertEquals(1234.5d, rows.get(0).getDouble("column4"));
+      assertEquals(12345L, rows.get(0).getLong("column5"));
+
       assertEquals("string2", rows.get(1).getString("column1"));
-      assertEquals(6789.9f, rows.get(1).getFloat("column2"));
+      assertEquals(6789.0f, rows.get(1).getFloat("column2"));
+      assertEquals(67890, rows.get(1).getInt("column3"));
+      assertEquals(6789.0d, rows.get(1).getDouble("column4"));
+      assertEquals(67890L, rows.get(1).getLong("column5"));
     }
   }
 
