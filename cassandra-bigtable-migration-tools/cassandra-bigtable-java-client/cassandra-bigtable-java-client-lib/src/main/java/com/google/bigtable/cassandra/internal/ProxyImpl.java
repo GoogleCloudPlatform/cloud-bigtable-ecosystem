@@ -96,11 +96,13 @@ class ProxyImpl implements Proxy {
   }
 
   private void setupProxy() throws IOException {
-    // TODO: handle potential race between finding a free port and another process taking it
     int proxyPort = findFreeProxyPort();
 
     // Create temp directory
     Path tempProxyDir = Files.createTempDirectory(PROXY_TEMP_DIR_PREFIX);
+    if (!Files.getPosixFilePermissions(tempProxyDir).equals(PosixFilePermissions.fromString(PERMS_700))) {
+      throw new IllegalStateException("Incorrect directory permissions");
+    }
     tempProxyDir.toFile().deleteOnExit();
 
     // Copy proxy binary to temp directory
@@ -139,10 +141,10 @@ class ProxyImpl implements Proxy {
     String proxyConfigFilePath = configTempPath.toAbsolutePath().toString();
     try (BufferedWriter writer = new BufferedWriter(new FileWriter(proxyConfigFilePath))) {
       writer.write(proxyConfigContents);
-      LOGGER.debug("Successfully wrote proxy config to " + proxyConfigFilePath);
+      LOGGER.debug("Successfully created proxy config");
       return configTempPath;
     } catch (IOException e) {
-      throw new IllegalStateException("Failed to write proxy config", e);
+      throw new IllegalStateException("Failed to create proxy config", e);
     }
   }
 
@@ -167,6 +169,9 @@ class ProxyImpl implements Proxy {
       // If Posix permissions are supported, set file permissions
       if (FileSystems.getDefault().supportedFileAttributeViews().contains("posix")) {
         Files.setPosixFilePermissions(targetProxyBinaryPath, PosixFilePermissions.fromString(PERMS_700));
+        if (!Files.getPosixFilePermissions(targetProxyBinaryPath).equals(PosixFilePermissions.fromString(PERMS_700))) {
+          throw new IllegalStateException("Incorrect file permissions");
+        }
       } else {
         throw new IllegalStateException("File system not supported");
       }
@@ -254,7 +259,7 @@ class ProxyImpl implements Proxy {
 
   private void startProxyProcess(ProcessBuilder pb) throws IOException {
     // Start the process
-    LOGGER.debug("Starting proxy with command: " + pb.command());
+    LOGGER.debug("Starting proxy");
     try {
       proxyProcess = pb.start();
 

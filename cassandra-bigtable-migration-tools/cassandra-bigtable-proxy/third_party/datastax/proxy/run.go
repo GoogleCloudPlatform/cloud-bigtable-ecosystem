@@ -450,18 +450,18 @@ func resolveAndListen(bind string, useUnixSocket bool, unixSocketPath, certFile,
 		if err := os.RemoveAll(unixSocketPath); err != nil {
 			return nil, fmt.Errorf("failed to remove existing socket file: %v", err)
 		}
-		logger.Info(fmt.Sprintf("Creating Unix Domain Socket at: %s\n", unixSocketPath))
+		logger.Debug(fmt.Sprintf("Creating Unix Domain Socket"))
 		listener, err := net.Listen("unix", unixSocketPath)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create Unix Domain Socket: %v", err)
 		}
-		logger.Info("Successfully created Unix Domain Socket listener\n")
+		logger.Debug("Successfully created Unix Domain Socket listener\n")
 
 		// Set socket permissions
-		if err := os.Chmod(unixSocketPath, 0666); err != nil {
+		if err := os.Chmod(unixSocketPath, 0600); err != nil {
 			return nil, fmt.Errorf("failed to set socket permissions: %v", err)
 		}
-		logger.Info("Set socket permissions to 0666\n")
+		logger.Debug("Set socket permissions\n")
 
 		return listener, nil
 	}

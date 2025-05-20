@@ -80,7 +80,7 @@ mvn verify \
   -Djava.util.logging.config.file=src/test/resources/logging.properties
 ```
 
-Optionally, to override the test and schema mapping table names, set these  environment variables:
+Optionally, to override the test and schema mapping table names, set these environment variables:
 
 ```shell
 SMOKE_TEST_TABLE=<YOUR-SMOKE-TEST-TABLE-NAME-HERE>
