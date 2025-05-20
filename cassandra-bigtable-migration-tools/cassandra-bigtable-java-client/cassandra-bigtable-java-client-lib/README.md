@@ -47,7 +47,7 @@ Add the dependencies below to the `<dependencies>` section of your Maven `pom.xm
 
 ## Classifiers
 
-For the `cassandra-bigtable-java-client-core` package, specify the relevant `<classifier>` corresponding to the target platform/architecture: 
+For the `cassandra-bigtable-java-client-core` package, specify the relevant `<classifier>` corresponding to the target platform/architecture:
 
 - Linux Builds
   - `linux-386`
@@ -56,9 +56,6 @@ For the `cassandra-bigtable-java-client-core` package, specify the relevant `<cl
 - Mac Builds
   - `darwin-amd64`
   - `darwin-arm64`
-- Windows Builds
-  - `windows-386`
-  - `windows-amd64`
 
 # How to use
 

@@ -43,7 +43,7 @@ final class ProxyConfigUtils {
   private static final String LOGGER_STDOUT = "stdout";
   private static final String DEFAULT_LISTENER_NAME = "cluster1";
 
-  static protected ProxyConfig createProxyConfig(BigtableCqlConfiguration bigtableCqlConfiguration,
+  static ProxyConfig createProxyConfig(BigtableCqlConfiguration bigtableCqlConfiguration,
       int proxyPort) {
     CassandraToBigTableConfig cassandraToBigTableConfig = createCassandraToBigTableConfig(
         bigtableCqlConfiguration);

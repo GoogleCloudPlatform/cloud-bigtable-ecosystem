@@ -28,9 +28,6 @@
 #  # Mac Builds
 #    darwin/amd64
 #    darwin/arm64
-#  # Windows Builds
-#    windows/386
-#    windows/amd64
 
 set -eo pipefail
 

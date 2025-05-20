@@ -68,20 +68,6 @@ limitations under the License.
         <version>0.1.0-SNAPSHOT</version>
         <classifier>darwin-arm64</classifier>
       </dependency>
-      <!--windows/386-->
-      <dependency>
-        <groupId>com.google.cloud</groupId>
-        <artifactId>cassandra-bigtable-java-client-core</artifactId>
-        <version>0.1.0-SNAPSHOT</version>
-        <classifier>windows-386</classifier>
-      </dependency>
-      <!--windows/amd64-->
-      <dependency>
-        <groupId>com.google.cloud</groupId>
-        <artifactId>cassandra-bigtable-java-client-core</artifactId>
-        <version>0.1.0-SNAPSHOT</version>
-        <classifier>windows-amd64</classifier>
-      </dependency>
       <dependency>
         <groupId>com.google.cloud</groupId>
         <artifactId>cassandra-bigtable-java-client-lib</artifactId>

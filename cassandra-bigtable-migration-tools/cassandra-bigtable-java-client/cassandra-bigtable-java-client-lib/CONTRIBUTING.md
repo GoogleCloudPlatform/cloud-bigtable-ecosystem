@@ -40,6 +40,7 @@ Pre-requisites:
 - A Google Cloud Project
 - A Bigtable Instance
 - Go v1.21
+- Java 8+
 - Bigtable cbt client
 - gcloud client
 
@@ -56,8 +57,8 @@ GCP_PROJECT_ID=<YOUR-PROJECT-ID-HERE>
 BIGTABLE_INSTANCE_ID=<YOUR-BIGTABLE-INSTANCE-ID-HERE>
 ```
 
-Then, modify the following _test_ dependency in the `pom.xml` file by replacing 
-the classifier with your target platform/architecture (see [README](README.md) 
+Then, modify the following _test_ dependency in the `pom.xml` file by replacing
+the `classifier` with your target platform/architecture (see [README](README.md)
 for the full list of classifiers):
 
 ```xml
@@ -79,7 +80,7 @@ mvn verify \
   -Djava.util.logging.config.file=src/test/resources/logging.properties
 ```
 
-Optionally, to override the test and schema mapping table names, set these environment variables:
+Optionally, to override the test and schema mapping table names, set these  environment variables:
 
 ```shell
 SMOKE_TEST_TABLE=<YOUR-SMOKE-TEST-TABLE-NAME-HERE>

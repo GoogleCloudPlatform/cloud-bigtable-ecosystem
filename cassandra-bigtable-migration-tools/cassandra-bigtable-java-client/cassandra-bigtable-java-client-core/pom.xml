@@ -132,42 +132,6 @@ limitations under the License.
               </arguments>
             </configuration>
           </execution>
-
-          <!--windows/386-->
-          <execution>
-            <id>build-go-binary-windows-386</id>
-            <phase>compile</phase>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-            <configuration>
-              <executable>${basedir}/build.sh</executable>
-              <arguments>
-                <argument>windows</argument>
-                <argument>386</argument>
-                <argument>${project.version}</argument>
-                <argument>${project.basedir}</argument>
-              </arguments>
-            </configuration>
-          </execution>
-
-          <!--windows/amd64-->
-          <execution>
-            <id>build-go-binary-windows-amd64</id>
-            <phase>compile</phase>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-            <configuration>
-              <executable>${basedir}/build.sh</executable>
-              <arguments>
-                <argument>windows</argument>
-                <argument>amd64</argument>
-                <argument>${project.version}</argument>
-                <argument>${project.basedir}</argument>
-              </arguments>
-            </configuration>
-          </execution>
         </executions>
       </plugin>
 
@@ -253,40 +217,6 @@ limitations under the License.
             <configuration>
               <classifier>darwin-arm64</classifier>
               <classesDirectory>${project.build.directory}/${project.version}/darwin/arm64</classesDirectory>
-              <includes>
-                <include>${go.binary.name}</include>
-                <include>LICENSE</include>
-                <include>NOTICE.md</include>
-                <include>third_party/licenses/*</include>
-              </includes>
-            </configuration>
-          </execution>
-
-          <!--windows-386-->
-          <execution>
-            <id>package-binary-windows-386</id>
-            <phase>package</phase>
-            <goals><goal>jar</goal></goals>
-            <configuration>
-              <classifier>windows-386</classifier>
-              <classesDirectory>${project.build.directory}/${project.version}/windows/386</classesDirectory>
-              <includes>
-                <include>${go.binary.name}</include>
-                <include>LICENSE</include>
-                <include>NOTICE.md</include>
-                <include>third_party/licenses/*</include>
-              </includes>
-            </configuration>
-          </execution>
-
-          <!--windows-amd64-->
-          <execution>
-            <id>package-binary-windows-amd64</id>
-            <phase>package</phase>
-            <goals><goal>jar</goal></goals>
-            <configuration>
-              <classifier>windows-amd64</classifier>
-              <classesDirectory>${project.build.directory}/${project.version}/windows/amd64</classesDirectory>
               <includes>
                 <include>${go.binary.name}</include>
                 <include>LICENSE</include>

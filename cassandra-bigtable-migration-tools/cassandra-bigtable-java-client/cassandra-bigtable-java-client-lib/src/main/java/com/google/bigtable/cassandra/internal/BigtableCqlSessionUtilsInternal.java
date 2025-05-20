@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
  */
 public final class BigtableCqlSessionUtilsInternal {
 
-  private static final String BIGTABLE_CQLSESSION_NAME = "BigtableCqlSession";
+  private static final String BIGTABLE_CQL_SESSION_NAME = "BigtableCqlSession";
   private static final String BIGTABLE_PROXY_LOCAL_DATACENTER = "bigtable-proxy-local-datacenter";
   private static final Logger LOGGER = LoggerFactory.getLogger(BigtableCqlSessionUtilsInternal.class);
 
@@ -39,6 +39,10 @@ public final class BigtableCqlSessionUtilsInternal {
    * Internal use only. Use {@link BigtableCqlSessionFactory#newSession()}  instead.
    */
   public static CqlSession newSession(BigtableCqlConfiguration bigtableCqlConfiguration) {
+    if (OsUtils.isWindows()) {
+      throw new IllegalStateException("Windows is currently not supported");
+    }
+
     Proxy proxy = new ProxyFactory(bigtableCqlConfiguration).newProxy();
 
     try {
@@ -46,7 +50,7 @@ public final class BigtableCqlSessionUtilsInternal {
 
       LOGGER.info("Starting CqlSession...");
       CqlSession delegate = CqlSession.builder()
-          .withApplicationName(BIGTABLE_CQLSESSION_NAME)
+          .withApplicationName(BIGTABLE_CQL_SESSION_NAME)
           .addContactPoint((InetSocketAddress) address)
           .withLocalDatacenter(BIGTABLE_PROXY_LOCAL_DATACENTER)
           .build();
