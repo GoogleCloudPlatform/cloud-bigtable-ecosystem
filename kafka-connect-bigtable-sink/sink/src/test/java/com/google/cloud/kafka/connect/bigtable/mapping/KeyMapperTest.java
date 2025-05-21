@@ -53,6 +53,7 @@ import org.junit.runners.JUnit4;
 // Confluent sink's implementations.
 @RunWith(JUnit4.class)
 public class KeyMapperTest {
+
   private static final String DELIMITER = "##";
 
   @Test
@@ -474,29 +475,19 @@ public class KeyMapperTest {
     final String fieldNameIntegerMap = "IntegerMap";
     final String fieldNameStringMap = "StringMap";
     final Map<Integer, Boolean> integerMap = new HashMap<>();
-    final Map<String, Boolean> stringMap = new HashMap<>();
+    integerMap.put(1, true);
+    integerMap.put(2, true);
+    integerMap.put(3, true);
+    integerMap.put(4, false);
+    integerMap.put(5, true);
 
-    for (int n = 2; n <= 10; n++) {
-      boolean isPrime = true;
-      for (int d : integerMap.keySet()) {
-        if (n % d == 0) {
-          isPrime = false;
-          break;
-        }
-      }
-      integerMap.put(n, isPrime);
-    }
-    for (int n = 2; n <= 10; n++) {
-      boolean isPrime = true;
-      for (String s : stringMap.keySet()) {
-        Integer d = Integer.parseInt(s);
-        if (n % d == 0) {
-          isPrime = false;
-          break;
-        }
-      }
-      stringMap.put(Integer.toString(n), isPrime);
-    }
+    final Map<String, Boolean> stringMap = new HashMap<>();
+    stringMap.put("6", false);
+    stringMap.put("7", true);
+    stringMap.put("8", false);
+    stringMap.put("9", false);
+    stringMap.put("10", false);
+
     Schema kafkaConnectSchema =
         SchemaBuilder.struct()
             .field(
@@ -510,14 +501,14 @@ public class KeyMapperTest {
     kafkaConnectStruct.put(fieldNameStringMap, stringMap);
     assertArrayEquals(
         calculateKey(List.of(), DELIMITER, kafkaConnectStruct),
-        (integerMap.toString() + DELIMITER + stringMap.toString())
+        "{1=true, 2=true, 3=true, 4=false, 5=true}##{6=false, 7=true, 8=false, 9=false, 10=false}"
             .getBytes(StandardCharsets.UTF_8));
     assertArrayEquals(
         calculateKey(List.of(fieldNameIntegerMap), DELIMITER, kafkaConnectStruct),
-        integerMap.toString().getBytes(StandardCharsets.UTF_8));
+        "{1=true, 2=true, 3=true, 4=false, 5=true}".getBytes(StandardCharsets.UTF_8));
     assertArrayEquals(
         calculateKey(List.of(fieldNameStringMap), DELIMITER, kafkaConnectStruct),
-        stringMap.toString().getBytes(StandardCharsets.UTF_8));
+        "{6=false, 7=true, 8=false, 9=false, 10=false}".getBytes(StandardCharsets.UTF_8));
     // Accessing map keys is not supported.
     assertThrows(
         DataException.class,
@@ -605,7 +596,7 @@ public class KeyMapperTest {
   @Test
   public void testBytes() {
     final String fieldName = "Bytes";
-    final byte[] fieldBytes = new byte[] {42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54};
+    final byte[] fieldBytes = new byte[]{42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54};
     final ByteBuffer fieldValueKafkaConnect = ByteBuffer.wrap(fieldBytes);
     Schema kafkaConnectSchema =
         SchemaBuilder.struct().field(fieldName, Schema.BYTES_SCHEMA).build();
@@ -797,25 +788,25 @@ public class KeyMapperTest {
         List.of(
             // Default key definition and all kinds of types.
             // Note that logical types cannot be used without schema.
-            new Object[] {List.of(), "2.130", "2.13"},
-            new Object[] {List.of(), "7", "7"},
-            new Object[] {List.of(), "\"x\"", "x"},
-            new Object[] {List.of(), "true", "true"},
-            new Object[] {List.of(), "[]", "[]"},
-            new Object[] {List.of(), "[1,\"s\",true]", "[1, s, true]"},
+            new Object[]{List.of(), "2.130", "2.13"},
+            new Object[]{List.of(), "7", "7"},
+            new Object[]{List.of(), "\"x\"", "x"},
+            new Object[]{List.of(), "true", "true"},
+            new Object[]{List.of(), "[]", "[]"},
+            new Object[]{List.of(), "[1,\"s\",true]", "[1, s, true]"},
             // Default key definition when using on a map (schemaless data is converted into a Map
             // rather than a Struct, so its fields are not accessed when serializing!).
-            new Object[] {List.of(), "{\"a\":1,\"b\":true,\"c\":\"str\"}", "{a=1, b=true, c=str}"},
-            new Object[] {List.of(), "{\"b\":1,\"a\":3}", "{a=3, b=1}"},
-            new Object[] {
-              List.of(),
-              "{\"b\":[1,2],\"a\":3,\"c\":{\"x\":\"D\",\"y\":2137}}",
-              "{a=3, b=[1, 2], c={x=D, y=2137}}"
+            new Object[]{List.of(), "{\"a\":1,\"b\":true,\"c\":\"str\"}", "{a=1, b=true, c=str}"},
+            new Object[]{List.of(), "{\"b\":1,\"a\":3}", "{a=3, b=1}"},
+            new Object[]{
+                List.of(),
+                "{\"b\":[1,2],\"a\":3,\"c\":{\"x\":\"D\",\"y\":2137}}",
+                "{a=3, b=[1, 2], c={x=D, y=2137}}"
             }
             // Note that there are no tests for accessing fields of the values. Maps, to which
             // schemaless JSON data deserializes when using JsonConverter, does not support
             // accessing its values by keys.
-            )) {
+        )) {
       KeyMapper mapper = new KeyMapper(delimiter, (List<String>) testCase[0]);
       SchemaAndValue connectData =
           jsonConverter.toConnectData(

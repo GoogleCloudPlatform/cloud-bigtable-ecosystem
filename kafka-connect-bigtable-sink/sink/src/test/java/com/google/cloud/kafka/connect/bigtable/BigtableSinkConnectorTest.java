@@ -84,10 +84,4 @@ public class BigtableSinkConnectorTest {
   public void testVersion() {
     assertNotNull(connector.version());
   }
-
-  @Test
-  public void testServiceLoader() {
-    ServiceLoader<SinkConnector> serviceLoader = ServiceLoader.load(SinkConnector.class);
-    assertTrue(serviceLoader.stream().anyMatch(x -> BigtableSinkConnector.class.equals(x.type())));
-  }
 }

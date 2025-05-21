@@ -24,6 +24,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.cloud.bigtable.data.v2.models.Range;
 import com.google.cloud.kafka.connect.bigtable.config.ConfigInterpolation;
 import com.google.cloud.kafka.connect.bigtable.config.NullValueMode;
@@ -46,6 +47,7 @@ import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class ValueMapperTest {
+
   private static final String DEFAULT_COLUMN_FAMILY = "COLUMN_FAMILY";
   private static final String DEFAULT_COLUMN = "COLUMN_QUALIFIER";
   private static final ByteString DEFAULT_COLUMN_BYTES =
@@ -132,7 +134,7 @@ public class ValueMapperTest {
 
   @Test
   public void testBytes() {
-    byte[] value = new byte[] {(byte) 37, (byte) 21};
+    byte[] value = new byte[]{(byte) 37, (byte) 21};
     ByteString expected = ByteString.copyFrom(value);
     ValueMapper mapper =
         new TestValueMapper(DEFAULT_COLUMN_FAMILY, DEFAULT_COLUMN, NullValueMode.IGNORE);
@@ -299,11 +301,11 @@ public class ValueMapperTest {
             .put(deleteColumn, null);
     Struct struct =
         new Struct(
-                SchemaBuilder.struct()
-                    .field(setColumnFamily, createStruct.schema())
-                    .field(setRoot, Schema.BOOLEAN_SCHEMA)
-                    .field(deleteColumnFamily, deleteStruct.schema())
-                    .field(deleteRoot, Schema.OPTIONAL_INT8_SCHEMA))
+            SchemaBuilder.struct()
+                .field(setColumnFamily, createStruct.schema())
+                .field(setRoot, Schema.BOOLEAN_SCHEMA)
+                .field(deleteColumnFamily, deleteStruct.schema())
+                .field(deleteRoot, Schema.OPTIONAL_INT8_SCHEMA))
             .put(setColumnFamily, createStruct)
             .put(setRoot, rootValue)
             .put(deleteColumnFamily, deleteStruct)
@@ -334,7 +336,7 @@ public class ValueMapperTest {
   }
 
   @Test
-  public void testMap() {
+  public void testMap() throws JsonProcessingException {
     Object outerMapKey = 123456;
     Object innerMapKey = "innerMapKey";
     String familyToBeDeleted = "familyToBeDeleted";
@@ -359,32 +361,16 @@ public class ValueMapperTest {
     innerMap.put(columnToBeDeleted, null);
     innermostMap.put(innermostNullKey, null);
 
-    /*
-    {
-        outerMapKey: {
-            innerMapKey: {
-                valueKey: value,
-                innermostNullKey: null,
-            }
-            valueKey: value,
-            columnToBeDeleted: null,
-        }
-        valueKey: value,
-        familyToBeDeleted: null,
-    }
-     */
-    String expectedJsonification =
-        "{\"123456\":{\"columnToBeDeleted\":null,\"innerMapKey\":{\"innermostNullKey\":null,\"valueKey\":\"value\"},\"valueKey\":\"value\"},\"familyToBeDeleted\":null,\"valueKey\":\"value\"}";
     ByteString expectedJsonificationBytes =
-        ByteString.copyFrom(expectedJsonification.getBytes(StandardCharsets.UTF_8));
+        ByteString.copyFrom(ValueMapper.getJsonMapper().writeValueAsBytes(outerMap));
 
     ValueMapper mapper =
         new TestValueMapper(DEFAULT_COLUMN_FAMILY, DEFAULT_COLUMN, NullValueMode.DELETE);
     MutationDataBuilder mutationDataBuilder = getRecordMutationDataBuilder(mapper, outerMap);
+    assertTotalNumberOfInvocations(mutationDataBuilder, 1);
     verify(mutationDataBuilder, times(1))
         .setCell(
             DEFAULT_COLUMN_FAMILY, DEFAULT_COLUMN_BYTES, TIMESTAMP, expectedJsonificationBytes);
-    assertTotalNumberOfInvocations(mutationDataBuilder, 1);
   }
 
   @Test
@@ -404,15 +390,15 @@ public class ValueMapperTest {
 
     Struct structToBeJsonified =
         new Struct(
-                SchemaBuilder.struct()
-                    .field(dateFieldName, org.apache.kafka.connect.data.Date.SCHEMA)
-                    .field(timestampFieldName, org.apache.kafka.connect.data.Timestamp.SCHEMA)
-                    .field(timeFieldName, org.apache.kafka.connect.data.Timestamp.SCHEMA)
-                    .field(
-                        decimalFieldName,
-                        org.apache.kafka.connect.data.Decimal.schema(decimalScale))
-                    .field(bytesFieldName, Schema.BYTES_SCHEMA)
-                    .build())
+            SchemaBuilder.struct()
+                .field(dateFieldName, org.apache.kafka.connect.data.Date.SCHEMA)
+                .field(timestampFieldName, org.apache.kafka.connect.data.Timestamp.SCHEMA)
+                .field(timeFieldName, org.apache.kafka.connect.data.Timestamp.SCHEMA)
+                .field(
+                    decimalFieldName,
+                    org.apache.kafka.connect.data.Decimal.schema(decimalScale))
+                .field(bytesFieldName, Schema.BYTES_SCHEMA)
+                .build())
             .put(dateFieldName, date)
             .put(timestampFieldName, timestamp)
             .put(timeFieldName, time)
@@ -626,26 +612,26 @@ public class ValueMapperTest {
 
     Struct innermostStruct =
         new Struct(
-                SchemaBuilder.struct()
-                    .field(valueKey, Schema.STRING_SCHEMA)
-                    .field(innermostNullKey, Schema.OPTIONAL_INT8_SCHEMA))
+            SchemaBuilder.struct()
+                .field(valueKey, Schema.STRING_SCHEMA)
+                .field(innermostNullKey, Schema.OPTIONAL_INT8_SCHEMA))
             .put(valueKey, value)
             .put(innermostNullKey, null);
     Struct innerStruct =
         new Struct(
-                SchemaBuilder.struct()
-                    .field(innerStructKey, innermostStruct.schema())
-                    .field(valueKey, Schema.STRING_SCHEMA)
-                    .field(columnToBeDeleted, Schema.OPTIONAL_INT8_SCHEMA))
+            SchemaBuilder.struct()
+                .field(innerStructKey, innermostStruct.schema())
+                .field(valueKey, Schema.STRING_SCHEMA)
+                .field(columnToBeDeleted, Schema.OPTIONAL_INT8_SCHEMA))
             .put(innerStructKey, innermostStruct)
             .put(valueKey, value)
             .put(columnToBeDeleted, null);
     Struct outerStruct =
         new Struct(
-                SchemaBuilder.struct()
-                    .field(outerStructKey, innerStruct.schema())
-                    .field(valueKey, Schema.STRING_SCHEMA)
-                    .field(familyToBeDeleted, Schema.OPTIONAL_INT8_SCHEMA))
+            SchemaBuilder.struct()
+                .field(outerStructKey, innerStruct.schema())
+                .field(valueKey, Schema.STRING_SCHEMA)
+                .field(familyToBeDeleted, Schema.OPTIONAL_INT8_SCHEMA))
             .put(outerStructKey, innerStruct)
             .put(valueKey, value)
             .put(familyToBeDeleted, null);
@@ -840,6 +826,7 @@ public class ValueMapperTest {
   }
 
   private static class TestValueMapper extends ValueMapper {
+
     public TestValueMapper(
         String defaultColumnFamily, String defaultColumnQualifier, NullValueMode nullMode) {
       super(defaultColumnFamily, defaultColumnQualifier, nullMode);

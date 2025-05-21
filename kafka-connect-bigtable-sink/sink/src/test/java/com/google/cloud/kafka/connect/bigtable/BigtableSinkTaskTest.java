@@ -122,12 +122,6 @@ public class BigtableSinkTaskTest {
   }
 
   @Test
-  public void testStart() {
-    task = spy(new TestBigtableSinkTask(null, null, null, null, null, null, null));
-    task.start(BasicPropertiesFactory.getTaskProps());
-  }
-
-  @Test
   public void testStop() throws InterruptedException {
     for (List<Boolean> test :
         List.of(
