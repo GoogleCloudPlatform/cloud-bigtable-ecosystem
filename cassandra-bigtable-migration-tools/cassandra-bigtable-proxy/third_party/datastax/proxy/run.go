@@ -125,6 +125,8 @@ type runConfig struct {
 	ProxyKeyFile       string   `yaml:"proxy-key-file" help:"Path to a PEM encoded private key file. This is used to encrypt traffic for proxy clients" env:"PROXY_KEY_FILE"`
 	// hidden because we only intend the java session wrapper to use this flag
 	UserAgentOverride string `yaml:"-" help:"" hidden:"" optional:"" default:"" short:"u"`
+	ClientPid         int32     `yaml:"client-pid" help:"" hidden:"" optional:"" default:"" short:""`
+	ClientUid         uint32    `yaml:"client-uid" help:"" hidden:"" optional:"" default:"" short:""`
 }
 
 // Run starts the proxy command. 'args' shouldn't include the executable (i.e. os.Args[1:]). It returns the exit code
@@ -287,6 +289,8 @@ func Run(ctx context.Context, args []string) int {
 			CQLVersion:     cqlVersion,
 			OtelConfig:     UserConfig.Otel,
 			UserAgent:      userAgent,
+			ClientPid:      cfg.ClientPid,
+			ClientUid:      cfg.ClientUid,
 		})
 
 		if err1 != nil {
