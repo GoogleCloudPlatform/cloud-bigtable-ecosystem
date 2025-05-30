@@ -17,25 +17,24 @@ package com.google.bigtable.cassandra.internal;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.google.bigtable.cassandra.BigtableCqlConfiguration;
 import com.google.common.base.Preconditions;
+import io.netty.channel.unix.DomainSocketAddress;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.InetSocketAddress;
-import java.net.ServerSocket;
 import java.net.SocketAddress;
 import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -52,29 +51,27 @@ class ProxyImpl implements Proxy {
   private static final Duration PROXY_STARTUP_TIMEOUT_SECS = Duration.ofSeconds(60);
   private static final String USER_AGENT_PREFIX = "java-cassandra-adapter/";
   private static final String PROJECT_PROPERTIES_FILENAME = "project.properties";
-  private static final String LOOPBACK_ADDRESS = "127.0.0.1:%s";
   private static final String PROJECT_VERSION_PROPERTY = "lib.version";
   private static final String PROXY_STARTUP_LOG_MESSAGE = "Starting to serve on listener";
   private static final String DATA_CENTER_ENV_VAR = "DATA_CENTER";
   private static final String PROXY_BINARY_NAME = "cassandra-to-bigtable-proxy";
-  private static final String PROXY_TEMP_DIR_PREFIX = "bigtable_cassandra_proxy_";
   private static final String PROXY_CONFIG_FILENAME = "config.yaml";
-  private static final int UNSPECIFIED_PORT = 0;
-  private static final String PROXY_LOCAL_HOSTNAME = "localhost";
-  private static final String PERMS_700 = "rwx------";
+  private static final String UDS_FILENAME = "cassandra-proxy.sock";
+  private static final Set<PosixFilePermission> PERMS_700 = PosixFilePermissions.fromString("rwx------");
+  private static final Set<PosixFilePermission> PERMS_600 = PosixFilePermissions.fromString("rw-------");
   private static final String BIGTABLE_PROXY_LOCAL_DATACENTER = "bigtable-proxy-local-datacenter";
   private static final Logger LOGGER = LoggerFactory.getLogger(ProxyImpl.class);
 
   private final BigtableCqlConfiguration bigtableCqlConfiguration;
 
+  private Path tempProxyDir;
   private Path proxyExecutablePath;
   private Path proxyConfigFilePath;
-  private int proxyPort;
   private Process proxyProcess;
   private CompletableFuture<Boolean> isProxyProcessListening;
   private boolean isProxyStarted;
-  private InetSocketAddress proxyAddress;
   private CqlSession cqlSession;
+  private SocketAddress proxyAddress;
 
   /**
    * Internal use only.
@@ -88,7 +85,6 @@ class ProxyImpl implements Proxy {
   @Override
   public SocketAddress start() throws IOException {
     Preconditions.checkState(!isProxyStarted, "Proxy already started");
-
     LOGGER.debug("Setting up proxy");
     setupProxy();
     LOGGER.debug("Starting proxy");
@@ -98,35 +94,16 @@ class ProxyImpl implements Proxy {
   }
 
   private void setupProxy() throws IOException {
-    int proxyPort = findFreeProxyPort();
-
-    Path tempProxyDir = Files.createTempDirectory(PROXY_TEMP_DIR_PREFIX);
-    if (!Files.getPosixFilePermissions(tempProxyDir)
-        .equals(PosixFilePermissions.fromString(PERMS_700))) {
-      throw new IllegalStateException("Incorrect directory permissions");
-    }
+    tempProxyDir = Files.createTempDirectory(null, PosixFilePermissions.asFileAttribute(PERMS_700));
     tempProxyDir.toFile().deleteOnExit();
 
     Path proxyExecutablePath = copyProxyBinaryToTempDir(tempProxyDir);
 
-    ProxyConfig proxyConfig = ProxyConfigUtils.createProxyConfig(bigtableCqlConfiguration,
-        proxyPort);
+    ProxyConfig proxyConfig = ProxyConfigUtils.createProxyConfig(bigtableCqlConfiguration);
     Path proxyConfigFilePath = createProxyConfigFile(proxyConfig, tempProxyDir);
 
     this.proxyExecutablePath = proxyExecutablePath;
     this.proxyConfigFilePath = proxyConfigFilePath;
-    this.proxyPort = proxyPort;
-  }
-
-  private int findFreeProxyPort() throws IOException {
-    try (ServerSocket socket = new ServerSocket(UNSPECIFIED_PORT)) {
-      if (socket.getLocalPort() == 0) {
-        throw new IOException("Could not find a free port for the proxy");
-      }
-      return socket.getLocalPort();
-    } catch (IOException e) {
-      throw new IOException("Could not find a free port for the proxy", e);
-    }
   }
 
   private Path createProxyConfigFile(ProxyConfig proxyConfig, Path tempProxyDir)
@@ -134,11 +111,10 @@ class ProxyImpl implements Proxy {
     String proxyConfigContents = proxyConfig.toYaml();
 
     Path configTempPath = tempProxyDir.resolve(PROXY_CONFIG_FILENAME);
-    Files.createFile(configTempPath);
+    Files.createFile(configTempPath, PosixFilePermissions.asFileAttribute(PERMS_600));
     configTempPath.toFile().deleteOnExit();
 
-    String proxyConfigFilePath = configTempPath.toAbsolutePath().toString();
-    try (BufferedWriter writer = new BufferedWriter(new FileWriter(proxyConfigFilePath))) {
+    try (BufferedWriter writer = Files.newBufferedWriter(configTempPath)) {
       writer.write(proxyConfigContents);
       LOGGER.debug("Successfully created proxy config");
       return configTempPath;
@@ -160,18 +136,8 @@ class ProxyImpl implements Proxy {
 
       Path targetProxyBinaryPath = tempProxyDir.resolve(PROXY_BINARY_NAME);
       Files.copy(inputStream, targetProxyBinaryPath);
+      Files.setPosixFilePermissions(targetProxyBinaryPath, PERMS_700);
       targetProxyBinaryPath.toFile().deleteOnExit();
-
-      if (FileSystems.getDefault().supportedFileAttributeViews().contains("posix")) {
-        Files.setPosixFilePermissions(targetProxyBinaryPath,
-            PosixFilePermissions.fromString(PERMS_700));
-        if (!Files.getPosixFilePermissions(targetProxyBinaryPath)
-            .equals(PosixFilePermissions.fromString(PERMS_700))) {
-          throw new IllegalStateException("Incorrect file permissions");
-        }
-      } else {
-        throw new IllegalStateException("File system not supported");
-      }
 
       return targetProxyBinaryPath;
     } catch (Exception e) {
@@ -181,14 +147,21 @@ class ProxyImpl implements Proxy {
   }
 
   private void startProxy() throws IOException {
-    ProcessBuilder pb = createProxyProcessBuilder();
+    Path udsPath = tempProxyDir.resolve(UDS_FILENAME);
+    if (Files.exists(udsPath)) {
+      throw new IllegalStateException("UDS path exists");
+    }
+    ProcessBuilder pb = createProxyProcessBuilder(udsPath.toString());
     startProxyProcess(pb);
     isProxyProcessListening = new CompletableFuture<>();
     startThreadToMonitorProxyProcess();
     startThreadToConsumeProxyOutputStream();
     startThreadToConsumeProxyErrorStream();
     waitForProxyProcessToStartup();
-    proxyAddress = new InetSocketAddress(PROXY_LOCAL_HOSTNAME, proxyPort);
+    if (!Files.isReadable(udsPath) || !Files.isWritable(udsPath)) {
+      throw new IOException("Current user does not have read/write permissions to UDS");
+    }
+    proxyAddress = new DomainSocketAddress(udsPath.toString());
   }
 
   @Override
@@ -213,7 +186,7 @@ class ProxyImpl implements Proxy {
     LOGGER.debug("Proxy process stopped.");
   }
 
-  private ProcessBuilder createProxyProcessBuilder() {
+  private ProcessBuilder createProxyProcessBuilder(String udsPath) {
     List<String> command = new ArrayList<>();
     command.add(proxyExecutablePath.toAbsolutePath().toString());
 
@@ -227,8 +200,13 @@ class ProxyImpl implements Proxy {
     command.add("-u");
     command.add(USER_AGENT_PREFIX + getLibraryVersion());
 
-    command.add("-t");
-    command.add(LOOPBACK_ADDRESS);
+    command.add("--use-unix-socket");
+    command.add("--unix-socket-path");
+    command.add(udsPath);
+    command.add("--client-pid");
+    command.add(OsUtils.getPid());
+    command.add("--client-uid");
+    command.add(OsUtils.getUid());
 
     ProcessBuilder pb = new ProcessBuilder(command);
 
@@ -273,7 +251,7 @@ class ProxyImpl implements Proxy {
         while ((logLine = reader.readLine()) != null) {
           proxyProcessOutputLogger.debug(logLine);
           if (logLine.contains(PROXY_STARTUP_LOG_MESSAGE)) {
-            LOGGER.debug("Proxy started on port: " + proxyPort);
+            LOGGER.debug("Proxy started.");
             isProxyProcessListening.complete(true);
           }
         }

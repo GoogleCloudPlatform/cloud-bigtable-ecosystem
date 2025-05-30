@@ -43,24 +43,6 @@ limitations under the License.
         <groupId>org.codehaus.mojo</groupId>
         <version>3.5.0</version>
         <executions>
-          <!--linux/386-->
-          <execution>
-            <id>build-go-binary-linux-386</id>
-            <phase>compile</phase>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-            <configuration>
-              <executable>${basedir}/build.sh</executable>
-              <arguments>
-                <argument>linux</argument>
-                <argument>386</argument>
-                <argument>${project.version}</argument>
-                <argument>${project.basedir}</argument>
-              </arguments>
-            </configuration>
-          </execution>
-
           <!--linux/amd64-->
           <execution>
             <id>build-go-binary-linux-amd64</id>
@@ -141,23 +123,6 @@ limitations under the License.
         <artifactId>maven-jar-plugin</artifactId>
         <version>3.4.2</version>
         <executions>
-          <!--linux-386-->
-          <execution>
-            <id>package-binary-linux-386</id>
-            <phase>package</phase>
-            <goals><goal>jar</goal></goals>
-            <configuration>
-              <classifier>linux-386</classifier>
-              <classesDirectory>${project.build.directory}/${project.version}/linux/386</classesDirectory>
-              <includes>
-                <include>${go.binary.name}</include>
-                <include>LICENSE</include>
-                <include>NOTICE.md</include>
-                <include>third_party/licenses/*</include>
-              </includes>
-            </configuration>
-          </execution>
-
           <!--linux-amd64-->
           <execution>
             <id>package-binary-linux-amd64</id>

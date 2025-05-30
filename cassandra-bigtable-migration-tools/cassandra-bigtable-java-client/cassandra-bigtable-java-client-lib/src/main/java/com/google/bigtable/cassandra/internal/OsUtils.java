@@ -14,6 +14,9 @@
 
 package com.google.bigtable.cassandra.internal;
 
+import com.sun.jna.Native;
+import com.sun.jna.Library;
+
 final class OsUtils {
 
   private OsUtils() {}
@@ -22,8 +25,34 @@ final class OsUtils {
     return getOsName().contains("win");
   }
 
+  static boolean isMac() {
+    String osName = getOsName();
+    return osName.contains("mac") || osName.contains("darwin") || osName.contains("osx");
+  }
+
   static String getOsName() {
     return System.getProperty("os.name").trim().toLowerCase();
+  }
+
+  interface CLibrary extends Library {
+    CLibrary INSTANCE = Native.load("c", CLibrary.class);
+
+    int getpid();
+    int getuid();
+  }
+
+  static String getPid() {
+    if (isWindows()) {
+      throw new UnsupportedOperationException("Windows is currently not supported");
+    }
+    return String.valueOf(CLibrary.INSTANCE.getpid());
+  }
+
+  static String getUid() {
+    if (isWindows()) {
+      throw new UnsupportedOperationException("Windows is currently not supported");
+    }
+    return String.valueOf(CLibrary.INSTANCE.getuid());
   }
 
 }

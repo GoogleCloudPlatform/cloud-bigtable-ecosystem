@@ -37,7 +37,7 @@ public class BigtableCqlSessionUtilsInternalTest {
 
   @Test
   public void testNewSession_Windows_Fail() {
-    String originalOs = System.getProperty("os.name");
+    final String originalOs = System.getProperty("os.name");
     System.setProperty("os.name", "Windows");
     assertThrows(IllegalStateException.class,
         () -> BigtableCqlSessionUtilsInternal.newSession(bigtableCqlConfiguration));

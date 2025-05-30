@@ -25,8 +25,6 @@ import org.junit.jupiter.api.Test;
  */
 public class ProxyConfigUtilsTest {
 
-  private static final int SOME_PORT_NUMBER = 123;
-
   @Test
   public void testCreateProxyConfig_Minimal() {
     BigtableCqlConfiguration bigtableCqlConfiguration = BigtableCqlConfiguration.builder()
@@ -35,7 +33,7 @@ public class ProxyConfigUtilsTest {
         .setSchemaMappingTable("someSchemaMappingTable")
         .build();
 
-    ProxyConfig proxyConfig = ProxyConfigUtils.createProxyConfig(bigtableCqlConfiguration, SOME_PORT_NUMBER);
+    ProxyConfig proxyConfig = ProxyConfigUtils.createProxyConfig(bigtableCqlConfiguration);
 
     String expectedProxyConfigYaml = "cassandraToBigtableConfigs:\n"
         + "  defaultColumnFamily: cf1\n"
@@ -53,7 +51,6 @@ public class ProxyConfigUtilsTest {
         + "  name: cluster1\n"
         + "  otel:\n"
         + "    disabled: true\n"
-        + "  port: 123\n"
         + "loggerConfig:\n"
         + "  outputType: stdout\n"
         + "otel:\n"
@@ -79,7 +76,7 @@ public class ProxyConfigUtilsTest {
             .build())
         .build();
 
-    ProxyConfig proxyConfig = ProxyConfigUtils.createProxyConfig(bigtableCqlConfiguration, SOME_PORT_NUMBER);
+    ProxyConfig proxyConfig = ProxyConfigUtils.createProxyConfig(bigtableCqlConfiguration);
 
     String expectedProxyConfigYaml = "cassandraToBigtableConfigs:\n"
         + "  defaultColumnFamily: someDefaultColumnFamily\n"
@@ -97,7 +94,6 @@ public class ProxyConfigUtilsTest {
         + "  name: cluster1\n"
         + "  otel:\n"
         + "    disabled: false\n"
-        + "  port: 123\n"
         + "loggerConfig:\n"
         + "  outputType: stdout\n"
         + "otel:\n"

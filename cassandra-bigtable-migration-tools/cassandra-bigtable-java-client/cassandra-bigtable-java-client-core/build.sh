@@ -22,7 +22,6 @@
 #
 # Target platform/architectures
 #  # Linux Builds
-#    linux/386
 #    linux/amd64
 #    linux/arm64
 #  # Mac Builds

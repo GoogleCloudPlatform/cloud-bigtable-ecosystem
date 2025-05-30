@@ -414,6 +414,50 @@ limitations under the License.
 A copy of this license is also available in this project at: licenses/Apache-2.0.txt
 
 -----------------------------------------------------------------------------
+Netty/Transport/Native/Epoll
+-----------------------------------------------------------------------------
+* Package: io.netty:netty-transport-native-epoll
+* URL: https://github.com/netty/netty
+
+Copyright 2016 The Netty Project
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+A copy of this license is also available in this project at: licenses/Apache-2.0.txt
+
+-----------------------------------------------------------------------------
+Netty/Transport/Native/KQueue
+-----------------------------------------------------------------------------
+* Package: io.netty:netty-transport-native-kqueue
+* URL: https://github.com/netty/netty
+
+Copyright 2016 The Netty Project
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+A copy of this license is also available in this project at: licenses/Apache-2.0.txt
+
+-----------------------------------------------------------------------------
 Apache Cassandra Java Driver - core
 -----------------------------------------------------------------------------
 * Package: org.apache.cassandra:java-driver-core
@@ -885,6 +929,38 @@ Guava InternalFutureFailureAccess and InternalFutures
 * URL: https://github.com/google/guava
 
 Copyright (C) 2006- The Guava Authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+A copy of this license is also available in this project at: licenses/Apache-2.0.txt
+
+-----------------------------------------------------------------------------
+JCIP Annotations
+-----------------------------------------------------------------------------
+* Package: net.jcip:jcip-annotations
+* URL: https://jcip.net/
+
+Copyright (c) 2005 Brian Goetz and Tim Peierls.
+
+Licensed under Creative Commons Attribution License (http://creativecommons.org/licenses/by/2.5)
+
+Full text: http://creativecommons.org/licenses/by/2.5/legalcode
+
+-----------------------------------------------------------------------------
+Java Native Access
+-----------------------------------------------------------------------------
+* Package: net.java.dev.jna:jna
+* URL: https://github.com/java-native-access/jna
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

@@ -43,12 +43,11 @@ final class ProxyConfigUtils {
   private static final String LOGGER_STDOUT = "stdout";
   private static final String DEFAULT_LISTENER_NAME = "cluster1";
 
-  static ProxyConfig createProxyConfig(BigtableCqlConfiguration bigtableCqlConfiguration,
-      int proxyPort) {
+  static ProxyConfig createProxyConfig(BigtableCqlConfiguration bigtableCqlConfiguration) {
     CassandraToBigTableConfig cassandraToBigTableConfig = createCassandraToBigTableConfig(
         bigtableCqlConfiguration);
     LoggerConfig loggerConfig = createLoggerConfig();
-    List<Listener> listeners = createListeners(bigtableCqlConfiguration, proxyPort);
+    List<Listener> listeners = createListeners(bigtableCqlConfiguration);
     OtelConfig otel = createOtelConfig(bigtableCqlConfiguration);
 
     return ProxyConfig.builder()
@@ -59,7 +58,7 @@ final class ProxyConfigUtils {
         .build();
   }
 
-  static private CassandraToBigTableConfig createCassandraToBigTableConfig(
+  private static CassandraToBigTableConfig createCassandraToBigTableConfig(
       BigtableCqlConfiguration bigtableCqlConfiguration) {
     return CassandraToBigTableConfig.builder()
         .setProjectId(bigtableCqlConfiguration.getProjectId())
@@ -70,15 +69,13 @@ final class ProxyConfigUtils {
         .build();
   }
 
-  static private LoggerConfig createLoggerConfig() {
+  private static LoggerConfig createLoggerConfig() {
     return new LoggerConfig(LOGGER_STDOUT);
   }
 
-  static private List<Listener> createListeners(BigtableCqlConfiguration bigtableCqlConfiguration,
-      int proxyPort) {
+  private static List<Listener> createListeners(BigtableCqlConfiguration bigtableCqlConfiguration) {
     Listener e = Listener.builder()
         .name(DEFAULT_LISTENER_NAME)
-        .port(proxyPort)
         .bigtable(Bigtable.builder()
             .projectId(bigtableCqlConfiguration.getProjectId())
             .instanceIds(bigtableCqlConfiguration.getInstanceId())
@@ -100,7 +97,7 @@ final class ProxyConfigUtils {
     return listeners;
   }
 
-  static private OtelConfig createOtelConfig(BigtableCqlConfiguration bigtableCqlConfiguration) {
+  private static OtelConfig createOtelConfig(BigtableCqlConfiguration bigtableCqlConfiguration) {
     if (!bigtableCqlConfiguration.getOpenTelemetryConfiguration().isPresent()) {
       return OtelConfig.builder().enabled(false).build();
     }

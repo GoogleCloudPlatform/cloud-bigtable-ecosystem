@@ -68,7 +68,6 @@ public class ProxyConfigTest {
     List<Listener> listeners = new ArrayList<>();
     listeners.add(Listener.builder()
         .name("cluster1")
-        .port(9042)
         .bigtable(Bigtable.builder()
             .projectId("someProjectId")
             .instanceIds("SomeInstanceId")
@@ -105,7 +104,6 @@ public class ProxyConfigTest {
         + "  name: cluster1\n"
         + "  otel:\n"
         + "    disabled: false\n"
-        + "  port: 9042\n"
         + "loggerConfig:\n"
         + "  compress: true\n"
         + "  filename: output/output.log\n"
