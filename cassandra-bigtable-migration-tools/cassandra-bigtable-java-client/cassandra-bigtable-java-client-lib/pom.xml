@@ -34,6 +34,7 @@ limitations under the License.
   <properties>
     <maven.compiler.source>8</maven.compiler.source>
     <maven.compiler.target>8</maven.compiler.target>
+    <skipIntegrationTests>true</skipIntegrationTests>
   </properties>
 
   <dependencyManagement>
@@ -49,12 +50,6 @@ limitations under the License.
   </dependencyManagement>
 
   <dependencies>
-    <dependency>
-      <groupId>com.google.cloud</groupId>
-      <artifactId>cassandra-bigtable-java-client-core</artifactId>
-      <version>0.1.0-SNAPSHOT</version>
-      <scope>provided</scope>
-    </dependency>
     <dependency>
       <groupId>org.apache.cassandra</groupId>
       <artifactId>java-driver-core</artifactId>
@@ -95,13 +90,6 @@ limitations under the License.
       <version>2.0.17</version>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>com.google.cloud</groupId>
-      <artifactId>cassandra-bigtable-java-client-core</artifactId>
-      <version>0.1.0-SNAPSHOT</version>
-      <classifier>linux-amd64</classifier>
-      <scope>test</scope>
-    </dependency>
     <!-- Compilation dependencies -->
     <dependency>
       <groupId>com.google.auto.value</groupId>
@@ -110,6 +98,88 @@ limitations under the License.
       <scope>provided</scope>
     </dependency>
   </dependencies>
+
+  <profiles>
+    <!-- linux/386 -->
+    <profile>
+      <id>linux-386</id>
+      <properties>
+        <classifierName>linux-386</classifierName>
+      </properties>
+      <dependencies>
+        <dependency>
+          <groupId>com.google.cloud</groupId>
+          <artifactId>cassandra-bigtable-java-client-core</artifactId>
+          <version>0.1.0-SNAPSHOT</version>
+          <classifier>linux-386</classifier>
+        </dependency>
+      </dependencies>
+    </profile>
+
+    <!-- linux/amd64 -->
+    <profile>
+      <id>linux-amd64</id>
+      <properties>
+        <classifierName>linux-amd64</classifierName>
+      </properties>
+      <dependencies>
+        <dependency>
+          <groupId>com.google.cloud</groupId>
+          <artifactId>cassandra-bigtable-java-client-core</artifactId>
+          <version>0.1.0-SNAPSHOT</version>
+          <classifier>linux-amd64</classifier>
+        </dependency>
+      </dependencies>
+    </profile>
+
+    <!-- linux/arm64 -->
+    <profile>
+      <id>linux-arm64</id>
+      <properties>
+        <classifierName>linux-arm64</classifierName>
+      </properties>
+      <dependencies>
+        <dependency>
+          <groupId>com.google.cloud</groupId>
+          <artifactId>cassandra-bigtable-java-client-core</artifactId>
+          <version>0.1.0-SNAPSHOT</version>
+          <classifier>linux-arm64</classifier>
+        </dependency>
+      </dependencies>
+    </profile>
+
+    <!-- darwin/amd64 -->
+    <profile>
+      <id>darwin-amd64</id>
+      <properties>
+        <classifierName>darwin-amd64</classifierName>
+      </properties>
+      <dependencies>
+        <dependency>
+          <groupId>com.google.cloud</groupId>
+          <artifactId>cassandra-bigtable-java-client-core</artifactId>
+          <version>0.1.0-SNAPSHOT</version>
+          <classifier>darwin-amd64</classifier>
+        </dependency>
+      </dependencies>
+    </profile>
+
+    <!-- darwin/arm64 -->
+    <profile>
+      <id>darwin-arm64</id>
+      <properties>
+        <classifierName>darwin-arm64</classifierName>
+      </properties>
+      <dependencies>
+        <dependency>
+          <groupId>com.google.cloud</groupId>
+          <artifactId>cassandra-bigtable-java-client-core</artifactId>
+          <version>0.1.0-SNAPSHOT</version>
+          <classifier>darwin-arm64</classifier>
+        </dependency>
+      </dependencies>
+    </profile>
+  </profiles>
 
   <build>
     <resources>
@@ -129,6 +199,32 @@ limitations under the License.
     </resources>
 
     <plugins>
+      <!-- Enforce active profile-->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>3.4.1</version>
+        <executions>
+          <execution>
+            <id>enforce-active-profile</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <phase>validate</phase>
+            <configuration>
+              <rules>
+                <requireActiveProfile>
+                  <profiles>linux-386,linux-amd64,linux-arm64,darwin-amd64,darwin-arm64</profiles>
+                  <all>false</all>
+                </requireActiveProfile>
+              </rules>
+              <fail>true</fail>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- Compile code -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
@@ -161,6 +257,9 @@ limitations under the License.
               <goal>integration-test</goal>
               <goal>verify</goal>
             </goals>
+            <configuration>
+              <skipITs>${skipIntegrationTests}</skipITs>
+            </configuration>
           </execution>
         </executions>
       </plugin>
@@ -172,16 +271,23 @@ limitations under the License.
         <version>3.6.0</version>
         <executions>
           <execution>
+            <id>${classifierName}</id>
             <phase>package</phase>
             <goals>
               <goal>shade</goal>
             </goals>
             <configuration>
+              <shadedArtifactAttached>true</shadedArtifactAttached>
+              <shadedClassifierName>${classifierName}</shadedClassifierName>
               <createDependencyReducedPom>false</createDependencyReducedPom>
               <artifactSet>
                 <excludes>
                   <exclude>com.google.code.findbugs:annotations</exclude>
                 </excludes>
+                <includes>
+                  <include>com.google.cloud:cassandra-bigtable-java-client-core:${classifierName}</include>
+                  <include>*:*:jar:</include>
+                </includes>
               </artifactSet>
               <filters>
                 <filter>

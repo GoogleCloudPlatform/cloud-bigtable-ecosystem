@@ -6,10 +6,10 @@ The Cassandra to Bigtable Client for Java lets you integrate your Cassandra-base
 
 - Ensure you have the installed [these pre-requisites](../../cassandra-bigtable-proxy/README.md#pre-requisites)
 - Navigate to the parent directory (`cassandra-bigtable-java-client`)
-- Run the following Maven command
+- Run the following Maven command, replacing `<SPECIFY-PROFILE-HERE>` with one from [this list of classifiers](#classifiers)
 
 ```shell
-mvn install -DskipITs
+mvn install -P<SPECIFY-PROFILE-HERE>
 ```
 
 # How to include this dependency in your code
@@ -26,16 +26,12 @@ Add the following dependency to the `<dependencyManagement><dependencies>` secti
 </dependency>
 ```
 
-Add the dependencies below to the `<dependencies>` section of your Maven `pom.xml` file.
+Add the dependencies below to the `<dependencies>` section of your Maven `pom.xml` file, replacing `SPECIFY-CLASSIFIER-HERE` with one from [this list of classifiers](#classifiers)
 
 ```xml
 <dependency>
   <groupId>com.google.cloud</groupId>
   <artifactId>cassandra-bigtable-java-client-lib</artifactId>
-</dependency>
-<dependency>
-  <groupId>com.google.cloud</groupId>
-  <artifactId>cassandra-bigtable-java-client-core</artifactId>
   <classifier>SPECIFY-CLASSIFIER-HERE</classifier>
 </dependency>
 <dependency>
@@ -56,6 +52,8 @@ For the `cassandra-bigtable-java-client-core` package, specify the relevant `<cl
 - Mac Builds
   - `darwin-amd64`
   - `darwin-arm64`
+
+Note: Windows is currently not supported.
 
 # How to use
 

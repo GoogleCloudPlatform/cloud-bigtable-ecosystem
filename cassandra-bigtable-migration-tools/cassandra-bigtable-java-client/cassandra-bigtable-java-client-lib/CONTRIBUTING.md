@@ -55,26 +55,17 @@ Then, specify the following environment variables:
 ```shell
 GCP_PROJECT_ID=<YOUR-PROJECT-ID-HERE>
 BIGTABLE_INSTANCE_ID=<YOUR-BIGTABLE-INSTANCE-ID-HERE>
+CBT_CASSANDRA_LIB_CLASSIFIER=<SPECIFY-CLASSIFIER-HERE>
 ```
 
-Then, modify the following _test_ dependency in the `pom.xml` file by replacing
-the `classifier` with your target platform/architecture (see [README](README.md)
-for the full list of classifiers):
-
-```xml
-<dependency>
-  <groupId>com.google.cloud</groupId>
-  <artifactId>cassandra-bigtable-java-client-core</artifactId>
-  <version>0.1.0-SNAPSHOT</version>
-  <classifier>linux-amd64</classifier>
-  <scope>test</scope>
-</dependency>
-```
+Note: select the classifier that matches your target platform/architecture (see [README](README.md#classifiers) for the full list of classifiers):
 
 Finally, run this command to execute the integration tests:
 
 ```shell
 mvn verify \
+  -P$CBT_CASSANDRA_LIB_CLASSIFIER \
+  -DskipIntegrationTests=false \
   -Dcassandra.bigtable.projectid=$GCP_PROJECT_ID \
   -Dcassandra.bigtable.instanceid=$BIGTABLE_INSTANCE_ID \
   -Djava.util.logging.config.file=src/test/resources/logging.properties
@@ -91,6 +82,8 @@ And run:
 
 ```shell
 mvn verify \
+  -P$CBT_CASSANDRA_LIB_CLASSIFIER \
+  -DskipIntegrationTests=false \
   -Dcassandra.bigtable.projectid=$GCP_PROJECT_ID \
   -Dcassandra.bigtable.instanceid=$BIGTABLE_INSTANCE \
   -Dcassandra.bigtable.schemamappingtable=$SCHEMA_MAPPING_TABLE \
