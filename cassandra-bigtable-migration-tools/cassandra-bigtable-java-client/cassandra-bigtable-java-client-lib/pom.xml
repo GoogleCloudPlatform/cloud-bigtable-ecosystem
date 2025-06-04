@@ -55,7 +55,7 @@ limitations under the License.
       <groupId>org.apache.cassandra</groupId>
       <artifactId>java-driver-core</artifactId>
       <version>4.19.0</version>
-      <scope>provided</scope><!-- {x-version-update:cassandra-bigtable-java-client-core:current} -->
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.yaml</groupId>
