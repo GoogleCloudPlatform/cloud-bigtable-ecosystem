@@ -14,6 +14,7 @@
 
 package com.google.bigtable.cassandra.internal;
 
+import com.datastax.oss.driver.api.core.CqlSession;
 import java.io.IOException;
 import java.net.SocketAddress;
 
@@ -31,5 +32,10 @@ interface Proxy {
    * Internal use only.
    */
   void stop();
+
+  /**
+   * Internal use only.
+   */
+  void setSession(CqlSession cqlSession);
 
 }

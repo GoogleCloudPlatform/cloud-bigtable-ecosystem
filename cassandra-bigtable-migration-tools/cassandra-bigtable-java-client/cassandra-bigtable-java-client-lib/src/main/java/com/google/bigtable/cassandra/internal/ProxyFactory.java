@@ -21,7 +21,7 @@ import com.google.bigtable.cassandra.BigtableCqlConfiguration;
  */
 class ProxyFactory {
 
-  BigtableCqlConfiguration bigtableCqlConfiguration;
+  private final BigtableCqlConfiguration bigtableCqlConfiguration;
 
   /**
    * Internal use only.
@@ -34,7 +34,7 @@ class ProxyFactory {
    * Internal use only.
    */
   Proxy newProxy() {
-     return new ProxyImpl(bigtableCqlConfiguration);
+    return new ProxyImpl(bigtableCqlConfiguration);
   }
 
 }

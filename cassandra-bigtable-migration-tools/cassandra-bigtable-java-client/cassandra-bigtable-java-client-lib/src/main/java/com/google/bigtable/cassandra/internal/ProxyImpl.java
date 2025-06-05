@@ -14,6 +14,7 @@
 
 package com.google.bigtable.cassandra.internal;
 
+import com.datastax.oss.driver.api.core.CqlSession;
 import com.google.bigtable.cassandra.BigtableCqlConfiguration;
 import com.google.common.base.Preconditions;
 import java.io.BufferedReader;
@@ -62,7 +63,6 @@ class ProxyImpl implements Proxy {
   private static final String PROXY_LOCAL_HOSTNAME = "localhost";
   private static final String PERMS_700 = "rwx------";
   private static final String BIGTABLE_PROXY_LOCAL_DATACENTER = "bigtable-proxy-local-datacenter";
-
   private static final Logger LOGGER = LoggerFactory.getLogger(ProxyImpl.class);
 
   private final BigtableCqlConfiguration bigtableCqlConfiguration;
@@ -74,12 +74,14 @@ class ProxyImpl implements Proxy {
   private CompletableFuture<Boolean> isProxyProcessListening;
   private boolean isProxyStarted;
   private InetSocketAddress proxyAddress;
+  private CqlSession cqlSession;
 
   /**
    * Internal use only.
    */
   protected ProxyImpl(BigtableCqlConfiguration bigtableCqlConfiguration) {
-    Preconditions.checkNotNull(bigtableCqlConfiguration, "Valid BigtableCqlConfig must be supplied");
+    Preconditions.checkNotNull(bigtableCqlConfiguration,
+        "Valid BigtableCqlConfig must be supplied");
     this.bigtableCqlConfiguration = bigtableCqlConfiguration;
   }
 
@@ -98,18 +100,17 @@ class ProxyImpl implements Proxy {
   private void setupProxy() throws IOException {
     int proxyPort = findFreeProxyPort();
 
-    // Create temp directory
     Path tempProxyDir = Files.createTempDirectory(PROXY_TEMP_DIR_PREFIX);
-    if (!Files.getPosixFilePermissions(tempProxyDir).equals(PosixFilePermissions.fromString(PERMS_700))) {
+    if (!Files.getPosixFilePermissions(tempProxyDir)
+        .equals(PosixFilePermissions.fromString(PERMS_700))) {
       throw new IllegalStateException("Incorrect directory permissions");
     }
     tempProxyDir.toFile().deleteOnExit();
 
-    // Copy proxy binary to temp directory
     Path proxyExecutablePath = copyProxyBinaryToTempDir(tempProxyDir);
 
-    // Write proxy config to temp directory
-    ProxyConfig proxyConfig = ProxyConfigUtils.createProxyConfig(bigtableCqlConfiguration, proxyPort);
+    ProxyConfig proxyConfig = ProxyConfigUtils.createProxyConfig(bigtableCqlConfiguration,
+        proxyPort);
     Path proxyConfigFilePath = createProxyConfigFile(proxyConfig, tempProxyDir);
 
     this.proxyExecutablePath = proxyExecutablePath;
@@ -130,10 +131,8 @@ class ProxyImpl implements Proxy {
 
   private Path createProxyConfigFile(ProxyConfig proxyConfig, Path tempProxyDir)
       throws IOException {
-    // Serialize proxy config to YAML
     String proxyConfigContents = proxyConfig.toYaml();
 
-    // Write proxy config to temp dir
     Path configTempPath = tempProxyDir.resolve(PROXY_CONFIG_FILENAME);
     Files.createFile(configTempPath);
     configTempPath.toFile().deleteOnExit();
@@ -149,27 +148,25 @@ class ProxyImpl implements Proxy {
   }
 
   private Path copyProxyBinaryToTempDir(Path tempProxyDir) throws IOException {
-    // Check OS
     if (OsUtils.isWindows()) {
       throw new IllegalStateException("Windows is currently not supported");
     }
 
-    // Copy proxy binary from resources
     try (InputStream inputStream = ProxyImpl.class.getClassLoader()
         .getResourceAsStream(PROXY_BINARY_NAME)) {
       if (inputStream == null) {
         throw new IOException("Proxy binary not found. Expected to find: " + PROXY_BINARY_NAME);
       }
 
-      // Copy proxy binary to temp directory
       Path targetProxyBinaryPath = tempProxyDir.resolve(PROXY_BINARY_NAME);
       Files.copy(inputStream, targetProxyBinaryPath);
       targetProxyBinaryPath.toFile().deleteOnExit();
 
-      // If Posix permissions are supported, set file permissions
       if (FileSystems.getDefault().supportedFileAttributeViews().contains("posix")) {
-        Files.setPosixFilePermissions(targetProxyBinaryPath, PosixFilePermissions.fromString(PERMS_700));
-        if (!Files.getPosixFilePermissions(targetProxyBinaryPath).equals(PosixFilePermissions.fromString(PERMS_700))) {
+        Files.setPosixFilePermissions(targetProxyBinaryPath,
+            PosixFilePermissions.fromString(PERMS_700));
+        if (!Files.getPosixFilePermissions(targetProxyBinaryPath)
+            .equals(PosixFilePermissions.fromString(PERMS_700))) {
           throw new IllegalStateException("Incorrect file permissions");
         }
       } else {
@@ -187,6 +184,7 @@ class ProxyImpl implements Proxy {
     ProcessBuilder pb = createProxyProcessBuilder();
     startProxyProcess(pb);
     isProxyProcessListening = new CompletableFuture<>();
+    startThreadToMonitorProxyProcess();
     startThreadToConsumeProxyOutputStream();
     startThreadToConsumeProxyErrorStream();
     waitForProxyProcessToStartup();
@@ -200,47 +198,40 @@ class ProxyImpl implements Proxy {
 
     LOGGER.debug("Stopping proxy process...");
     try {
-      // Try to stop the proxy with SIGINT. The Go process should trap this.
       proxyProcess.destroy();
-      // Wait for graceful shutdown
       if (!proxyProcess.waitFor(PROXY_SHUTDOWN_TIMEOUT_SECS.getSeconds(), TimeUnit.SECONDS)) {
         LOGGER.warn("Proxy process did not stop gracefully, forcing termination.");
-        proxyProcess.destroyForcibly(); // Forcefully terminate
+        proxyProcess.destroyForcibly();
       }
     } catch (InterruptedException e) {
       LOGGER.warn(
           "Interrupted while waiting for proxy to stop, forcing termination." + e.getMessage());
       proxyProcess.destroyForcibly();
-      Thread.currentThread().interrupt(); // Restore interrupted status
+      Thread.currentThread().interrupt();
     }
     isProxyStarted = false;
     LOGGER.debug("Proxy process stopped.");
   }
 
   private ProcessBuilder createProxyProcessBuilder() {
-    // Build the command to start the proxy
     List<String> command = new ArrayList<>();
     command.add(proxyExecutablePath.toAbsolutePath().toString());
 
-    // Add config file path argument
-    if (proxyConfigFilePath == null || proxyConfigFilePath.toAbsolutePath().toString().trim().isEmpty()) {
+    if (proxyConfigFilePath == null || proxyConfigFilePath.toAbsolutePath().toString().trim()
+        .isEmpty()) {
       throw new IllegalArgumentException("No proxy configuration file specified");
     }
     command.add("-f");
     command.add(proxyConfigFilePath.toAbsolutePath().toString());
 
-    // Add user agent argument
     command.add("-u");
     command.add(USER_AGENT_PREFIX + getLibraryVersion());
 
-    // Add TCP bind port argument
     command.add("-t");
     command.add(LOOPBACK_ADDRESS);
 
-    // Create ProcessBuilder
     ProcessBuilder pb = new ProcessBuilder(command);
 
-    // Set Data Center
     pb.environment().put(DATA_CENTER_ENV_VAR, BIGTABLE_PROXY_LOCAL_DATACENTER);
 
     return pb;
@@ -258,12 +249,10 @@ class ProxyImpl implements Proxy {
   }
 
   private void startProxyProcess(ProcessBuilder pb) throws IOException {
-    // Start the process
     LOGGER.debug("Starting proxy");
     try {
       proxyProcess = pb.start();
 
-      // Add shutdown hook to stop proxy
       Runtime.getRuntime().addShutdownHook(new Thread(() -> {
         if (proxyProcess != null && proxyProcess.isAlive()) {
           LOGGER.debug("Shutdown hook: Terminating proxy...");
@@ -297,7 +286,7 @@ class ProxyImpl implements Proxy {
         isProxyProcessListening.complete(false);
       }
     });
-    outputConsumerThread.setDaemon(true);  // Make it a daemon thread
+    outputConsumerThread.setDaemon(true);
     outputConsumerThread.start();
   }
 
@@ -318,14 +307,35 @@ class ProxyImpl implements Proxy {
         }
       }
     });
-    errorOutputConsumerThread.setDaemon(true);  // Make it a daemon thread
+    errorOutputConsumerThread.setDaemon(true);
     errorOutputConsumerThread.start();
+  }
+
+  private void startThreadToMonitorProxyProcess() {
+    Thread monitorProcessThread = new Thread(() -> {
+      Logger proxyMonitorErrorLogger = LoggerFactory.getLogger("Proxy monitor");
+      try {
+        int exitCode = proxyProcess.waitFor();
+        if (exitCode != 0) {
+          proxyMonitorErrorLogger.error("Proxy exited with error");
+          if (cqlSession != null && !cqlSession.isClosed()) {
+            proxyMonitorErrorLogger.error("Closing CqlSession");
+            cqlSession.forceCloseAsync();
+          }
+        }
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
+      }
+    });
+    monitorProcessThread.setDaemon(true);
+    monitorProcessThread.start();
   }
 
   private void waitForProxyProcessToStartup() {
     LOGGER.debug("Waiting for proxy process to start");
     try {
-      boolean proxyStarted = isProxyProcessListening.get(PROXY_STARTUP_TIMEOUT_SECS.getSeconds(), TimeUnit.SECONDS);
+      boolean proxyStarted = isProxyProcessListening.get(PROXY_STARTUP_TIMEOUT_SECS.getSeconds(),
+          TimeUnit.SECONDS);
       if (!proxyStarted) {
         throw new IllegalStateException("Proxy process failed to start");
       }
@@ -333,6 +343,10 @@ class ProxyImpl implements Proxy {
       LOGGER.error("Exception while waiting for proxy process to start: " + e.getMessage());
       throw new RuntimeException(e);
     }
+  }
+
+  public void setSession(CqlSession cqlSession) {
+    this.cqlSession = cqlSession;
   }
 
 }

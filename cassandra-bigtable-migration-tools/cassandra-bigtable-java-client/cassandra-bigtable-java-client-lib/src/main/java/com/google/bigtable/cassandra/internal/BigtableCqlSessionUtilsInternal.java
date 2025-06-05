@@ -31,9 +31,11 @@ public final class BigtableCqlSessionUtilsInternal {
 
   private static final String BIGTABLE_CQL_SESSION_NAME = "BigtableCqlSession";
   private static final String BIGTABLE_PROXY_LOCAL_DATACENTER = "bigtable-proxy-local-datacenter";
-  private static final Logger LOGGER = LoggerFactory.getLogger(BigtableCqlSessionUtilsInternal.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(
+      BigtableCqlSessionUtilsInternal.class);
 
-  private BigtableCqlSessionUtilsInternal() {}
+  private BigtableCqlSessionUtilsInternal() {
+  }
 
   /**
    * Internal use only. Use {@link BigtableCqlSessionFactory#newSession()}  instead.
@@ -44,6 +46,7 @@ public final class BigtableCqlSessionUtilsInternal {
     }
 
     Proxy proxy = new ProxyFactory(bigtableCqlConfiguration).newProxy();
+    BigtableCqlSessionNodeStateListener nodeStateListener = new BigtableCqlSessionNodeStateListener();
 
     try {
       SocketAddress address = proxy.start();
@@ -53,10 +56,15 @@ public final class BigtableCqlSessionUtilsInternal {
           .withApplicationName(BIGTABLE_CQL_SESSION_NAME)
           .addContactPoint((InetSocketAddress) address)
           .withLocalDatacenter(BIGTABLE_PROXY_LOCAL_DATACENTER)
+          .withNodeStateListener(nodeStateListener)
           .build();
-      LOGGER.info("Started CqlSession.");
 
-      return new BigtableCqlSession(delegate, proxy);
+      BigtableCqlSession bigtableCqlSession = new BigtableCqlSession(delegate, proxy);
+      proxy.setSession(bigtableCqlSession);
+      nodeStateListener.initialize(bigtableCqlSession);
+
+      LOGGER.info("Started CqlSession.");
+      return bigtableCqlSession;
     } catch (IOException e) {
       proxy.stop();
       throw new UncheckedIOException("Failed to start CqlSession", e);
