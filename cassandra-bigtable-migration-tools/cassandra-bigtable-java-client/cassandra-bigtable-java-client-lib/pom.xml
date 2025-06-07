@@ -207,7 +207,7 @@ limitations under the License.
           <groupId>io.netty</groupId>
           <artifactId>netty-transport-native-kqueue</artifactId>
           <version>4.2.0.Final</version>
-          <classifier>osx-aarch64</classifier>
+          <classifier>osx-aarch_64</classifier>
         </dependency>
       </dependencies>
     </profile>
