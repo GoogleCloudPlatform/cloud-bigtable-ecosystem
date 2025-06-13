@@ -35,7 +35,7 @@ class UdsEpollNettyOptions extends UdsNettyOptions {
 
   @Override
   public EventLoopGroup ioEventLoopGroup() {
-    return new EpollEventLoopGroup();
+    return new EpollEventLoopGroup(0, createThreadFactory());
   }
 
 }

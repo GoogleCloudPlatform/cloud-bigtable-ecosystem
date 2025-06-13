@@ -295,9 +295,9 @@ class ProxyImpl implements Proxy {
       try {
         int exitCode = proxyProcess.waitFor();
         if (exitCode != 0) {
-          proxyMonitorErrorLogger.error("Proxy exited with error");
+          proxyMonitorErrorLogger.warn("Proxy exited with error");
           if (cqlSession != null && !cqlSession.isClosed()) {
-            proxyMonitorErrorLogger.error("Closing CqlSession");
+            proxyMonitorErrorLogger.warn("Closing CqlSession");
             cqlSession.forceCloseAsync();
           }
         }

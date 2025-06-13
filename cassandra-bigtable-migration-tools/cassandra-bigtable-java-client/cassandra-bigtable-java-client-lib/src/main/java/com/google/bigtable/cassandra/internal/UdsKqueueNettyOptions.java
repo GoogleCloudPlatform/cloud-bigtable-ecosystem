@@ -35,7 +35,7 @@ class UdsKqueueNettyOptions extends UdsNettyOptions {
 
   @Override
   public EventLoopGroup ioEventLoopGroup() {
-    return new KQueueEventLoopGroup();
+    return new KQueueEventLoopGroup(0, createThreadFactory());
   }
 
 }

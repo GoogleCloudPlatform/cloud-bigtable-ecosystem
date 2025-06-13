@@ -21,6 +21,8 @@ import com.datastax.oss.driver.internal.core.context.InternalDriverContext;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.FixedRecvByteBufAllocator;
+import io.netty.util.concurrent.DefaultThreadFactory;
+import io.netty.util.concurrent.MultithreadEventExecutorGroup;
 import java.time.Duration;
 
 abstract class UdsNettyOptions extends DefaultNettyOptions {
@@ -55,6 +57,10 @@ abstract class UdsNettyOptions extends DefaultNettyOptions {
       Duration connectTimeout = this.config.getDuration(DefaultDriverOption.CONNECTION_CONNECT_TIMEOUT);
       bootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, Long.valueOf(connectTimeout.toMillis()).intValue());
     }
+  }
+
+  protected DefaultThreadFactory createThreadFactory() {
+    return new DefaultThreadFactory(MultithreadEventExecutorGroup.class, true);
   }
 
 }
