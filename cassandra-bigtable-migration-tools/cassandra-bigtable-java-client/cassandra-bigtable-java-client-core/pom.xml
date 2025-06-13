@@ -35,17 +35,83 @@ limitations under the License.
     <go.binary.name>cassandra-to-bigtable-proxy</go.binary.name>
   </properties>
 
+  <profiles>
+    <!-- linux/amd64 -->
+    <profile>
+      <id>linux-amd64</id>
+      <properties>
+        <classifierName>linux-amd64</classifierName>
+        <platform>linux</platform>
+        <architecture>amd64</architecture>
+      </properties>
+    </profile>
+
+    <!-- linux/arm64 -->
+    <profile>
+      <id>linux-arm64</id>
+      <properties>
+        <classifierName>linux-arm64</classifierName>
+        <platform>linux</platform>
+        <architecture>arm64</architecture>
+      </properties>
+    </profile>
+
+    <!-- darwin/amd64 -->
+    <profile>
+      <id>darwin-amd64</id>
+      <properties>
+        <classifierName>darwin-amd64</classifierName>
+        <platform>darwin</platform>
+        <architecture>amd64</architecture>
+      </properties>
+    </profile>
+
+    <!-- darwin/arm64 -->
+    <profile>
+      <id>darwin-arm64</id>
+      <properties>
+        <classifierName>darwin-arm64</classifierName>
+        <platform>darwin</platform>
+        <architecture>arm64</architecture>
+      </properties>
+    </profile>
+  </profiles>
+
   <build>
     <plugins>
+      <!-- Enforce active profile-->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>3.4.1</version>
+        <executions>
+          <execution>
+            <id>enforce-active-profile</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <phase>validate</phase>
+            <configuration>
+              <rules>
+                <requireActiveProfile>
+                  <profiles>linux-amd64,linux-arm64,darwin-amd64,darwin-arm64</profiles>
+                  <all>false</all>
+                </requireActiveProfile>
+              </rules>
+              <fail>true</fail>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
       <!--Build binary-->
       <plugin>
         <artifactId>exec-maven-plugin</artifactId>
         <groupId>org.codehaus.mojo</groupId>
         <version>3.5.0</version>
         <executions>
-          <!--linux/amd64-->
           <execution>
-            <id>build-go-binary-linux-amd64</id>
+            <id>build-go-binary-${classifierName}</id>
             <phase>compile</phase>
             <goals>
               <goal>exec</goal>
@@ -53,62 +119,8 @@ limitations under the License.
             <configuration>
               <executable>${basedir}/build.sh</executable>
               <arguments>
-                <argument>linux</argument>
-                <argument>amd64</argument>
-                <argument>${project.version}</argument>
-                <argument>${project.basedir}</argument>
-              </arguments>
-            </configuration>
-          </execution>
-
-          <!--linux/arm64-->
-          <execution>
-            <id>build-go-binary-linux-arm64</id>
-            <phase>compile</phase>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-            <configuration>
-              <executable>${basedir}/build.sh</executable>
-              <arguments>
-                <argument>linux</argument>
-                <argument>arm64</argument>
-                <argument>${project.version}</argument>
-                <argument>${project.basedir}</argument>
-              </arguments>
-            </configuration>
-          </execution>
-
-          <!--darwin/amd64-->
-          <execution>
-            <id>build-go-binary-darwin-amd64</id>
-            <phase>compile</phase>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-            <configuration>
-              <executable>${basedir}/build.sh</executable>
-              <arguments>
-                <argument>darwin</argument>
-                <argument>amd64</argument>
-                <argument>${project.version}</argument>
-                <argument>${project.basedir}</argument>
-              </arguments>
-            </configuration>
-          </execution>
-
-          <!--darwin/arm64-->
-          <execution>
-            <id>build-go-binary-darwin-arm64</id>
-            <phase>compile</phase>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-            <configuration>
-              <executable>${basedir}/build.sh</executable>
-              <arguments>
-                <argument>darwin</argument>
-                <argument>arm64</argument>
+                <argument>${platform}</argument>
+                <argument>${architecture}</argument>
                 <argument>${project.version}</argument>
                 <argument>${project.basedir}</argument>
               </arguments>
@@ -123,65 +135,13 @@ limitations under the License.
         <artifactId>maven-jar-plugin</artifactId>
         <version>3.4.2</version>
         <executions>
-          <!--linux-amd64-->
           <execution>
-            <id>package-binary-linux-amd64</id>
+            <id>package-binary-${classifierName}</id>
             <phase>package</phase>
             <goals><goal>jar</goal></goals>
             <configuration>
-              <classifier>linux-amd64</classifier>
-              <classesDirectory>${project.build.directory}/${project.version}/linux/amd64</classesDirectory>
-              <includes>
-                <include>${go.binary.name}</include>
-                <include>LICENSE</include>
-                <include>NOTICE.md</include>
-                <include>third_party/licenses/*</include>
-              </includes>
-            </configuration>
-          </execution>
-
-          <!--linux-arm64-->
-          <execution>
-            <id>package-binary-linux-arm64</id>
-            <phase>package</phase>
-            <goals><goal>jar</goal></goals>
-            <configuration>
-              <classifier>linux-arm64</classifier>
-              <classesDirectory>${project.build.directory}/${project.version}/linux/arm64</classesDirectory>
-              <includes>
-                <include>${go.binary.name}</include>
-                <include>LICENSE</include>
-                <include>NOTICE.md</include>
-                <include>third_party/licenses/*</include>
-              </includes>
-            </configuration>
-          </execution>
-
-          <!--darwin-amd64-->
-          <execution>
-            <id>package-binary-darwin-amd64</id>
-            <phase>package</phase>
-            <goals><goal>jar</goal></goals>
-            <configuration>
-              <classifier>darwin-amd64</classifier>
-              <classesDirectory>${project.build.directory}/${project.version}/darwin/amd64</classesDirectory>
-              <includes>
-                <include>${go.binary.name}</include>
-                <include>LICENSE</include>
-                <include>NOTICE.md</include>
-                <include>third_party/licenses/*</include>
-              </includes>
-            </configuration>
-          </execution>
-
-          <!--darwin-arm64-->
-          <execution>
-            <id>package-binary-darwin-arm64</id>
-            <phase>package</phase>
-            <goals><goal>jar</goal></goals>
-            <configuration>
-              <classifier>darwin-arm64</classifier>
-              <classesDirectory>${project.build.directory}/${project.version}/darwin/arm64</classesDirectory>
+              <classifier>${classifierName}</classifier>
+              <classesDirectory>${project.build.directory}/${project.version}/${platform}/${architecture}</classesDirectory>
               <includes>
                 <include>${go.binary.name}</include>
                 <include>LICENSE</include>
