@@ -28,16 +28,18 @@ public class MutationDataBuilder {
   private final Mutation mutation;
   private boolean mutationIsEmpty;
   private final Set<String> requiredColumnFamilies;
+  private final long timestampMicros;
 
   @VisibleForTesting
-  MutationDataBuilder(Mutation mutation) {
+  MutationDataBuilder(Mutation mutation, long timestampMicros) {
     this.mutation = mutation;
     mutationIsEmpty = true;
     requiredColumnFamilies = new HashSet<>();
+    this.timestampMicros = timestampMicros;
   }
 
-  public MutationDataBuilder() {
-    this(Mutation.create());
+  public MutationDataBuilder(long timestampMicros) {
+    this(Mutation.create(), timestampMicros);
   }
 
   /**
@@ -50,10 +52,11 @@ public class MutationDataBuilder {
    *     mutation ready to be written to Cloud Bigtable otherwise.
    */
   public Optional<MutationData> maybeBuild(String targetTable, ByteString rowKey) {
-    return this.mutationIsEmpty
+    return mutationIsEmpty
         ? Optional.empty()
         : Optional.of(
-            new MutationData(targetTable, rowKey, this.mutation, this.requiredColumnFamilies));
+            new MutationData(
+                targetTable, rowKey, mutation, requiredColumnFamilies, timestampMicros));
   }
 
   public void deleteRow() {
@@ -90,8 +93,7 @@ public class MutationDataBuilder {
     mutation.deleteCells(columnFamily, columnQualifier, timestampRange);
   }
 
-  public void setCell(
-      String columnFamily, ByteString columnQualifier, long timestampMicros, ByteString value) {
+  public void setCell(String columnFamily, ByteString columnQualifier, ByteString value) {
     mutationIsEmpty = false;
     requiredColumnFamilies.add(columnFamily);
     mutation.setCell(columnFamily, columnQualifier, timestampMicros, value);

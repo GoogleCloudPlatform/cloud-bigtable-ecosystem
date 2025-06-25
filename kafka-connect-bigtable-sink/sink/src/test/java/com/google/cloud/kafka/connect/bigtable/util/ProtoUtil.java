@@ -32,9 +32,7 @@ public class ProtoUtil {
       RequestContext context = RequestContext.create("project", "instance", "profile");
       RowMutation rowMutation =
           RowMutation.create(
-              TableId.of(mutation.getTargetTable()),
-              mutation.getRowKey(),
-              mutation.getInsertMutation());
+              TableId.of(mutation.getTargetTable()), mutation.getRowKey(), mutation.getMutation());
       MutateRowRequest request = rowMutation.toProto(context);
       return JsonFormat.printer().print(request);
     } catch (Exception e) {

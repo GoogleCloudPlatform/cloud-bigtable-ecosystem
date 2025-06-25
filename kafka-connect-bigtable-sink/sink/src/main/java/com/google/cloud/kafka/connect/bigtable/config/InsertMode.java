@@ -18,4 +18,5 @@ package com.google.cloud.kafka.connect.bigtable.config;
 public enum InsertMode {
   INSERT,
   UPSERT,
+  REPLACE_IF_NEWEST,
 }
