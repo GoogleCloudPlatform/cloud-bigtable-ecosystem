@@ -678,7 +678,7 @@ public class BigtableSchemaManagerTest {
 
   private static MutationData spoofSinkRecordOutput(
       String targetTable, Set<String> columnFamilies) {
-    return new MutationData(targetTable, null, null, columnFamilies);
+    return new MutationData(targetTable, null, null, columnFamilies, 0);
   }
 
   private boolean createTableMockRefersTable(String tableName, CreateTableRequest ctr) {
