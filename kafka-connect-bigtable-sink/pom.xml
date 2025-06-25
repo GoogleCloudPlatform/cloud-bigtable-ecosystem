@@ -63,6 +63,11 @@
                             <includes>
                                 <include>.gitignore</include>
                             </includes>
+                            <excludes>
+                                <exclude>third_party</exclude>
+                                <!-- List of third party files symlinked out of third_party directory: -->
+                                <exclude>**/ByteUtils.java</exclude>
+                            </excludes>
                             <trimTrailingWhitespace/>
                             <endWithNewline/>
                             <indent>
@@ -72,6 +77,11 @@
                         </format>
                     </formats>
                     <java>
+                        <excludes>
+                            <exclude>third_party</exclude>
+                            <!-- List of third party files symlinked out of third_party directory: -->
+                            <exclude>**/ByteUtils.java</exclude>
+                        </excludes>
                         <googleJavaFormat>
                             <version>${google.java.format.version}</version>
                             <style>GOOGLE</style>
