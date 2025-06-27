@@ -9,8 +9,14 @@
         "query_desc": "Perform a SELECT query using an unsupported function 'xxxx'.",
         "query_type": "SELECT",
         "params": [
-          { "value": "Carls", "datatype": "text" },
-          { "value": 45, "datatype": "bigint" }
+          {
+            "value": "Carls",
+            "datatype": "text"
+          },
+          {
+            "value": 45,
+            "datatype": "bigint"
+          }
         ],
         "expected_result": [
           {
@@ -32,19 +38,51 @@
         "query_desc": "Insert a record to set up for the SELECT operation.",
         "query_type": "INSERT",
         "params": [
-          { "value": "Carls", "datatype": "text" },
-          { "value": 45, "datatype": "bigint" },
-          { "value": 123, "datatype": "int" },
-          { "value": 1500.5, "datatype": "double" },
-          { "value": 500.0, "datatype": "float" },
-          { "value": true, "datatype": "boolean" },
-          { "value": 9151488000000000, "datatype": "timestamp" },
-          { "value": 12345, "datatype": "bigint" },
           {
-            "value": { "info_key": "info_value" },
+            "value": "Carls",
+            "datatype": "text"
+          },
+          {
+            "value": 45,
+            "datatype": "bigint"
+          },
+          {
+            "value": 123,
+            "datatype": "int"
+          },
+          {
+            "value": 1500.5,
+            "datatype": "double"
+          },
+          {
+            "value": 500.0,
+            "datatype": "float"
+          },
+          {
+            "value": true,
+            "datatype": "boolean"
+          },
+          {
+            "value": 9151488000000000,
+            "datatype": "timestamp"
+          },
+          {
+            "value": 12345,
+            "datatype": "bigint"
+          },
+          {
+            "value": {
+              "info_key": "info_value"
+            },
             "datatype": "map<text,text>"
           },
-          { "value": ["tag1", "tag2"], "datatype": "set<text>" }
+          {
+            "value": [
+              "tag1",
+              "tag2"
+            ],
+            "datatype": "set<text>"
+          }
         ],
         "expected_result": null
       },
@@ -53,12 +91,24 @@
         "query_desc": "Perform SELECT query to validate inserted data.",
         "query_type": "SELECT",
         "params": [
-          { "value": "Carls", "datatype": "text" },
-          { "value": 45, "datatype": "bigint" }
+          {
+            "value": "Carls",
+            "datatype": "text"
+          },
+          {
+            "value": 45,
+            "datatype": "bigint"
+          }
         ],
         "expected_result": [
-          { "name": "Carls", "datatype": "text" },
-          { "age": 45, "datatype": "bigint" }
+          {
+            "name": "Carls",
+            "datatype": "text"
+          },
+          {
+            "age": 45,
+            "datatype": "bigint"
+          }
         ]
       }
     ],
@@ -75,9 +125,18 @@
         "query_desc": "Insert a record to ensure the table has at least one entry.",
         "query_type": "INSERT",
         "params": [
-          { "value": "Arena", "datatype": "text" },
-          { "value": 30, "datatype": "bigint" },
-          { "value": 999, "datatype": "int" }
+          {
+            "value": "Arena",
+            "datatype": "text"
+          },
+          {
+            "value": 30,
+            "datatype": "bigint"
+          },
+          {
+            "value": 999,
+            "datatype": "int"
+          }
         ],
         "expected_result": null
       },
@@ -106,10 +165,22 @@
         "query_desc": "Insert a record for validating the WRITETIME function on the 'code' column.",
         "query_type": "INSERT",
         "params": [
-          { "value": "Alice", "datatype": "text" },
-          { "value": 35, "datatype": "bigint" },
-          { "value": 999, "datatype": "int" },
-          { "value": 1734516831000000, "datatype": "bigint" }
+          {
+            "value": "Alice",
+            "datatype": "text"
+          },
+          {
+            "value": 35,
+            "datatype": "bigint"
+          },
+          {
+            "value": 999,
+            "datatype": "int"
+          },
+          {
+            "value": 1734516831000000,
+            "datatype": "bigint"
+          }
         ],
         "expected_result": null
       },
@@ -118,10 +189,22 @@
         "query_desc": "Insert a record with a future timestamp for testing timestamp comparison.",
         "query_type": "INSERT",
         "params": [
-          { "value": "Bob", "datatype": "text" },
-          { "value": 40, "datatype": "bigint" },
-          { "value": 123, "datatype": "int" },
-          { "value": 2683260983500000, "datatype": "bigint" }
+          {
+            "value": "Bob",
+            "datatype": "text"
+          },
+          {
+            "value": 40,
+            "datatype": "bigint"
+          },
+          {
+            "value": 123,
+            "datatype": "int"
+          },
+          {
+            "value": 2683260983500000,
+            "datatype": "bigint"
+          }
         ],
         "expected_result": null
       },
@@ -130,14 +213,32 @@
         "query_desc": "Retrieve the write timestamp of the 'code' column for 'Alice' without using aliases.",
         "query_type": "SELECT",
         "params": [
-          { "value": "Alice", "datatype": "text" },
-          { "value": 35, "datatype": "bigint" }
+          {
+            "value": "Alice",
+            "datatype": "text"
+          },
+          {
+            "value": 35,
+            "datatype": "bigint"
+          }
         ],
         "expected_result": [
-          { "name": "Alice", "datatype": "text" },
-          { "age": 35, "datatype": "bigint" },
-          { "code": 999, "datatype": "int" },
-          { "writetime(code)": 1734516831000000, "datatype": "bigint" }
+          {
+            "name": "Alice",
+            "datatype": "text"
+          },
+          {
+            "age": 35,
+            "datatype": "bigint"
+          },
+          {
+            "code": 999,
+            "datatype": "int"
+          },
+          {
+            "writetime(code)": 1734516831000000,
+            "datatype": "bigint"
+          }
         ]
       },
       {
@@ -145,14 +246,32 @@
         "query_desc": "Retrieve the write timestamp of the 'code' column for 'Alice' without using aliases.",
         "query_type": "SELECT",
         "params": [
-          { "value": "Alice", "datatype": "text" },
-          { "value": 35, "datatype": "bigint" }
+          {
+            "value": "Alice",
+            "datatype": "text"
+          },
+          {
+            "value": 35,
+            "datatype": "bigint"
+          }
         ],
         "expected_result": [
-          { "name": "Alice", "datatype": "text" },
-          { "age": 35, "datatype": "bigint" },
-          { "code": 999, "datatype": "int" },
-          { "writetime(code)": 1734516831000000, "datatype": "bigint" }
+          {
+            "name": "Alice",
+            "datatype": "text"
+          },
+          {
+            "age": 35,
+            "datatype": "bigint"
+          },
+          {
+            "code": 999,
+            "datatype": "int"
+          },
+          {
+            "writetime(code)": 1734516831000000,
+            "datatype": "bigint"
+          }
         ]
       },
       {
@@ -160,14 +279,32 @@
         "query_desc": "Retrieve the write timestamp of the 'code' column for 'Alice' using the alias 'abcd'.",
         "query_type": "SELECT",
         "params": [
-          { "value": "Alice", "datatype": "text" },
-          { "value": 35, "datatype": "bigint" }
+          {
+            "value": "Alice",
+            "datatype": "text"
+          },
+          {
+            "value": 35,
+            "datatype": "bigint"
+          }
         ],
         "expected_result": [
-          { "name": "Alice", "datatype": "text" },
-          { "age": 35, "datatype": "bigint" },
-          { "code": 999, "datatype": "int" },
-          { "abcd": 1734516831000000, "datatype": "bigint" }
+          {
+            "name": "Alice",
+            "datatype": "text"
+          },
+          {
+            "age": 35,
+            "datatype": "bigint"
+          },
+          {
+            "code": 999,
+            "datatype": "int"
+          },
+          {
+            "abcd": 1734516831000000,
+            "datatype": "bigint"
+          }
         ]
       },
       {
@@ -175,18 +312,1053 @@
         "query_desc": "Retrieve the write timestamp of the 'code' column for 'Alice' using the alias 'age_timestamp'.",
         "query_type": "SELECT",
         "params": [
-          { "value": "Alice", "datatype": "text" },
-          { "value": 35, "datatype": "bigint" }
+          {
+            "value": "Alice",
+            "datatype": "text"
+          },
+          {
+            "value": 35,
+            "datatype": "bigint"
+          }
         ],
         "expected_result": [
-          { "name": "Alice", "datatype": "text" },
-          { "age": 35, "datatype": "bigint" },
-          { "code": 999, "datatype": "int" },
-          { "code_timestamp": 1734516831000000, "datatype": "bigint" }
+          {
+            "name": "Alice",
+            "datatype": "text"
+          },
+          {
+            "age": 35,
+            "datatype": "bigint"
+          },
+          {
+            "code": 999,
+            "datatype": "int"
+          },
+          {
+            "code_timestamp": 1734516831000000,
+            "datatype": "bigint"
+          }
         ]
       }
     ],
     "success_message": "WRITETIME with and without alias returned the expected result.",
     "failure_message": "WRITETIME with and without alias did not return the expected result."
+  },
+  {
+    "title": "Test SELECT * with all datatypes",
+    "description": "Insert and validate all supported datatypes using SELECT *",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code, credited, balance, is_active, birth_date, zip_code, extra_info, map_text_int, map_text_bigint, map_text_boolean, map_text_ts, map_text_float, map_text_double, ts_text_map, ts_boolean_map, ts_float_map, ts_double_map, ts_bigint_map, ts_ts_map, ts_int_map, tags, set_boolean, set_int, set_bigint, set_float, set_double, set_timestamp, list_text, list_int, list_bigint, list_float, list_double, list_boolean, list_timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "query_desc": "Insert record with all datatypes",
+        "query_type": "INSERT",
+        "params": [
+          {
+            "value": "TestUserStar",
+            "datatype": "text"
+          },
+          {
+            "value": 25,
+            "datatype": "bigint"
+          },
+          {
+            "value": 101,
+            "datatype": "int"
+          },
+          {
+            "value": 1000.50,
+            "datatype": "double"
+          },
+          {
+            "value": 500.25,
+            "datatype": "float"
+          },
+          {
+            "value": true,
+            "datatype": "boolean"
+          },
+          {
+            "value": 1672531200000000,
+            "datatype": "timestamp"
+          },
+          {
+            "value": 54321,
+            "datatype": "bigint"
+          },
+          {
+            "value": {
+              "key1": "value1"
+            },
+            "datatype": "map<text,text>"
+          },
+          {
+            "value": {
+              "key1": 1
+            },
+            "datatype": "map<text,int>"
+          },
+          {
+            "value": {
+              "key1": 100
+            },
+            "datatype": "map<text,bigint>"
+          },
+          {
+            "value": {
+              "key1": true
+            },
+            "datatype": "map<text,boolean>"
+          },
+          {
+            "value": {
+              "key1": 1672531200000000
+            },
+            "datatype": "map<text,timestamp>"
+          },
+          {
+            "value": {
+              "key1": 10.5
+            },
+            "datatype": "map<text,float>"
+          },
+          {
+            "value": {
+              "key1": 20.5
+            },
+            "datatype": "map<text,double>"
+          },
+          {
+            "value": {
+              "1672531200000000": "value1"
+            },
+            "datatype": "map<timestamp,text>"
+          },
+          {
+            "value": {
+              "1672531200000000": true
+            },
+            "datatype": "map<timestamp,boolean>"
+          },
+          {
+            "value": {
+              "1672531200000000": 30.5
+            },
+            "datatype": "map<timestamp,float>"
+          },
+          {
+            "value": {
+              "1672531200000000": 40.5
+            },
+            "datatype": "map<timestamp,double>"
+          },
+          {
+            "value": {
+              "1672531200000000": 200
+            },
+            "datatype": "map<timestamp,bigint>"
+          },
+          {
+            "value": {
+              "1672531200000000": 1672617600000000
+            },
+            "datatype": "map<timestamp,timestamp>"
+          },
+          {
+            "value": {
+              "1672531200000000": 2
+            },
+            "datatype": "map<timestamp,int>"
+          },
+          {
+            "value": [
+              "tag1",
+              "tag2"
+            ],
+            "datatype": "set<text>"
+          },
+          {
+            "value": [
+              false,
+              true
+            ],
+            "datatype": "set<boolean>"
+          },
+          {
+            "value": [
+              1,
+              2
+            ],
+            "datatype": "set<int>"
+          },
+          {
+            "value": [
+              100,
+              200
+            ],
+            "datatype": "set<bigint>"
+          },
+          {
+            "value": [
+              1.5,
+              2.5
+            ],
+            "datatype": "set<float>"
+          },
+          {
+            "value": [
+              10.5,
+              20.5
+            ],
+            "datatype": "set<double>"
+          },
+          {
+            "value": [
+              1672531200000000,
+              1672617600000000
+            ],
+            "datatype": "set<timestamp>"
+          },
+          {
+            "value": [
+              "item1",
+              "item2"
+            ],
+            "datatype": "list<text>"
+          },
+          {
+            "value": [
+              3,
+              4
+            ],
+            "datatype": "list<int>"
+          },
+          {
+            "value": [
+              300,
+              400
+            ],
+            "datatype": "list<bigint>"
+          },
+          {
+            "value": [
+              3.5,
+              4.5
+            ],
+            "datatype": "list<float>"
+          },
+          {
+            "value": [
+              30.5,
+              40.5
+            ],
+            "datatype": "list<double>"
+          },
+          {
+            "value": [
+              true,
+              false
+            ],
+            "datatype": "list<boolean>"
+          },
+          {
+            "value": [
+              1672531200000000,
+              1672617600000000
+            ],
+            "datatype": "list<timestamp>"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT * FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_desc": "Retrieve all columns to validate inserted data",
+        "query_type": "SELECT",
+        "params": [
+          {
+            "value": "TestUserStar",
+            "datatype": "text"
+          },
+          {
+            "value": 25,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_result": [
+          {
+            "name": "TestUserStar",
+            "datatype": "text"
+          },
+          {
+            "age": 25,
+            "datatype": "bigint"
+          },
+          {
+            "code": 101,
+            "datatype": "int"
+          },
+          {
+            "credited": 1000.50,
+            "datatype": "double"
+          },
+          {
+            "balance": 500.25,
+            "datatype": "float"
+          },
+          {
+            "is_active": true,
+            "datatype": "boolean"
+          },
+          {
+            "birth_date": 1672531200000000,
+            "datatype": "timestamp"
+          },
+          {
+            "zip_code": 54321,
+            "datatype": "bigint"
+          },
+          {
+            "extra_info": {
+              "key1": "value1"
+            },
+            "datatype": "map<text,text>"
+          },
+          {
+            "map_text_int": {
+              "key1": 1
+            },
+            "datatype": "map<text,int>"
+          },
+          {
+            "map_text_bigint": {
+              "key1": 100
+            },
+            "datatype": "map<text,bigint>"
+          },
+          {
+            "map_text_boolean": {
+              "key1": true
+            },
+            "datatype": "map<text,boolean>"
+          },
+          {
+            "map_text_ts": {
+              "key1": 1672531200000000
+            },
+            "datatype": "map<text,timestamp>"
+          },
+          {
+            "map_text_float": {
+              "key1": 10.5
+            },
+            "datatype": "map<text,float>"
+          },
+          {
+            "map_text_double": {
+              "key1": 20.5
+            },
+            "datatype": "map<text,double>"
+          },
+          {
+            "ts_text_map": {
+              "1672531200000000": "value1"
+            },
+            "datatype": "map<timestamp,text>"
+          },
+          {
+            "ts_boolean_map": {
+              "1672531200000000": true
+            },
+            "datatype": "map<timestamp,boolean>"
+          },
+          {
+            "ts_float_map": {
+              "1672531200000000": 30.5
+            },
+            "datatype": "map<timestamp,float>"
+          },
+          {
+            "ts_double_map": {
+              "1672531200000000": 40.5
+            },
+            "datatype": "map<timestamp,double>"
+          },
+          {
+            "ts_bigint_map": {
+              "1672531200000000": 200
+            },
+            "datatype": "map<timestamp,bigint>"
+          },
+          {
+            "ts_ts_map": {
+              "1672531200000000": 1672617600000000
+            },
+            "datatype": "map<timestamp,timestamp>"
+          },
+          {
+            "ts_int_map": {
+              "1672531200000000": 2
+            },
+            "datatype": "map<timestamp,int>"
+          },
+          {
+            "tags": [
+              "tag1",
+              "tag2"
+            ],
+            "datatype": "set<text>"
+          },
+          {
+            "set_boolean": [
+              false,
+              true
+            ],
+            "datatype": "set<boolean>"
+          },
+          {
+            "set_int": [
+              1,
+              2
+            ],
+            "datatype": "set<int>"
+          },
+          {
+            "set_bigint": [
+              100,
+              200
+            ],
+            "datatype": "set<bigint>"
+          },
+          {
+            "set_float": [
+              1.5,
+              2.5
+            ],
+            "datatype": "set<float>"
+          },
+          {
+            "set_double": [
+              10.5,
+              20.5
+            ],
+            "datatype": "set<double>"
+          },
+          {
+            "set_timestamp": [
+              1672531200000000,
+              1672617600000000
+            ],
+            "datatype": "set<timestamp>"
+          },
+          {
+            "list_text": [
+              "item1",
+              "item2"
+            ],
+            "datatype": "list<text>"
+          },
+          {
+            "list_int": [
+              3,
+              4
+            ],
+            "datatype": "list<int>"
+          },
+          {
+            "list_bigint": [
+              300,
+              400
+            ],
+            "datatype": "list<bigint>"
+          },
+          {
+            "list_float": [
+              3.5,
+              4.5
+            ],
+            "datatype": "list<float>"
+          },
+          {
+            "list_double": [
+              30.5,
+              40.5
+            ],
+            "datatype": "list<double>"
+          },
+          {
+            "list_boolean": [
+              true,
+              false
+            ],
+            "datatype": "list<boolean>"
+          },
+          {
+            "list_timestamp": [
+              1672531200000000,
+              1672617600000000
+            ],
+            "datatype": "list<timestamp>"
+          }
+        ]
+      }
+    ],
+    "success_message": "Successfully validated all datatypes using SELECT *",
+    "failure_message": "Failed to validate all datatypes using SELECT *"
+  },
+  {
+    "title": "Select and Validate with where clause with different operators like >=, <=, >, <, =, <>",
+    "description": "This test inserts two or more records into the 'user_info' table and performs a SELECT query to validate that the correct data is retrieved.",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+        "query_desc": "Insert a record with name Della Harlen and age 1 to set up for the WHERE clause with different operators SELECT operation.",
+        "query_type": "INSERT",
+        "params": [
+          {
+            "value": "Della Harlen",
+            "datatype": "text"
+          },
+          {
+            "value": 1,
+            "datatype": "bigint"
+          },
+          {
+            "value": 987,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+        "query_desc": "Insert a record with name Andre and age 2 to set up for the WHERE clause with different operators SELECT operation.",
+        "query_type": "INSERT",
+        "params": [
+          {
+            "value": "Andre",
+            "datatype": "text"
+          },
+          {
+            "value": 2,
+            "datatype": "bigint"
+          },
+          {
+            "value": 987,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+        "query_desc": "Insert a record with name Simon and age 1500 to set up for the WHERE clause with different operators SELECT operation.",
+        "query_type": "INSERT",
+        "params": [
+          {
+            "value": "Simon",
+            "datatype": "text"
+          },
+          {
+            "value": 1500,
+            "datatype": "bigint"
+          },
+          {
+            "value": 987,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+        "query_desc": "Insert a record with name Nivi and age 1550 to set up for the WHERE clause with different operators SELECT operation.",
+        "query_type": "INSERT",
+        "params": [
+          {
+            "value": "Nivi",
+            "datatype": "text"
+          },
+          {
+            "value": 1550,
+            "datatype": "bigint"
+          },
+          {
+            "value": 987,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT name, age  FROM bigtabledevinstance.user_info WHERE age >= ?",
+        "query_desc": "Perform SELECT query to validate >= operator success.",
+        "query_type": "SELECT",
+        "params": [
+          {
+            "value": 1500,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_multi_row_result": [
+          [{
+            "name": "Simon",
+            "datatype": "text"
+          },
+          {
+            "age": 1500,
+            "datatype": "bigint"
+          }],
+          [{
+            "name": "Nivi",
+            "datatype": "text"
+          },
+          {
+            "age": 1550,
+            "datatype": "bigint"
+          }]
+        ],
+        "expect_cassandra_specific_error": "Cannot execute this query as it might involve data filtering and thus may have unpredictable performance. If you want to execute this query despite the performance unpredictability, use ALLOW FILTERING"
+      },
+      {
+        "query": "SELECT name, age  FROM bigtabledevinstance.user_info WHERE age > ?",
+        "query_desc": "Perform SELECT query to validate > operator success.",
+        "query_type": "SELECT",
+        "params": [
+          {
+            "value": 1500,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_result": [
+          {
+            "name": "Nivi",
+            "datatype": "text"
+          },
+          {
+            "age": 1550,
+            "datatype": "bigint"
+          }
+        ],
+        "expect_cassandra_specific_error": "Cannot execute this query as it might involve data filtering and thus may have unpredictable performance. If you want to execute this query despite the performance unpredictability, use ALLOW FILTERING"
+      },
+      {
+        "query": "SELECT name, age  FROM bigtabledevinstance.user_info WHERE age > ?",
+        "query_desc": "Perform SELECT query to validate > operator success with no records.",
+        "query_type": "SELECT",
+        "params": [
+          {
+            "value": 1550,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_result": [],
+        "expect_cassandra_specific_error": "Cannot execute this query as it might involve data filtering and thus may have unpredictable performance. If you want to execute this query despite the performance unpredictability, use ALLOW FILTERING"
+      },
+      {
+        "query": "SELECT name, age  FROM bigtabledevinstance.user_info WHERE age <= ?",
+        "query_desc": "Perform SELECT query to validate <= operator success.",
+        "query_type": "SELECT",
+        "params": [
+          {
+            "value": 2,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_multi_row_result": [
+          [{
+            "name": "Andre",
+            "datatype": "text"
+          },
+          {
+            "age": 2,
+            "datatype": "bigint"
+          }],
+          [{
+            "name": "Della Harlen",
+            "datatype": "text"
+          },
+          {
+            "age": 1,
+            "datatype": "bigint"
+          }]
+        ],
+        "expect_cassandra_specific_error": "Cannot execute this query as it might involve data filtering and thus may have unpredictable performance. If you want to execute this query despite the performance unpredictability, use ALLOW FILTERING"
+      },
+      {
+        "query": "SELECT name, age  FROM bigtabledevinstance.user_info WHERE age < ?",
+        "query_desc": "Perform SELECT query to validate < operator success.",
+        "query_type": "SELECT",
+        "params": [
+          {
+            "value": 5,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_multi_row_result": [
+          [{
+            "name": "Andre",
+            "datatype": "text"
+          },
+          {
+            "age": 2,
+            "datatype": "bigint"
+          }],
+          [{
+            "name": "Della Harlen",
+            "datatype": "text"
+          },
+          {
+            "age": 1,
+            "datatype": "bigint"
+          }]
+        ],
+        "expect_cassandra_specific_error": "Cannot execute this query as it might involve data filtering and thus may have unpredictable performance. If you want to execute this query despite the performance unpredictability, use ALLOW FILTERING"
+      },
+      {
+        "query": "SELECT name, age  FROM bigtabledevinstance.user_info WHERE age < ?",
+        "query_desc": "Perform SELECT query to validate < operator success with no records.",
+        "query_type": "SELECT",
+        "params": [
+          {
+            "value": 1,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_result": [],
+        "expect_cassandra_specific_error": "Cannot execute this query as it might involve data filtering and thus may have unpredictable performance. If you want to execute this query despite the performance unpredictability, use ALLOW FILTERING"
+      },
+      {
+        "query": "SELECT name, age  FROM bigtabledevinstance.user_info WHERE age < ?",
+        "query_desc": "Perform SELECT query to validate < operator success with some records.",
+        "query_type": "SELECT",
+        "params": [
+          {
+            "value": 2,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_result": [{
+          "name": "Della Harlen",
+          "datatype": "text"
+        },
+        {
+          "age": 1,
+          "datatype": "bigint"
+        }],
+        "expect_cassandra_specific_error": "Cannot execute this query as it might involve data filtering and thus may have unpredictable performance. If you want to execute this query despite the performance unpredictability, use ALLOW FILTERING"
+      }
+    ],
+    "success_message": "Successfully validated all WHERE clause with different operators.",
+    "failure_message": "Failed to validate all WHERE clause with different operators."
+  },
+  {
+    "title": "Select and Validate with where clause with BETWEEN operator",
+    "description": "This test inserts two or more records into the 'user_info' table and performs a SELECT query to validate that the correct data is retrieved.",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+        "query_desc": "Insert a record with name Andre Brown and age 1220 to set up for the WHERE clause with BETWEEN operator SELECT operation.",
+        "query_type": "INSERT",
+        "params": [
+          {
+            "value": "Andre Brown",
+            "datatype": "text"
+          },
+          {
+            "value": 1220,
+            "datatype": "bigint"
+          },
+          {
+            "value": 987,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+        "query_desc": "Insert a record with name Simon and age 1230 to set up for the WHERE clause with BETWEEN operator SELECT operation.",
+        "query_type": "INSERT",
+        "params": [
+          {
+            "value": "Simi Simon",
+            "datatype": "text"
+          },
+          {
+            "value": 1230,
+            "datatype": "bigint"
+          },
+          {
+            "value": 987,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT name, age FROM bigtabledevinstance.user_info WHERE age BETWEEN ? AND ?",
+        "query_desc": "Perform SELECT query to validate BETWEEN operator success.",
+        "query_type": "SELECT",
+        "params": [
+          {
+            "value": 1225,
+            "datatype": "bigint"
+          },
+          {
+            "value": 1235,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_result": [
+          {
+            "name": "Simi Simon",
+            "datatype": "text"
+          },
+          {
+            "age": 1230,
+            "datatype": "bigint"
+          }
+        ],
+        "expect_cassandra_specific_error": "line 1:62 no viable alternative at input 'BETWEEN' (...age FROM bigtabledevinstance.user_info WHERE [age] BETWEEN...)"
+      },
+      {
+        "query": "SELECT name, age FROM bigtabledevinstance.user_info WHERE age BETWEEN ? AND ?",
+        "query_desc": "Perform SELECT query to validate BETWEEN operator success with no records.",
+        "query_type": "SELECT",
+        "params": [
+          {
+            "value": 1235,
+            "datatype": "bigint"
+          },
+          {
+            "value": 1240,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_result": [],
+        "expect_cassandra_specific_error": "line 1:62 no viable alternative at input 'BETWEEN' (...age FROM bigtabledevinstance.user_info WHERE [age] BETWEEN...)"
+      },
+      {
+        "query": "SELECT name, age FROM bigtabledevinstance.user_info WHERE age BETWEEN ? AND ?",
+        "query_desc": "Perform SELECT query to validate BETWEEN operator success with record.",
+        "query_type": "SELECT",
+        "params": [
+          {
+            "value": 1215,
+            "datatype": "bigint"
+          },
+          {
+            "value": 1225,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_result": [
+          {
+            "name": "Andre Brown",
+            "datatype": "text"
+          },
+          {
+            "age": 1220,
+            "datatype": "bigint"
+          }
+        ],
+        "expect_cassandra_specific_error": "line 1:62 no viable alternative at input 'BETWEEN' (...age FROM bigtabledevinstance.user_info WHERE [age] BETWEEN...)"
+      },
+      {
+        "query": "SELECT name, age FROM bigtabledevinstance.user_info WHERE age BETWEEN ? AND ?",
+        "query_desc": "Perform SELECT query to validate BETWEEN operator success with multiple records.",
+        "query_type": "SELECT",
+        "params": [
+          {
+            "value": 1215,
+            "datatype": "bigint"
+          },
+          {
+            "value": 1245,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_multi_row_result": [
+          [{
+            "name": "Andre Brown",
+            "datatype": "text"
+          },
+          {
+            "age": 1220,
+            "datatype": "bigint"
+          }],
+          [{
+            "name": "Simi Simon",
+            "datatype": "text"
+          },
+          {
+            "age": 1230,
+            "datatype": "bigint"
+          }]
+        ],
+        "expect_cassandra_specific_error": "line 1:62 no viable alternative at input 'BETWEEN' (...age FROM bigtabledevinstance.user_info WHERE [age] BETWEEN...)"
+      },
+      {
+        "query": "SELECT name, age FROM bigtabledevinstance.user_info WHERE age BETWEEN",
+        "query_desc": "Perform SELECT query to validate BETWEEN operator with error.",
+        "query_type": "SELECT",
+        "params": [],
+        "expected_result": [
+          {
+            "expect_error": true,
+            "avoid_compare_error_message": true
+          }
+        ]
+      },
+      {
+        "query": "SELECT name, age FROM bigtabledevinstance.user_info WHERE age BETWEEN ?",
+        "query_desc": "Perform SELECT query to validate BETWEEN operator with error with one parameter.",
+        "query_type": "SELECT",
+        "params": [
+          {
+            "value": 1225,
+            "datatype": "bigint"
+          }
+        ],
+        "expected_result": [
+          {
+            "expect_error": true,
+            "avoid_compare_error_message": true
+          }
+        ]
+      }
+    ],
+    "success_message": "Successfully validated all WHERE clause with BETWEEN operator.",
+    "failure_message": "Failed to validate all WHERE clause with BETWEEN operator."
+  },
+  {
+    "title": "Select and Validate with where clause with LIKE operator",
+    "description": "This test inserts two or more records into the 'user_info' table and performs a SELECT query to validate that the correct data is retrieved.",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+        "query_desc": "Insert a record with name Silver Hunter and age 1300 to set up for the WHERE clause with LIKE operator SELECT operation.",
+        "query_type": "INSERT",
+        "params": [
+          {
+            "value": "Silver Hunter",
+            "datatype": "text"
+          },
+          {
+            "value": 1300,
+            "datatype": "bigint"
+          },
+          {
+            "value": 987,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": null,
+        "expect_cassandra_specific_error": "line 1:62 no viable alternative at input 'BETWEEN' (...age FROM bigtabledevinstance.user_info WHERE [age] BETWEEN...)"
+      },
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
+        "query_desc": "Insert a record with name Silver Smith and age 1310 to set up for the WHERE clause with LIKE operator SELECT operation.",
+        "query_type": "INSERT",
+        "params": [
+          {
+            "value": "Silver Smith",
+            "datatype": "text"
+          },
+          {
+            "value": 1310,
+            "datatype": "bigint"
+          },
+          {
+            "value": 987,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT name, age FROM bigtabledevinstance.user_info WHERE name LIKE ?",
+        "query_desc": "Perform SELECT query to validate LIKE operator success with single record.",
+        "query_type": "SELECT",
+        "params": [
+          {
+            "value": "Silver H%",
+            "datatype": "text"
+          }
+        ],
+        "expected_result": [
+          {
+            "name": "Silver Hunter",
+            "datatype": "text"
+          },    
+          {
+            "age": 1300,
+            "datatype": "bigint"
+          }
+        ],
+        "expect_cassandra_specific_error": "LIKE restriction is only supported on properly indexed columns. name LIKE ? is not valid."
+      },
+      {
+        "query": "SELECT name, age FROM bigtabledevinstance.user_info WHERE name LIKE ?",
+        "query_desc": "Perform SELECT query to validate LIKE operator success with multiple records.",
+        "query_type": "SELECT",
+        "params": [
+          {
+            "value": "Silver%",
+            "datatype": "text"
+          }
+        ],
+        "expected_multi_row_result": [
+          [{
+            "name": "Silver Hunter",
+            "datatype": "text"
+          },    
+          {
+            "age": 1300,
+            "datatype": "bigint"
+          }],
+          [{
+            "name": "Silver Smith",
+            "datatype": "text"
+          },
+          {
+            "age": 1310,
+            "datatype": "bigint"
+          }]
+        ],
+        "expect_cassandra_specific_error": "LIKE restriction is only supported on properly indexed columns. name LIKE ? is not valid."
+      },
+      {
+        "query": "SELECT name, age FROM bigtabledevinstance.user_info WHERE name LIKE ?",
+        "query_desc": "Perform SELECT query to validate LIKE operator success with no records.",
+        "query_type": "SELECT",
+        "params": [
+          {
+            "value": "Hunter%",
+            "datatype": "text"
+          }
+        ],
+        "expected_result": [],
+        "expect_cassandra_specific_error": "LIKE restriction is only supported on properly indexed columns. name LIKE ? is not valid."
+      },
+      {
+        "query": "SELECT name, age FROM bigtabledevinstance.user_info WHERE name LIKE",
+        "query_desc": "Perform SELECT query to validate LIKE operator with error.",
+        "query_type": "SELECT",
+        "params": [],
+        "expected_result": [
+          {
+            "expect_error": true,
+            "avoid_compare_error_message": true
+          }
+        ]
+      }
+    ],
+    "success_message": "Successfully validated all WHERE clause with LIKE operator.",
+    "failure_message": "Failed to validate all WHERE clause with LIKE operator."
   }
 ]

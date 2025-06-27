@@ -23,8 +23,9 @@
 
 parser grammar CqlParser;
 
-options
-   { tokenVocab = CqlLexer; }
+options {
+    tokenVocab = CqlLexer;
+}
 
 root
    : cqls? MINUSMINUS? EOF
@@ -80,6 +81,19 @@ cql
    | truncate
    | update
    | use_
+   | describeStatement
+   ;
+
+describeStatement
+   : (kwDesc | kwDescibe) describeTarget
+   ;
+
+describeTarget
+   : kwKeyspaces
+   | kwTables
+   | kwTable (keyspace DOT)? table
+   | kwKeyspace keyspace
+   | keyspace
    ;
 
 revoke
@@ -566,7 +580,9 @@ assignments
    ;
 
 assignmentElement
-   : OBJECT_NAME OPERATOR_EQ (constant | assignmentMap | assignmentSet | assignmentList)
+   : OBJECT_NAME OPERATOR_EQ QUESTION_MARK (PLUS | MINUS) OBJECT_NAME  // For prepared statement prepend/append
+   | OBJECT_NAME OPERATOR_EQ OBJECT_NAME (PLUS | MINUS) QUESTION_MARK  // For prepared statement append/prepend
+   | OBJECT_NAME OPERATOR_EQ (constant | assignmentMap | assignmentSet | assignmentList)
    | OBJECT_NAME OPERATOR_EQ QUESTION_MARK
    | OBJECT_NAME OPERATOR_EQ OBJECT_NAME (PLUS | MINUS) decimalLiteral
    | OBJECT_NAME OPERATOR_EQ OBJECT_NAME (PLUS | MINUS) assignmentSet
@@ -587,7 +603,7 @@ assignmentMap
    ;
 
 assignmentList
-   : syntaxBracketLs constant (syntaxComma constant)* syntaxBracketRs
+   : syntaxBracketLs (constant (syntaxComma constant)*)? syntaxBracketRs
    ;
 
 assignmentTuple
@@ -652,7 +668,7 @@ expression
    ;
 
 select_
-   : kwSelect distinctSpec? kwJson? selectElements fromSpec whereSpec? orderSpec? limitSpec? allowFilteringSpec? statementSeparator?
+   : kwSelect distinctSpec? kwJson? selectElements fromSpec whereSpec? groupSpec? orderSpec? limitSpec? allowFilteringSpec? statementSeparator?
    ;
 
 allowFilteringSpec
@@ -661,6 +677,9 @@ allowFilteringSpec
 
 limitSpec
    : kwLimit decimalLiteral
+   ;
+kwLike
+   : K_LIKE
    ;
 
 fromSpec
@@ -673,7 +692,7 @@ fromSpecElement
    ;
 
 orderSpec
-   : kwOrder kwBy orderSpecElement
+   : kwOrder kwBy orderSpecElement (syntaxComma orderSpecElement)*
    ;
 
 orderSpecElement
@@ -710,9 +729,13 @@ relationElements
 
 relationElement
    : OBJECT_NAME (OPERATOR_EQ | OPERATOR_LT | OPERATOR_GT | OPERATOR_LTE | OPERATOR_GTE) constant
+   | OBJECT_NAME kwLike constant
+   | OBJECT_NAME kwBetween constant kwAnd constant
    | OBJECT_NAME '.' OBJECT_NAME (OPERATOR_EQ | OPERATOR_LT | OPERATOR_GT | OPERATOR_LTE | OPERATOR_GTE) constant
    | functionCall (OPERATOR_EQ | OPERATOR_LT | OPERATOR_GT | OPERATOR_LTE | OPERATOR_GTE) constant
    | functionCall (OPERATOR_EQ | OPERATOR_LT | OPERATOR_GT | OPERATOR_LTE | OPERATOR_GTE) functionCall
+   | OBJECT_NAME '.' OBJECT_NAME kwLike constant
+   | OBJECT_NAME '.' OBJECT_NAME kwBetween constant kwAnd constant
    | OBJECT_NAME kwIn ('(' functionArgs ')' | QUESTION_MARK)
    | '(' OBJECT_NAME (syntaxComma OBJECT_NAME)* ')' kwIn '(' assignmentTuple (syntaxComma assignmentTuple)* ')'
    | '(' OBJECT_NAME (syntaxComma OBJECT_NAME)* ')' (OPERATOR_EQ | OPERATOR_LT | OPERATOR_GT | OPERATOR_LTE | OPERATOR_GTE) ( assignmentTuple (syntaxComma assignmentTuple)* )
@@ -930,6 +953,10 @@ kwAuthorize
 
 kwBatch
    : K_BATCH
+   ;
+
+kwBetween
+   : K_BETWEEN
    ;
 
 kwBegin
@@ -1200,6 +1227,10 @@ kwTable
    : K_TABLE
    ;
 
+kwTables
+   : K_TABLES
+   ;
+
 kwTimestamp
    : K_TIMESTAMP
    ;
@@ -1264,6 +1295,10 @@ kwRevoke
    : K_REVOKE
    ;
 
+kwGroup
+   : K_GROUP
+   ;
+
 // BRACKETS
 // L - left
 // R - right
@@ -1308,4 +1343,12 @@ syntaxComma
 
 syntaxColon
    : COLON
+   ;
+
+groupSpec
+   : kwGroup kwBy groupSpecElement (syntaxComma groupSpecElement)*
+   ;
+
+groupSpecElement
+   : OBJECT_NAME
    ;

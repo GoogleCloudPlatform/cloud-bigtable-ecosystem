@@ -30,7 +30,7 @@ func TestCreateClientsForInstances(t *testing.T) {
 
 	config := ConnConfig{
 		GCPProjectID:  "test-project",
-		InstanceIDs:   "test-instance1,test-instance2",
+		InstancesMap:  map[string]InstanceConfig{"test-instance1": {BigtableInstance: "test-instance1"}, "test-instance2": {BigtableInstance: "test-instance2"}},
 		NumOfChannels: 1,
 		AppProfileID:  "test-app",
 		UserAgent:     "cassandra-proxy",
@@ -39,9 +39,8 @@ func TestCreateClientsForInstances(t *testing.T) {
 	clients, _, err := CreateClientsForInstances(ctx, config)
 	assert.NoError(t, err, "CreateClientsForInstances should not return an error")
 
-	instanceIDs := strings.Split(config.InstanceIDs, ",")
-	for _, instanceID := range instanceIDs {
-		instanceID = strings.TrimSpace(instanceID)
+	for _, instanceConfig := range config.InstancesMap {
+		instanceID := strings.TrimSpace(instanceConfig.BigtableInstance)
 		client, ok := clients[instanceID]
 		assert.True(t, ok, fmt.Sprintf("Client for instance %s should be created", instanceID))
 		assert.NotNil(t, client, fmt.Sprintf("Client for instance %s should not be nil", instanceID))

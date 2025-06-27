@@ -451,5 +451,133 @@
         ],
         "success_message": "Record retrieved successfully with LIMIT and Order By keywords from user_details table.",
         "failure_message": "Failed to retrieve the expected record from user_details table."
+    },
+    {
+      "title": "Comprehensive GROUP BY, ORDER BY, LIMIT, and WHERE tests on user_info (isolated, robust)",
+      "description": "Test combinations of GROUP BY, ORDER BY (multiple columns), LIMIT, WHERE (=), aggregates, and AS keyword on user_info table with robust cleanup",
+      "kind": "dml",
+      "operations": [
+        {
+          "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code, credited, balance) VALUES (?, ?, ?, ?, ?)",
+          "query_desc": "Insert CompreOne",
+          "query_type": "INSERT",
+          "params": [
+            { "value": "CompreOne", "datatype": "text" },
+            { "value": 81, "datatype": "bigint" },
+            { "value": 100, "datatype": "int" },
+            { "value": 1000.0, "datatype": "double" },
+            { "value": 500.0, "datatype": "float" }
+          ],
+          "expected_result": null
+        },
+        {
+          "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code, credited, balance) VALUES (?, ?, ?, ?, ?)",
+          "query_desc": "Insert CompreTwo",
+          "query_type": "INSERT",
+          "params": [
+            { "value": "CompreTwo", "datatype": "text" },
+            { "value": 81, "datatype": "bigint" },
+            { "value": 200, "datatype": "int" },
+            { "value": 2000.0, "datatype": "double" },
+            { "value": 1000.0, "datatype": "float" }
+          ],
+          "expected_result": null
+        },
+        {
+          "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code, credited, balance) VALUES (?, ?, ?, ?, ?)",
+          "query_desc": "Insert CompreThree",
+          "query_type": "INSERT",
+          "params": [
+            { "value": "CompreThree", "datatype": "text" },
+            { "value": 81, "datatype": "bigint" },
+            { "value": 300, "datatype": "int" },
+            { "value": 3000.0, "datatype": "double" },
+            { "value": 1500.0, "datatype": "float" }
+          ],
+          "expected_result": null
+        },
+        {
+          "query": "SELECT age, name, SUM(code) AS total_code, AVG(balance) FROM bigtabledevinstance.user_info WHERE age = ? GROUP BY age, name ORDER BY name ASC,total_code DESC LIMIT 2",
+          "query_desc": "Group by age, name; order by name asc, total_code DESC; limit 2; aggregates without AS",
+          "query_type": "SELECT",
+          "params": [{ "value": 81, "datatype": "bigint" }],
+          "expected_multi_row_result": [
+            [
+              { "age": 81, "datatype": "bigint" },
+              { "name": "CompreOne", "datatype": "text" },
+              { "total_code": 100, "datatype": "int" },
+              { "system.avg(balance)": 500.0, "datatype": "float" }
+            ],
+            [
+              { "age": 81, "datatype": "bigint" },
+              { "name": "CompreThree", "datatype": "text" },
+              { "total_code": 300, "datatype": "int" },
+              { "system.avg(balance)": 1500.0, "datatype": "float" }
+            ]
+          ],
+          "expect_cassandra_specific_error": "Undefined column name total_code in table bigtabledevinstance.user_info"
+        },
+        {
+          "query": "SELECT age AS user_age, name, SUM(code) AS total_code FROM bigtabledevinstance.user_info WHERE age = ? GROUP BY age, name ORDER BY user_age ASC, total_code DESC LIMIT 2",
+          "query_desc": "Group by age, name; order by age alias and aggregate alias; limit 2",
+          "query_type": "SELECT",
+          "params": [{ "value": 81, "datatype": "bigint" }],
+          "expected_multi_row_result": [
+            [
+              { "user_age": 81, "datatype": "bigint" },
+              { "name": "CompreThree", "datatype": "text" },
+              { "total_code": 300, "datatype": "int" }
+            ],
+            [
+              { "user_age": 81, "datatype": "bigint" },
+              { "name": "CompreTwo", "datatype": "text" },
+              { "total_code": 200, "datatype": "int" }
+            ]
+          ],
+          "expect_cassandra_specific_error": "Undefined column name user_age in table bigtabledevinstance.user_info"
+        },
+        {
+          "query": "SELECT age, name AS username, SUM(code) AS total_code, MAX(balance) AS max_balance FROM bigtabledevinstance.user_info WHERE age = ? GROUP BY age, name ORDER BY username ASC, max_balance DESC LIMIT 2",
+          "query_desc": "Group by age, name; order by name alias and aggregate alias; limit 2",
+          "query_type": "SELECT",
+          "params": [{ "value": 81, "datatype": "bigint" }],
+          "expected_multi_row_result": [
+            [
+              { "age": 81, "datatype": "bigint" },
+              { "username": "CompreOne", "datatype": "text" },
+              { "total_code": 100, "datatype": "int" },
+              { "max_balance": 500.0, "datatype": "float" }
+            ],
+            [
+              { "age": 81, "datatype": "bigint" },
+              { "username": "CompreThree", "datatype": "text" },
+              { "total_code": 300, "datatype": "int" },
+              { "max_balance": 1500.0, "datatype": "float" }
+            ]
+          ],
+          "expect_cassandra_specific_error": "Undefined column name username in table bigtabledevinstance.user_info"
+        },
+        {
+          "query": "SELECT age, name, COUNT(*) FROM bigtabledevinstance.user_info WHERE age = ? GROUP BY age, name ORDER BY age ASC, name DESC LIMIT 2",
+          "query_desc": "Group by age, name; order by age asc, name desc; limit 2; count aggregate without AS",
+          "query_type": "SELECT",
+          "params": [{ "value": 81, "datatype": "bigint" }],
+          "expected_multi_row_result": [
+            [
+              { "age": 81, "datatype": "bigint" },
+              { "name": "CompreThree", "datatype": "text" },
+              { "system.count(*)": 1, "datatype": "bigint" }
+            ],
+            [
+              { "age": 81, "datatype": "bigint" },
+              { "name": "CompreTwo", "datatype": "text" },
+              { "system.count(*)": 1, "datatype": "bigint" }
+            ]
+          ],
+          "expect_cassandra_specific_error": "Order by is currently only supported on the clustered columns of the PRIMARY KEY, got age"
+        }
+      ],
+      "success_message": "Successfully tested GROUP BY, ORDER BY (multi-col), LIMIT, WHERE, aggregates, and AS keyword combinations on user_info (isolated, robust).",
+      "failure_message": "Failed to test GROUP BY, ORDER BY, LIMIT, WHERE, aggregates, and AS keyword combinations on user_info (isolated, robust)."
     }
 ]

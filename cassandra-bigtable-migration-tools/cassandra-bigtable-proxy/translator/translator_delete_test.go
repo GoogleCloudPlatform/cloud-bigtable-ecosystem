@@ -21,6 +21,7 @@ import (
 	"strings"
 	"testing"
 
+	types "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	schemaMapping "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/schema-mapping"
 	cql "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/third_party/cqlparser"
 	"github.com/antlr4-go/antlr/v4"
@@ -41,8 +42,8 @@ func createSchemaMappingConfigs() *schemaMapping.SchemaMappingConfig {
 func TestTranslator_TranslateDeleteQuerytoBigtable(t *testing.T) {
 	var protocalV primitive.ProtocolVersion = 4
 	params := make(map[string]interface{})
-	formattedValue, _ := formatValues("test", "text", protocalV)
-	formattedValue2, _ := formatValues("15", "int", protocalV)
+	formattedValue, _ := formatValues("test", datatype.Varchar, protocalV)
+	formattedValue2, _ := formatValues("15", datatype.Int, protocalV)
 	params["value1"] = formattedValue
 	params2 := make(map[string]interface{})
 	params2["value1"] = formattedValue
@@ -63,6 +64,7 @@ func TestTranslator_TranslateDeleteQuerytoBigtable(t *testing.T) {
 		want                         *DeleteQueryMapping
 		encodeIntValuesWithBigEndian bool
 		wantErr                      bool
+		defaultKeyspace              string
 	}{
 		{
 			name: "simple DELETE query without WHERE clause",
@@ -72,8 +74,9 @@ func TestTranslator_TranslateDeleteQuerytoBigtable(t *testing.T) {
 			fields: fields{
 				SchemaMappingConfig: createSchemaMappingConfigs(),
 			},
-			want:    nil,
-			wantErr: true,
+			want:            nil,
+			wantErr:         true,
+			defaultKeyspace: "test_keyspace",
 		},
 		{
 			name: "DELETE query with single WHERE clause missing primary key",
@@ -83,7 +86,8 @@ func TestTranslator_TranslateDeleteQuerytoBigtable(t *testing.T) {
 			fields: fields{
 				SchemaMappingConfig: createSchemaMappingConfigs(),
 			},
-			wantErr: true,
+			wantErr:         true,
+			defaultKeyspace: "test_keyspace",
 		},
 		{
 			name: "DELETE query with multiple WHERE clauses",
@@ -98,7 +102,7 @@ func TestTranslator_TranslateDeleteQuerytoBigtable(t *testing.T) {
 				QueryType: "DELETE",
 				Table:     "user_info",
 				Keyspace:  "test_keyspace",
-				Clauses: []Clause{
+				Clauses: []types.Clause{
 					{
 						Column:       "name",
 						Operator:     "=",
@@ -119,6 +123,7 @@ func TestTranslator_TranslateDeleteQuerytoBigtable(t *testing.T) {
 			},
 			encodeIntValuesWithBigEndian: false,
 			wantErr:                      false,
+			defaultKeyspace:              "test_keyspace",
 		},
 		// todo remove once we support ordered code ints
 		{
@@ -134,7 +139,7 @@ func TestTranslator_TranslateDeleteQuerytoBigtable(t *testing.T) {
 				QueryType: "DELETE",
 				Table:     "user_info",
 				Keyspace:  "test_keyspace",
-				Clauses: []Clause{
+				Clauses: []types.Clause{
 					{
 						Column:       "name",
 						Operator:     "=",
@@ -155,6 +160,7 @@ func TestTranslator_TranslateDeleteQuerytoBigtable(t *testing.T) {
 			},
 			encodeIntValuesWithBigEndian: true,
 			wantErr:                      false,
+			defaultKeyspace:              "test_keyspace",
 		},
 		{
 			name: "DELETE query with missing keyspace or table",
@@ -164,8 +170,9 @@ func TestTranslator_TranslateDeleteQuerytoBigtable(t *testing.T) {
 			fields: fields{
 				SchemaMappingConfig: createSchemaMappingConfigs(),
 			},
-			want:    nil,
-			wantErr: true,
+			want:            nil,
+			wantErr:         true,
+			defaultKeyspace: "",
 		},
 		{
 			name: "DELETE query with incorrect keyword positions",
@@ -175,8 +182,9 @@ func TestTranslator_TranslateDeleteQuerytoBigtable(t *testing.T) {
 			fields: fields{
 				SchemaMappingConfig: createSchemaMappingConfigs(),
 			},
-			want:    nil,
-			wantErr: true,
+			want:            nil,
+			wantErr:         true,
+			defaultKeyspace: "test_keyspace",
 		},
 		{
 			name: "DELETE query with ifExists condition",
@@ -191,7 +199,7 @@ func TestTranslator_TranslateDeleteQuerytoBigtable(t *testing.T) {
 				QueryType: "DELETE",
 				Table:     "user_info",
 				Keyspace:  "test_keyspace",
-				Clauses: []Clause{
+				Clauses: []types.Clause{
 					{
 						Column:       "name",
 						Operator:     "=",
@@ -211,7 +219,8 @@ func TestTranslator_TranslateDeleteQuerytoBigtable(t *testing.T) {
 				RowKey:      "test\x00\x01\x8f",
 				IfExists:    true,
 			},
-			wantErr: false,
+			wantErr:         false,
+			defaultKeyspace: "test_keyspace",
 		},
 		{
 			name: "non-existent keyspace/table",
@@ -221,8 +230,195 @@ func TestTranslator_TranslateDeleteQuerytoBigtable(t *testing.T) {
 			fields: fields{
 				SchemaMappingConfig: createSchemaMappingConfigs(),
 			},
-			want:    nil,
-			wantErr: true,
+			want:            nil,
+			wantErr:         true,
+			defaultKeyspace: "test_keyspace",
+		},
+		{
+			name: "with keyspace in query, without default keyspace",
+			args: args{
+				queryStr: "DELETE FROM test_keyspace.test_table WHERE column1 = 'abc' AND column10 = 'pkval';",
+			},
+			fields: fields{
+				SchemaMappingConfig: createSchemaMappingConfigs(),
+			},
+			want: &DeleteQueryMapping{
+				Query:     "DELETE FROM test_keyspace.test_table WHERE column1 = 'abc' AND column10 = 'pkval';",
+				QueryType: "DELETE",
+				Table:     "test_table",
+				Keyspace:  "test_keyspace",
+				Clauses: []types.Clause{
+					{
+						Column:       "column1",
+						Operator:     "=",
+						Value:        "abc",
+						IsPrimaryKey: true,
+					},
+					{
+						Column:       "column10",
+						Operator:     "=",
+						Value:        "pkval",
+						IsPrimaryKey: true,
+					},
+				},
+				Params: map[string]interface{}{
+					"value1": []byte("abc"),
+					"value2": []byte("pkval"),
+				},
+				ParamKeys:   []string{"value1", "value2"},
+				PrimaryKeys: []string{"column1", "column10"},
+				RowKey:      "abc\x00\x01pkval",
+			},
+			wantErr:         false,
+			defaultKeyspace: "",
+		},
+		{
+			name: "with keyspace in query, with default keyspace",
+			args: args{
+				queryStr: "DELETE FROM test_keyspace.test_table WHERE column1 = 'abc' AND column10 = 'pkval';",
+			},
+			fields: fields{
+				SchemaMappingConfig: createSchemaMappingConfigs(),
+			},
+			want: &DeleteQueryMapping{
+				Query:     "DELETE FROM test_keyspace.test_table WHERE column1 = 'abc' AND column10 = 'pkval';",
+				QueryType: "DELETE",
+				Table:     "test_table",
+				Keyspace:  "test_keyspace",
+				Clauses: []types.Clause{
+					{
+						Column:       "column1",
+						Operator:     "=",
+						Value:        "abc",
+						IsPrimaryKey: true,
+					},
+					{
+						Column:       "column10",
+						Operator:     "=",
+						Value:        "pkval",
+						IsPrimaryKey: true,
+					},
+				},
+				Params: map[string]interface{}{
+					"value1": []byte("abc"),
+					"value2": []byte("pkval"),
+				},
+				ParamKeys:   []string{"value1", "value2"},
+				PrimaryKeys: []string{"column1", "column10"},
+				RowKey:      "abc\x00\x01pkval",
+			},
+			wantErr:         false,
+			defaultKeyspace: "test_keyspace",
+		},
+		{
+			name: "without keyspace in query, with default keyspace",
+			args: args{
+				queryStr: "DELETE FROM test_table WHERE column1 = 'abc' AND column10 = 'pkval';",
+			},
+			fields: fields{
+				SchemaMappingConfig: createSchemaMappingConfigs(),
+			},
+			want: &DeleteQueryMapping{
+				Query:     "DELETE FROM test_table WHERE column1 = 'abc' AND column10 = 'pkval';",
+				QueryType: "DELETE",
+				Table:     "test_table",
+				Keyspace:  "test_keyspace",
+				Clauses: []types.Clause{
+					{
+						Column:       "column1",
+						Operator:     "=",
+						Value:        "abc",
+						IsPrimaryKey: true,
+					},
+					{
+						Column:       "column10",
+						Operator:     "=",
+						Value:        "pkval",
+						IsPrimaryKey: true,
+					},
+				},
+				Params: map[string]interface{}{
+					"value1": []byte("abc"),
+					"value2": []byte("pkval"),
+				},
+				ParamKeys:   []string{"value1", "value2"},
+				PrimaryKeys: []string{"column1", "column10"},
+				RowKey:      "abc\x00\x01pkval",
+			},
+			wantErr:         false,
+			defaultKeyspace: "test_keyspace",
+		},
+		{
+			name: "without keyspace in query, without default keyspace (should error)",
+			args: args{
+				queryStr: "DELETE FROM test_table WHERE column1 = 'abc' AND column10 = 'pkval';",
+			},
+			fields: fields{
+				SchemaMappingConfig: createSchemaMappingConfigs(),
+			},
+			want:            nil,
+			wantErr:         true,
+			defaultKeyspace: "",
+		},
+		{
+			name: "invalid query syntax (should error)",
+			args: args{
+				queryStr: "DELETE FROM test_keyspace.test_table",
+			},
+			fields: fields{
+				SchemaMappingConfig: createSchemaMappingConfigs(),
+			},
+			want:            nil,
+			wantErr:         true,
+			defaultKeyspace: "test_keyspace",
+		},
+		{
+			name: "parser returns empty table (should error)",
+			args: args{
+				queryStr: "DELETE FROM test_keyspace. WHERE column1 = 'abc';",
+			},
+			fields: fields{
+				SchemaMappingConfig: createSchemaMappingConfigs(),
+			},
+			want:            nil,
+			wantErr:         true,
+			defaultKeyspace: "test_keyspace",
+		},
+		{
+			name: "parser returns empty keyspace (should error)",
+			args: args{
+				queryStr: "DELETE FROM .test_table WHERE column1 = 'abc';",
+			},
+			fields: fields{
+				SchemaMappingConfig: createSchemaMappingConfigs(),
+			},
+			want:            nil,
+			wantErr:         true,
+			defaultKeyspace: "test_keyspace",
+		},
+		{
+			name: "keyspace does not exist (should error)",
+			args: args{
+				queryStr: "DELETE FROM invalid_keyspace.test_table WHERE column1 = 'abc';",
+			},
+			fields: fields{
+				SchemaMappingConfig: createSchemaMappingConfigs(),
+			},
+			want:            nil,
+			wantErr:         true,
+			defaultKeyspace: "test_keyspace",
+		},
+		{
+			name: "table does not exist (should error)",
+			args: args{
+				queryStr: "DELETE FROM test_keyspace.invalid_table WHERE column1 = 'abc';",
+			},
+			fields: fields{
+				SchemaMappingConfig: createSchemaMappingConfigs(),
+			},
+			want:            nil,
+			wantErr:         true,
+			defaultKeyspace: "test_keyspace",
 		},
 	}
 	for _, tt := range tests {
@@ -232,7 +428,7 @@ func TestTranslator_TranslateDeleteQuerytoBigtable(t *testing.T) {
 				EncodeIntValuesWithBigEndian: tt.encodeIntValuesWithBigEndian,
 				SchemaMappingConfig:          tt.fields.SchemaMappingConfig,
 			}
-			got, err := tr.TranslateDeleteQuerytoBigtable(tt.args.queryStr, false)
+			got, err := tr.TranslateDeleteQuerytoBigtable(tt.args.queryStr, false, tt.defaultKeyspace)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Translator.TranslateDeleteQuerytoBigtable() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -427,19 +623,19 @@ func TestTranslator_BuildDeletePrepareQuery(t *testing.T) {
 // newTestTableConfig returns a minimal SchemaMappingConfig for testing.
 func newTestTableConfig() *schemaMapping.SchemaMappingConfig {
 	tc := &schemaMapping.SchemaMappingConfig{
-		TablesMetaData: map[string]map[string]map[string]*schemaMapping.Column{
+		TablesMetaData: map[string]map[string]map[string]*types.Column{
 			"test_keyspace": {
 				"testtable": {
-					"col1": {CQLType: "text", IsPrimaryKey: false},
-					"col2": {CQLType: "int", IsPrimaryKey: false},
+					"col1": {CQLType: datatype.Varchar, IsPrimaryKey: false},
+					"col2": {CQLType: datatype.Int, IsPrimaryKey: false},
 				},
 			},
 		},
-		PkMetadataCache: map[string]map[string][]schemaMapping.Column{
+		PkMetadataCache: map[string]map[string][]types.Column{
 			"testtable": {
 				"test_keyspace": {
-					{CQLType: "text", IsPrimaryKey: false, ColumnName: "col1"},
-					{CQLType: "int", IsPrimaryKey: false, ColumnName: "col2"},
+					{CQLType: datatype.Varchar, IsPrimaryKey: false, ColumnName: "col1"},
+					{CQLType: datatype.Int, IsPrimaryKey: false, ColumnName: "col2"},
 				},
 			},
 		},

@@ -1,0 +1,126 @@
+[
+    {
+      "title": "Basic Insert and Validation Test",
+      "description": "This test case verifies a basic INSERT operation into the 'test_table' table. After inserting a new record, the test performs a SELECT query to validate that the data has been correctly inserted.",
+      "kind": "dml",
+      "operations": [
+        {
+          "query": "INSERT INTO cassandrakeyspace.user_info (name, age, code) VALUES (?, ?, ?)",
+          "query_desc": "Perform an INSERT operation to add a new user record with 'name', 'age', and 'code'.",
+          "query_type": "INSERT",
+          "params": [
+            {
+              "value": "John Doe",
+              "datatype": "text"
+            },
+            {
+              "value": 30,
+              "datatype": "bigint"
+            },
+            {
+              "value": 123,
+              "datatype": "int"
+            }
+          ],
+          "expected_result": null
+        },
+        {
+          "query": "SELECT name, age, code FROM cassandrakeyspace.user_info WHERE name = ? AND age = ?",
+          "query_type": "SELECT",
+          "query_desc": "Run a SELECT query to retrieve and validate the inserted user record based on 'name' and 'age'.",
+          "params": [
+            {
+              "value": "John Doe",
+              "datatype": "text"
+            },
+            {
+              "value": 30,
+              "datatype": "bigint"
+            }
+          ],
+          "expected_result": [
+            {
+              "name": "John Doe",
+              "datatype": "text"
+            },
+            {
+              "age": 30,
+              "datatype": "bigint"
+            },
+            {
+              "code": 123,
+              "datatype": "int"
+            }
+          ]
+        },
+        {
+          "query": "UPDATE cassandrakeyspace.user_info SET code = ? WHERE name = ? AND age = ?",
+          "query_desc": "Update the age and code of the user record identified by 'name'.",
+          "query_type": "UPDATE",
+          "params": [
+            
+            {
+              "value": 456,
+              "datatype": "int"
+            },
+            {
+              "value": "John Doe",
+              "datatype": "text"
+            },
+            {
+              "value": 30,
+              "datatype": "bigint"
+            }
+          ],
+          "expected_result": null
+        },
+        {
+          "query": "SELECT name, age, code FROM cassandrakeyspace.user_info WHERE name = ? AND age = ?",
+          "query_type": "SELECT",
+          "query_desc": "Run a SELECT query to retrieve and validate the updated user record based on 'name' and 'age'.",
+          "params": [
+            {
+              "value": "John Doe",
+              "datatype": "text"
+            },
+            {
+              "value": 30,
+              "datatype": "bigint"  
+            }
+          ],
+          "expected_result": [
+            {
+              "name": "John Doe",
+              "datatype": "text"  
+            },
+            {
+              "age": 30,
+              "datatype": "bigint"
+            },
+            {
+              "code": 456,
+              "datatype": "int"
+            }
+          ]
+        },
+        {
+          "query": "DELETE FROM cassandrakeyspace.user_info WHERE name = ? AND age = ?",
+          "query_desc": "Delete the user record identified by 'name' and 'age'.",
+          "query_type": "DELETE",
+          "params": [
+            {
+              "value": "John Doe",
+              "datatype": "text"
+            },
+            {
+              "value": 30,
+              "datatype": "bigint"
+            }
+          ],
+          "expected_result": null
+        }
+      ],
+      "success_message": "User record successfully inserted and validated.",
+      "failure_message": "Failed to validate the inserted user record. Data mismatch or insertion error."
+    }
+]

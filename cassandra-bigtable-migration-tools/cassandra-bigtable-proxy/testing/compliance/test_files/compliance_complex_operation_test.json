@@ -1,0 +1,4966 @@
+[
+    {
+        "title": "Complex operation on Map<TEXT,TEXT> datatype",
+        "description": "Complex operation for Map<text,text>",
+        "kind": "dml",
+        "operations": [
+            {
+                "query": "INSERT INTO bigtabledevinstance.user_info(name, age, extra_info) VALUES (?, ?, ?);",
+                "query_type": "INSERT",
+                "query_desc": "Complex Query 1. Initialize user with empty MAP<TEXT, TEXT>",
+                "params": [
+                    {
+                        "value": "Walker White",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 25,
+                        "datatype": "bigint"
+                    },
+                    {
+                        "value": {
+                            "key1": "value1",
+                            "key2": "value2"
+                        },
+                        "datatype": "map<text,text>"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT extra_info FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 2. Verify map contains added key-value pairs",
+                "params": [
+                    {
+                        "value": "Walker White",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 25,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "extra_info": {
+                            "key1": "value1",
+                            "key2": "value2"
+                        },
+                        "datatype": "map<text,text>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set extra_info = ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 3. Update extra_info with Map<TEXT, TEXT>",
+                "params": [
+                    {
+                        "value": {
+                            "key1": "value3",
+                            "key2": "value4"
+                        },
+                        "datatype": "map<text,text>"
+                    },
+                    {
+                        "value": "Walker White",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 25,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT extra_info FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 4. Verify map contains updated key-value pairs",
+                "params": [
+                    {
+                        "value": "Walker White",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 25,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "extra_info": {
+                            "key1": "value3",
+                            "key2": "value4"
+                        },
+                        "datatype": "map<text,text>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set extra_info = extra_info + ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 5. Update extra_info with Map<TEXT, TEXT> with addition operation",
+                "params": [
+                    {
+                        "value": {
+                            "key3": "value5",
+                            "key4": "value6"
+                        },
+                        "datatype": "map<text,text>"
+                    },
+                    {
+                        "value": "Walker White",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 25,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT extra_info FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 6. Verify map contains updated key-value pairs with addition operation",
+                "params": [
+                    {
+                        "value": "Walker White",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 25,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "extra_info": {
+                            "key1": "value3",
+                            "key2": "value4",
+                            "key3": "value5",
+                            "key4": "value6"
+                        },
+                        "datatype": "map<text,text>"
+                    }
+                ] 
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set extra_info = extra_info - ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 7. Update extra_info with Map<TEXT, TEXT> with subtraction operation",
+                "params": [
+                    {
+                        "value": [
+                            "key3"
+                        ],
+                        "datatype": "set<text>"
+                    },
+                    {
+                        "value": "Walker White",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 25,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT extra_info FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 8. Verify map contains updated key-value pairs with subtraction operation",
+                "params": [
+                    {
+                        "value": "Walker White",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 25,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "extra_info": {
+                            "key1": "value3",
+                            "key2": "value4",
+                            "key4": "value6" 
+                        },
+                        "datatype": "map<text,text>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set extra_info['key1'] = ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 9. Update extra_info with Map<TEXT, TEXT> with key-value pair",
+                "params": [
+                    {
+                        "value": "value7",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": "Walker White",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 25,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT extra_info FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 10. Verify map contains updated key-value pairs with key-value pair",
+                "params": [
+                    {
+                        "value": "Walker White",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 25,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "extra_info": {
+                            "key1": "value7",
+                            "key2": "value4",
+                            "key4": "value6"
+                        },
+                        "datatype": "map<text,text>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set extra_info['key5'] = ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 11. Update extra_info with Map<TEXT, TEXT> with key-value pair",
+                "params": [ 
+                    {
+                        "value": "value8",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": "Walker White",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 25,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT extra_info FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 12. Verify map contains updated key-value pairs with key-value pair",
+                "params": [
+                    {
+                        "value": "Walker White",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 25,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "extra_info": {
+                            "key1": "value7",
+                            "key2": "value4",
+                            "key4": "value6",
+                            "key5": "value8"
+                        },
+                        "datatype": "map<text,text>"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "title": "Complex operation on Map<TEXT,INT> datatype",
+        "description": "Complex operation for Map<text,int>",
+        "kind": "dml",
+        "operations": [
+            {
+                "query": "INSERT INTO bigtabledevinstance.user_info(name, age, map_text_int) VALUES (?, ?, ?);",
+                "query_type": "INSERT",
+                "query_desc": "Complex Query 13. Initialize user with MAP<TEXT, INT>",
+                "params": [
+                    {
+                        "value": "Bobby Brown",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 25,
+                        "datatype": "bigint"
+                    },
+                    {
+                        "value": {
+                            "key1": 1,
+                            "key2": 2
+                        },
+                        "datatype": "map<text,int>"
+                    }   
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT map_text_int FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 14. Verify map contains added key-value pairs",
+                "params": [
+                    {
+                        "value": "Bobby Brown",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 25,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "map_text_int": {
+                            "key1": 1,
+                            "key2": 2
+                        },
+                        "datatype": "map<text,int>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set map_text_int = ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 15. Update map_text_int with Map<TEXT, INT>",
+                "params": [
+                    {
+                        "value": {
+                            "key1": 3,
+                            "key2": 4
+                        },
+                        "datatype": "map<text,int>"
+                    },
+                    {
+                        "value": "Bobby Brown",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 25,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null     
+            },
+            {
+                "query": "SELECT map_text_int FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 16. Verify map contains updated key-value pairs",
+                "params": [
+                    {
+                        "value": "Bobby Brown",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 25,
+                        "datatype": "bigint"
+                    }
+                    ],
+                "expected_result": [
+                    {
+                        "map_text_int": {
+                            "key1": 3,
+                            "key2": 4
+                        },
+                        "datatype": "map<text,int>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set map_text_int = map_text_int + ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 17. Update map_text_int with Map<TEXT, INT> with addition operation",
+                "params": [
+                    {
+                        "value": {
+                            "key3": 5,
+                            "key4": 6
+                        },
+                        "datatype": "map<text,int>"
+                    },
+                    {
+                        "value": "Bobby Brown",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 25,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT map_text_int FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 18. Verify map contains updated key-value pairs with addition operation",
+                "params": [
+                    {
+                        "value": "Bobby Brown",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 25,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "map_text_int": {
+                            "key1": 3,
+                            "key2": 4,
+                            "key3": 5,
+                            "key4": 6
+                        },
+                        "datatype": "map<text,int>"
+                    }   
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set map_text_int = map_text_int - ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 19. Update map_text_int with Map<TEXT, INT> with subtraction operation",
+                "params": [
+                    {
+                        "value": [
+                            "key3"
+                        ],
+                        "datatype": "set<text>"
+                    },
+                    {
+                        "value": "Bobby Brown",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 25,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT map_text_int FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 20. Verify map contains updated key-value pairs with subtraction operation",
+                "params": [
+                    {
+                        "value": "Bobby Brown", 
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 25,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "map_text_int": {
+                            "key1": 3,
+                            "key2": 4,
+                            "key4": 6
+                        },
+                        "datatype": "map<text,int>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set map_text_int['key1'] = ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 21. Update map_text_int with Map<TEXT, INT> with multiplication operation",
+                "params": [
+                    {
+                        "value": 10,
+                        "datatype": "int"
+                    },
+                    {
+                        "value": "Bobby Brown",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 25,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT map_text_int FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 22. Verify map contains updated key-value pairs with multiplication operation",    
+                "params": [
+                    {
+                        "value": "Bobby Brown",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 25,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "map_text_int": {
+                            "key1": 10,
+                            "key2": 4,
+                            "key4": 6
+                        },
+                        "datatype": "map<text,int>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set map_text_int['key5'] = ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 23. Update map_text_int with Map<TEXT, INT> with division operation",
+                "params": [
+                    {
+                        "value": 5,
+                        "datatype": "int"
+                    },
+                    {
+                        "value": "Bobby Brown",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 25,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT map_text_int FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 24. Verify map contains updated key-value pairs with division operation",
+                "params": [
+                    {
+                        "value": "Bobby Brown",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 25,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "map_text_int": {
+                            "key1": 10,
+                            "key2": 4,
+                            "key4": 6,
+                            "key5": 5
+                        },
+                        "datatype": "map<text,int>"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "title": "Complex operation on Map<TEXT,BIGINT> datatype",
+        "description": "Complex operation for Map<text,bigint>",
+        "kind": "dml",
+        "operations": [
+            {
+                "query": "INSERT INTO bigtabledevinstance.user_info(name, age, map_text_bigint) VALUES (?, ?, ?);",
+                "query_type": "INSERT",
+                "query_desc": "Complex Query 25. Initialize user with MAP<TEXT, BIGINT>",
+                "params": [
+                    {
+                        "value": "Charlie Davis",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 30,
+                        "datatype": "bigint"
+                    },
+                    {
+                        "value": {
+                            "key1": 1000000000,
+                            "key2": 2000000000
+                        },
+                        "datatype": "map<text,bigint>"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT map_text_bigint FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 26. Verify map contains added key-value pairs",
+                "params": [
+                    {
+                        "value": "Charlie Davis",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 30,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "map_text_bigint": {
+                            "key1": 1000000000,
+                            "key2": 2000000000
+                        },
+                        "datatype": "map<text,bigint>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set map_text_bigint = ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 27. Update map_text_bigint with Map<TEXT, BIGINT>",
+                "params": [
+                    {
+                        "value": {
+                            "key1": 3000000000,
+                            "key2": 4000000000
+                        },
+                        "datatype": "map<text,bigint>"
+                    },
+                    {
+                        "value": "Charlie Davis",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 30,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT map_text_bigint FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 28. Verify map contains updated key-value pairs",
+                "params": [
+                    {
+                        "value": "Charlie Davis",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 30,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "map_text_bigint": {
+                            "key1": 3000000000,
+                            "key2": 4000000000
+                        },
+                        "datatype": "map<text,bigint>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set map_text_bigint = map_text_bigint + ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 29. Update map_text_bigint with Map<TEXT, BIGINT> with addition operation",
+                "params": [
+                    {
+                        "value": {
+                            "key3": 5000000000,
+                            "key4": 6000000000
+                        },
+                        "datatype": "map<text,bigint>"
+                    },
+                    {
+                        "value": "Charlie Davis",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 30,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT map_text_bigint FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 30. Verify map contains updated key-value pairs with addition operation",
+                "params": [
+                    {
+                        "value": "Charlie Davis",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 30,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "map_text_bigint": {
+                            "key1": 3000000000,
+                            "key2": 4000000000,
+                            "key3": 5000000000,
+                            "key4": 6000000000
+                        },
+                        "datatype": "map<text,bigint>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set map_text_bigint = map_text_bigint - ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 31. Update map_text_bigint with Map<TEXT, BIGINT> with subtraction operation",
+                "params": [
+                    {
+                        "value": [
+                            "key3"
+                        ],
+                        "datatype": "set<text>"
+                    },
+                    {
+                        "value": "Charlie Davis",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 30,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT map_text_bigint FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 32. Verify map contains updated key-value pairs with subtraction operation",
+                "params": [
+                    {
+                        "value": "Charlie Davis",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 30,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "map_text_bigint": {
+                            "key1": 3000000000,
+                            "key2": 4000000000,
+                            "key4": 6000000000
+                        },
+                        "datatype": "map<text,bigint>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set map_text_bigint['key1'] = ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 33. Update map_text_bigint with Map<TEXT, BIGINT> with multiplication operation",
+                "params": [
+                    {
+                        "value": 7000000000,
+                        "datatype": "bigint"
+                    },
+                    {
+                        "value": "Charlie Davis",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 30,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT map_text_bigint FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 34. Verify map contains updated key-value pairs with multiplication operation",
+                "params": [
+                    {
+                        "value": "Charlie Davis",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 30,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "map_text_bigint": {
+                            "key1": 7000000000,
+                            "key2": 4000000000,
+                            "key4": 6000000000
+                        },
+                        "datatype": "map<text,bigint>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set map_text_bigint['key5'] = ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 35. Update map_text_bigint with Map<TEXT, BIGINT> with division operation",
+                "params": [
+                    {
+                        "value": 8000000000,
+                        "datatype": "bigint"
+                    },
+                    {
+                        "value": "Charlie Davis",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 30,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT map_text_bigint FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 36. Verify map contains updated key-value pairs with division operation",
+                "params": [
+                    {
+                        "value": "Charlie Davis",   
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 30,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "map_text_bigint": {
+                            "key1": 7000000000,
+                            "key2": 4000000000,
+                            "key4": 6000000000,
+                            "key5": 8000000000
+                        },
+                        "datatype": "map<text,bigint>"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "title": "Complex operation on Map<TEXT,BOOLEAN> and Map<TEXT,FLOAT>",
+        "description": "Complex operation for Map<text,boolean> and Map<text,float>",
+        "kind": "dml",
+        "operations": [
+            {
+                "query": "INSERT INTO bigtabledevinstance.user_info(name, age, map_text_boolean) VALUES (?, ?, ?);",
+                "query_type": "INSERT",
+                "query_desc": "Complex Query 37. Initialize user with MAP<TEXT, BOOLEAN>",
+                "params": [
+                    {
+                        "value": "Diana Evans",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 35,
+                        "datatype": "bigint"
+                    },
+                    {
+                        "value": {
+                            "key1": true,
+                            "key2": false
+                        },
+                        "datatype": "map<text,boolean>"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT map_text_boolean FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 38. Verify map contains added key-value pairs",
+                "params": [
+                    {
+                        "value": "Diana Evans",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 35,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "map_text_boolean": {
+                            "key1": true,
+                            "key2": false
+                        },
+                        "datatype": "map<text,boolean>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set map_text_boolean = ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 39. Update map_text_boolean with Map<TEXT, BOOLEAN>",
+                "params": [
+                    {
+                        "value": {
+                            "key1": false,
+                            "key2": true
+                        },
+                        "datatype": "map<text,boolean>"
+                    },
+                    {
+                        "value": "Diana Evans",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 35,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT map_text_boolean FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 40. Verify map contains updated key-value pairs",
+                "params": [
+                    {
+                        "value": "Diana Evans",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 35,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "map_text_boolean": {
+                            "key1": false,
+                            "key2": true
+                        },
+                        "datatype": "map<text,boolean>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set map_text_boolean = map_text_boolean + ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 41. Update map_text_boolean with Map<TEXT, BOOLEAN> with addition operation",
+                "params": [
+                    {
+                        "value": {
+                            "key3": true,
+                            "key4": false
+                        },
+                        "datatype": "map<text,boolean>"
+                    },
+                    {
+                        "value": "Diana Evans",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 35,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT map_text_boolean FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 30. Verify map contains updated key-value pairs with addition operation",
+                "params": [
+                    {
+                        "value": "Diana Evans",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 35,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "map_text_boolean": {
+                            "key1": false,
+                            "key2": true,
+                            "key3": true,
+                            "key4": false
+                        },
+                        "datatype": "map<text,boolean>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set map_text_boolean = map_text_boolean - ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 42. Update map_text_boolean with Map<TEXT, BOOLEAN> with subtraction operation",
+                "params": [
+                    {
+                        "value": [
+                            "key3"
+                        ],
+                        "datatype": "set<text>"
+                    },
+                    {
+                        "value": "Diana Evans",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 35,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT map_text_boolean FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 43. Verify map contains updated key-value pairs with subtraction operation",
+                "params": [
+                    {
+                        "value": "Diana Evans",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 35,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "map_text_boolean": {
+                            "key1": false,
+                            "key2": true,
+                            "key4": false
+                        },
+                        "datatype": "map<text,boolean>"
+                    }
+                ]
+            },{
+                "query": "Update bigtabledevinstance.user_info set map_text_boolean['key1'] = ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 44. Update map_text_boolean with Map<TEXT, BOOLEAN> with multiplication operation",
+                "params": [
+                    {
+                        "value": true,
+                        "datatype": "boolean"
+                    },
+                    {
+                        "value": "Diana Evans",
+                        "datatype": "text"
+                    },  
+                    {
+                        "value": 35,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT map_text_boolean FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 45. Verify map contains updated key-value pairs with multiplication operation",
+                "params": [
+                    {
+                        "value": "Diana Evans",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 35,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "map_text_boolean": {
+                            "key1": true,
+                            "key2": true,
+                            "key4": false
+                        },
+                        "datatype": "map<text,boolean>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set map_text_boolean['key5'] = ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 46. Update map_text_boolean with Map<TEXT, BOOLEAN> with division operation",
+                "params": [
+                    {
+                        "value": false,
+                        "datatype": "boolean"
+                    },
+                    {
+                        "value": "Diana Evans",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 35,
+                        "datatype": "bigint"
+                    }   
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT map_text_boolean FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 47. Verify map contains updated key-value pairs with division operation",
+                "params": [
+                    {
+                        "value": "Diana Evans",
+                        "datatype": "text"
+                    },
+                    {  
+                        "value": 35,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "map_text_boolean": {   
+                            "key1": true,
+                            "key2": true,
+                            "key4": false,
+                            "key5": false
+                        },
+                        "datatype": "map<text,boolean>"
+                    }
+                ]
+            },
+            {
+                "query": "INSERT INTO bigtabledevinstance.user_info(name, age, map_text_float) VALUES (?, ?, ?);",
+                "query_type": "INSERT",
+                "query_desc": "Complex Query 48. Initialize user with MAP<TEXT, FLOAT>",
+                "params": [
+                    {
+                        "value": "Eric Franklin",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 40,
+                        "datatype": "bigint"
+                    },
+                    {
+                        "value": {
+                            "key1": 1.5,
+                            "key2": 2.75
+                        },
+                        "datatype": "map<text,float>"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT map_text_float FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 49. Verify map contains added key-value pairs",
+                "params": [
+                    {
+                        "value": "Eric Franklin",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 40,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "map_text_float": {
+                            "key1": 1.5,
+                            "key2": 2.75
+                        },
+                        "datatype": "map<text,float>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set map_text_float = ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 50. Update map_text_float with Map<TEXT, FLOAT>",
+                "params": [
+                    {
+                        "value": {
+                            "key1": 3.25,
+                            "key2": 4.5
+                        },
+                        "datatype": "map<text,float>"
+                    },
+                    {
+                        "value": "Eric Franklin",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 40,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT map_text_float FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 51. Verify map contains updated key-value pairs",
+                "params": [
+                    {
+                        "value": "Eric Franklin",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 40,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "map_text_float": {
+                            "key1": 3.25,
+                            "key2": 4.5
+                        },
+                        "datatype": "map<text,float>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set map_text_float = map_text_float + ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 52. Update map_text_float with Map<TEXT, FLOAT> with addition operation",
+                "params": [
+                    {
+                        "value": {
+                            "key3": 5.75,
+                            "key4": 6.25
+                        },
+                        "datatype": "map<text,float>"
+                    },
+                    {
+                        "value": "Eric Franklin",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 40,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT map_text_float FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 53. Verify map contains updated key-value pairs with addition operation",
+                "params": [
+                    {
+                        "value": "Eric Franklin",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 40,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "map_text_float": {
+                            "key1": 3.25,
+                            "key2": 4.5,
+                            "key3": 5.75,
+                            "key4": 6.25
+                        },
+                        "datatype": "map<text,float>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set map_text_float = map_text_float - ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 54. Update map_text_float with Map<TEXT, FLOAT> with subtraction operation",
+                "params": [
+                    {
+                        "value": [
+                            "key3"
+                        ],
+                        "datatype": "set<text>"
+                    },
+                    {
+                        "value": "Eric Franklin",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 40,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT map_text_float FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 55. Verify map contains updated key-value pairs with subtraction operation",
+                "params": [
+                    {
+                        "value": "Eric Franklin",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 40,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "map_text_float": {
+                            "key1": 3.25,
+                            "key2": 4.5,
+                            "key4": 6.25
+                        },
+                        "datatype": "map<text,float>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set map_text_float['key1'] = ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 56. Update map_text_float with Map<TEXT, FLOAT> with multiplication operation",
+                "params": [
+                    {
+                        "value": 10.0,
+                        "datatype": "float"
+                    },
+                    {
+                        "value": "Eric Franklin",
+                        "datatype": "text"  
+                    },
+                    {
+                        "value": 40,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT map_text_float FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 57. Verify map contains updated key-value pairs with multiplication operation",
+                "params": [
+                    {
+                        "value": "Eric Franklin",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 40,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "map_text_float": {
+                            "key1": 10.0,
+                            "key2": 4.5,
+                            "key4": 6.25
+                        },
+                        "datatype": "map<text,float>"
+                    }       
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set map_text_float['key5'] = ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 58. Update map_text_float with Map<TEXT, FLOAT> with division operation",
+                "params": [
+                    {
+                        "value": 1.0,
+                        "datatype": "float"
+                    },
+                    {
+                        "value": "Eric Franklin",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 40,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT map_text_float FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 59. Verify map contains updated key-value pairs with division operation",
+                "params": [
+                    {
+                        "value": "Eric Franklin",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 40,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [    
+                    {
+                        "map_text_float": {
+                            "key1": 10.0,
+                            "key2": 4.5,
+                            "key4": 6.25,
+                            "key5": 1.0
+                        },
+                        "datatype": "map<text,float>"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "title": "Complex operation on Map<TEXT,DOUBLE> datatype",
+        "description": "Complex operation for Map<text,double>",
+        "kind": "dml",
+        "operations": [
+            {
+                "query": "INSERT INTO bigtabledevinstance.user_info(name, age, map_text_double) VALUES (?, ?, ?);",
+                "query_type": "INSERT",
+                "query_desc": "Complex Query 60. Initialize user with MAP<TEXT, DOUBLE>",
+                "params": [
+                    {
+                        "value": "Grace Harrison",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 45,
+                        "datatype": "bigint"
+                    },
+                    {
+                        "value": {
+                            "key1": 1.123456789,
+                            "key2": 2.987654321
+                        },
+                        "datatype": "map<text,double>"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT map_text_double FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 61. Verify map contains added key-value pairs",
+                "params": [
+                    {
+                        "value": "Grace Harrison",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 45,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "map_text_double": {
+                            "key1": 1.123456789,
+                            "key2": 2.987654321
+                        },
+                        "datatype": "map<text,double>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set map_text_double = ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 62. Update map_text_double with Map<TEXT, DOUBLE>",
+                "params": [
+                    {
+                        "value": {
+                            "key1": 3.14159265359,
+                            "key2": 4.2718281828
+                        },
+                        "datatype": "map<text,double>"
+                    },
+                    {
+                        "value": "Grace Harrison",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 45,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT map_text_double FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 63. Verify map contains updated key-value pairs",
+                "params": [
+                    {
+                        "value": "Grace Harrison",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 45,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "map_text_double": {
+                            "key1": 3.14159265359,
+                            "key2": 4.2718281828
+                        },
+                        "datatype": "map<text,double>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set map_text_double = map_text_double + ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 64. Update map_text_double with Map<TEXT, DOUBLE> with addition operation",
+                "params": [
+                    {
+                        "value": {
+                            "key3": 5.555555555,
+                            "key4": 6.666666666
+                        },
+                        "datatype": "map<text,double>"
+                    },
+                    {
+                        "value": "Grace Harrison",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 45,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT map_text_double FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 65. Verify map contains updated key-value pairs with addition operation",
+                "params": [
+                    {
+                        "value": "Grace Harrison",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 45,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "map_text_double": {
+                            "key1": 3.14159265359,
+                            "key2": 4.2718281828,
+                            "key3": 5.555555555,
+                            "key4": 6.666666666
+                        },
+                        "datatype": "map<text,double>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set map_text_double = map_text_double - ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 66. Update map_text_double with Map<TEXT, DOUBLE> with subtraction operation",
+                "params": [
+                    {
+                        "value": [
+                            "key3"
+                        ],
+                        "datatype": "set<text>"
+                    },
+                    {
+                        "value": "Grace Harrison",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 45,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT map_text_double FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 67. Verify map contains updated key-value pairs with subtraction operation",
+                "params": [
+                    {
+                        "value": "Grace Harrison",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 45,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "map_text_double": {
+                            "key1": 3.14159265359,
+                            "key2": 4.2718281828,
+                            "key4": 6.666666666
+                        },
+                        "datatype": "map<text,double>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set map_text_double['key1'] = ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 68. Update map_text_double with Map<TEXT, DOUBLE> with multiplication operation",
+                "params": [
+                    {
+                        "value": 10.0,
+                        "datatype": "double"
+                    },
+                    {
+                        "value": "Grace Harrison",
+                        "datatype": "text"  
+                    },
+                    {
+                        "value": 45,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT map_text_double FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 69. Verify map contains updated key-value pairs with multiplication operation",
+                "params": [
+                    {
+                        "value": "Grace Harrison",
+                        "datatype": "text"
+                    },
+                    {   
+                        "value": 45,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {   
+                        "map_text_double": {
+                            "key1": 10.0,
+                            "key2": 4.2718281828,
+                            "key4": 6.666666666
+                        },
+                        "datatype": "map<text,double>"  
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set map_text_double['key5'] = ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 70. Update map_text_double with Map<TEXT, DOUBLE> with division operation",
+                "params": [
+                    {
+                        "value": 1.0,
+                        "datatype": "double"
+                    },
+                    {
+                        "value": "Grace Harrison",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 45,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT map_text_double FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT", 
+                "query_desc": "Complex Query 71. Verify map contains updated key-value pairs with division operation",
+                "params": [
+                    {
+                        "value": "Grace Harrison",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 45,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [    
+                    {
+                        "map_text_double": {
+                            "key1": 10.0,
+                            "key2": 4.2718281828,
+                            "key4": 6.666666666,
+                            "key5": 1.0
+                        },
+                        "datatype": "map<text,double>"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "title": "Complex operation on Map<TEXT,TIMESTAMP> datatype",
+        "description": "Complex operation for Map<text,timestamp>",
+        "kind": "dml",
+        "operations": [
+            {
+                "query": "INSERT INTO bigtabledevinstance.user_info(name, age, map_text_ts) VALUES (?, ?, ?);",
+                "query_type": "INSERT",
+                "query_desc": "Complex Query 72. Initialize user with MAP<TEXT, TIMESTAMP>",
+                "params": [
+                    {
+                        "value": "Ivy Johnson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 50,
+                        "datatype": "bigint"
+                    },
+                    {
+                        "value": {
+                            "key1": "2023-01-01 12:00:00",
+                            "key2": "2023-01-02 13:00:00"
+                        },
+                        "datatype": "map<text,timestamp>"   
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT map_text_ts FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 73. Verify map contains added key-value pairs",
+                "params": [
+                    {
+                        "value": "Ivy Johnson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 50,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "map_text_ts": {
+                            "key1": "2023-01-01 12:00:00",
+                            "key2": "2023-01-02 13:00:00"
+                        },
+                        "datatype": "map<text,timestamp>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set map_text_ts = ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 74. Update map_text_ts with Map<TEXT, TIMESTAMP>",
+                "params": [
+                    {
+                        "value": {
+                            "key3": "2023-01-01 12:00:00",
+                            "key4": "2023-01-02 13:00:00"
+                        },
+                        "datatype": "map<text,timestamp>"
+                    },
+                    {
+                        "value": "Ivy Johnson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 50,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT map_text_ts FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 75. Verify map contains updated key-value pairs",
+                "params": [
+                    {
+                        "value": "Ivy Johnson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 50,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "map_text_ts": {
+                            "key3": "2023-01-01 12:00:00",
+                            "key4": "2023-01-02 13:00:00"
+                        },
+                        "datatype": "map<text,timestamp>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set map_text_ts = map_text_ts + ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 76. Update map_text_ts with Map<TEXT, TIMESTAMP> with addition operation",
+                "params": [
+                    {
+                        "value": {
+                            "key5": "2023-01-01 12:00:00",
+                            "key6": "2023-01-02 13:00:00"
+                        },
+                        "datatype": "map<text,timestamp>"
+                    },
+                    {
+                        "value": "Ivy Johnson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 50,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT map_text_ts FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 77. Verify map contains updated key-value pairs with addition operation",
+                "params": [
+                    {
+                        "value": "Ivy Johnson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 50,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "map_text_ts": {
+                            "key3": "2023-01-01 12:00:00",
+                            "key4": "2023-01-02 13:00:00",
+                            "key5": "2023-01-01 12:00:00",
+                            "key6": "2023-01-02 13:00:00"
+                        },
+                        "datatype": "map<text,timestamp>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set map_text_ts = map_text_ts - ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 78. Update map_text_ts with Map<TEXT, TIMESTAMP> with subtraction operation",
+                "params": [
+                    {
+                        "value": [
+                            "key3"
+                        ],
+                        "datatype": "set<text>"
+                    },
+                    {
+                        "value": "Ivy Johnson",
+                        "datatype": "text"
+                    },
+                        {
+                        "value": 50,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query":     "SELECT map_text_ts FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 79. Verify map contains updated key-value pairs with subtraction operation",
+                "params": [
+                    {
+                        "value": "Ivy Johnson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 50,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "map_text_ts": {
+                            "key4": "2023-01-02 13:00:00",
+                            "key5": "2023-01-01 12:00:00",
+                            "key6": "2023-01-02 13:00:00"
+                        },
+                        "datatype": "map<text,timestamp>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set map_text_ts['key1'] = ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 80. Update map_text_ts with Map<TEXT, TIMESTAMP> with key-value pair",
+                "params": [
+                    {
+                        "value": "2023-01-03 14:00:00",
+                        "datatype": "timestamp"
+                    },
+                    {
+                        "value": "Ivy Johnson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 50,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null     
+            },
+            {
+                "query": "SELECT map_text_ts FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 81. Verify map contains updated key-value pairs with key-value pair",
+                "params": [
+                    {
+                        "value": "Ivy Johnson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 50,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {   
+                        "map_text_ts": {
+                            "key1": "2023-01-03 14:00:00",
+                            "key4": "2023-01-02 13:00:00",
+                            "key5": "2023-01-01 12:00:00",
+                            "key6": "2023-01-02 13:00:00"
+                        },
+                        "datatype": "map<text,timestamp>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set map_text_ts['key5'] = ? where name = ? and age = ?",
+                "query_type":   "UPDATE",
+                "query_desc": "Complex Query 82. Update map_text_ts with Map<TEXT, TIMESTAMP> with key-value pair",
+                "params": [
+                    {
+                        "value": "2023-01-04 15:00:00",
+                        "datatype": "timestamp"
+                    },
+                    {
+                        "value": "Ivy Johnson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 50,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT map_text_ts FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 83. Verify map contains updated key-value pairs with key-value pair",
+                "params": [
+                    {
+                        "value": "Ivy Johnson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 50,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "map_text_ts": {
+                            "key1": "2023-01-03 14:00:00",
+                            "key4": "2023-01-02 13:00:00",
+                            "key5": "2023-01-04 15:00:00",
+                            "key6": "2023-01-02 13:00:00"
+                        },
+                        "datatype": "map<text,timestamp>"
+                    }
+                ]
+            }
+        ] 
+    },
+    {
+        "title": "Complex operation on Map<TIMESTAMP,BOOLEAN> datatype",
+        "description": "Complex operation for Map<timestamp,boolean>",
+        "kind": "dml",
+        "operations": [
+            {
+                "query": "INSERT INTO bigtabledevinstance.user_info(name, age, ts_boolean_map) VALUES (?, ?, ?);",
+                "query_type": "INSERT",
+                "query_desc": "Complex Query 84. Initialize user with MAP<TIMESTAMP, BOOLEAN>",
+                "params": [
+                    {
+                        "value": "Mia Smith",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 30,
+                        "datatype": "bigint"
+                    },
+                    {
+                        "value": {
+                            "2023-01-01 12:00:00": true,
+                            "2023-01-02 13:00:00": false
+                        },
+                        "datatype": "map<timestamp,boolean>"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT ts_boolean_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 85. Verify map contains added key-value pairs",
+                "params": [
+                    {
+                        "value": "Mia Smith",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 30,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "ts_boolean_map": {
+                            "2023-01-01 12:00:00": true,
+                            "2023-01-02 13:00:00": false
+                        },
+                        "datatype": "map<timestamp,boolean>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set ts_boolean_map = ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 86. Update ts_boolean_map with Map<TIMESTAMP, BOOLEAN>",
+                "params": [
+                    {
+                        "value": {
+                            "2023-01-03 14:00:00": true,
+                            "2023-01-04 15:00:00": false
+                        },
+                        "datatype": "map<timestamp,boolean>"
+                    },
+                    {
+                        "value": "Mia Smith",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 30,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT ts_boolean_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 87. Verify map contains updated key-value pairs",
+                "params": [
+                    {
+                        "value": "Mia Smith",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 30,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "ts_boolean_map": {
+                            "2023-01-03 14:00:00": true,
+                            "2023-01-04 15:00:00": false
+                        },
+                        "datatype": "map<timestamp,boolean>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set ts_boolean_map = ts_boolean_map + ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 88. Update ts_boolean_map with Map<TIMESTAMP, BOOLEAN> with addition operation",
+                "params": [
+                    {
+                        "value": {
+                            "2023-01-05 16:00:00": true,
+                            "2023-01-06 17:00:00": false
+                        },
+                        "datatype": "map<timestamp,boolean>"
+                    },
+                    {
+                        "value": "Mia Smith",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 30,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT ts_boolean_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 89. Verify map contains updated key-value pairs with addition operation",
+                "params": [
+                    {
+                        "value": "Mia Smith",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 30,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "ts_boolean_map": {
+                            "2023-01-03 14:00:00": true,
+                            "2023-01-04 15:00:00": false,
+                            "2023-01-05 16:00:00": true,
+                            "2023-01-06 17:00:00": false
+                        },
+                        "datatype": "map<timestamp,boolean>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set ts_boolean_map = ts_boolean_map - ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 88. Update ts_boolean_map with Map<TIMESTAMP, BOOLEAN> with subtraction operation",
+                "params": [
+                    {
+                        "value": [
+                            "2023-01-05 16:00:00" 
+                        ],
+                        "datatype": "set<timestamp>"
+                    },
+                    {
+                        "value": "Mia Smith",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 30,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT ts_boolean_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 89. Verify map contains updated key-value pairs with subtraction operation",
+                "params": [
+                    {
+                        "value": "Mia Smith",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 30,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "ts_boolean_map": {
+                            "2023-01-03 14:00:00": true,
+                            "2023-01-04 15:00:00": false,
+                            "2023-01-06 17:00:00": false
+                        },
+                        "datatype": "map<timestamp,boolean>"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "title": "Complex operation on Map<TIMESTAMP,TEXT> datatype",
+        "description": "Complex operation for Map<timestamp,text>",
+        "kind": "dml",
+        "operations": [
+            {
+                "query": "INSERT INTO bigtabledevinstance.user_info(name, age, ts_text_map) VALUES (?, ?, ?);",
+                "query_type": "INSERT",
+                "query_desc": "Complex Query 90. Initialize user with MAP<TIMESTAMP, TEXT>",
+                "params": [
+                    {
+                        "value": "Tom Smith",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 40,
+                        "datatype": "bigint"
+                    },
+                    {
+                        "value": {
+                            "2023-01-01 12:00:00": "value1",
+                            "2023-01-02 13:00:00": "value2"
+                        },
+                        "datatype": "map<timestamp,text>"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT ts_text_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 91. Verify map contains added key-value pairs",
+                "params": [
+                    {
+                        "value": "Tom Smith",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 40,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "ts_text_map": {
+                            "2023-01-01 12:00:00": "value1",
+                            "2023-01-02 13:00:00": "value2"
+                        },
+                        "datatype": "map<timestamp,text>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set ts_text_map = ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 92. Update ts_text_map with Map<TIMESTAMP, TEXT>",
+                "params": [
+                    {
+                        "value": {
+                            "2023-01-03 14:00:00": "value3",
+                            "2023-01-04 15:00:00": "value4"
+                        },
+                        "datatype": "map<timestamp,text>"
+                    },
+                    {
+                        "value": "Tom Smith",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 40,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT ts_text_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 93. Verify map contains updated key-value pairs",
+                "params": [
+                    {
+                        "value": "Tom Smith",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 40,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "ts_text_map": {
+                            "2023-01-03 14:00:00": "value3",
+                            "2023-01-04 15:00:00": "value4"
+                        },
+                        "datatype": "map<timestamp,text>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set ts_text_map = ts_text_map + ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 94. Update ts_text_map with Map<TIMESTAMP, TEXT> with addition operation",
+                "params": [
+                    {
+                        "value": {
+                            "2023-01-05 16:00:00": "value5",
+                            "2023-01-06 17:00:00": "value6"
+                        },
+                        "datatype": "map<timestamp,text>"
+                    },
+                    {
+                        "value": "Tom Smith",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 40,    
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT ts_text_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 95. Verify map contains updated key-value pairs with addition operation",
+                "params": [
+                    {
+                        "value": "Tom Smith",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 40,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "ts_text_map": {
+                            "2023-01-03 14:00:00": "value3",
+                            "2023-01-04 15:00:00": "value4",
+                            "2023-01-05 16:00:00": "value5",
+                            "2023-01-06 17:00:00": "value6"
+                        },
+                        "datatype": "map<timestamp,text>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set ts_text_map = ts_text_map - ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 96. Update ts_text_map with Map<TIMESTAMP, TEXT> with subtraction operation",
+                "params": [
+                    {
+                        "value": [
+                            "2023-01-05 16:00:00"
+                        ],
+                        "datatype": "set<timestamp>"
+                    },
+                    {
+                        "value": "Tom Smith",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 40,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT ts_text_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 97. Verify map contains updated key-value pairs with subtraction operation",
+                "params": [
+                    {
+                        "value": "Tom Smith",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 40,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "ts_text_map": {
+                            "2023-01-03 14:00:00": "value3",
+                            "2023-01-04 15:00:00": "value4",
+                            "2023-01-06 17:00:00": "value6"
+                        },
+                        "datatype": "map<timestamp,text>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set ts_text_map['2023-01-05 16:00:00'] = ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 98. Update ts_text_map with Map<TIMESTAMP, TEXT> with addition operation",
+                "params": [
+                    {
+                        "value": "value7",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": "Tom Smith",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 40,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT ts_text_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 99. Verify map contains updated key-value pairs with addition operation",
+                "params": [
+                    {
+                        "value": "Tom Smith",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 40,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "ts_text_map": {
+                            "2023-01-03 14:00:00": "value3",
+                            "2023-01-04 15:00:00": "value4",
+                            "2023-01-05 16:00:00": "value7",
+                            "2023-01-06 17:00:00": "value6"
+                        },
+                        "datatype": "map<timestamp,text>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set ts_text_map['2023-01-07 16:00:00'] = ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 100. Update ts_text_map with Map<TIMESTAMP, TEXT> with addition operation",
+                "params": [
+                    {
+                        "value": "value10",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": "Tom Smith",
+                        "datatype": "text"
+                    },
+                    {
+                            "value": 40,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query":     "SELECT ts_text_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 101. Verify map contains updated key-value pairs with addition operation",
+                "params": [
+                    {
+                        "value": "Tom Smith",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 40,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "ts_text_map": {
+                            "2023-01-03 14:00:00": "value3",
+                            "2023-01-04 15:00:00": "value4",
+                            "2023-01-05 16:00:00": "value7",
+                            "2023-01-06 17:00:00": "value6",
+                            "2023-01-07 16:00:00": "value10"
+                        },
+                        "datatype": "map<timestamp,text>"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "title": "Complex operation on Map<TIMESTAMP,FLOAT> datatype",
+        "description": "Complex operation for Map<timestamp,float>",
+        "kind": "dml",
+        "operations": [
+            {
+                "query": "INSERT INTO bigtabledevinstance.user_info(name, age, ts_float_map) VALUES (?, ?, ?);",
+                "query_type": "INSERT",
+                "query_desc": "Complex Query 102. Initialize user with MAP<TIMESTAMP, FLOAT>",
+                "params": [
+                    {
+                        "value": "Noah Wilson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 32,
+                        "datatype": "bigint"
+                    },
+                    {
+                        "value": {
+                            "2023-02-01 12:00:00": 1.5,
+                            "2023-02-02 13:00:00": 2.75
+                        },
+                        "datatype": "map<timestamp,float>"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT ts_float_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 103. Verify map contains added key-value pairs",
+                "params": [
+                    {
+                        "value": "Noah Wilson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 32,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "ts_float_map": {
+                            "2023-02-01 12:00:00": 1.5,
+                            "2023-02-02 13:00:00": 2.75
+                        },
+                        "datatype": "map<timestamp,float>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set ts_float_map = ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 104. Update ts_float_map with Map<TIMESTAMP, FLOAT>",
+                "params": [
+                    {
+                        "value": {
+                            "2023-02-03 14:00:00": 3.25,
+                            "2023-02-04 15:00:00": 4.5
+                        },
+                        "datatype": "map<timestamp,float>"
+                    },
+                    {
+                        "value": "Noah Wilson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 32,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT ts_float_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 105. Verify map contains updated key-value pairs",
+                "params": [
+                    {
+                        "value": "Noah Wilson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 32,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "ts_float_map": {
+                            "2023-02-03 14:00:00": 3.25,
+                            "2023-02-04 15:00:00": 4.5
+                        },
+                        "datatype": "map<timestamp,float>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set ts_float_map = ts_float_map + ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 106. Update ts_float_map with Map<TIMESTAMP, FLOAT> with addition operation",
+                "params": [
+                    {
+                        "value": {
+                            "2023-02-05 16:00:00": 5.75,
+                            "2023-02-06 17:00:00": 6.25
+                        },
+                        "datatype": "map<timestamp,float>"
+                    },
+                    {
+                        "value": "Noah Wilson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 32,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT ts_float_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 107. Verify map contains updated key-value pairs with addition operation",
+                "params": [
+                    {
+                        "value": "Noah Wilson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 32,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "ts_float_map": {
+                            "2023-02-03 14:00:00": 3.25,
+                            "2023-02-04 15:00:00": 4.5,
+                            "2023-02-05 16:00:00": 5.75,
+                            "2023-02-06 17:00:00": 6.25
+                        },
+                        "datatype": "map<timestamp,float>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set ts_float_map = ts_float_map - ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 108. Update ts_float_map with Map<TIMESTAMP, FLOAT> with subtraction operation",
+                "params": [
+                    {
+                        "value": [
+                            "2023-02-05 16:00:00"
+                        ],
+                        "datatype": "set<timestamp>"
+                    },
+                    {
+                        "value": "Noah Wilson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 32,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT ts_float_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 109. Verify map contains updated key-value pairs with subtraction operation",
+                "params": [
+                    {
+                        "value": "Noah Wilson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 32,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "ts_float_map": {
+                            "2023-02-03 14:00:00": 3.25,
+                            "2023-02-04 15:00:00": 4.5,
+                            "2023-02-06 17:00:00": 6.25
+                        },
+                        "datatype": "map<timestamp,float>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set ts_float_map['2023-02-03 14:00:00'] = ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 110. Update ts_float_map with Map<TIMESTAMP, FLOAT> with key update",
+                "params": [
+                    {
+                        "value": 10.0,
+                        "datatype": "float"
+                    },
+                    {
+                        "value": "Noah Wilson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 32,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT ts_float_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 111. Verify map contains updated key-value pairs with key update",
+                "params": [
+                    {
+                        "value": "Noah Wilson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 32,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "ts_float_map": {
+                            "2023-02-03 14:00:00": 10.0,
+                            "2023-02-04 15:00:00": 4.5,
+                            "2023-02-06 17:00:00": 6.25
+                        },
+                        "datatype": "map<timestamp,float>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set ts_float_map['2023-02-07 18:00:00'] = ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 112. Update ts_float_map with Map<TIMESTAMP, FLOAT> with new key addition",
+                "params": [
+                    {
+                        "value": 7.75,
+                        "datatype": "float"
+                    },
+                    {
+                        "value": "Noah Wilson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 32,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT ts_float_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 113. Verify map contains updated key-value pairs with new key addition",
+                "params": [
+                    {
+                        "value": "Noah Wilson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 32,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "ts_float_map": {
+                            "2023-02-03 14:00:00": 10.0,
+                            "2023-02-04 15:00:00": 4.5,
+                            "2023-02-06 17:00:00": 6.25,
+                            "2023-02-07 18:00:00": 7.75
+                        },
+                        "datatype": "map<timestamp,float>"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "title": "Complex operation on Map<TIMESTAMP,DOUBLE> datatype",
+        "description": "Complex operation for Map<timestamp,double>",
+        "kind": "dml",
+        "operations": [
+            {
+                "query": "INSERT INTO bigtabledevinstance.user_info(name, age, ts_double_map) VALUES (?, ?, ?);",
+                "query_type": "INSERT",
+                "query_desc": "Complex Query 114. Initialize user with MAP<TIMESTAMP, DOUBLE>",
+                "params": [
+                    {
+                        "value": "Olivia Jackson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 33,
+                        "datatype": "bigint"
+                    },
+                    {
+                        "value": {
+                            "2023-03-01 12:00:00": 1.123456789,
+                            "2023-03-02 13:00:00": 2.987654321
+                        },
+                        "datatype": "map<timestamp,double>"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT ts_double_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 115. Verify map contains added key-value pairs",
+                "params": [
+                    {
+                        "value": "Olivia Jackson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 33,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "ts_double_map": {
+                            "2023-03-01 12:00:00": 1.123456789,
+                            "2023-03-02 13:00:00": 2.987654321
+                        },
+                        "datatype": "map<timestamp,double>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set ts_double_map = ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 116. Update ts_double_map with Map<TIMESTAMP, DOUBLE>",
+                "params": [
+                    {
+                        "value": {
+                            "2023-03-03 14:00:00": 3.14159265359,
+                            "2023-03-04 15:00:00": 4.2718281828
+                        },
+                        "datatype": "map<timestamp,double>"
+                    },
+                    {
+                        "value": "Olivia Jackson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 33,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT ts_double_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 117. Verify map contains updated key-value pairs",
+                "params": [
+                    {
+                        "value": "Olivia Jackson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 33,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "ts_double_map": {
+                            "2023-03-03 14:00:00": 3.14159265359,
+                            "2023-03-04 15:00:00": 4.2718281828
+                        },
+                        "datatype": "map<timestamp,double>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set ts_double_map = ts_double_map + ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 118. Update ts_double_map with Map<TIMESTAMP, DOUBLE> with addition operation",
+                "params": [
+                    {
+                        "value": {
+                            "2023-03-05 16:00:00": 5.555555555,
+                            "2023-03-06 17:00:00": 6.666666666
+                        },
+                        "datatype": "map<timestamp,double>"
+                    },
+                    {
+                        "value": "Olivia Jackson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 33,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT ts_double_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 119. Verify map contains updated key-value pairs with addition operation",
+                "params": [
+                    {
+                        "value": "Olivia Jackson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 33,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "ts_double_map": {
+                            "2023-03-03 14:00:00": 3.14159265359,
+                            "2023-03-04 15:00:00": 4.2718281828,
+                            "2023-03-05 16:00:00": 5.555555555,
+                            "2023-03-06 17:00:00": 6.666666666
+                        },
+                        "datatype": "map<timestamp,double>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set ts_double_map = ts_double_map - ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 120. Update ts_double_map with Map<TIMESTAMP, DOUBLE> with subtraction operation",
+                "params": [
+                    {
+                        "value": [
+                            "2023-03-05 16:00:00"
+                        ],
+                        "datatype": "set<timestamp>"
+                    },
+                    {
+                        "value": "Olivia Jackson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 33,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT ts_double_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 121. Verify map contains updated key-value pairs with subtraction operation",
+                "params": [
+                    {
+                        "value": "Olivia Jackson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 33,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "ts_double_map": {
+                            "2023-03-03 14:00:00": 3.14159265359,
+                            "2023-03-04 15:00:00": 4.2718281828,
+                            "2023-03-06 17:00:00": 6.666666666
+                        },
+                        "datatype": "map<timestamp,double>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set ts_double_map['2023-03-03 14:00:00'] = ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 122. Update ts_double_map with Map<TIMESTAMP, DOUBLE> with key update",
+                "params": [
+                    {
+                        "value": 10.101010101,
+                        "datatype": "double"
+                    },
+                    {
+                        "value": "Olivia Jackson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 33,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT ts_double_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 123. Verify map contains updated key-value pairs with key update",
+                "params": [
+                    {
+                        "value": "Olivia Jackson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 33,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "ts_double_map": {
+                            "2023-03-03 14:00:00": 10.101010101,
+                            "2023-03-04 15:00:00": 4.2718281828,
+                            "2023-03-06 17:00:00": 6.666666666
+                        },
+                        "datatype": "map<timestamp,double>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set ts_double_map['2023-03-07 18:00:00'] = ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 124. Update ts_double_map with Map<TIMESTAMP, DOUBLE> with new key addition",
+                "params": [
+                    {
+                        "value": 7.777777777,
+                        "datatype": "double"
+                    },
+                    {
+                        "value": "Olivia Jackson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 33,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT ts_double_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 125. Verify map contains updated key-value pairs with new key addition",
+                "params": [
+                    {
+                        "value": "Olivia Jackson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 33,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "ts_double_map": {
+                            "2023-03-03 14:00:00": 10.101010101,
+                            "2023-03-04 15:00:00": 4.2718281828,
+                            "2023-03-06 17:00:00": 6.666666666,
+                            "2023-03-07 18:00:00": 7.777777777
+                        },
+                        "datatype": "map<timestamp,double>"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "title": "Complex operation on Map<TIMESTAMP,BIGINT> datatype",
+        "description": "Complex operation for Map<timestamp,bigint>",
+        "kind": "dml",
+        "operations": [
+            {
+                "query": "INSERT INTO bigtabledevinstance.user_info(name, age, ts_bigint_map) VALUES (?, ?, ?);",
+                "query_type": "INSERT",
+                "query_desc": "Complex Query 126. Initialize user with MAP<TIMESTAMP, BIGINT>",
+                "params": [
+                    {
+                        "value": "Parker King",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 34,
+                        "datatype": "bigint"
+                    },
+                    {
+                        "value": {
+                            "2023-04-01 12:00:00": 1000000000,
+                            "2023-04-02 13:00:00": 2000000000
+                        },
+                        "datatype": "map<timestamp,bigint>"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT ts_bigint_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 127. Verify map contains added key-value pairs",
+                "params": [
+                    {
+                        "value": "Parker King",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 34,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "ts_bigint_map": {
+                            "2023-04-01 12:00:00": 1000000000,
+                            "2023-04-02 13:00:00": 2000000000
+                        },
+                        "datatype": "map<timestamp,bigint>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set ts_bigint_map = ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 128. Update ts_bigint_map with Map<TIMESTAMP, BIGINT>",
+                "params": [
+                    {
+                        "value": {
+                            "2023-04-03 14:00:00": 3000000000,
+                            "2023-04-04 15:00:00": 4000000000
+                        },
+                        "datatype": "map<timestamp,bigint>"
+                    },
+                    {
+                        "value": "Parker King",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 34,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT ts_bigint_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 129. Verify map contains updated key-value pairs",
+                "params": [
+                    {
+                        "value": "Parker King",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 34,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "ts_bigint_map": {
+                            "2023-04-03 14:00:00": 3000000000,
+                            "2023-04-04 15:00:00": 4000000000
+                        },
+                        "datatype": "map<timestamp,bigint>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set ts_bigint_map = ts_bigint_map + ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 130. Update ts_bigint_map with Map<TIMESTAMP, BIGINT> with addition operation",
+                "params": [
+                    {
+                        "value": {
+                            "2023-04-05 16:00:00": 5000000000,
+                            "2023-04-06 17:00:00": 6000000000
+                        },
+                        "datatype": "map<timestamp,bigint>"
+                    },
+                    {
+                        "value": "Parker King",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 34,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT ts_bigint_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 131. Verify map contains updated key-value pairs with addition operation",
+                "params": [
+                    {
+                        "value": "Parker King",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 34,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "ts_bigint_map": {
+                            "2023-04-03 14:00:00": 3000000000,
+                            "2023-04-04 15:00:00": 4000000000,
+                            "2023-04-05 16:00:00": 5000000000,
+                            "2023-04-06 17:00:00": 6000000000
+                        },
+                        "datatype": "map<timestamp,bigint>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set ts_bigint_map = ts_bigint_map - ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 132. Update ts_bigint_map with Map<TIMESTAMP, BIGINT> with subtraction operation",
+                "params": [
+                    {
+                        "value": [
+                            "2023-04-05 16:00:00"
+                        ],
+                        "datatype": "set<timestamp>"
+                    },
+                    {
+                        "value": "Parker King",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 34,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT ts_bigint_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 133. Verify map contains updated key-value pairs with subtraction operation",
+                "params": [
+                    {
+                        "value": "Parker King",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 34,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "ts_bigint_map": {
+                            "2023-04-03 14:00:00": 3000000000,
+                            "2023-04-04 15:00:00": 4000000000,
+                            "2023-04-06 17:00:00": 6000000000
+                        },
+                        "datatype": "map<timestamp,bigint>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set ts_bigint_map['2023-04-03 14:00:00'] = ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 134. Update ts_bigint_map with Map<TIMESTAMP, BIGINT> with key update",
+                "params": [
+                    {
+                        "value": 7000000000,
+                        "datatype": "bigint"
+                    },
+                    {
+                        "value": "Parker King",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 34,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT ts_bigint_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 135. Verify map contains updated key-value pairs with key update",
+                "params": [
+                    {
+                        "value": "Parker King",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 34,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "ts_bigint_map": {
+                            "2023-04-03 14:00:00": 7000000000,
+                            "2023-04-04 15:00:00": 4000000000,
+                            "2023-04-06 17:00:00": 6000000000
+                        },
+                        "datatype": "map<timestamp,bigint>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set ts_bigint_map['2023-04-07 18:00:00'] = ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 136. Update ts_bigint_map with Map<TIMESTAMP, BIGINT> with new key addition",
+                "params": [
+                    {
+                        "value": 8000000000,
+                        "datatype": "bigint"
+                    },
+                    {
+                        "value": "Parker King",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 34,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT ts_bigint_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 137. Verify map contains updated key-value pairs with new key addition",
+                "params": [
+                    {
+                        "value": "Parker King",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 34,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "ts_bigint_map": {
+                            "2023-04-03 14:00:00": 7000000000,
+                            "2023-04-04 15:00:00": 4000000000,
+                            "2023-04-06 17:00:00": 6000000000,
+                            "2023-04-07 18:00:00": 8000000000
+                        },
+                        "datatype": "map<timestamp,bigint>"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "title": "Complex operation on Map<TIMESTAMP,TIMESTAMP> datatype",
+        "description": "Complex operation for Map<timestamp,timestamp>",
+        "kind": "dml",
+        "operations": [
+            {
+                "query": "INSERT INTO bigtabledevinstance.user_info(name, age, ts_ts_map) VALUES (?, ?, ?);",
+                "query_type": "INSERT",
+                "query_desc": "Complex Query 138. Initialize user with MAP<TIMESTAMP, TIMESTAMP>",
+                "params": [
+                    {
+                        "value": "Quinn Lewis",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 35,
+                        "datatype": "bigint"
+                    },
+                    {
+                        "value": {
+                            "2023-05-01 12:00:00": "2023-06-01 08:00:00",
+                            "2023-05-02 13:00:00": "2023-06-02 09:00:00"
+                        },
+                        "datatype": "map<timestamp,timestamp>"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT ts_ts_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 139. Verify map contains added key-value pairs",
+                "params": [
+                    {
+                        "value": "Quinn Lewis",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 35,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "ts_ts_map": {
+                            "2023-05-01 12:00:00": "2023-06-01 08:00:00",
+                            "2023-05-02 13:00:00": "2023-06-02 09:00:00"
+                        },
+                        "datatype": "map<timestamp,timestamp>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set ts_ts_map = ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 140. Update ts_ts_map with Map<TIMESTAMP, TIMESTAMP>",
+                "params": [
+                    {
+                        "value": {
+                            "2023-05-03 14:00:00": "2023-06-03 10:00:00",
+                            "2023-05-04 15:00:00": "2023-06-04 11:00:00"
+                        },
+                        "datatype": "map<timestamp,timestamp>"
+                    },
+                    {
+                        "value": "Quinn Lewis",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 35,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT ts_ts_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 141. Verify map contains updated key-value pairs",
+                "params": [
+                    {
+                        "value": "Quinn Lewis",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 35,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "ts_ts_map": {
+                            "2023-05-03 14:00:00": "2023-06-03 10:00:00",
+                            "2023-05-04 15:00:00": "2023-06-04 11:00:00"
+                        },
+                        "datatype": "map<timestamp,timestamp>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set ts_ts_map = ts_ts_map + ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 142. Update ts_ts_map with Map<TIMESTAMP, TIMESTAMP> with addition operation",
+                "params": [
+                    {
+                        "value": {
+                            "2023-05-05 16:00:00": "2023-06-05 12:00:00",
+                            "2023-05-06 17:00:00": "2023-06-06 13:00:00"
+                        },
+                        "datatype": "map<timestamp,timestamp>"
+                    },
+                    {
+                        "value": "Quinn Lewis",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 35,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT ts_ts_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 143. Verify map contains updated key-value pairs with addition operation",
+                "params": [
+                    {
+                        "value": "Quinn Lewis",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 35,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "ts_ts_map": {
+                            "2023-05-03 14:00:00": "2023-06-03 10:00:00",
+                            "2023-05-04 15:00:00": "2023-06-04 11:00:00",
+                            "2023-05-05 16:00:00": "2023-06-05 12:00:00",
+                            "2023-05-06 17:00:00": "2023-06-06 13:00:00"
+                        },
+                        "datatype": "map<timestamp,timestamp>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set ts_ts_map = ts_ts_map - ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 144. Update ts_ts_map with Map<TIMESTAMP, TIMESTAMP> with subtraction operation",
+                "params": [
+                    {
+                        "value": [
+                            "2023-05-05 16:00:00"
+                        ],
+                        "datatype": "set<timestamp>"
+                    },
+                    {
+                        "value": "Quinn Lewis",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 35,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT ts_ts_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 145. Verify map contains updated key-value pairs with subtraction operation",
+                "params": [
+                    {
+                        "value": "Quinn Lewis",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 35,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "ts_ts_map": {
+                            "2023-05-03 14:00:00": "2023-06-03 10:00:00",
+                            "2023-05-04 15:00:00": "2023-06-04 11:00:00",
+                            "2023-05-06 17:00:00": "2023-06-06 13:00:00"
+                        },
+                        "datatype": "map<timestamp,timestamp>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set ts_ts_map['2023-05-03 14:00:00'] = ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 146. Update ts_ts_map with Map<TIMESTAMP, TIMESTAMP> with key update",
+                "params": [
+                    {
+                        "value": "2023-06-07 14:00:00",
+                        "datatype": "timestamp"
+                    },
+                    {
+                        "value": "Quinn Lewis",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 35,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT ts_ts_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 147. Verify map contains updated key-value pairs with key update",
+                "params": [
+                    {
+                        "value": "Quinn Lewis",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 35,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "ts_ts_map": {
+                            "2023-05-03 14:00:00": "2023-06-07 14:00:00",
+                            "2023-05-04 15:00:00": "2023-06-04 11:00:00",
+                            "2023-05-06 17:00:00": "2023-06-06 13:00:00"
+                        },
+                        "datatype": "map<timestamp,timestamp>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set ts_ts_map['2023-05-07 18:00:00'] = ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 148. Update ts_ts_map with Map<TIMESTAMP, TIMESTAMP> with new key addition",
+                "params": [
+                    {
+                        "value": "2023-06-08 15:00:00",
+                        "datatype": "timestamp"
+                    },
+                    {
+                        "value": "Quinn Lewis",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 35,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT ts_ts_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 149. Verify map contains updated key-value pairs with new key addition",
+                "params": [
+                    {
+                        "value": "Quinn Lewis",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 35,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "ts_ts_map": {
+                            "2023-05-03 14:00:00": "2023-06-07 14:00:00",
+                            "2023-05-04 15:00:00": "2023-06-04 11:00:00",
+                            "2023-05-06 17:00:00": "2023-06-06 13:00:00",
+                            "2023-05-07 18:00:00": "2023-06-08 15:00:00"
+                        },
+                        "datatype": "map<timestamp,timestamp>"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "title": "Complex operation on Map<TIMESTAMP,INT> datatype",
+        "description": "Complex operation for Map<timestamp,int>",
+        "kind": "dml",
+        "operations": [
+            {
+                "query": "INSERT INTO bigtabledevinstance.user_info(name, age, ts_int_map) VALUES (?, ?, ?);",
+                "query_type": "INSERT",
+                "query_desc": "Complex Query 150. Initialize user with MAP<TIMESTAMP, INT>",
+                "params": [
+                    {
+                        "value": "Riley Martinez",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 36,
+                        "datatype": "bigint"
+                    },
+                    {
+                        "value": {
+                            "2023-07-01 12:00:00": 100,
+                            "2023-07-02 13:00:00": 200
+                        },
+                        "datatype": "map<timestamp,int>"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT ts_int_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 151. Verify map contains added key-value pairs",
+                "params": [
+                    {
+                        "value": "Riley Martinez",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 36,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "ts_int_map": {
+                            "2023-07-01 12:00:00": 100,
+                            "2023-07-02 13:00:00": 200
+                        },
+                        "datatype": "map<timestamp,int>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set ts_int_map = ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 152. Update ts_int_map with Map<TIMESTAMP, INT>",
+                "params": [
+                    {
+                        "value": {
+                            "2023-07-03 14:00:00": 300,
+                            "2023-07-04 15:00:00": 400
+                        },
+                        "datatype": "map<timestamp,int>"
+                    },
+                    {
+                        "value": "Riley Martinez",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 36,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT ts_int_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 153. Verify map contains updated key-value pairs",
+                "params": [
+                    {
+                        "value": "Riley Martinez",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 36,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "ts_int_map": {
+                            "2023-07-03 14:00:00": 300,
+                            "2023-07-04 15:00:00": 400
+                        },
+                        "datatype": "map<timestamp,int>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set ts_int_map = ts_int_map + ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 154. Update ts_int_map with Map<TIMESTAMP, INT> with addition operation",
+                "params": [
+                    {
+                        "value": {
+                            "2023-07-05 16:00:00": 500,
+                            "2023-07-06 17:00:00": 600
+                        },
+                        "datatype": "map<timestamp,int>"
+                    },
+                    {
+                        "value": "Riley Martinez",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 36,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT ts_int_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 155. Verify map contains updated key-value pairs with addition operation",
+                "params": [
+                    {
+                        "value": "Riley Martinez",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 36,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "ts_int_map": {
+                            "2023-07-03 14:00:00": 300,
+                            "2023-07-04 15:00:00": 400,
+                            "2023-07-05 16:00:00": 500,
+                            "2023-07-06 17:00:00": 600
+                        },
+                        "datatype": "map<timestamp,int>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set ts_int_map = ts_int_map - ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 156. Update ts_int_map with Map<TIMESTAMP, INT> with subtraction operation",
+                "params": [
+                    {
+                        "value": [
+                            "2023-07-05 16:00:00"
+                        ],
+                        "datatype": "set<timestamp>"
+                    },
+                    {
+                        "value": "Riley Martinez",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 36,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT ts_int_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 157. Verify map contains updated key-value pairs with subtraction operation",
+                "params": [
+                    {
+                        "value": "Riley Martinez",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 36,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "ts_int_map": {
+                            "2023-07-03 14:00:00": 300,
+                            "2023-07-04 15:00:00": 400,
+                            "2023-07-06 17:00:00": 600
+                        },
+                        "datatype": "map<timestamp,int>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set ts_int_map['2023-07-03 14:00:00'] = ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 158. Update ts_int_map with Map<TIMESTAMP, INT> with key update",
+                "params": [
+                    {
+                        "value": 1000,
+                        "datatype": "int"
+                    },
+                    {
+                        "value": "Riley Martinez",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 36,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT ts_int_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 159. Verify map contains updated key-value pairs with key update",
+                "params": [
+                    {
+                        "value": "Riley Martinez",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 36,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "ts_int_map": {
+                            "2023-07-03 14:00:00": 1000,
+                            "2023-07-04 15:00:00": 400,
+                            "2023-07-06 17:00:00": 600
+                        },
+                        "datatype": "map<timestamp,int>"
+                    }
+                ]
+            },
+            {
+                "query": "Update bigtabledevinstance.user_info set ts_int_map['2023-07-07 18:00:00'] = ? where name = ? and age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 160. Update ts_int_map with Map<TIMESTAMP, INT> with new key addition",
+                "params": [
+                    {
+                        "value": 700,
+                        "datatype": "int"
+                    },
+                    {
+                        "value": "Riley Martinez",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 36,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT ts_int_map FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 161. Verify map contains updated key-value pairs with new key addition",
+                "params": [
+                    {
+                        "value": "Riley Martinez",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 36,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "ts_int_map": {
+                            "2023-07-03 14:00:00": 1000,
+                            "2023-07-04 15:00:00": 400,
+                            "2023-07-06 17:00:00": 600,
+                            "2023-07-07 18:00:00": 700
+                        },
+                        "datatype": "map<timestamp,int>"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "title": "Complex Operation on List<TIMESTAMP> datatype",
+        "description": "Complex operation for List<timestamp>",
+        "kind": "dml",
+        "operations": [
+            {
+                "query": "INSERT INTO bigtabledevinstance.user_info(name, age, list_timestamp) VALUES (?, ?, ?);",
+                "query_type": "INSERT",
+                "query_desc": "Complex Query 162. Initialize user with LIST<TIMESTAMP>",
+                "params": [
+                    {
+                        "value": "Riley Martinez",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 36,
+                        "datatype": "bigint"
+                    },
+                    {
+                        "value": [
+                            "2023-07-01 12:00:00",
+                            "2023-07-02 13:00:00"
+                        ],
+                        "datatype": "list<timestamp>"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT list_timestamp FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 163. Verify list contains added timestamps",
+                "params": [
+                    {
+                        "value": "Riley Martinez",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 36,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "list_timestamp": [
+                            "2023-07-01 12:00:00",
+                            "2023-07-02 13:00:00"
+                        ],
+                        "datatype": "list<timestamp>"
+                    }
+                ]   
+            },
+            {
+                "query": "UPDATE bigtabledevinstance.user_info SET list_timestamp = list_timestamp + ? WHERE name = ? AND age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 164. Update list_timestamp with LIST<TIMESTAMP> with addition operation",
+                "params": [ 
+                    {
+                        "value": [
+                            "2023-07-03 14:00:00"
+                        ],
+                        "datatype": "list<timestamp>"
+                    },
+                    {
+                        "value": "Riley Martinez",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 36,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null 
+            },
+            {
+                "query": "SELECT list_timestamp FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 165. Verify list contains updated timestamps with addition operation",
+                "params": [
+                    {
+                        "value": "Riley Martinez",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 36,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "list_timestamp": [
+                            "2023-07-01 12:00:00",
+                            "2023-07-02 13:00:00",
+                            "2023-07-03 14:00:00"
+                        ],
+                        "datatype": "list<timestamp>"
+                    }
+                ]
+            },
+            {
+                "query": "UPDATE bigtabledevinstance.user_info SET list_timestamp = list_timestamp - ? WHERE name = ? AND age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 166. Update list_timestamp with LIST<TIMESTAMP> with subtraction operation",
+                "params": [
+                    {
+                        "value": [
+                            "2023-07-03 14:00:00"
+                        ],
+                        "datatype": "list<timestamp>"
+                    },
+                    {
+                        "value": "Riley Martinez",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 36,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT list_timestamp FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 167. Verify list contains updated timestamps with subtraction operation",
+                "params": [
+                    {
+                        "value": "Riley Martinez",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 36,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "list_timestamp": [
+                            "2023-07-01 12:00:00",
+                            "2023-07-02 13:00:00"
+                        ],
+                        "datatype": "list<timestamp>"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "title": "Complex Operation on List<TEXT> datatype",
+        "description": "Complex operation for List<text>",
+        "kind": "dml",
+        "operations": [
+            {
+                "query": "INSERT INTO bigtabledevinstance.user_info(name, age, list_text) VALUES (?, ?, ?);",
+                "query_type": "INSERT",
+                "query_desc": "Complex Query 168. Initialize user with LIST<TEXT>",
+                "params": [
+                    {
+                        "value": "Sophia Taylor",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 28,
+                        "datatype": "bigint"
+                    },
+                    {
+                        "value": [
+                            "apple",
+                            "banana"
+                        ],
+                        "datatype": "list<text>"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT list_text FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 169. Verify list contains added text values",
+                "params": [
+                    {
+                        "value": "Sophia Taylor",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 28,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "list_text": [
+                            "apple",
+                            "banana"
+                        ],
+                        "datatype": "list<text>"
+                    }
+                ]   
+            },
+            {
+                "query": "UPDATE bigtabledevinstance.user_info SET list_text = list_text + ? WHERE name = ? AND age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 170. Update list_text with LIST<TEXT> with addition operation",
+                "params": [ 
+                    {
+                        "value": [
+                            "orange"
+                        ],
+                        "datatype": "list<text>"
+                    },
+                    {
+                        "value": "Sophia Taylor",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 28,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null 
+            },
+            {
+                "query": "SELECT list_text FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 171. Verify list contains updated text values with addition operation",
+                "params": [
+                    {
+                        "value": "Sophia Taylor",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 28,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "list_text": [
+                            "apple",
+                            "banana",
+                            "orange"
+                        ],
+                        "datatype": "list<text>"
+                    }
+                ]
+            },
+            {
+                "query": "UPDATE bigtabledevinstance.user_info SET list_text = list_text - ? WHERE name = ? AND age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 172. Update list_text with LIST<TEXT> with subtraction operation",
+                "params": [
+                    {
+                        "value": [
+                            "orange"
+                        ],
+                        "datatype": "list<text>"
+                    },
+                    {
+                        "value": "Sophia Taylor",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 28,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT list_text FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 173. Verify list contains updated text values with subtraction operation",
+                "params": [
+                    {
+                        "value": "Sophia Taylor",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 28,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "list_text": [
+                            "apple",
+                            "banana"
+                        ],
+                        "datatype": "list<text>"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "title": "Complex Operation on List<INT> datatype",
+        "description": "Complex operation for List<int>",
+        "kind": "dml",
+        "operations": [
+            {
+                "query": "INSERT INTO bigtabledevinstance.user_info(name, age, list_int) VALUES (?, ?, ?);",
+                "query_type": "INSERT",
+                "query_desc": "Complex Query 174. Initialize user with LIST<INT>",
+                "params": [
+                    {
+                        "value": "Thomas Walker",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 29,
+                        "datatype": "bigint"
+                    },
+                    {
+                        "value": [
+                            10,
+                            20
+                        ],
+                        "datatype": "list<int>"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT list_int FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 175. Verify list contains added int values",
+                "params": [
+                    {
+                        "value": "Thomas Walker",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 29,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "list_int": [
+                            10,
+                            20
+                        ],
+                        "datatype": "list<int>"
+                    }
+                ]   
+            },
+            {
+                "query": "UPDATE bigtabledevinstance.user_info SET list_int = list_int + ? WHERE name = ? AND age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 176. Update list_int with LIST<INT> with addition operation",
+                "params": [ 
+                    {
+                        "value": [
+                            30
+                        ],
+                        "datatype": "list<int>"
+                    },
+                    {
+                        "value": "Thomas Walker",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 29,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null 
+            },
+            {
+                "query": "SELECT list_int FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 177. Verify list contains updated int values with addition operation",
+                "params": [
+                    {
+                        "value": "Thomas Walker",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 29,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "list_int": [
+                            10,
+                            20,
+                            30
+                        ],
+                        "datatype": "list<int>"
+                    }
+                ]
+            },
+            {
+                "query": "UPDATE bigtabledevinstance.user_info SET list_int = list_int - ? WHERE name = ? AND age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 178. Update list_int with LIST<INT> with subtraction operation",
+                "params": [
+                    {
+                        "value": [
+                            30
+                        ],
+                        "datatype": "list<int>"
+                    },
+                    {
+                        "value": "Thomas Walker",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 29,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT list_int FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 179. Verify list contains updated int values with subtraction operation",
+                "params": [
+                    {
+                        "value": "Thomas Walker",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 29,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "list_int": [
+                            10,
+                            20
+                        ],
+                        "datatype": "list<int>"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "title": "Complex Operation on List<BIGINT> datatype",
+        "description": "Complex operation for List<bigint>",
+        "kind": "dml",
+        "operations": [
+            {
+                "query": "INSERT INTO bigtabledevinstance.user_info(name, age, list_bigint) VALUES (?, ?, ?);",
+                "query_type": "INSERT",
+                "query_desc": "Complex Query 180. Initialize user with LIST<BIGINT>",
+                "params": [
+                    {
+                        "value": "Ursula Garcia",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 30,
+                        "datatype": "bigint"
+                    },
+                    {
+                        "value": [
+                            1000000000,
+                            2000000000
+                        ],
+                        "datatype": "list<bigint>"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT list_bigint FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 181. Verify list contains added bigint values",
+                "params": [
+                    {
+                        "value": "Ursula Garcia",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 30,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "list_bigint": [
+                            1000000000,
+                            2000000000
+                        ],
+                        "datatype": "list<bigint>"
+                    }
+                ]   
+            },
+            {
+                "query": "UPDATE bigtabledevinstance.user_info SET list_bigint = list_bigint + ? WHERE name = ? AND age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 182. Update list_bigint with LIST<BIGINT> with addition operation",
+                "params": [ 
+                    {
+                        "value": [
+                            3000000000
+                        ],
+                        "datatype": "list<bigint>"
+                    },
+                    {
+                        "value": "Ursula Garcia",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 30,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null 
+            },
+            {
+                "query": "SELECT list_bigint FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 183. Verify list contains updated bigint values with addition operation",
+                "params": [
+                    {
+                        "value": "Ursula Garcia",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 30,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "list_bigint": [
+                            1000000000,
+                            2000000000,
+                            3000000000
+                        ],
+                        "datatype": "list<bigint>"
+                    }
+                ]
+            },
+            {
+                "query": "UPDATE bigtabledevinstance.user_info SET list_bigint = list_bigint - ? WHERE name = ? AND age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 184. Update list_bigint with LIST<BIGINT> with subtraction operation",
+                "params": [
+                    {
+                        "value": [
+                            3000000000
+                        ],
+                        "datatype": "list<bigint>"
+                    },
+                    {
+                        "value": "Ursula Garcia",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 30,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT list_bigint FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 185. Verify list contains updated bigint values with subtraction operation",
+                "params": [
+                    {
+                        "value": "Ursula Garcia",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 30,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "list_bigint": [
+                            1000000000,
+                            2000000000
+                        ],
+                        "datatype": "list<bigint>"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "title": "Complex Operation on List<FLOAT> datatype",
+        "description": "Complex operation for List<float>",
+        "kind": "dml",
+        "operations": [
+            {
+                "query": "INSERT INTO bigtabledevinstance.user_info(name, age, list_float) VALUES (?, ?, ?);",
+                "query_type": "INSERT",
+                "query_desc": "Complex Query 186. Initialize user with LIST<FLOAT>",
+                "params": [
+                    {
+                        "value": "Victoria Nelson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 31,
+                        "datatype": "bigint"
+                    },
+                    {
+                        "value": [
+                            1.5,
+                            2.75
+                        ],
+                        "datatype": "list<float>"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT list_float FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 187. Verify list contains added float values",
+                "params": [
+                    {
+                        "value": "Victoria Nelson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 31,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "list_float": [
+                            1.5,
+                            2.75
+                        ],
+                        "datatype": "list<float>"
+                    }
+                ]   
+            },
+            {
+                "query": "UPDATE bigtabledevinstance.user_info SET list_float = list_float + ? WHERE name = ? AND age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 188. Update list_float with LIST<FLOAT> with addition operation",
+                "params": [ 
+                    {
+                        "value": [
+                            3.25
+                        ],
+                        "datatype": "list<float>"
+                    },
+                    {
+                        "value": "Victoria Nelson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 31,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null 
+            },
+            {
+                "query": "SELECT list_float FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 189. Verify list contains updated float values with addition operation",
+                "params": [
+                    {
+                        "value": "Victoria Nelson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 31,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "list_float": [
+                            1.5,
+                            2.75,
+                            3.25
+                        ],
+                        "datatype": "list<float>"
+                    }
+                ]
+            },
+            {
+                "query": "UPDATE bigtabledevinstance.user_info SET list_float = list_float - ? WHERE name = ? AND age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 190. Update list_float with LIST<FLOAT> with subtraction operation",
+                "params": [
+                    {
+                        "value": [
+                            3.25
+                        ],
+                        "datatype": "list<float>"
+                    },
+                    {
+                        "value": "Victoria Nelson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 31,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT list_float FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 191. Verify list contains updated float values with subtraction operation",
+                "params": [
+                    {
+                        "value": "Victoria Nelson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 31,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "list_float": [
+                            1.5,
+                            2.75
+                        ],
+                        "datatype": "list<float>"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "title": "Complex Operation on List<DOUBLE> datatype",
+        "description": "Complex operation for List<double>",
+        "kind": "dml",
+        "operations": [
+            {
+                "query": "INSERT INTO bigtabledevinstance.user_info(name, age, list_double) VALUES (?, ?, ?);",
+                "query_type": "INSERT",
+                "query_desc": "Complex Query 192. Initialize user with LIST<DOUBLE>",
+                "params": [
+                    {
+                        "value": "William Davis",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 32,
+                        "datatype": "bigint"
+                    },
+                    {
+                        "value": [
+                            1.123456789,
+                            2.987654321
+                        ],
+                        "datatype": "list<double>"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT list_double FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 193. Verify list contains added double values",
+                "params": [
+                    {
+                        "value": "William Davis",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 32,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "list_double": [
+                            1.123456789,
+                            2.987654321
+                        ],
+                        "datatype": "list<double>"
+                    }
+                ]   
+            },
+            {
+                "query": "UPDATE bigtabledevinstance.user_info SET list_double = list_double + ? WHERE name = ? AND age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 194. Update list_double with LIST<DOUBLE> with addition operation",
+                "params": [ 
+                    {
+                        "value": [
+                            3.14159265359
+                        ],
+                        "datatype": "list<double>"
+                    },
+                    {
+                        "value": "William Davis",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 32,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null 
+            },
+            {
+                "query": "SELECT list_double FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 195. Verify list contains updated double values with addition operation",
+                "params": [
+                    {
+                        "value": "William Davis",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 32,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "list_double": [
+                            1.123456789,
+                            2.987654321,
+                            3.14159265359
+                        ],
+                        "datatype": "list<double>"
+                    }
+                ]
+            },
+            {
+                "query": "UPDATE bigtabledevinstance.user_info SET list_double = list_double - ? WHERE name = ? AND age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 196. Update list_double with LIST<DOUBLE> with subtraction operation",
+                "params": [
+                    {
+                        "value": [
+                            3.14159265359
+                        ],
+                        "datatype": "list<double>"
+                    },
+                    {
+                        "value": "William Davis",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 32,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT list_double FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 197. Verify list contains updated double values with subtraction operation",
+                "params": [
+                    {
+                        "value": "William Davis",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 32,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "list_double": [
+                            1.123456789,
+                            2.987654321
+                        ],
+                        "datatype": "list<double>"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "title": "Complex Operation on List<BOOLEAN> datatype",
+        "description": "Complex operation for List<boolean>",
+        "kind": "dml",
+        "operations": [
+            {
+                "query": "INSERT INTO bigtabledevinstance.user_info(name, age, list_boolean) VALUES (?, ?, ?);",
+                "query_type": "INSERT",
+                "query_desc": "Complex Query 198. Initialize user with LIST<BOOLEAN>",
+                "params": [
+                    {
+                        "value": "Xavier Thompson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 33,
+                        "datatype": "bigint"
+                    },
+                    {
+                        "value": [
+                            true,
+                            false
+                        ],
+                        "datatype": "list<boolean>"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT list_boolean FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 199. Verify list contains added boolean values",
+                "params": [
+                    {
+                        "value": "Xavier Thompson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 33,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "list_boolean": [
+                            true,
+                            false
+                        ],
+                        "datatype": "list<boolean>"
+                    }
+                ]   
+            },
+            {
+                "query": "UPDATE bigtabledevinstance.user_info SET list_boolean = list_boolean + ? WHERE name = ? AND age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 200. Update list_boolean with LIST<BOOLEAN> with addition operation",
+                "params": [ 
+                    {
+                        "value": [
+                            true
+                        ],
+                        "datatype": "list<boolean>"
+                    },
+                    {
+                        "value": "Xavier Thompson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 33,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null 
+            },
+            {
+                "query": "SELECT list_boolean FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 201. Verify list contains updated boolean values with addition operation",
+                "params": [
+                    {
+                        "value": "Xavier Thompson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 33,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "list_boolean": [
+                            true,
+                            false,
+                            true
+                        ],
+                        "datatype": "list<boolean>"
+                    }
+                ]
+            },
+            {
+                "query": "UPDATE bigtabledevinstance.user_info SET list_boolean = list_boolean - ? WHERE name = ? AND age = ?",
+                "query_type": "UPDATE",
+                "query_desc": "Complex Query 202. Update list_boolean with LIST<BOOLEAN> with subtraction operation",
+                "params": [
+                    {
+                        "value": [
+                            true
+                        ],
+                        "datatype": "list<boolean>"
+                    },
+                    {
+                        "value": "Xavier Thompson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 33,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT list_boolean FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Complex Query 203. Verify list contains updated boolean values with subtraction operation",
+                "params": [
+                    {
+                        "value": "Xavier Thompson",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 33,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "list_boolean": [
+                            false
+                        ],
+                        "datatype": "list<boolean>"
+                    }
+                ]
+            }
+        ]
+    }
+]

@@ -36,10 +36,15 @@ type MutationData struct {
 	RowKey       string
 	Columns      []ColumnData
 	ColumnFamily string
+	Timestamp    bigtable.Timestamp
 }
 
 type BulkOperationResponse struct {
 	FailedRows string
+}
+type InstanceConfig struct {
+	BigtableInstance string
+	AppProfileId     string
 }
 
 type BigtableClient struct {
@@ -51,20 +56,25 @@ type BigtableClient struct {
 	ResponseHandler     rh.ResponseHandlerIface
 	SchemaMappingConfig *schemaMapping.SchemaMappingConfig
 	grpcConn            *grpc.ClientConn
+	InstancesMap        map[string]InstanceConfig
+
+	// Cache for prepared statements // commenting it out to improve/implement in future
+	// preparedStatementCache map[string]*bigtable.PreparedStatement
+	// preparedStatementMutex sync.RWMutex
 }
 
 type BigtableConfig struct {
 	SchemaMappingTable  string
 	NumOfChannels       int
-	InstanceID          string
+	InstancesMap        map[string]InstanceConfig //map of key[cassandra keyspace] to Instance Configuration[bigtable instance]
 	GCPProjectID        string
 	DefaultColumnFamily string
-	AppProfileID        string
+	CounterColumnFamily string
 	// todo remove once we support ordered code ints
 	EncodeIntValuesWithBigEndian bool
 }
 type ConnConfig struct {
-	InstanceIDs   string
+	InstancesMap  map[string]InstanceConfig //map of key[cassandra keyspace] toInstance Configuration[bigtable instance]
 	NumOfChannels int
 	GCPProjectID  string
 	AppProfileID  string

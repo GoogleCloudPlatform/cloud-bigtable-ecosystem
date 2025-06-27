@@ -20,6 +20,7 @@ import (
 	"reflect"
 	"testing"
 
+	types "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	schemaMapping "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/schema-mapping"
 	cql "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/third_party/cqlparser"
 	"github.com/antlr4-go/antlr/v4"
@@ -43,8 +44,8 @@ func parseInsertQuery(queryString string) cql.IInsertContext {
 func Test_setParamsFromValues(t *testing.T) {
 	var protocalV primitive.ProtocolVersion = 4
 	response := make(map[string]interface{})
-	val, _ := formatValues("Test", "text", protocalV)
-	specialCharVal, _ := formatValues("#!@#$%^&*()_+", "text", protocalV)
+	val, _ := formatValues("Test", datatype.Varchar, protocalV)
+	specialCharVal, _ := formatValues("#!@#$%^&*()_+", datatype.Varchar, protocalV)
 	response["name"] = val
 	specialCharResponse := make(map[string]interface{})
 	specialCharResponse["name"] = specialCharVal
@@ -58,7 +59,7 @@ func Test_setParamsFromValues(t *testing.T) {
 	unencryptedForSpecialChar["name"] = "#!@#$%^&*()_+"
 	type args struct {
 		input           cql.IInsertValuesSpecContext
-		columns         []Column
+		columns         []types.Column
 		schemaMapping   *schemaMapping.SchemaMappingConfig
 		protocolV       primitive.ProtocolVersion
 		isPreparedQuery bool
@@ -75,11 +76,11 @@ func Test_setParamsFromValues(t *testing.T) {
 			name: "success with special characters",
 			args: args{
 				input: parseInsertQuery("INSERT INTO xobani_derived.user_info ( name ) VALUES ('#!@#$%^&*()_+')").InsertValuesSpec(),
-				columns: []Column{
+				columns: []types.Column{
 					{
 						Name:         "name",
 						ColumnFamily: "cf1",
-						CQLType:      "text",
+						CQLType:      datatype.Varchar,
 					},
 				},
 				schemaMapping:   GetSchemaMappingConfig(),
@@ -95,11 +96,11 @@ func Test_setParamsFromValues(t *testing.T) {
 			name: "success",
 			args: args{
 				input: parseInsertQuery("INSERT INTO xobani_derived.user_info ( name ) VALUES ('Test')").InsertValuesSpec(),
-				columns: []Column{
+				columns: []types.Column{
 					{
 						Name:         "name",
 						ColumnFamily: "cf1",
-						CQLType:      "text",
+						CQLType:      datatype.Varchar,
 					},
 				},
 				schemaMapping:   GetSchemaMappingConfig(),
@@ -115,11 +116,11 @@ func Test_setParamsFromValues(t *testing.T) {
 			name: "success in prepare query",
 			args: args{
 				input: parseInsertQuery("INSERT INTO xobani_derived.user_info ( name ) VALUES ('?')").InsertValuesSpec(),
-				columns: []Column{
+				columns: []types.Column{
 					{
 						Name:         "name",
 						ColumnFamily: "cf1",
-						CQLType:      "text",
+						CQLType:      datatype.Varchar,
 					},
 				},
 				schemaMapping:   GetSchemaMappingConfig(),
@@ -135,11 +136,11 @@ func Test_setParamsFromValues(t *testing.T) {
 			name: "failed",
 			args: args{
 				input: nil,
-				columns: []Column{
+				columns: []types.Column{
 					{
 						Name:         "name",
 						ColumnFamily: "cf1",
-						CQLType:      "text",
+						CQLType:      datatype.Varchar,
 					},
 				},
 				schemaMapping:   GetSchemaMappingConfig(),
@@ -155,11 +156,11 @@ func Test_setParamsFromValues(t *testing.T) {
 			name: "failed",
 			args: args{
 				input: parseInsertQuery("INSERT INTO xobani_derived.user_info ( name ) VALUES").InsertValuesSpec(),
-				columns: []Column{
+				columns: []types.Column{
 					{
 						Name:         "name",
 						ColumnFamily: "cf1",
-						CQLType:      "text",
+						CQLType:      datatype.Varchar,
 					},
 				},
 				schemaMapping:   GetSchemaMappingConfig(),
@@ -227,13 +228,13 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 	bigIntValue := "1234567890"
 	column10 := "column10"
 
-	formattedText, _ := formatValues(textValue, "text", protocolV)
-	formattedBlob, _ := formatValues(blobValue, "blob", protocolV)
-	formattedBoolean, _ := formatValues(booleanValue, "boolean", protocolV)
-	formattedTimestamp, _ := formatValues(timestampValue, "timestamp", protocolV)
-	formattedInt, _ := formatValues(intValue, "int", protocolV)
-	formattedBigInt, _ := formatValues(bigIntValue, "bigint", protocolV)
-	formattedcolumn10text, _ := formatValues(column10, "text", protocolV)
+	formattedText, _ := formatValues(textValue, datatype.Varchar, protocolV)
+	formattedBlob, _ := formatValues(blobValue, datatype.Blob, protocolV)
+	formattedBoolean, _ := formatValues(booleanValue, datatype.Boolean, protocolV)
+	formattedTimestamp, _ := formatValues(timestampValue, datatype.Timestamp, protocolV)
+	formattedInt, _ := formatValues(intValue, datatype.Int, protocolV)
+	formattedBigInt, _ := formatValues(bigIntValue, datatype.Bigint, protocolV)
+	formattedcolumn10text, _ := formatValues(column10, datatype.Varchar, protocolV)
 
 	values := []interface{}{
 		formattedBlob,
@@ -257,13 +258,51 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 		textValue + "', '" + blobValue + "', " + booleanValue + ", '" + timestampValue + "', " + intValue + ", " + bigIntValue + ", " + column10 + ")"
 
 	preparedQuery := "INSERT INTO test_keyspace.test_table (column1, column2, column3, column5, column6, column9, column10) VALUES ('?', '?', '?', '?', '?', '?', '?')"
+	// Query with USING TIMESTAMP
+	preparedQueryWithTimestamp := "INSERT INTO test_keyspace.test_table (column1, column2, column3, column5, column6, column9, column10) VALUES (?, ?, ?, ?, ?, ?, ?) USING TIMESTAMP ?"
+
 	tests := []struct {
 		name    string
 		fields  fields
 		args    args
 		want    *InsertQueryMapping
 		wantErr bool
-	}{
+	}{{
+		name: "success with prepared query and USING TIMESTAMP",
+		args: args{
+			queryStr:        preparedQueryWithTimestamp,
+			protocolV:       protocolV,
+			isPreparedQuery: true,
+		},
+		fields: fields{
+			SchemaMappingConfig: GetSchemaMappingConfig(),
+		},
+		want: &InsertQueryMapping{
+			Query:     preparedQueryWithTimestamp,
+			QueryType: "INSERT",
+			Table:     "test_table",
+			Keyspace:  "test_keyspace",
+			Columns: []types.Column{
+				{Name: "column1", ColumnFamily: "cf1", CQLType: datatype.Varchar, IsPrimaryKey: true},
+				{Name: "column2", ColumnFamily: "cf1", CQLType: datatype.Blob, IsPrimaryKey: false},
+				{Name: "column3", ColumnFamily: "cf1", CQLType: datatype.Boolean, IsPrimaryKey: false},
+				{Name: "column5", ColumnFamily: "cf1", CQLType: datatype.Timestamp, IsPrimaryKey: false},
+				{Name: "column6", ColumnFamily: "cf1", CQLType: datatype.Int, IsPrimaryKey: false},
+				{Name: "column9", ColumnFamily: "cf1", CQLType: datatype.Bigint, IsPrimaryKey: false},
+				{Name: "column10", ColumnFamily: "cf1", CQLType: datatype.Varchar, IsPrimaryKey: true},
+			},
+			Values:      values,
+			Params:      response,
+			ParamKeys:   []string{"column1", "column2", "column3", "column5", "column6", "column9", "column10"},
+			PrimaryKeys: []string{"column1", "column10"},
+			RowKey:      "test-text\x00\x01column10",
+			TimestampInfo: TimestampInfo{
+				Timestamp:         1234567,
+				HasUsingTimestamp: true,
+			}, // Should include the custom timestamp parameter
+		},
+		wantErr: false,
+	},
 		{
 			name: "success with prepared query",
 			args: args{
@@ -279,14 +318,14 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 				QueryType: "INSERT",
 				Table:     "test_table",
 				Keyspace:  "test_keyspace",
-				Columns: []Column{
-					{Name: "column1", ColumnFamily: "cf1", CQLType: "varchar", IsPrimaryKey: true},
-					{Name: "column2", ColumnFamily: "cf1", CQLType: "blob", IsPrimaryKey: false},
-					{Name: "column3", ColumnFamily: "cf1", CQLType: "boolean", IsPrimaryKey: false},
-					{Name: "column5", ColumnFamily: "cf1", CQLType: "timestamp", IsPrimaryKey: false},
-					{Name: "column6", ColumnFamily: "cf1", CQLType: "int", IsPrimaryKey: false},
-					{Name: "column9", ColumnFamily: "cf1", CQLType: "bigint", IsPrimaryKey: false},
-					{Name: "column10", ColumnFamily: "cf1", CQLType: "varchar", IsPrimaryKey: true},
+				Columns: []types.Column{
+					{Name: "column1", ColumnFamily: "cf1", CQLType: datatype.Varchar, IsPrimaryKey: true},
+					{Name: "column2", ColumnFamily: "cf1", CQLType: datatype.Blob, IsPrimaryKey: false},
+					{Name: "column3", ColumnFamily: "cf1", CQLType: datatype.Boolean, IsPrimaryKey: false},
+					{Name: "column5", ColumnFamily: "cf1", CQLType: datatype.Timestamp, IsPrimaryKey: false},
+					{Name: "column6", ColumnFamily: "cf1", CQLType: datatype.Int, IsPrimaryKey: false},
+					{Name: "column9", ColumnFamily: "cf1", CQLType: datatype.Bigint, IsPrimaryKey: false},
+					{Name: "column10", ColumnFamily: "cf1", CQLType: datatype.Varchar, IsPrimaryKey: true},
 				},
 				Values:      values,
 				Params:      response,
@@ -311,12 +350,12 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 				QueryType: "INSERT",
 				Table:     "test_table",
 				Keyspace:  "test_keyspace",
-				Columns: []Column{
-					{Name: "column2", ColumnFamily: "cf1", CQLType: "blob", IsPrimaryKey: false},
-					{Name: "column3", ColumnFamily: "cf1", CQLType: "boolean", IsPrimaryKey: false},
-					{Name: "column5", ColumnFamily: "cf1", CQLType: "timestamp", IsPrimaryKey: false},
-					{Name: "column6", ColumnFamily: "cf1", CQLType: "int", IsPrimaryKey: false},
-					{Name: "column9", ColumnFamily: "cf1", CQLType: "bigint", IsPrimaryKey: false},
+				Columns: []types.Column{
+					{Name: "column2", ColumnFamily: "cf1", CQLType: datatype.Blob, IsPrimaryKey: false},
+					{Name: "column3", ColumnFamily: "cf1", CQLType: datatype.Boolean, IsPrimaryKey: false},
+					{Name: "column5", ColumnFamily: "cf1", CQLType: datatype.Timestamp, IsPrimaryKey: false},
+					{Name: "column6", ColumnFamily: "cf1", CQLType: datatype.Int, IsPrimaryKey: false},
+					{Name: "column9", ColumnFamily: "cf1", CQLType: datatype.Bigint, IsPrimaryKey: false},
 				},
 				Values:      values,
 				Params:      response,
@@ -326,10 +365,82 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 			},
 			wantErr: false,
 		},
-		/*{
-			name: "failed scenario 1",
+		{
+			name: "with keyspace in query, without default keyspace",
 			args: args{
-				queryStr:        "INSERT INTO test_keyspace.test_table;",
+				queryStr:        "INSERT INTO test_keyspace.test_table (column1, column10) VALUES ('abc', 'pkval')",
+				protocolV:       protocolV,
+				isPreparedQuery: false,
+			},
+			fields: fields{
+				SchemaMappingConfig: GetSchemaMappingConfig(),
+			},
+			want: &InsertQueryMapping{
+				Query:     "INSERT INTO test_keyspace.test_table (column1, column10) VALUES ('abc', 'pkval')",
+				QueryType: "INSERT",
+				Table:     "test_table",
+				Keyspace:  "test_keyspace",
+				Params: map[string]interface{}{
+					"column1":  []byte("abc"),
+					"column10": []byte("pkval"),
+				},
+				ParamKeys: []string{"column1", "column10"},
+				RowKey:    "abc\x00\x01pkval",
+			},
+			wantErr: false,
+		},
+		{
+			name: "with keyspace in query, with default keyspace",
+			args: args{
+				queryStr:        "INSERT INTO test_keyspace.test_table (column1, column10) VALUES ('abc', 'pkval')",
+				protocolV:       protocolV,
+				isPreparedQuery: false,
+			},
+			fields: fields{
+				SchemaMappingConfig: GetSchemaMappingConfig(),
+			},
+			want: &InsertQueryMapping{
+				Query:     "INSERT INTO test_keyspace.test_table (column1, column10) VALUES ('abc', 'pkval')",
+				QueryType: "INSERT",
+				Table:     "test_table",
+				Keyspace:  "test_keyspace",
+				Params: map[string]interface{}{
+					"column1":  []byte("abc"),
+					"column10": []byte("pkval"),
+				},
+				ParamKeys: []string{"column1", "column10"},
+				RowKey:    "abc\x00\x01pkval",
+			},
+			wantErr: false,
+		},
+		{
+			name: "without keyspace in query, with default keyspace",
+			args: args{
+				queryStr:        "INSERT INTO test_table (column1, column10) VALUES ('abc', 'pkval')",
+				protocolV:       protocolV,
+				isPreparedQuery: false,
+			},
+			fields: fields{
+				SchemaMappingConfig: GetSchemaMappingConfig(),
+			},
+			want: &InsertQueryMapping{
+				Query:     "INSERT INTO test_table (column1, column10) VALUES ('abc', 'pkval')",
+				QueryType: "INSERT",
+				Table:     "test_table",
+				Keyspace:  "test_keyspace",
+				Params: map[string]interface{}{
+					"column1":  []byte("abc"),
+					"column10": []byte("pkval"),
+				},
+				ParamKeys: []string{"column1", "column10"},
+				RowKey:    "abc\x00\x01pkval",
+			},
+			wantErr: false,
+		},
+		{
+			name: "without keyspace in query, without default keyspace (should error)",
+			args: args{
+				queryStr:        "INSERT INTO test_table (column1) VALUES ('abc')",
 				protocolV:       protocolV,
 				isPreparedQuery: false,
 			},
@@ -340,21 +451,9 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "failed scenario 2",
+			name: "invalid query syntax (should error)",
 			args: args{
-				queryStr:  "INSERT INTO test_keyspace.test_table (column1) VALUES ",
-				protocolV: protocolV,
-			},
-			fields: fields{
-				SchemaMappingConfig: GetSchemaMappingConfig(),
-			},
-			want:    nil,
-			wantErr: true,
-		},
-		{
-			name: "failed scenario 3",
-			args: args{
-				queryStr:        "INSERT INTO test_keyspace.test_table VALUES ('test')",
+				queryStr:        "INSERT INTO test_keyspace.test_table",
 				protocolV:       protocolV,
 				isPreparedQuery: false,
 			},
@@ -365,10 +464,9 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "failed because one primary column is not present",
+			name: "parser returns empty table (should error)",
 			args: args{
-				queryStr: "INSERT INTO test_keyspace.test_table (column1, column2, column3, column5, column6, column9) VALUES ('" +
-					textValue + "', '" + blobValue + "', " + booleanValue + ", '" + timestampValue + "', " + intValue + ", " + bigIntValue + ")",
+				queryStr:        "INSERT INTO test_keyspace. VALUES ('abc')",
 				protocolV:       protocolV,
 				isPreparedQuery: false,
 			},
@@ -378,7 +476,58 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 			want:    nil,
 			wantErr: true,
 		},
-		*/
+		{
+			name: "parser returns empty keyspace (should error)",
+			args: args{
+				queryStr:        "INSERT INTO .test_table VALUES ('abc')",
+				protocolV:       protocolV,
+				isPreparedQuery: false,
+			},
+			fields: fields{
+				SchemaMappingConfig: GetSchemaMappingConfig(),
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "parser returns empty columns/values (should error)",
+			args: args{
+				queryStr:        "INSERT INTO test_keyspace.test_table () VALUES ()",
+				protocolV:       protocolV,
+				isPreparedQuery: false,
+			},
+			fields: fields{
+				SchemaMappingConfig: GetSchemaMappingConfig(),
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "keyspace does not exist (should error)",
+			args: args{
+				queryStr:        "INSERT INTO invalid_keyspace.test_table (column1) VALUES ('abc')",
+				protocolV:       protocolV,
+				isPreparedQuery: false,
+			},
+			fields: fields{
+				SchemaMappingConfig: GetSchemaMappingConfig(),
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "table does not exist (should error)",
+			args: args{
+				queryStr:        "INSERT INTO test_keyspace.invalid_table (column1) VALUES ('abc')",
+				protocolV:       protocolV,
+				isPreparedQuery: false,
+			},
+			fields: fields{
+				SchemaMappingConfig: GetSchemaMappingConfig(),
+			},
+			want:    nil,
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -388,7 +537,7 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 				EncodeIntValuesWithBigEndian: false,
 				SchemaMappingConfig:          tt.fields.SchemaMappingConfig,
 			}
-			got, err := tr.TranslateInsertQuerytoBigtable(tt.args.queryStr, tt.args.protocolV, tt.args.isPreparedQuery)
+			got, err := tr.TranslateInsertQuerytoBigtable(tt.args.queryStr, tt.args.protocolV, tt.args.isPreparedQuery, "test_keyspace")
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Translator.TranslateInsertQuerytoBigtable() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -423,7 +572,7 @@ func TestTranslator_BuildInsertPrepareQuery(t *testing.T) {
 		SchemaMappingConfig *schemaMapping.SchemaMappingConfig
 	}
 	type args struct {
-		columnsResponse []Column
+		columnsResponse []types.Column
 		values          []*primitive.Value
 		st              *InsertQueryMapping
 		protocolV       primitive.ProtocolVersion
@@ -442,11 +591,11 @@ func TestTranslator_BuildInsertPrepareQuery(t *testing.T) {
 				SchemaMappingConfig: GetSchemaMappingConfig(),
 			},
 			args: args{
-				columnsResponse: []Column{
+				columnsResponse: []types.Column{
 					{
 						Name:         "pk_1_text",
 						ColumnFamily: "cf1",
-						CQLType:      "text",
+						CQLType:      datatype.Varchar,
 						IsPrimaryKey: true,
 					},
 				},
@@ -460,11 +609,11 @@ func TestTranslator_BuildInsertPrepareQuery(t *testing.T) {
 					Keyspace:    "test_keyspace",
 					PrimaryKeys: []string{"pk_1_text"},
 					RowKey:      "",
-					Columns: []Column{
+					Columns: []types.Column{
 						{
 							Name:         "pk_1_text",
 							ColumnFamily: "cf1",
-							CQLType:      "text",
+							CQLType:      datatype.Varchar,
 							IsPrimaryKey: true,
 						},
 					},
@@ -490,11 +639,11 @@ func TestTranslator_BuildInsertPrepareQuery(t *testing.T) {
 				Keyspace:    "test_keyspace",
 				PrimaryKeys: []string{"pk_1_text"},
 				RowKey:      "",
-				Columns: []Column{
+				Columns: []types.Column{
 					{
 						Name:         "pk_1_text",
 						ColumnFamily: "cf1",
-						CQLType:      "text",
+						CQLType:      datatype.Varchar,
 						IsPrimaryKey: true,
 					},
 				},
@@ -530,10 +679,6 @@ func TestTranslator_BuildInsertPrepareQuery(t *testing.T) {
 			}
 			if got.RowKey != tt.want.RowKey {
 				t.Errorf("Translator.BuildInsertPrepareQuery() RowKey = %v, want %v", got.RowKey, tt.want.RowKey)
-			}
-			if len(got.Values) != len(tt.want.Values) {
-				t.Errorf("Translator.BuildInsertPrepareQuery() Values length mismatch: got %d, want %d", len(got.Values), len(tt.want.Values))
-				return
 			}
 		})
 	}

@@ -1,6 +1,6 @@
 // Code generated from CqlParser.g4 by ANTLR 4.13.2. DO NOT EDIT.
 
-package cqlparser // CqlParser
+package parser // CqlParser
 
 import "github.com/antlr4-go/antlr/v4"
 
@@ -22,6 +22,12 @@ type CqlParserListener interface {
 
 	// EnterCql is called when entering the cql production.
 	EnterCql(c *CqlContext)
+
+	// EnterDescribeStatement is called when entering the describeStatement production.
+	EnterDescribeStatement(c *DescribeStatementContext)
+
+	// EnterDescribeTarget is called when entering the describeTarget production.
+	EnterDescribeTarget(c *DescribeTargetContext)
 
 	// EnterRevoke is called when entering the revoke production.
 	EnterRevoke(c *RevokeContext)
@@ -404,6 +410,9 @@ type CqlParserListener interface {
 	// EnterLimitSpec is called when entering the limitSpec production.
 	EnterLimitSpec(c *LimitSpecContext)
 
+	// EnterKwLike is called when entering the kwLike production.
+	EnterKwLike(c *KwLikeContext)
+
 	// EnterFromSpec is called when entering the fromSpec production.
 	EnterFromSpec(c *FromSpecContext)
 
@@ -562,6 +571,9 @@ type CqlParserListener interface {
 
 	// EnterKwBatch is called when entering the kwBatch production.
 	EnterKwBatch(c *KwBatchContext)
+
+	// EnterKwBetween is called when entering the kwBetween production.
+	EnterKwBetween(c *KwBetweenContext)
 
 	// EnterKwBegin is called when entering the kwBegin production.
 	EnterKwBegin(c *KwBeginContext)
@@ -764,6 +776,9 @@ type CqlParserListener interface {
 	// EnterKwTable is called when entering the kwTable production.
 	EnterKwTable(c *KwTableContext)
 
+	// EnterKwTables is called when entering the kwTables production.
+	EnterKwTables(c *KwTablesContext)
+
 	// EnterKwTimestamp is called when entering the kwTimestamp production.
 	EnterKwTimestamp(c *KwTimestampContext)
 
@@ -812,6 +827,9 @@ type CqlParserListener interface {
 	// EnterKwRevoke is called when entering the kwRevoke production.
 	EnterKwRevoke(c *KwRevokeContext)
 
+	// EnterKwGroup is called when entering the kwGroup production.
+	EnterKwGroup(c *KwGroupContext)
+
 	// EnterSyntaxBracketLr is called when entering the syntaxBracketLr production.
 	EnterSyntaxBracketLr(c *SyntaxBracketLrContext)
 
@@ -842,6 +860,12 @@ type CqlParserListener interface {
 	// EnterSyntaxColon is called when entering the syntaxColon production.
 	EnterSyntaxColon(c *SyntaxColonContext)
 
+	// EnterGroupSpec is called when entering the groupSpec production.
+	EnterGroupSpec(c *GroupSpecContext)
+
+	// EnterGroupSpecElement is called when entering the groupSpecElement production.
+	EnterGroupSpecElement(c *GroupSpecElementContext)
+
 	// ExitRoot is called when exiting the root production.
 	ExitRoot(c *RootContext)
 
@@ -856,6 +880,12 @@ type CqlParserListener interface {
 
 	// ExitCql is called when exiting the cql production.
 	ExitCql(c *CqlContext)
+
+	// ExitDescribeStatement is called when exiting the describeStatement production.
+	ExitDescribeStatement(c *DescribeStatementContext)
+
+	// ExitDescribeTarget is called when exiting the describeTarget production.
+	ExitDescribeTarget(c *DescribeTargetContext)
 
 	// ExitRevoke is called when exiting the revoke production.
 	ExitRevoke(c *RevokeContext)
@@ -1238,6 +1268,9 @@ type CqlParserListener interface {
 	// ExitLimitSpec is called when exiting the limitSpec production.
 	ExitLimitSpec(c *LimitSpecContext)
 
+	// ExitKwLike is called when exiting the kwLike production.
+	ExitKwLike(c *KwLikeContext)
+
 	// ExitFromSpec is called when exiting the fromSpec production.
 	ExitFromSpec(c *FromSpecContext)
 
@@ -1396,6 +1429,9 @@ type CqlParserListener interface {
 
 	// ExitKwBatch is called when exiting the kwBatch production.
 	ExitKwBatch(c *KwBatchContext)
+
+	// ExitKwBetween is called when exiting the kwBetween production.
+	ExitKwBetween(c *KwBetweenContext)
 
 	// ExitKwBegin is called when exiting the kwBegin production.
 	ExitKwBegin(c *KwBeginContext)
@@ -1598,6 +1634,9 @@ type CqlParserListener interface {
 	// ExitKwTable is called when exiting the kwTable production.
 	ExitKwTable(c *KwTableContext)
 
+	// ExitKwTables is called when exiting the kwTables production.
+	ExitKwTables(c *KwTablesContext)
+
 	// ExitKwTimestamp is called when exiting the kwTimestamp production.
 	ExitKwTimestamp(c *KwTimestampContext)
 
@@ -1646,6 +1685,9 @@ type CqlParserListener interface {
 	// ExitKwRevoke is called when exiting the kwRevoke production.
 	ExitKwRevoke(c *KwRevokeContext)
 
+	// ExitKwGroup is called when exiting the kwGroup production.
+	ExitKwGroup(c *KwGroupContext)
+
 	// ExitSyntaxBracketLr is called when exiting the syntaxBracketLr production.
 	ExitSyntaxBracketLr(c *SyntaxBracketLrContext)
 
@@ -1675,4 +1717,10 @@ type CqlParserListener interface {
 
 	// ExitSyntaxColon is called when exiting the syntaxColon production.
 	ExitSyntaxColon(c *SyntaxColonContext)
+
+	// ExitGroupSpec is called when exiting the groupSpec production.
+	ExitGroupSpec(c *GroupSpecContext)
+
+	// ExitGroupSpecElement is called when exiting the groupSpecElement production.
+	ExitGroupSpecElement(c *GroupSpecElementContext)
 }

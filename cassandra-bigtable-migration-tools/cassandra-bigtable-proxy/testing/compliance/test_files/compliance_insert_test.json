@@ -816,7 +816,9 @@
         "expected_result": [
           {
             "expect_error": true,
-            "error_message": "invalid input paramaters found for keyspace"
+            "error_message": "invalid input paramaters found for keyspace",
+            "cassandra_error_message": "table user_info does not exist",
+            "avoid_compare_error_message": true
           }
         ]
       },
@@ -971,7 +973,7 @@
     "kind": "dml",
     "operations": [
       {
-        "query": "INSERT INTO bigtabledevinstance.user_info (name, age) VALUES (?, ?)",
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)",
         "query_desc": "Insert record with all supported datatypes.",
         "query_type": "INSERT",
         "params": [
@@ -982,6 +984,10 @@
           {
             "value": 60,
             "datatype": "bigint"
+          },
+          {
+            "value": 30,
+            "datatype": "int"
           }
         ],
         "expected_result": null
@@ -1014,5 +1020,275 @@
     ],
     "success_message": "Record with basic datatypes with `?` value inserted and validated successfully.",
     "failure_message": "Failed to validate record with basic datatypes with `?` value or data mismatch found."
+  },
+  {
+    "title": "Insert only primary key value",
+    "description": "This test case inserts a record into the 'user_info' table with only the primary key value and validates its presence through a SELECT query to ensure correct insertion.",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age) VALUES (?, ?)",
+        "query_desc": "Insert record with only primary key value.",
+        "query_type": "INSERT",
+        "params": [
+          { "value": "Ricky", "datatype": "text" },
+          { "value": 25, "datatype": "bigint" }
+        ],
+        "expected_result": [
+          {
+            "expect_error": true,
+            "error_message": "rpc error: code = InvalidArgument desc = No mutations provided"
+          }
+        ]
+      },
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, map_text_int) VALUES (?, ?, ?)",
+        "query_desc": "Insert record with only primary key value with empty map.",
+        "query_type": "INSERT",
+        "params": [
+          { "value": "Ricky", "datatype": "text" },
+          { "value": 25, "datatype": "bigint" },
+          { "value": {}, "datatype": "map<text,int>" }
+        ],
+        "expected_result": [
+          {
+            "expect_error": true, 
+            "error_message": "rpc error: code = InvalidArgument desc = No mutations provided"
+          }
+        ]
+      },
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, extra_info) VALUES (?, ?, ?)",
+        "query_desc": "Insert record with only primary key value with empty map.",
+        "query_type": "INSERT",
+        "params": [
+          { "value": "Ricky", "datatype": "text" },
+          { "value": 25, "datatype": "bigint" },
+          { "value": {}, "datatype": "map<text,text>" }
+        ],
+        "expected_result": [
+          {
+            "expect_error": true, 
+            "error_message": "rpc error: code = InvalidArgument desc = No mutations provided"
+          }
+        ]
+      },
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, list_text) VALUES (?, ?, ?)",
+        "query_desc": "Insert record with empty list<text>.",
+        "query_type": "INSERT",
+        "params": [
+          { "value": "Sophia Taylor", "datatype": "text" },
+          { "value": 28, "datatype": "bigint" },
+          { "value": [], "datatype": "list<text>" }
+        ],
+        "expected_result": [
+          {
+            "expect_error": true,
+            "avoid_compare_error_message": true,
+            "error_message": "error building insert prepare query:error decoding string to list<varchar> value: EOF"
+          }
+        ]
+      },
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, list_int) VALUES (?, ?, ?)",
+        "query_desc": "Insert record with empty list<int>.",
+        "query_type": "INSERT",
+        "params": [
+          { "value": "Thomas Walker", "datatype": "text" },
+          { "value": 29, "datatype": "bigint" },
+          { "value": [], "datatype": "list<int>" }
+        ],
+        "expected_result": [
+          {
+            "expect_error": true,
+            "error_message": "error building insert prepare query:error decoding string to list<int> value: EOF",
+            "avoid_compare_error_message": true
+          }
+        ]
+      },
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, list_bigint) VALUES (?, ?, ?)",
+        "query_desc": "Insert record with empty list<bigint>.",
+        "query_type": "INSERT",
+        "params": [
+          { "value": "Ursula Garcia", "datatype": "text" },
+          { "value": 30, "datatype": "bigint" },
+          { "value": [], "datatype": "list<bigint>" }
+        ],
+        "expected_result": [
+          {
+            "expect_error": true,
+            "avoid_compare_error_message": true,
+            "error_message": "error building insert prepare query:error decoding string to list<bigint> value: EOF"
+          }
+        ]
+      },
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, list_float) VALUES (?, ?, ?)",
+        "query_desc": "Insert record with empty list<float>.",
+        "query_type": "INSERT",
+        "params": [
+          { "value": "Victoria Nelson", "datatype": "text" },
+          { "value": 31, "datatype": "bigint" },
+          { "value": [], "datatype": "list<float>" }
+        ],
+        "expected_result": [
+          {
+            "expect_error": true,
+            "avoid_compare_error_message": true,
+            "error_message": "error building insert prepare query:error decoding string to list<float> value: EOF"
+          }
+        ]
+      },
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, list_double) VALUES (?, ?, ?)",
+        "query_desc": "Insert record with empty list<double>.",
+        "query_type": "INSERT",
+        "params": [
+          { "value": "William Davis", "datatype": "text" },
+          { "value": 32, "datatype": "bigint" },
+          { "value": [], "datatype": "list<double>" }
+        ],
+        "expected_result": [
+          {
+            "expect_error": true,
+            "avoid_compare_error_message": true,
+            "error_message": "error building insert prepare query:error decoding string to list<double> value: EOF"
+          }
+        ]
+      },
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, list_boolean) VALUES (?, ?, ?)",
+        "query_desc": "Insert record with empty list<boolean>.",
+        "query_type": "INSERT",
+        "params": [
+          { "value": "Xavier Thompson", "datatype": "text" },
+          { "value": 33, "datatype": "bigint" },
+          { "value": [], "datatype": "list<boolean>" }
+        ],
+        "expected_result": [
+          {
+            "expect_error": true,
+            "avoid_compare_error_message": true,
+            "error_message": "error building insert prepare query:error decoding string to list<boolean> value: EOF"
+          }
+        ]
+      },
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, ts_text_map) VALUES (?, ?, ?)",
+        "query_desc": "Insert record with empty map<text,timestamp>.",
+        "query_type": "INSERT",
+        "params": [
+          { "value": "Ricky", "datatype": "text" },
+          { "value": 25, "datatype": "bigint" },
+          { "value": {}, "datatype": "map<text,timestamp>" }
+        ],
+        "expected_result": [
+          {
+            "expect_error": true,
+            "error_message": "rpc error: code = InvalidArgument desc = No mutations provided"
+          }
+        ]
+      },
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, ts_float_map) VALUES (?, ?, ?)",
+        "query_desc": "Insert record with empty map<timestamp,float>.",
+        "query_type": "INSERT",
+        "params": [
+          { "value": "Ricky", "datatype": "text" },
+          { "value": 25, "datatype": "bigint" },
+          { "value": {}, "datatype": "map<timestamp,float>" }
+        ],
+        "expected_result": [
+          {
+            "expect_error": true,
+            "error_message": "rpc error: code = InvalidArgument desc = No mutations provided"
+          }
+        ]
+      },
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, ts_int_map) VALUES (?, ?, ?)",
+        "query_desc": "Insert record with empty map<timestamp,int>.",
+        "query_type": "INSERT",
+        "params": [
+          { "value": "Ricky", "datatype": "text" },
+          { "value": 25, "datatype": "bigint" },
+          { "value": {}, "datatype": "map<timestamp,int>" }
+        ],
+        "expected_result": [
+          {
+            "expect_error": true,
+            "error_message": "rpc error: code = InvalidArgument desc = No mutations provided"
+          }
+        ]
+      },
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, ts_boolean_map) VALUES (?, ?, ?)",
+        "query_desc": "Insert record with empty map<timestamp,boolean>.",
+        "query_type": "INSERT",
+        "params": [
+          { "value": "Ricky", "datatype": "text" },
+          { "value": 25, "datatype": "bigint" },
+          { "value": {}, "datatype": "map<timestamp,boolean>" }
+        ],
+        "expected_result": [
+          {
+            "expect_error": true,
+            "error_message": "rpc error: code = InvalidArgument desc = No mutations provided"
+          }
+        ]
+      },
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, ts_double_map) VALUES (?, ?, ?)",
+        "query_desc": "Insert record with empty map<timestamp,double>.",
+        "query_type": "INSERT",
+        "params": [
+          { "value": "Ricky", "datatype": "text" },
+          { "value": 25, "datatype": "bigint" },
+          { "value": {}, "datatype": "map<timestamp,double>" }
+        ],
+        "expected_result": [
+          {
+            "expect_error": true,
+            "error_message": "rpc error: code = InvalidArgument desc = No mutations provided"
+          }
+        ]
+      },
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, ts_bigint_map) VALUES (?, ?, ?)",
+        "query_desc": "Insert record with empty map<timestamp,bigint>.",
+        "query_type": "INSERT",
+        "params": [
+          { "value": "Ricky", "datatype": "text" },
+          { "value": 25, "datatype": "bigint" },
+          { "value": {}, "datatype": "map<timestamp,bigint>" }
+        ],
+        "expected_result": [
+          {
+            "expect_error": true,
+            "error_message": "rpc error: code = InvalidArgument desc = No mutations provided"
+          }
+        ]
+      },
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, ts_text_map) VALUES (?, ?, ?)",
+        "query_desc": "Insert record with empty map<timestamp,text>.",
+        "query_type": "INSERT",
+        "params": [
+          { "value": "Ricky", "datatype": "text" },
+          { "value": 25, "datatype": "bigint" },
+          { "value": {}, "datatype": "map<timestamp,text>" }
+        ],
+        "expected_result": [
+          {
+            "expect_error": true,
+            "error_message": "rpc error: code = InvalidArgument desc = No mutations provided"
+          }
+        ]
+      }
+    ],
+    "success_message": "Insert operation completed successfully for all test cases.",
+    "failure_message": "Insert operation failed for at least one test case."
   }
 ]

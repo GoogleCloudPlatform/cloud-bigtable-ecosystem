@@ -26,10 +26,11 @@ import (
 
 func TestTranslateCreateTableToBigtable(t *testing.T) {
 	tests := []struct {
-		name     string
-		query    string
-		want     *CreateTableStatementMap
-		hasError bool
+		name            string
+		query           string
+		want            *CreateTableStatementMap
+		hasError        bool
+		defaultKeyspace string
 	}{
 		{
 			name:  "success",
@@ -73,7 +74,8 @@ func TestTranslateCreateTableToBigtable(t *testing.T) {
 					},
 				},
 			},
-			hasError: false,
+			hasError:        false,
+			defaultKeyspace: "my_keyspace",
 		},
 		{
 			name:  "if not exists",
@@ -113,7 +115,8 @@ func TestTranslateCreateTableToBigtable(t *testing.T) {
 					},
 				},
 			},
-			hasError: false,
+			hasError:        false,
+			defaultKeyspace: "my_keyspace",
 		},
 		{
 			name:  "single inline primary key",
@@ -153,7 +156,8 @@ func TestTranslateCreateTableToBigtable(t *testing.T) {
 					},
 				},
 			},
-			hasError: false,
+			hasError:        false,
+			defaultKeyspace: "cycling",
 		},
 		{
 			name:  "composite primary key",
@@ -201,7 +205,82 @@ func TestTranslateCreateTableToBigtable(t *testing.T) {
 					},
 				},
 			},
-			hasError: false,
+			hasError:        false,
+			defaultKeyspace: "cycling",
+		},
+		{
+			name:  "with keyspace in query, without default keyspace",
+			query: "CREATE TABLE test_keyspace.test_table (column1 varchar, column10 int, PRIMARY KEY (column1, column10))",
+			want: &CreateTableStatementMap{
+				Table:       "test_table",
+				Keyspace:    "test_keyspace",
+				QueryType:   "create",
+				IfNotExists: false,
+				Columns: []message.ColumnMetadata{
+					{Keyspace: "test_keyspace", Table: "test_table", Name: "column1", Index: 0, Type: datatype.Varchar},
+					{Keyspace: "test_keyspace", Table: "test_table", Name: "column10", Index: 1, Type: datatype.Int},
+				},
+				PrimaryKeys: []CreateTablePrimaryKeyConfig{
+					{Name: "column1", KeyType: "partition"},
+					{Name: "column10", KeyType: "clustering"},
+				},
+			},
+			hasError:        false,
+			defaultKeyspace: "test_keyspace",
+		},
+		{
+			name:  "with keyspace in query, with default keyspace",
+			query: "CREATE TABLE test_keyspace.test_table (column1 varchar, column10 int, PRIMARY KEY (column1, column10))",
+			want: &CreateTableStatementMap{
+				Table:       "test_table",
+				Keyspace:    "test_keyspace",
+				QueryType:   "create",
+				IfNotExists: false,
+				Columns: []message.ColumnMetadata{
+					{Keyspace: "test_keyspace", Table: "test_table", Name: "column1", Index: 0, Type: datatype.Varchar},
+					{Keyspace: "test_keyspace", Table: "test_table", Name: "column10", Index: 1, Type: datatype.Int},
+				},
+				PrimaryKeys: []CreateTablePrimaryKeyConfig{
+					{Name: "column1", KeyType: "partition"},
+					{Name: "column10", KeyType: "clustering"},
+				},
+			},
+			hasError:        false,
+			defaultKeyspace: "test_keyspace",
+		},
+		{
+			name:  "without keyspace in query, with default keyspace",
+			query: "CREATE TABLE test_table (column1 varchar, column10 int, PRIMARY KEY (column1, column10))",
+			want: &CreateTableStatementMap{
+				Table:       "test_table",
+				Keyspace:    "my_keyspace",
+				QueryType:   "create",
+				IfNotExists: false,
+				Columns: []message.ColumnMetadata{
+					{Keyspace: "my_keyspace", Table: "test_table", Name: "column1", Index: 0, Type: datatype.Varchar},
+					{Keyspace: "my_keyspace", Table: "test_table", Name: "column10", Index: 1, Type: datatype.Int},
+				},
+				PrimaryKeys: []CreateTablePrimaryKeyConfig{
+					{Name: "column1", KeyType: "partition"},
+					{Name: "column10", KeyType: "clustering"},
+				},
+			},
+			hasError:        false,
+			defaultKeyspace: "my_keyspace",
+		},
+		{
+			name:            "without keyspace in query, without default keyspace (should error)",
+			query:           "CREATE TABLE test_table (column1 varchar, column10 int, PRIMARY KEY (column1, column10))",
+			want:            nil,
+			hasError:        true,
+			defaultKeyspace: "",
+		},
+		{
+			name:            "parser returns empty table (should error)",
+			query:           "CREATE TABLE test_keyspace. (column1 varchar, column10 int, PRIMARY KEY (column1, column10))",
+			want:            nil,
+			hasError:        true,
+			defaultKeyspace: "test_keyspace",
 		},
 	}
 
@@ -212,13 +291,14 @@ func TestTranslateCreateTableToBigtable(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tr.TranslateCreateTableToBigtable(tt.query)
+			got, err := tr.TranslateCreateTableToBigtable(tt.query, tt.defaultKeyspace)
 			if tt.hasError {
 				assert.Error(t, err)
+				assert.Nil(t, got)
 			} else {
 				assert.NoError(t, err)
+				assert.Equal(t, tt.want, got)
 			}
-			assert.Equal(t, tt.want, got)
 		})
 	}
 }

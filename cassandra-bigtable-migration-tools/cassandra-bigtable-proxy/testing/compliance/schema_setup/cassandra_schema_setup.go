@@ -28,11 +28,6 @@ import (
 // SetupCassandraSchema sets up the Cassandra keyspace and tables
 func SetupCassandraSchema(session *gocql.Session, schemaFilePath, keyspace string) error {
 
-	// Step 1: Create keyspace
-	if err := createKeyspace(session, keyspace); err != nil {
-		return err
-	}
-
 	data, err := os.ReadFile(schemaFilePath)
 	if err != nil {
 		return fmt.Errorf("failed to read schema file: %v", err)
@@ -56,7 +51,7 @@ func SetupCassandraSchema(session *gocql.Session, schemaFilePath, keyspace strin
 }
 
 // createKeyspace creates a keyspace in Cassandra
-func createKeyspace(session *gocql.Session, keyspace string) error {
+func CreateKeyspace(session *gocql.Session, keyspace string) error {
 	ddlStatementKeyspace := fmt.Sprintf(
 		"CREATE KEYSPACE IF NOT EXISTS %s WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : '1' };",
 		keyspace,
