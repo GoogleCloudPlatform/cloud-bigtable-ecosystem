@@ -1024,5 +1024,208 @@
         ],
         "success_message": "Large LIST<INT> inserted successfully.",
         "failure_message": "Large LIST<INT> insertion failed."
+    },
+    {
+        "title": "Read list",
+        "description": "Read a list in various ways.",
+        "operations": [
+            {
+                "query": "INSERT INTO bigtabledevinstance.user_info (name, age, list_int) VALUES (?, ?, ?)",
+                "query_desc": "Initialize user with a list.",
+                "query_type": "INSERT",
+                "params": [
+                    {
+                        "value": "list_reads",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 55,
+                        "datatype": "bigint"
+                    },
+                    {
+                        "value": [
+                            33,
+                            56,
+                            55
+                        ],
+                        "datatype": "list<int>"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT name, list_int FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_desc": "read the entire list.",
+                "query_type": "SELECT",
+                "params": [
+                    {
+                        "value": "list_reads",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 55,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "name": "list_reads",
+                        "datatype": "text"
+                    },
+                    {
+                        "list_int": [
+                            33,
+                            56,
+                            55
+                        ],
+                        "datatype": "list<int>"
+                    }
+                ]
+            },
+            {
+                "query": "SELECT name as n, list_int as l FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_desc": "read the entire list with aliases.",
+                "query_type": "SELECT",
+                "params": [
+                    {
+                        "value": "list_reads",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 55,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "n": "list_reads",
+                        "datatype": "text"
+                    },
+                    {
+                        "l": [
+                            33,
+                            56,
+                            55
+                        ],
+                        "datatype": "list<int>"
+                    }
+                ]
+            }
+        ],
+        "success_message": "List read successfully.",
+        "failure_message": "List read failed."
+    },
+    {
+        "title": "Read list with contains key clause",
+        "description": "Read a list with contains key clause.",
+        "operations": [
+            {
+                "query": "INSERT INTO bigtabledevinstance.user_info (name, age, list_int, list_text) VALUES (?, ?, ?, ?)",
+                "query_desc": "Initialize user with a list.",
+                "query_type": "INSERT",
+                "params": [
+                    {
+                        "value": "Jack",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 55,
+                        "datatype": "bigint"
+                    },
+                    {
+                        "value": [
+                            100,
+                            200,
+                            300
+                        ],
+                        "datatype": "list<int>"
+                    },
+                    {
+                        "value": [
+                            "red",
+                            "blue",
+                            "green"
+                        ],
+                        "datatype": "list<text>"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT name, list_int FROM bigtabledevinstance.user_info WHERE list_text CONTAINS ?",
+                "query_desc": "read the list with contains key clause with value red without aliases.",
+                "query_type": "SELECT",
+                "params": [
+                    {
+                        "value": "red",
+                        "datatype": "text"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "name": "Jack",
+                        "datatype": "text"
+                    },
+                    {
+                        "list_int": [
+                            100,
+                            200,
+                            300
+                        ],
+                        "datatype": "list<int>"
+                    }
+                ],
+                "expect_cassandra_specific_error": "Cannot execute this query as it might involve data filtering and thus may have unpredictable performance. If you want to execute this query despite the performance unpredictability, use ALLOW FILTERING"
+            },
+            {
+                "query": "SELECT name as n, list_int as l, list_text as t FROM bigtabledevinstance.user_info WHERE list_text CONTAINS ?",
+                "query_desc": "read the list with contains key clause with value red with aliases.",
+                "query_type": "SELECT",
+                "params": [
+                    {
+                        "value": "red",
+                        "datatype": "text"
+                    }
+                ],
+                "expected_result": [
+                    {   
+                        "n": "Jack",
+                        "datatype": "text"
+                    },
+                    {
+                        "l": [
+                            100,
+                            200,
+                            300
+                        ],
+                        "datatype": "list<int>"
+                    },
+                    {
+                        "t": [
+                            "red",
+                            "blue",
+                            "green"
+                        ],
+                        "datatype": "list<text>"
+                    }
+                ],
+                "expect_cassandra_specific_error": "Cannot execute this query as it might involve data filtering and thus may have unpredictable performance. If you want to execute this query despite the performance unpredictability, use ALLOW FILTERING"
+            },
+            {
+                "query": "SELECT name as n, list_int as l, list_text as t FROM bigtabledevinstance.user_info WHERE list_text CONTAINS ?",
+                "query_desc": "read the list with contains key clause with value brown, which does not exist.",
+                "query_type": "SELECT",
+                "params": [
+                    {
+                        "value": "brown",
+                        "datatype": "text"
+                    }
+                ],
+                "expected_result": [],
+                "expect_cassandra_specific_error": "Cannot execute this query as it might involve data filtering and thus may have unpredictable performance. If you want to execute this query despite the performance unpredictability, use ALLOW FILTERING"
+            }
+        ],
+        "success_message": "Successfully read the list with contains key clause.",
+        "failure_message": "Failed to read the list with contains key clause."
     }
 ]

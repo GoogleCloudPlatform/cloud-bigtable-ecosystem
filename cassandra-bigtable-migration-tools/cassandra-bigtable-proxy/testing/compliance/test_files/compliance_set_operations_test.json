@@ -312,5 +312,171 @@
         ],
         "success_message": "SET<INT> uniqueness enforced.",
         "failure_message": "SET<INT> allowed duplicates."
+    },
+    {
+        "title": "Validate set reads",
+        "description": "perform various reads on sets.",
+        "kind": "dml",
+        "operations": [
+            {
+                "query": "INSERT INTO bigtabledevinstance.user_info (name, age, set_int) VALUES (?, ?, ?)",
+                "query_type": "INSERT",
+                "query_desc": "Initialize user SET<INT>.",
+                "params": [
+                    {
+                        "value": "set_reads",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 900,
+                        "datatype": "bigint"
+                    },
+                    {
+                        "value": [
+                            28,
+                            56,
+                            2
+                        ],
+                        "datatype": "set<int>"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT name, set_int FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Read entire set.",
+                "params": [
+                    {
+                        "value": "set_reads",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 900,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "name": "set_reads",
+                        "datatype": "text"
+                    },
+                    {
+                        "set_int": [
+                            2,
+                            28,
+                            56
+                        ],
+                        "datatype": "set<int>"
+                    }
+                ]
+            },
+            {
+                "query": "SELECT name as n, set_int as s FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+                "query_type": "SELECT",
+                "query_desc": "Read entire set with aliases.",
+                "params": [
+                    {
+                        "value": "set_reads",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 900,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "n": "set_reads",
+                        "datatype": "text"
+                    },
+                    {
+                        "s": [
+                            2,
+                            28,
+                            56
+                        ],
+                        "datatype": "set<int>"
+                    }
+                ]
+            }
+        ],
+        "success_message": "Set reads successful.",
+        "failure_message": "Set reads failed."
+    },
+    {
+        "title": "Validate set operations with contains clause",
+        "description": "Test set operations with contains clause",
+        "kind": "dml",
+        "operations": [
+            {
+                "query": "INSERT INTO bigtabledevinstance.user_info (name, age, set_int, tags) VALUES (?, ?, ?, ?)",
+                "query_type": "INSERT",
+                "query_desc": "Initialize user SET<INT>.",
+                "params": [
+                    {
+                        "value": "Jassie",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": 23,
+                        "datatype": "bigint"
+                    },
+                    {
+                        "value": [
+                            1221,
+                            1222
+                        ],
+                        "datatype": "set<int>"
+                    },
+                    {
+                        "value": [
+                            "earth",
+                            "moon",
+                            "sun"
+                        ],
+                        "datatype": "set<text>"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT tags FROM bigtabledevinstance.user_info WHERE tags CONTAINS ?",
+                "query_type": "SELECT",
+                "query_desc": "Verify set contains 'earth'",
+                "params": [
+                    {
+                        "value": "earth",
+                        "datatype": "text"
+                    }
+                ],
+                "expected_result": [
+                    {
+                        "tags": [
+                            "earth",
+                            "moon",
+                            "sun"
+                        ],
+                        "datatype": "set<text>"
+                    }
+                ],
+                "expect_cassandra_specific_error": "Cannot execute this query as it might involve data filtering and thus may have unpredictable performance. If you want to execute this query despite the performance unpredictability, use ALLOW FILTERING"
+            },
+            {
+                "query": "SELECT tags FROM bigtabledevinstance.user_info WHERE tags CONTAINS ?",
+                "query_type": "SELECT",
+                "query_desc": "Verify set contains 'jupiter'",
+                "params": [
+                    {
+                        "value": "jupiter",
+                        "datatype": "text"
+                    }
+                ],
+                "expected_result": null,
+                "expect_cassandra_specific_error": "Cannot execute this query as it might involve data filtering and thus may have unpredictable performance. If you want to execute this query despite the performance unpredictability, use ALLOW FILTERING"
+            }
+        ],
+        "success_message": "Set operations with contains clause completed successfully.",
+        "failure_message": "Set operations with contains clause failed."
     }
 ]

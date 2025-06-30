@@ -16,10 +16,11 @@
 package bigtableclient
 
 import (
+	"encoding/base64"
 	"errors"
 	"sort"
 
-	schemaMapping "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/schema-mapping"
+	types "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	"github.com/datastax/go-cassandra-native-protocol/datatype"
 	"github.com/datastax/go-cassandra-native-protocol/message"
 )
@@ -53,7 +54,7 @@ func (btc *BigtableClient) GetAllColumns(tableName string, keySpace string) ([]s
 //
 // Returns:
 // - A map with the same structure as the input, but with the columns sorted by primary key precedence.
-func sortPkData(pkMetadata map[string][]schemaMapping.Column) map[string][]schemaMapping.Column {
+func sortPkData(pkMetadata map[string][]types.Column) map[string][]types.Column {
 
 	for tableName, columns := range pkMetadata {
 		sort.Slice(columns, func(i, j int) bool {
@@ -75,6 +76,7 @@ func GetProfileId(profileId string) string {
 
 // GenerateAppliedRowsResult creates a RowsResult message to indicate whether a database operation was applied.
 // It generates a single column row result with a boolean indicating the application status.
+// it is specifically for if exists and if not exists queries
 //
 // Parameters:
 //   - keyspace: A string representing the name of the keyspace in which the table resides.
@@ -103,4 +105,12 @@ func GenerateAppliedRowsResult(keyspace string, tableName string, applied bool) 
 		},
 		Data: message.RowSet{message.Row{row}},
 	}
+}
+
+func decodeBase64(k string) (string, error) {
+	decoded, err := base64.StdEncoding.DecodeString(k)
+	if err != nil {
+		return "", err
+	}
+	return string(decoded), nil
 }

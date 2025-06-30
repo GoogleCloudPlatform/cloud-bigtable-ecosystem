@@ -44,6 +44,7 @@ type Attributes struct {
 	Method    string
 	Status    string
 	QueryType string
+	Keyspace  string
 }
 
 var (
@@ -355,7 +356,7 @@ func (o *OpenTelemetry) EndSpan(span trace.Span) {
 //   - startTime: The start time of the request for latency calculation.
 //   - queryType: The type of query being executed (e.g., "select", "insert").
 //   - err: The error encountered, if any. Used to determine success/failure status.
-func (o *OpenTelemetry) RecordMetrics(ctx context.Context, method string, startTime time.Time, queryType string, err error) {
+func (o *OpenTelemetry) RecordMetrics(ctx context.Context, method string, startTime time.Time, queryType string, keyspace string, err error) {
 	status := "OK"
 	if err != nil {
 		status = "failure"
@@ -364,10 +365,12 @@ func (o *OpenTelemetry) RecordMetrics(ctx context.Context, method string, startT
 		Method:    method,
 		Status:    status,
 		QueryType: queryType,
+		Keyspace:  keyspace,
 	})
 	o.RecordLatencyMetric(ctx, startTime, Attributes{
 		Method:    method,
 		QueryType: queryType,
+		Keyspace:  keyspace,
 	})
 }
 
@@ -385,7 +388,7 @@ func (o *OpenTelemetry) RecordLatencyMetric(ctx context.Context, startTime time.
 
 	// Build attributes dynamically
 	attr := []attribute.KeyValue{
-		attributeKeyInstance.String(o.Config.Instance),
+		attributeKeyInstance.String(attrs.Keyspace),
 		attributeKeyDatabase.String(o.Config.Database),
 		attributeKeyMethod.String(attrs.Method),
 		attributeKeyQueryType.String(attrs.QueryType),
@@ -408,7 +411,7 @@ func (o *OpenTelemetry) RecordRequestCountMetric(ctx context.Context, attrs Attr
 
 	// Build attributes dynamically
 	attr := []attribute.KeyValue{
-		attributeKeyInstance.String(o.Config.Instance),
+		attributeKeyInstance.String(attrs.Keyspace),
 		attributeKeyDatabase.String(o.Config.Database),
 		attributeKeyMethod.String(attrs.Method),
 		attributeKeyQueryType.String(attrs.QueryType),

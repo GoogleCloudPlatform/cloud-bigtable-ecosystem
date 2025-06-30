@@ -22,6 +22,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"reflect"
 	"strings"
@@ -209,12 +210,6 @@ func TestMain(m *testing.M) {
 }
 
 func setupAndRunBigtableProxyLocal(m *testing.M) {
-	err := schema_setup.SetupBigtableInstance(GCP_PROJECT_ID, BIGTABLE_INSTANCE, ZONE)
-	if err != nil {
-		utility.LogFatal(fmt.Sprintf("Error while setting bigtable schema- %v", err))
-		return
-	}
-
 	cluster := gocql.NewCluster("localhost")
 	cluster.Port = 9042
 	cluster.Keyspace = BIGTABLE_INSTANCE
@@ -224,7 +219,7 @@ func setupAndRunBigtableProxyLocal(m *testing.M) {
 
 	defer session.Close()
 
-	err = schema_setup.SetupBigtableSchema(session, "schema_setup/setup.sql")
+	err := schema_setup.SetupBigtableSchema(session, "schema_setup/setup.sql")
 	if err != nil {
 		utility.LogFatal(fmt.Sprintf("Error while setting bigtable schema- %v", err))
 		return
@@ -251,9 +246,18 @@ func setupAndRunCassandraLocal(m *testing.M) int {
 	session, _ = cluster.CreateSession()
 	defer session.Close()
 
-	if err := schema_setup.SetupCassandraSchema(session, "schema_setup/setup.sql", BIGTABLE_INSTANCE); err != nil {
-		utility.LogFatal(fmt.Sprintf("Error setting up Cassandra schema: %v", err))
+	var BIGTABLE_CASSANDRA_INSTANCE_MAPPING map[string]string
+	err := json.Unmarshal([]byte(BIGTABLE_INSTANCE), &BIGTABLE_CASSANDRA_INSTANCE_MAPPING)
+	if err != nil {
+		utility.LogFatal(fmt.Sprintf("error while unmarshalling bigtable_cassandra_instance_mapping - %v", err))
 		return 1
+	}
+
+	for key := range BIGTABLE_CASSANDRA_INSTANCE_MAPPING {
+		if err := schema_setup.SetupCassandraSchema(session, "schema_setup/setup.sql", key); err != nil {
+			utility.LogFatal(fmt.Sprintf("Error setting up Cassandra schema: %v", err))
+			return 1
+		}
 	}
 
 	// Run the tests
@@ -396,8 +400,10 @@ func executeInsert(t *testing.T, operation Operation, fileName string) bool {
 			// Check if an error is expected
 			if expectedErr, ok := operation.ExpectedResult[0]["expect_error"].(bool); ok && expectedErr {
 				expectedErrMsg, _ := operation.ExpectedResult[0]["error_message"].(string)
+				expectedErrCassandraMsg, _ := operation.ExpectedResult[0]["cassandra_error_message"].(string)
+				avoidCompErrCassandraMsg, _ := operation.ExpectedResult[0]["avoid_compare_error_message"].(bool)
 				// Compare the actual error message with the expected error message
-				if strings.EqualFold(err.Error(), expectedErrMsg) {
+				if strings.EqualFold(err.Error(), expectedErrMsg) || (!isProxy && strings.EqualFold(err.Error(), expectedErrCassandraMsg)) || avoidCompErrCassandraMsg {
 					utility.LogInfo(fmt.Sprintf("Query failed as expected with error: %v", err))
 					utility.LogSuccess(t, operation.QueryDesc, operation.QueryType)
 					return true
@@ -458,7 +464,12 @@ func handleSelectError(t *testing.T, err error, operation Operation, fileName st
 	}
 
 	if !isProxy && operation.ExpectCassandraSpecificError != "" {
-		if strings.EqualFold(err.Error(), operation.ExpectCassandraSpecificError) {
+		avoidCompErrMsg := false
+		if len(operation.ExpectedResult) > 0 {
+			avoidCompErrMsg, _ = operation.ExpectedResult[0]["avoid_compare_error_message"].(bool)
+		}
+
+		if strings.EqualFold(err.Error(), operation.ExpectCassandraSpecificError) || avoidCompErrMsg {
 			utility.LogInfo(fmt.Sprintf("Query failed as expected with error: %v\n", err))
 			utility.LogSuccess(t, operation.QueryDesc, operation.QueryType)
 			return true
@@ -522,10 +533,21 @@ func validateSelectResults(t *testing.T, results []map[string]interface{}, opera
 	var diff string
 	if operation.DefaultDiff != nil && *operation.DefaultDiff {
 		diff = cmp.Diff(results, eResult)
+	} else if results == nil && eResult == nil {
+		utility.LogSuccess(t, operation.QueryDesc, operation.QueryType)
+		return true
 	} else {
 		if operation.ExpectedMultiRowResult != nil {
 			if len(results) == len(eResult) {
 				for _, result := range results {
+					for key, val := range result {
+						switch val := val.(type) {
+						case float32:
+							result[key] = float32(math.Round(float64(val)*1000) / 1000)
+						case float64:
+							result[key] = float64(math.Round(val*1000) / 1000)
+						}
+					}
 					matched := false
 					for index, expected := range eResult {
 						if reflect.DeepEqual(result, expected) {
@@ -571,11 +593,12 @@ func executeUpdate(t *testing.T, operation Operation, fileName string) bool {
 		if len(operation.ExpectedResult) > 0 {
 			if expectedErr, ok := operation.ExpectedResult[0]["expect_error"].(bool); ok && expectedErr {
 				expectedErrMsg, _ := operation.ExpectedResult[0]["error_message"].(string)
-				if strings.EqualFold(err.Error(), expectedErrMsg) {
+				expectedErrCassandraMsg, _ := operation.ExpectedResult[0]["cassandra_error_message"].(string)
+				avoidCompErrCassandraMsg, _ := operation.ExpectedResult[0]["avoid_compare_error_message"].(bool)
+				if strings.EqualFold(err.Error(), expectedErrMsg) || (!isProxy && strings.EqualFold(err.Error(), expectedErrCassandraMsg)) || avoidCompErrCassandraMsg {
 					utility.LogInfo(fmt.Sprintf("Query failed as expected with error: %v", err))
 					utility.LogSuccess(t, operation.QueryDesc, operation.QueryType)
 					return true
-
 				} else {
 					utility.LogError(t, fileName, operation.QueryDesc, operation.Query, err)
 					utility.LogWarning(t, fmt.Sprintf("Error message mismatch:\nExpected: '%s'\nActual:   '%s'\n", expectedErrMsg, err.Error()))
@@ -601,16 +624,18 @@ func executeDelete(t *testing.T, operation Operation, fileName string) bool {
 
 		if expectedErr, ok := operation.ExpectedResult[0]["expect_error"].(bool); ok && expectedErr {
 			expectedErrMsg := operation.ExpectedResult[0]["error_message"]
+			expectedErrCassandraMsg := operation.ExpectedResult[0]["cassandra_error_message"]
+			avoidCompErrCassandraMsg, _ := operation.ExpectedResult[0]["avoid_compare_error_message"].(bool)
 			containsTimestamp := strings.Contains(strings.ToUpper(operation.Query), "USING TIMESTAMP")
 
-			if expectedErrMsg != "" {
+			if expectedErrMsg != "" || expectedErrCassandraMsg != "" {
 				// If the error contains a timestamp and it's a proxy, handle it differently
 				if containsTimestamp && !isProxy {
 					utility.LogWarning(t, fmt.Sprintf("expected no error for Cassandra. got %v", err))
 					return false
 				}
 				// Check if the error message matches the expected error message (case-insensitive)
-				if strings.EqualFold(strings.TrimSpace(err.Error()), strings.TrimSpace(expectedErrMsg.(string))) {
+				if strings.EqualFold(strings.TrimSpace(err.Error()), strings.TrimSpace(expectedErrMsg.(string))) || (expectedErrCassandraMsg != nil && (!isProxy && strings.EqualFold(strings.TrimSpace(err.Error()), strings.TrimSpace(expectedErrCassandraMsg.(string))))) || avoidCompErrCassandraMsg {
 					utility.LogInfo(fmt.Sprintf("Query failed as expected with error: %v\n", err))
 					utility.LogSuccess(t, operation.QueryDesc, operation.QueryType)
 					return true

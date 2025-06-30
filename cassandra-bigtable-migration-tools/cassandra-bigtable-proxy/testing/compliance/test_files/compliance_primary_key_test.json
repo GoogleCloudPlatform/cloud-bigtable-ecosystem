@@ -1,0 +1,52 @@
+[
+  {
+    "title": "Basic primary key tests",
+    "description": "",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "INSERT INTO bigtabledevinstance.orders (user_id, order_num, name) VALUES (?, ?, ?)",
+        "query_desc": "Add a row key with a negative value (confirms ordered code, not big endian encoding is used)",
+        "query_type": "insert",
+        "params": [
+          {
+            "value": "user1",
+            "datatype": "text"
+          },
+          {
+            "value": -1,
+            "datatype": "int"
+          },
+          {
+            "value": "diapers",
+            "datatype": "text"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT name FROM bigtabledevinstance.orders WHERE user_id = ? AND order_num = ?",
+        "query_desc": "Access the negative row key",
+        "query_type": "select",
+        "params": [
+          {
+            "value": "user1",
+            "datatype": "text"
+          },
+          {
+            "value": -1,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": [
+          {
+            "name": "diapers",
+            "datatype": "text"
+          }
+        ]
+      }
+    ],
+    "success_message": "Successfully read orders.",
+    "failure_message": "Failed to read orders."
+  }
+]

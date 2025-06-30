@@ -66,6 +66,21 @@ type UseStatement struct {
 
 func (u UseStatement) isStatement() {}
 
+// DescribeStatement represents a parsed DESCRIBE/DESC statement
+// Only one of the fields will be set to true/non-empty depending on the type of DESCRIBE
+//   - Keyspaces: true for DESCRIBE KEYSPACES
+//   - Tables: true for DESCRIBE TABLES
+//   - TableName: set for DESCRIBE TABLE <keyspace.table>
+//   - KeyspaceName: set for DESCRIBE KEYSPACE <keyspace> or DESCRIBE <keyspace>
+type DescribeStatement struct {
+	Keyspaces    bool
+	Tables       bool
+	TableName    string
+	KeyspaceName string
+}
+
+func (d DescribeStatement) isStatement() {}
+
 // IsQueryHandled parses the query string and determines if the query is handled by the proxy
 func IsQueryHandled(keyspace Identifier, query string) (handled bool, stmt Statement, err error) {
 	var l lexer

@@ -213,24 +213,6 @@ VALUES ('1234', 'check', '2024-06-13T05:19:16.882Z', 20);
 APPLY BATCH;
 ```
 
-## Data Type Support
-
-The proxy supports various Cassandra data types, which are mapped to appropriate Bigtable representations:
-
-| CQL Type | Supported | Bigtable Mapping |
-|----------|-----------|------------------|
-| text | ✓ | RAW BYTES |
-| blob | ✓ | RAW BYTES |
-| timestamp | ✓ | RAW BYTES |
-| int | ✓ | RAW BYTES |
-| bigint | ✓ | RAW BYTES |
-| float | ✓ | RAW BYTES |
-| double | ✓ | RAW BYTES |
-| boolean | ✓ | RAW BYTES |
-| map<text, text> | ✓ | Col name as col family, MAP key as column qualifier |
-| set<text> | ✓ | Col name as col family, SET key as column qualifier |
-| list<text> | ✓ | Col name as col family, timestamp as column qualifier |
-
 ## Best Practices
 
 1. Always use single quotes for string values in DML operations

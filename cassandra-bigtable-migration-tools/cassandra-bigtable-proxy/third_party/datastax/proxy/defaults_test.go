@@ -44,9 +44,9 @@ func TestValidateAndApplyDefaults(t *testing.T) {
 							Name: "listener1",
 							Port: 8080,
 							Bigtable: Bigtable{
-								Session:     Session{},
-								InstanceIDs: "instance1",
-								ProjectID:   "project1",
+								Session:   Session{},
+								Instances: []InstancesMap{{BigtableInstance: "instance1", Keyspace: "instance1"}},
+								ProjectID: "project1",
 							},
 						},
 					},
@@ -63,8 +63,8 @@ func TestValidateAndApplyDefaults(t *testing.T) {
 							Name: "listener1",
 							Port: 8080,
 							Bigtable: Bigtable{
-								Session:     Session{},
-								InstanceIDs: "instance1",
+								Session:   Session{},
+								Instances: []InstancesMap{{BigtableInstance: "instance1", Keyspace: "instance1"}},
 							},
 						},
 					},
@@ -85,7 +85,7 @@ func TestValidateAndApplyDefaults(t *testing.T) {
 							Port: 8080,
 							Bigtable: Bigtable{
 								Session:            Session{},
-								InstanceIDs:        "instance1",
+								Instances:          []InstancesMap{{BigtableInstance: "instance1", Keyspace: "instance1"}},
 								ProjectID:          "project1",
 								SchemaMappingTable: "custom_table",
 							},

@@ -20,88 +20,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/third_party/datastax/proxycore"
 	"github.com/datastax/go-cassandra-native-protocol/datatype"
 	"github.com/datastax/go-cassandra-native-protocol/primitive"
 	"github.com/stretchr/testify/assert"
 )
-
-func TestGetCassandraColumnType(t *testing.T) {
-	testCases := []struct {
-		input    string
-		wantType datatype.DataType
-		wantErr  bool
-	}{
-		{"text", datatype.Varchar, false},
-		{"blob", datatype.Blob, false},
-		{"timestamp", datatype.Timestamp, false},
-		{"int", datatype.Int, false},
-		{"float", datatype.Float, false},
-		{"double", datatype.Double, false},
-		{"bigint", datatype.Bigint, false},
-		{"boolean", datatype.Boolean, false},
-		{"uuid", datatype.Uuid, false},
-		{"map<text, boolean>", datatype.NewMapType(datatype.Varchar, datatype.Boolean), false},
-		{"map<varchar, boolean>", datatype.NewMapType(datatype.Varchar, datatype.Boolean), false},
-		{"map<text, text>", datatype.NewMapType(datatype.Varchar, datatype.Varchar), false},
-		{"map<text, varchar>", datatype.NewMapType(datatype.Varchar, datatype.Varchar), false},
-		{"map<varchar, text>", datatype.NewMapType(datatype.Varchar, datatype.Varchar), false},
-		{"map<varchar, varchar>", datatype.NewMapType(datatype.Varchar, datatype.Varchar), false},
-		{"map<varchar>", nil, true},
-		{"list<text>", datatype.NewListType(datatype.Varchar), false},
-		{"list<varchar>", datatype.NewListType(datatype.Varchar), false},
-		{"frozen<list<text>>", datatype.NewListType(datatype.Varchar), false},
-		{"frozen<list<varchar>>", datatype.NewListType(datatype.Varchar), false},
-		{"set<text>", datatype.NewSetType(datatype.Varchar), false},
-		{"set<text", nil, true},
-		{"set<", nil, true},
-		{"set<varchar>", datatype.NewSetType(datatype.Varchar), false},
-		{"frozen<set<text>>", datatype.NewSetType(datatype.Varchar), false},
-		{"frozen<set<varchar>>", datatype.NewSetType(datatype.Varchar), false},
-		{"unknown", nil, true},
-		// Future scope items below:
-		{"map<text, int>", datatype.NewMapType(datatype.Varchar, datatype.Int), false},
-		{"map<varchar, int>", datatype.NewMapType(datatype.Varchar, datatype.Int), false},
-		{"map<text, bigint>", datatype.NewMapType(datatype.Varchar, datatype.Bigint), false},
-		{"map<varchar, bigint>", datatype.NewMapType(datatype.Varchar, datatype.Bigint), false},
-		{"map<text, float>", datatype.NewMapType(datatype.Varchar, datatype.Float), false},
-		{"map<varchar, float>", datatype.NewMapType(datatype.Varchar, datatype.Float), false},
-		{"map<text, double>", datatype.NewMapType(datatype.Varchar, datatype.Double), false},
-		{"map<varchar, double>", datatype.NewMapType(datatype.Varchar, datatype.Double), false},
-		{"map<text, timestamp>", datatype.NewMapType(datatype.Varchar, datatype.Timestamp), false},
-		{"map<varchar, timestamp>", datatype.NewMapType(datatype.Varchar, datatype.Timestamp), false},
-		{"map<timestamp, text>", datatype.NewMapType(datatype.Timestamp, datatype.Varchar), false},
-		{"map<timestamp, varchar>", datatype.NewMapType(datatype.Timestamp, datatype.Varchar), false},
-		{"map<timestamp, boolean>", datatype.NewMapType(datatype.Timestamp, datatype.Boolean), false},
-		{"map<timestamp, int>", datatype.NewMapType(datatype.Timestamp, datatype.Int), false},
-		{"map<timestamp, bigint>", datatype.NewMapType(datatype.Timestamp, datatype.Bigint), false},
-		{"map<timestamp, float>", datatype.NewMapType(datatype.Timestamp, datatype.Float), false},
-		{"map<timestamp, double>", datatype.NewMapType(datatype.Timestamp, datatype.Double), false},
-		{"map<timestamp, timestamp>", datatype.NewMapType(datatype.Timestamp, datatype.Timestamp), false},
-		{"set<int>", datatype.NewSetType(datatype.Int), false},
-		{"set<bigint>", datatype.NewSetType(datatype.Bigint), false},
-		{"set<float>", datatype.NewSetType(datatype.Float), false},
-		{"set<double>", datatype.NewSetType(datatype.Double), false},
-		{"set<boolean>", datatype.NewSetType(datatype.Boolean), false},
-		{"set<timestamp>", datatype.NewSetType(datatype.Timestamp), false},
-		{"set<text>", datatype.NewSetType(datatype.Varchar), false},
-		{"set<varchar>", datatype.NewSetType(datatype.Varchar), false},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.input, func(t *testing.T) {
-			gotType, err := GetCassandraColumnType(tc.input)
-			if (err != nil) != tc.wantErr {
-				t.Errorf("getCassandraColumnType(%s) error = %v, wantErr %v", tc.input, err, tc.wantErr)
-				return
-			}
-
-			if err == nil && !reflect.DeepEqual(gotType, tc.wantType) {
-				t.Errorf("getCassandraColumnType(%s) = %v, want %v", tc.input, gotType, tc.wantType)
-			}
-		})
-	}
-}
 
 func TestIsCollectionDataType(t *testing.T) {
 	testCases := []struct {
@@ -527,6 +451,12 @@ func TestTypeConversion(t *testing.T) {
 			protocalVersion: protocalV,
 		},
 		{
+			name:            "Map",
+			input:           datatype.NewMapType(datatype.Varchar, datatype.Varchar),
+			expected:        []byte{'m', 'a', 'p', '<', 'v', 'a', 'r', 'c', 'h', 'a', 'r', ',', 'v', 'a', 'r', 'c', 'h', 'a', 'r', '>'},
+			protocalVersion: protocalV,
+		},
+		{
 			name:            "String Error Case",
 			input:           struct{}{},
 			wantErr:         true,
@@ -909,6 +839,135 @@ func TestDataConversionInInsertionIfRequired(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("DataConversionInInsertionIfRequired() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestGetClauseByValue(t *testing.T) {
+	type args struct {
+		clause []types.Clause
+		value  string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    types.Clause
+		wantErr bool
+	}{
+		{
+			name: "Found clause",
+			args: args{
+				clause: []types.Clause{{Value: "@test"}},
+				value:  "test",
+			},
+			want:    types.Clause{Value: "@test"},
+			wantErr: false,
+		},
+		{
+			name: "Clause not found",
+			args: args{
+				clause: []types.Clause{{Value: "@test"}},
+				value:  "notfound",
+			},
+			want:    types.Clause{},
+			wantErr: true,
+		},
+		{
+			name: "Empty clause slice",
+			args: args{
+				clause: []types.Clause{},
+				value:  "test",
+			},
+			want:    types.Clause{},
+			wantErr: true,
+		},
+		{
+			name: "Multiple clauses, found",
+			args: args{
+				clause: []types.Clause{{Value: "@test1"}, {Value: "@test2"}},
+				value:  "test2",
+			},
+			want:    types.Clause{Value: "@test2"},
+			wantErr: false,
+		},
+		{
+			name: "Multiple clauses, not found",
+			args: args{
+				clause: []types.Clause{{Value: "@test1"}, {Value: "@test2"}},
+				value:  "test3",
+			},
+			want:    types.Clause{},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := GetClauseByValue(tt.args.clause, tt.args.value)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetClauseByValue() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("GetClauseByValue() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+func TestGetClauseByColumn(t *testing.T) {
+	type args struct {
+		clause []types.Clause
+		column string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    types.Clause
+		wantErr bool
+	}{
+		{
+			name: "Existing column",
+			args: args{
+				clause: []types.Clause{
+					{Column: "column1", Value: "value1"},
+					{Column: "column2", Value: "value2"},
+				},
+				column: "column1",
+			},
+			want:    types.Clause{Column: "column1", Value: "value1"},
+			wantErr: false,
+		},
+		{
+			name: "Non-existing column",
+			args: args{
+				clause: []types.Clause{
+					{Column: "column1", Value: "value1"},
+					{Column: "column2", Value: "value2"},
+				},
+				column: "column3",
+			},
+			want:    types.Clause{},
+			wantErr: true,
+		},
+		{
+			name: "Empty clause slice",
+			args: args{
+				clause: []types.Clause{},
+				column: "column1",
+			},
+			want:    types.Clause{},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := GetClauseByColumn(tt.args.clause, tt.args.column)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetClauseByColumn() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("GetClauseByColumn() = %v, want %v", got, tt.want)
 			}
 		})
 	}

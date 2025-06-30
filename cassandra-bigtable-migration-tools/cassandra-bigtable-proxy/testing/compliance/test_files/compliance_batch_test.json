@@ -844,7 +844,7 @@
           { "value": [ "tag_one", "tag_two", "tag_three" ], "datatype": "set<text>" },
           { "value": [ true, false ], "datatype": "set<boolean>" },
           { "value": [ 12, 45, 67, 89 ], "datatype": "set<int>" },
-          { "value": [ 1234567, 98765432, 11111111 ], "datatype": "set<bigint>" },
+          { "value": [ 12345678, 98765432, 11111111 ], "datatype": "set<bigint>" },
           { "value": [ 55.66, 23.34, 12.78 ], "datatype": "set<float>" },
           { "value": [ 456.782, 654.13, 789.456 ], "datatype": "set<double>" },
           { "value": [ 1734526439000, 1732516429000, 1734516831000, 1734511234000 ], "datatype": "set<timestamp>" }
@@ -907,12 +907,70 @@
           { "tags": [ "tag_one", "tag_three", "tag_two" ], "datatype": "set<text>" },
           { "set_boolean": [ false, true ], "datatype": "set<boolean>" },
           { "set_int": [ 12, 45, 67, 89 ], "datatype": "set<int>" },
-          { "set_bigint": [ 11111111, 1234567, 98765432 ], "datatype": "set<bigint>" },
+          { "set_bigint": [ 11111111, 12345678, 98765432 ], "datatype": "set<bigint>" },
           { "set_float": [ 12.78, 23.34, 55.66 ], "datatype": "set<float>" },
           { "set_double": [ 456.782, 654.13, 789.456 ], "datatype": "set<double>" }
         ]
       }
     ]
+  },
+  {
+    "title": "Batch Operations To Validate USING TIMESTAMP and WRITETIME keyword",
+    "description": "This test case performs batch operations to validate the usage of the TIMESTAMP and WRITETIME keywords in the 'user_info' table.",
+    "kind": "BATCH",
+    "operations": [
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?) USING TIMESTAMP ?",
+        "query_desc": "Insert a record with a timestamp with milliseconds value.",
+        "query_type": "BATCH",
+        "params": [
+          { "value": "John Batch", "datatype": "text" },
+          { "value": 31, "datatype": "bigint" },
+          { "value": 987, "datatype": "int" },
+          { "value": "1734516444000000", "datatype": "bigintTimestamp" }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?) USING TIMESTAMP ?",
+        "query_desc": "Insert a record with a timestamp with microseconds value.",
+        "query_type": "BATCH",
+        "params": [
+          { "value": "Alexa Batch", "datatype": "text" },
+          { "value": 32, "datatype": "bigint" },
+          { "value": 987, "datatype": "int" },
+          { "value": "1747651510418000", "datatype": "bigintTimestamp" }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT name, age, writetime(code) FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_desc": "Validate the writetime of the 'age' column with microseconds.",
+        "query_type": "VALIDATE",
+        "params": [
+          { "value": "John Batch", "datatype": "text" },
+          { "value": 31, "datatype": "bigint" }
+        ],
+        "expected_result": [
+          { "name": "John Batch", "datatype": "text" },
+          { "age": 31, "datatype": "bigint" },
+          { "writetime(code)": 1734516444000000, "datatype": "bigint" }
+        ]
+      },
+      {
+        "query": "SELECT name, age, writetime(code) FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?",
+        "query_desc": "Validate the writetime of the 'age' column with microseconds.",
+        "query_type": "VALIDATE",
+        "params": [
+          { "value": "Alexa Batch", "datatype": "text" },
+          { "value": 32, "datatype": "bigint" }
+        ],
+        "expected_result": [
+          { "name": "Alexa Batch", "datatype": "text" },
+          { "age": 32, "datatype": "bigint" },
+          { "writetime(code)": 1747651510418000, "datatype": "bigint" }
+        ]
+      }
+    ]
   }
-  
 ]

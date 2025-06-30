@@ -20,7 +20,7 @@ import (
 	"reflect"
 	"testing"
 
-	schemaMapping "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/schema-mapping"
+	types "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -52,24 +52,24 @@ func TestGetProfileId(t *testing.T) {
 
 func Test_sortPkData(t *testing.T) {
 	type args struct {
-		pkMetadata map[string][]schemaMapping.Column
+		pkMetadata map[string][]types.Column
 	}
 	tests := []struct {
 		name string
 		args args
-		want map[string][]schemaMapping.Column
+		want map[string][]types.Column
 	}{
 		{
 			name: "Basic Sorting",
 			args: args{
-				pkMetadata: map[string][]schemaMapping.Column{
+				pkMetadata: map[string][]types.Column{
 					"users": {
 						{ColumnName: "id", PkPrecedence: 2},
 						{ColumnName: "email", PkPrecedence: 1},
 					},
 				},
 			},
-			want: map[string][]schemaMapping.Column{
+			want: map[string][]types.Column{
 				"users": {
 					{ColumnName: "email", PkPrecedence: 1},
 					{ColumnName: "id", PkPrecedence: 2},
@@ -79,14 +79,14 @@ func Test_sortPkData(t *testing.T) {
 		{
 			name: "Already Sorted Data",
 			args: args{
-				pkMetadata: map[string][]schemaMapping.Column{
+				pkMetadata: map[string][]types.Column{
 					"orders": {
 						{ColumnName: "order_id", PkPrecedence: 1},
 						{ColumnName: "customer_id", PkPrecedence: 2},
 					},
 				},
 			},
-			want: map[string][]schemaMapping.Column{
+			want: map[string][]types.Column{
 				"orders": {
 					{ColumnName: "order_id", PkPrecedence: 1},
 					{ColumnName: "customer_id", PkPrecedence: 2},
@@ -96,7 +96,7 @@ func Test_sortPkData(t *testing.T) {
 		{
 			name: "Multiple Tables",
 			args: args{
-				pkMetadata: map[string][]schemaMapping.Column{
+				pkMetadata: map[string][]types.Column{
 					"users": {
 						{ColumnName: "id", PkPrecedence: 2},
 						{ColumnName: "email", PkPrecedence: 1},
@@ -108,7 +108,7 @@ func Test_sortPkData(t *testing.T) {
 					},
 				},
 			},
-			want: map[string][]schemaMapping.Column{
+			want: map[string][]types.Column{
 				"users": {
 					{ColumnName: "email", PkPrecedence: 1},
 					{ColumnName: "id", PkPrecedence: 2},
@@ -123,14 +123,14 @@ func Test_sortPkData(t *testing.T) {
 		{
 			name: "Same Precedence Values (Unchanged Order)",
 			args: args{
-				pkMetadata: map[string][]schemaMapping.Column{
+				pkMetadata: map[string][]types.Column{
 					"products": {
 						{ColumnName: "product_id", PkPrecedence: 1},
 						{ColumnName: "category_id", PkPrecedence: 1},
 					},
 				},
 			},
-			want: map[string][]schemaMapping.Column{
+			want: map[string][]types.Column{
 				"products": {
 					{ColumnName: "product_id", PkPrecedence: 1},
 					{ColumnName: "category_id", PkPrecedence: 1}, // Order should remain the same
@@ -138,15 +138,15 @@ func Test_sortPkData(t *testing.T) {
 			},
 		},
 		{
-			name: "Single Column (No Sorting Needed)",
+			name: "Single types.Column (No Sorting Needed)",
 			args: args{
-				pkMetadata: map[string][]schemaMapping.Column{
+				pkMetadata: map[string][]types.Column{
 					"categories": {
 						{ColumnName: "category_id", PkPrecedence: 1},
 					},
 				},
 			},
-			want: map[string][]schemaMapping.Column{
+			want: map[string][]types.Column{
 				"categories": {
 					{ColumnName: "category_id", PkPrecedence: 1},
 				},
@@ -155,36 +155,36 @@ func Test_sortPkData(t *testing.T) {
 		{
 			name: "Empty Map (No Operation)",
 			args: args{
-				pkMetadata: map[string][]schemaMapping.Column{},
+				pkMetadata: map[string][]types.Column{},
 			},
-			want: map[string][]schemaMapping.Column{},
+			want: map[string][]types.Column{},
 		},
 		{
 			name: "Empty Table Entries (No Sorting Needed)",
 			args: args{
-				pkMetadata: map[string][]schemaMapping.Column{
+				pkMetadata: map[string][]types.Column{
 					"empty_table": {},
 				},
 			},
-			want: map[string][]schemaMapping.Column{
+			want: map[string][]types.Column{
 				"empty_table": {},
 			},
 		},
 		{
 			name: "Table With Nil Columns (Should Not Panic)",
 			args: args{
-				pkMetadata: map[string][]schemaMapping.Column{
+				pkMetadata: map[string][]types.Column{
 					"table_nil": nil,
 				},
 			},
-			want: map[string][]schemaMapping.Column{
+			want: map[string][]types.Column{
 				"table_nil": nil,
 			},
 		},
 		{
 			name: "Negative Precedence Values (Still Sorted Correctly)",
 			args: args{
-				pkMetadata: map[string][]schemaMapping.Column{
+				pkMetadata: map[string][]types.Column{
 					"test_table": {
 						{ColumnName: "col1", PkPrecedence: -1},
 						{ColumnName: "col2", PkPrecedence: -3},
@@ -192,7 +192,7 @@ func Test_sortPkData(t *testing.T) {
 					},
 				},
 			},
-			want: map[string][]schemaMapping.Column{
+			want: map[string][]types.Column{
 				"test_table": {
 					{ColumnName: "col2", PkPrecedence: -3},
 					{ColumnName: "col3", PkPrecedence: -2},
@@ -203,7 +203,7 @@ func Test_sortPkData(t *testing.T) {
 		{
 			name: "Zero Precedence Values (Sorted Normally)",
 			args: args{
-				pkMetadata: map[string][]schemaMapping.Column{
+				pkMetadata: map[string][]types.Column{
 					"zero_precedence": {
 						{ColumnName: "colA", PkPrecedence: 0},
 						{ColumnName: "colB", PkPrecedence: 2},
@@ -211,7 +211,7 @@ func Test_sortPkData(t *testing.T) {
 					},
 				},
 			},
-			want: map[string][]schemaMapping.Column{
+			want: map[string][]types.Column{
 				"zero_precedence": {
 					{ColumnName: "colA", PkPrecedence: 0},
 					{ColumnName: "colC", PkPrecedence: 1},

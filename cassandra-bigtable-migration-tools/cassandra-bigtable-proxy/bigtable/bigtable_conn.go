@@ -38,8 +38,8 @@ import (
 // Returns:
 //   - A pointer to an initialized bigtable.Client for the specified instance.
 //   - An error if the client setup process encounters any issues.
-func CreateBigtableClient(ctx context.Context, config ConnConfig, instanceID string) (*bigtable.Client, error) {
-
+func CreateBigtableClient(ctx context.Context, config ConnConfig, instanceConfig InstanceConfig) (*bigtable.Client, error) {
+	instanceID := instanceConfig.BigtableInstance
 	// Create a gRPC connection pool with the specified number of channels
 	pool := grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(1024 * 1024 * 10)) // 10 MB max message size
 
@@ -51,7 +51,7 @@ func CreateBigtableClient(ctx context.Context, config ConnConfig, instanceID str
 	}
 
 	client, err := bigtable.NewClientWithConfig(ctx, config.GCPProjectID, instanceID, bigtable.ClientConfig{
-		AppProfile: config.AppProfileID,
+		AppProfile: instanceConfig.AppProfileId,
 	}, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Bigtable client for instance %s: %v", instanceID, err)
@@ -78,13 +78,11 @@ func CreateBigtableAdminClient(ctx context.Context, config ConnConfig, instanceI
 //   - A map[string]*bigtable.Client, where each key is an instance ID and the value is the corresponding Bigtable client.
 //   - An error if the client creation fails for any of the specified instances.
 func CreateClientsForInstances(ctx context.Context, config ConnConfig) (map[string]*bigtable.Client, map[string]*bigtable.AdminClient, error) {
-	InstanceIDs := strings.Split(config.InstanceIDs, ",")
-
 	clients := make(map[string]*bigtable.Client)
 	adminClients := make(map[string]*bigtable.AdminClient)
-	for _, instanceID := range InstanceIDs {
-		instanceID = strings.TrimSpace(instanceID)
-		client, err := CreateBigtableClient(ctx, config, instanceID)
+	for _, instanceConfig := range config.InstancesMap {
+		instanceID := strings.TrimSpace(instanceConfig.BigtableInstance)
+		client, err := CreateBigtableClient(ctx, config, instanceConfig)
 		if err != nil {
 			return nil, nil, err
 		}
