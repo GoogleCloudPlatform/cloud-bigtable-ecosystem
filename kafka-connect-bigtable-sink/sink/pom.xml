@@ -90,7 +90,7 @@
                             <sources>
                                 <!-- We need to put third-party code inside the `third_party` directory
                                   for licensing compliance, including them in the project here. -->
-                                <source>./third_party/apache_hbase_common/src/main/java/com/google/cloud/kafka/connect/bigtable/utils/ByteUtils.java</source>
+                                <source>./third_party/apache_hbase_common/src/main/java</source>
                             </sources>
                         </configuration>
                     </execution>

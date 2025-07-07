@@ -30,6 +30,7 @@ import com.google.cloud.bigtable.data.v2.models.Range;
 import com.google.cloud.kafka.connect.bigtable.config.ConfigInterpolation;
 import com.google.cloud.kafka.connect.bigtable.config.NullValueMode;
 import com.google.cloud.kafka.connect.bigtable.util.ProtoUtil;
+import com.google.cloud.kafka.connect.bigtable.utils.ByteUtils;
 import com.google.protobuf.ByteString;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
