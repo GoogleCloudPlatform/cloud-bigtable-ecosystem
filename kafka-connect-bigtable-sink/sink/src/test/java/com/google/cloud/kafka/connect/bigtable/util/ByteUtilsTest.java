@@ -17,7 +17,7 @@ package com.google.cloud.kafka.connect.bigtable.util;
 
 import static org.junit.Assert.assertArrayEquals;
 
-import com.google.cloud.kafka.connect.bigtable.mapping.ByteUtils;
+import com.google.cloud.kafka.connect.bigtable.utils.ByteUtils;
 import java.math.BigDecimal;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Test;
