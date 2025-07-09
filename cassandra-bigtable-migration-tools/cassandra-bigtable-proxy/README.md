@@ -2,7 +2,7 @@
 
 ## Current Released Version
 
-Version `1.1.0` - Release on `TBD`
+Version `1.1.0` - Released on `April 10, 2025`
 
 For more details on this release, please refer to the [CHANGELOG.md](./CHANGELOG.md).
 
