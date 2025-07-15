@@ -29,8 +29,8 @@ import com.google.cloud.bigtable.data.v2.BigtableDataClient;
 import com.google.cloud.bigtable.data.v2.BigtableDataSettings;
 import com.google.cloud.bigtable.data.v2.stub.EnhancedBigtableStubSettings;
 import com.google.cloud.kafka.connect.bigtable.version.PackageMetadata;
-import com.google.cloud.kafka.connect.bigtable.wrappers.BigtableTableAdminClientWrapper;
 import com.google.cloud.kafka.connect.bigtable.wrappers.BigtableTableAdminClientInterface;
+import com.google.cloud.kafka.connect.bigtable.wrappers.BigtableTableAdminClientWrapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 import java.io.ByteArrayInputStream;
@@ -272,11 +272,13 @@ public class BigtableSinkConfig extends AbstractConfig {
             InsertMode.INSERT.name(),
             enumValidator(InsertMode.values()),
             ConfigDef.Importance.HIGH,
-            "Defines the insertion mode to use. Supported modes are:"
-                + "\n- insert - Insert new record only."
-                + " If the row to be written already exists in the table, an error is thrown."
-                + "\n- upsert - If the row to be written already exists,"
-                + " then its column values are overwritten with the ones provided.")
+            "Defines the insertion mode to use. Supported modes are:\n"
+                + "- insert - Insert new record only. If the row to be written already exists in"
+                + " the table, an error is thrown.\n"
+                + "- upsert - If the row to be written already exists, then its column values are"
+                + " overwritten with the ones provided.\n"
+                + "- replace_if_newest - If there are no cells newer than this record within the"
+                + " target row of the table, empty the row and then insert new record.")
         .define(
             MAX_BATCH_SIZE_CONFIG,
             ConfigDef.Type.INT,
@@ -440,8 +442,8 @@ public class BigtableSinkConfig extends AbstractConfig {
   }
 
   /**
-   * @return {@link BigtableTableAdminClientInterface} connected to a Cloud Bigtable instance configured as
-   *     described in {@link BigtableSinkConfig#getDefinition()}.
+   * @return {@link BigtableTableAdminClientInterface} connected to a Cloud Bigtable instance
+   *     configured as described in {@link BigtableSinkConfig#getDefinition()}.
    */
   public BigtableTableAdminClientInterface getBigtableAdminClient() {
     Duration totalTimeout = getTotalRetryTimeout();
@@ -497,7 +499,8 @@ public class BigtableSinkConfig extends AbstractConfig {
                     StatusCode.Code.FAILED_PRECONDITION)));
 
     try {
-      return new BigtableTableAdminClientWrapper(BigtableTableAdminClient.create(adminSettingsBuilder.build()));
+      return new BigtableTableAdminClientWrapper(
+          BigtableTableAdminClient.create(adminSettingsBuilder.build()));
     } catch (IOException e) {
       throw new RetriableException(e);
     }
