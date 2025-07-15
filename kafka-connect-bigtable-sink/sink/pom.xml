@@ -79,7 +79,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>build-helper-maven-plugin</artifactId>
-                <version>3.3.0</version>
+                <version>${maven-build-helper.version}</version>
                 <executions>
                     <execution>
                         <id>add-source</id>
@@ -91,7 +91,7 @@
                             <sources>
                                 <!-- We need to put third-party code inside the `third_party` directory
                                   for licensing compliance, including them in the project here. -->
-                                <source>./third_party/apache_hbase_common/src/main/java/com/google/cloud/kafka/connect/bigtable/utils/ByteUtils.java</source>
+                                <source>./third_party/apache_hbase_common/src/main/java</source>
                             </sources>
                         </configuration>
                     </execution>
@@ -106,12 +106,14 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <configuration>
-                    <descriptors>
-                        <descriptor>src/main/assembly/package.xml</descriptor>
-                    </descriptors>
                     <descriptorRefs>
                         <descriptorRef>jar-with-dependencies</descriptorRef>
                     </descriptorRefs>
+                    <archive>
+                        <manifest>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                        </manifest>
+                    </archive>
                 </configuration>
                 <executions>
                     <execution>
