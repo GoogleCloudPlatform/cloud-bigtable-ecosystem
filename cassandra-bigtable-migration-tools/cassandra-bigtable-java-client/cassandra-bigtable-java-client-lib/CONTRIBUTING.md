@@ -32,6 +32,16 @@ use GitHub pull requests for this purpose. Consult
 [GitHub Help](https://help.github.com/articles/about-pull-requests/) for more
 information on using pull requests.
 
+# How to build
+
+- Ensure you have installed [these pre-requisites](../../cassandra-bigtable-proxy/README.md#pre-requisites)
+- Navigate to the parent directory ([`cassandra-bigtable-java-client`](../))
+- Run the following Maven command, replacing `<SPECIFY-PROFILE-HERE>` with one from [this list of classifiers](README.md#classifiers)
+
+```shell
+mvn install -P<SPECIFY-PROFILE-HERE>
+```
+
 # Running tests
 
 ## Integration tests
