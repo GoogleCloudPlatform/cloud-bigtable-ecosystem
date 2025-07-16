@@ -2,7 +2,7 @@
 
 The Cassandra to Bigtable Client for Java lets you integrate your Cassandra-based Java applications with Bigtable using CQL.
 
-# How to build library
+# How to build
 
 - Ensure you have the installed [these pre-requisites](../../cassandra-bigtable-proxy/README.md#pre-requisites)
 - Navigate to the parent directory (`cassandra-bigtable-java-client`)
