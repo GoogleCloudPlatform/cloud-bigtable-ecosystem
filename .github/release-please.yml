@@ -3,3 +3,4 @@ handleGHRelease: true
 manifest: true
 manifestFile: .github/.release-please-manifest.json
 manifestConfig: .github/release-please-config.json
+primaryBranch: main

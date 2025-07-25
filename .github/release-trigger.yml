@@ -1,2 +1,3 @@
 enabled: true
 multiScmName: cloud-bigtable-ecosystem
+lang: java
