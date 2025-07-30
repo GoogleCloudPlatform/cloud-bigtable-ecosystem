@@ -37,6 +37,17 @@ limitations under the License.
       <module>cassandra-bigtable-java-client-bom</module>
     </modules>
 
+    <distributionManagement>
+      <snapshotRepository>
+        <id>sonatype-nexus-snapshots</id>
+        <url>https://google.oss.sonatype.org/content/repositories/snapshots</url>
+      </snapshotRepository>
+      <repository>
+        <id>sonatype-nexus-staging</id>
+        <url>https://google.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+      </repository>
+    </distributionManagement>
+
     <build>
       <plugins>
         <plugin>
@@ -60,16 +71,5 @@ limitations under the License.
         </plugin>
       </plugins>
     </build>
-
-    <distributionManagement>
-      <snapshotRepository>
-        <id>sonatype-nexus-snapshots</id>
-        <url>https://google.oss.sonatype.org/content/repositories/snapshots</url>
-      </snapshotRepository>
-      <repository>
-        <id>sonatype-nexus-staging</id>
-        <url>https://google.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-      </repository>
-    </distributionManagement>
 
 </project>
