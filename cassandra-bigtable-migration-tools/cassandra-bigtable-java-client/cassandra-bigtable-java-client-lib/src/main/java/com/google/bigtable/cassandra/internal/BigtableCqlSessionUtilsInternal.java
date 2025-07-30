@@ -20,7 +20,7 @@ import com.google.bigtable.cassandra.BigtableCqlSessionFactory;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.file.Paths;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import io.netty.channel.unix.DomainSocketAddress;
@@ -58,7 +58,7 @@ public final class BigtableCqlSessionUtilsInternal {
           .withLocalDatacenter(BIGTABLE_PROXY_LOCAL_DATACENTER)
           .withNodeStateListener(nodeStateListener)
           .build();
-      Files.delete(Path.of(udsAddress.path()));
+      Files.delete(Paths.get(udsAddress.path()));
 
       BigtableCqlSession bigtableCqlSession = new BigtableCqlSession(delegate, proxy);
       proxy.setSession(bigtableCqlSession);
