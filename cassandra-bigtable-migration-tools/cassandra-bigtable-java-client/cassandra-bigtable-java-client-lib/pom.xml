@@ -22,12 +22,12 @@ limitations under the License.
   <parent>
     <artifactId>cassandra-bigtable-java-client-parent</artifactId>
     <groupId>com.google.cloud</groupId>
-    <version>0.1.2-SNAPSHOT</version><!-- {x-version-update:cassandra-bigtable-java-client-parent:current} -->
+    <version>0.1.2</version><!-- {x-version-update:cassandra-bigtable-java-client-parent:current} -->
   </parent>
 
   <artifactId>cassandra-bigtable-java-client-lib</artifactId>
   <packaging>jar</packaging>
-  <version>0.1.2-SNAPSHOT</version><!-- {x-version-update:cassandra-bigtable-java-client-lib:current} -->
+  <version>0.1.2</version><!-- {x-version-update:cassandra-bigtable-java-client-lib:current} -->
   <description>
     Bigtable CQL Client for Java library
   </description>
@@ -145,7 +145,7 @@ limitations under the License.
         <dependency>
           <groupId>com.google.cloud</groupId>
           <artifactId>cassandra-bigtable-java-client-core</artifactId>
-          <version>0.1.2-SNAPSHOT</version><!-- {x-version-update:cassandra-bigtable-java-client-core:current} -->
+          <version>0.1.2</version><!-- {x-version-update:cassandra-bigtable-java-client-core:current} -->
           <classifier>linux-amd64</classifier>
         </dependency>
         <dependency>
@@ -167,7 +167,7 @@ limitations under the License.
         <dependency>
           <groupId>com.google.cloud</groupId>
           <artifactId>cassandra-bigtable-java-client-core</artifactId>
-          <version>0.1.2-SNAPSHOT</version><!-- {x-version-update:cassandra-bigtable-java-client-core:current} -->
+          <version>0.1.2</version><!-- {x-version-update:cassandra-bigtable-java-client-core:current} -->
           <classifier>linux-arm64</classifier>
         </dependency>
         <dependency>
@@ -189,7 +189,7 @@ limitations under the License.
         <dependency>
           <groupId>com.google.cloud</groupId>
           <artifactId>cassandra-bigtable-java-client-core</artifactId>
-          <version>0.1.2-SNAPSHOT</version><!-- {x-version-update:cassandra-bigtable-java-client-core:current} -->
+          <version>0.1.2</version><!-- {x-version-update:cassandra-bigtable-java-client-core:current} -->
           <classifier>darwin-amd64</classifier>
         </dependency>
         <dependency>
@@ -211,7 +211,7 @@ limitations under the License.
         <dependency>
           <groupId>com.google.cloud</groupId>
           <artifactId>cassandra-bigtable-java-client-core</artifactId>
-          <version>0.1.2-SNAPSHOT</version><!-- {x-version-update:cassandra-bigtable-java-client-core:current} -->
+          <version>0.1.2</version><!-- {x-version-update:cassandra-bigtable-java-client-core:current} -->
           <classifier>darwin-arm64</classifier>
         </dependency>
         <dependency>
