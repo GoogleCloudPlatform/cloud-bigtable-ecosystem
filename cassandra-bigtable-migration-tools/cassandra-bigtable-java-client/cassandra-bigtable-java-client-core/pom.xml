@@ -22,12 +22,12 @@ limitations under the License.
   <parent>
     <artifactId>cassandra-bigtable-java-client-parent</artifactId>
     <groupId>com.google.cloud</groupId>
-    <version>0.1.2</version><!-- {x-version-update:cassandra-bigtable-java-client-parent:current} -->
+    <version>0.1.3-SNAPSHOT</version><!-- {x-version-update:cassandra-bigtable-java-client-parent:current} -->
   </parent>
 
   <artifactId>cassandra-bigtable-java-client-core</artifactId>
   <packaging>jar</packaging>
-  <version>0.1.2</version><!-- {x-version-update:cassandra-bigtable-java-client-core:current} -->
+  <version>0.1.3-SNAPSHOT</version><!-- {x-version-update:cassandra-bigtable-java-client-core:current} -->
   <description>
     A Java wrapper around the Cassandra to Cloud Bigtable Proxy Adaptor
   </description>
