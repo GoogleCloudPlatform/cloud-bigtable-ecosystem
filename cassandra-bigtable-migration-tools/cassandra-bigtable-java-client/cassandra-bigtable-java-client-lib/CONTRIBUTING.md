@@ -73,7 +73,7 @@ Note: select the classifier that matches your target platform/architecture (see 
 Finally, run this command to execute the integration tests:
 
 ```shell
-mvn verify \
+mvn clean verify \
   -P$CBT_CASSANDRA_LIB_CLASSIFIER \
   -DskipIntegrationTests=false \
   -Dcassandra.bigtable.projectid=$GCP_PROJECT_ID \
