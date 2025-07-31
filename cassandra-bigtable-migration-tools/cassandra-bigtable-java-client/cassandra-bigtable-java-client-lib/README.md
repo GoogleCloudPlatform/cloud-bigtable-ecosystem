@@ -20,9 +20,7 @@ Add the following dependency to your Maven `pom.xml`, replacing `VERSION-HERE` w
 </dependencyManagement>
 ```
 
-<!--- {x-version-update-start:cassandra-bigtable-java-client-lib:released} -->
-The latest version is: `0.1.2`
-<!--- {x-version-update-end} -->
+The latest version is: `0.1.3`.
 
 Then, add the dependencies below to your Maven `pom.xml` file (replacing `SPECIFY-CLASSIFIER-HERE` with one from [this list of classifiers](#classifiers)):
 
