@@ -1,7 +1,7 @@
 # Format:
 # module:released-version:current-version
 
-cassandra-bigtable-java-client-parent:0.1.3:0.1.3
-cassandra-bigtable-java-client-bom:0.1.3:0.1.3
-cassandra-bigtable-java-client-core:0.1.3:0.1.3
-cassandra-bigtable-java-client-lib:0.1.3:0.1.3
+cassandra-bigtable-java-client-parent:0.1.3:0.1.4-SNAPSHOT
+cassandra-bigtable-java-client-bom:0.1.3:0.1.4-SNAPSHOT
+cassandra-bigtable-java-client-core:0.1.3:0.1.4-SNAPSHOT
+cassandra-bigtable-java-client-lib:0.1.3:0.1.4-SNAPSHOT
