@@ -23,12 +23,62 @@ import (
 	"strconv"
 	"strings"
 
+	methods "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/methods"
+	types "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	schemaMapping "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/schema-mapping"
 	cql "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/third_party/cqlparser"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/utilities"
 	"github.com/antlr4-go/antlr/v4"
 	"github.com/datastax/go-cassandra-native-protocol/primitive"
 )
+
+// Helper function to check if a node is a column reference
+func isColumn(node antlr.Tree, colName string) bool {
+	if tn, ok := node.(antlr.TerminalNode); ok {
+		return tn.GetText() == colName
+	}
+	return false
+}
+
+// Helper function to check if a node is a collection type
+func isCollection(node antlr.Tree) bool {
+	switch node.(type) {
+	case cql.IAssignmentListContext, cql.IAssignmentSetContext, cql.IAssignmentMapContext:
+		return true
+	}
+	return false
+}
+
+// Helper function to get text from a node
+func getNodeText(node antlr.Tree, parser antlr.Parser) string {
+	if tn, ok := node.(antlr.TerminalNode); ok {
+		return tn.GetText()
+	}
+	return antlr.TreesGetNodeText(node, nil, parser)
+}
+
+// Helper function to get value from a node
+func getNodeValue(node antlr.Tree, parent antlr.ParserRuleContext) interface{} {
+	switch ctx := node.(type) {
+	case cql.IAssignmentListContext:
+		val, _ := parseCqlValue(ctx)
+		return val
+	case cql.IAssignmentSetContext:
+		val, _ := parseCqlValue(ctx)
+		return val
+	case cql.IAssignmentMapContext:
+		val, _ := parseCqlValue(ctx)
+		return val
+	case antlr.TerminalNode:
+		return ctx.GetText()
+	default:
+		if parser, ok := parent.(interface{ GetParser() antlr.Parser }); ok {
+			return antlr.TreesGetNodeText(node, nil, parser.GetParser())
+		}
+		return antlr.TreesGetNodeText(node, nil, nil)
+	}
+
+}
 
 // parseAssignments() processes a list of assignment elements from a CQL update statement,
 // generating a structured response that includes the assignments' details and their corresponding
@@ -46,7 +96,7 @@ import (
 //   - An error if invalid input is detected, such as an empty assignment list or issues with assignment syntax,
 //     or if a column type cannot be retrieved from the schema mapping table, or if an attempt is made to assign
 //     a value to a primary key.
-func parseAssignments(assignments []cql.IAssignmentElementContext, tableName string, schemaMapping *schemaMapping.SchemaMappingConfig, keyspace string, prependColumn *[]string) (*UpdateSetResponse, error) {
+func parseAssignments(assignments []cql.IAssignmentElementContext, tableName string, schemaMapping *schemaMapping.SchemaMappingConfig, keyspace string, prependColumn *[]string, isPreparedQuery bool) (*UpdateSetResponse, error) {
 	if len(assignments) == 0 {
 		return nil, errors.New("invalid input")
 	}
@@ -55,10 +105,6 @@ func parseAssignments(assignments []cql.IAssignmentElementContext, tableName str
 	params := make(map[string]interface{})
 
 	for i, setVal := range assignments {
-		assignStr := setVal.GetText()
-		strSplit := strings.Split(assignStr, "=")
-		s := strconv.Itoa(i + 1)
-		placeholder := "set" + s
 		colObj := setVal.OBJECT_NAME(0)
 		if colObj == nil {
 			return nil, errors.New("error parsing column for assignments")
@@ -68,24 +114,116 @@ func parseAssignments(assignments []cql.IAssignmentElementContext, tableName str
 			return nil, errors.New("no columnName found for assignments")
 		}
 		columnName = strings.ReplaceAll(columnName, literalPlaceholder, "")
-		var value string
-		if strings.Contains(assignStr, "=?") {
+
+		var value interface{}
+		var err error
+
+		// Handle append, prepend, remove as ComplexAssignment
+		if setVal.PLUS() != nil || setVal.MINUS() != nil {
+			var op string = "+"
+			if setVal.MINUS() != nil {
+				op = "-"
+			}
+			// Find the operator index
+			var opIndex int
+			for i := 0; i < setVal.GetChildCount(); i++ {
+				child := setVal.GetChild(i)
+				if token, ok := child.(antlr.TerminalNode); ok && token.GetText() == op {
+					opIndex = i
+					break
+				}
+			}
+			left := setVal.GetChild(opIndex - 1)
+			right := setVal.GetChild(opIndex + 1)
+			var leftVal, rightVal interface{}
+			if isColumn(left, columnName) && isCollection(right) && op == "+" {
+				// Append: col = col + [values]
+				leftVal = getNodeText(left, setVal.GetParser())
+				rightVal = getNodeValue(right, setVal)
+			} else if isCollection(left) && isColumn(right, columnName) && op == "+" {
+				// Prepend: col = [values] + col
+				leftVal = getNodeValue(left, setVal)
+				rightVal = getNodeText(right, setVal.GetParser())
+				*prependColumn = append(*prependColumn, columnName)
+			} else {
+				// fallback: handle error or other cases
+				leftVal = getNodeText(left, setVal.GetParser())
+				rightVal = getNodeValue(right, setVal)
+			}
+			complexOp := ComplexAssignment{
+				Column:    columnName,
+				Operation: op,
+				Left:      leftVal,
+				Right:     rightVal,
+			}
+			value = complexOp
+		} else if setVal.AssignmentList() != nil {
+			// i.e. marks = [ ... ] or marks = []
+			value, err = parseCqlValue(setVal.AssignmentList())
+			if err != nil {
+				return nil, err
+			}
+			var val interface{}
+			columnType, err := schemaMapping.GetColumnType(keyspace, tableName, columnName)
+			if err != nil {
+				return nil, fmt.Errorf("undefined column name %s in table %s.%s", columnName, keyspace, tableName)
+			}
+			if columnType.IsPrimaryKey {
+				return nil, fmt.Errorf("primary key not allowed to assignments")
+			}
+			if value != questionMark {
+				if columnType.IsCollection {
+					val = value
+				} else {
+					val, err = formatValues(fmt.Sprintf("%v", value), columnType.CQLType, 4)
+					if err != nil {
+						return nil, err
+					}
+				}
+				params["set"+strconv.Itoa(i+1)] = val
+			}
+			paramKeys = append(paramKeys, "set"+strconv.Itoa(i+1))
+			cqlTypeStr, err := methods.ConvertCQLDataTypeToString(columnType.CQLType)
+			if err != nil {
+				return nil, err
+			}
+			setResp = append(setResp, UpdateSetValue{
+				Column:    columnName,
+				Value:     "@set" + strconv.Itoa(i+1),
+				Encrypted: val,
+				CQLType:   cqlTypeStr,
+			})
+			continue // Prevent falling through to the rest of the loop
+		} else if setVal.SyntaxBracketLs() != nil && setVal.DecimalLiteral() != nil && setVal.SyntaxBracketRs() != nil && setVal.Constant() != nil {
+			// i.e. marks[1] = 99 (index update)
+			index := strings.Trim(setVal.DecimalLiteral().GetText(), "'")
+			valueRaw, err := parseCqlConstant(setVal.Constant())
+			if err != nil {
+				return nil, err
+			}
+			complexOp := ComplexAssignment{
+				Column:    columnName,
+				Operation: "update_index",
+				Left:      index,
+				Right:     valueRaw,
+			}
+			value = complexOp
+		} else if setVal.Constant() != nil {
+			value, err = parseCqlConstant(setVal.Constant())
+		} else if setVal.AssignmentMap() != nil {
+			value, err = parseCqlValue(setVal.AssignmentMap())
+		} else if setVal.AssignmentSet() != nil {
+			value, err = parseCqlValue(setVal.AssignmentSet())
+		} else if setVal.QUESTION_MARK() != nil {
 			value = questionMark
 		} else {
-			valConst := setVal.Constant()
-			if valConst == nil {
-				value = strSplit[1]
-				if value == "" {
-					return nil, errors.New("error parsing value for assignments")
-				}
-			} else {
-				value = valConst.GetText()
-			}
-
+			value = setVal.GetText()
+		}
+		if err != nil {
+			return nil, err
 		}
 
-		value = strings.ReplaceAll(value, "'", "")
-		var val interface{} //encryted val
+		var val interface{} // encrypted val
 		columnType, err := schemaMapping.GetColumnType(keyspace, tableName, columnName)
 		if err != nil {
 			return nil, fmt.Errorf("undefined column name %s in table %s.%s", columnName, keyspace, tableName)
@@ -93,37 +231,29 @@ func parseAssignments(assignments []cql.IAssignmentElementContext, tableName str
 		if columnType.IsPrimaryKey {
 			return nil, fmt.Errorf("primary key not allowed to assignments")
 		}
-		if value != questionMark {
+		if !isPreparedQuery {
 			if columnType.IsCollection {
 				val = value
 			} else {
-				val, err = formatValues(value, columnType.CQLType, 4)
+				val, err = formatValues(fmt.Sprintf("%v", value), columnType.CQLType, 4)
 				if err != nil {
 					return nil, err
 				}
 			}
-			params[placeholder] = val
+			params["set"+strconv.Itoa(i+1)] = val
+		} else {
+			val = value
 		}
-		paramKeys = append(paramKeys, placeholder)
-		if (strings.Contains(columnType.CQLType, "map") || strings.Contains(columnType.CQLType, "list")) && IsMapKey(strSplit[0]) {
-			_, extractkey := ExtractMapKey(assignStr)
-			if extractkey == "" {
-				return nil, fmt.Errorf("invalid format: missing map key")
-			}
-			newVal := fmt.Sprintf("%s+{%s:%s}", columnName, extractkey, value)
-			val = newVal
-		} else if strings.Contains(columnType.CQLType, "list") && strings.Contains(value, fmt.Sprintf("+%s", columnName)) {
-			listAssignment := strSplit[1]
-			valSplit := strings.Split(listAssignment, "+")
-			newVal := fmt.Sprintf("%s+%s", valSplit[1], valSplit[0])
-			val = newVal
-			*prependColumn = append(*prependColumn, columnName)
+		paramKeys = append(paramKeys, "set"+strconv.Itoa(i+1))
+		cqlTypeStr, err := methods.ConvertCQLDataTypeToString(columnType.CQLType)
+		if err != nil {
+			return nil, err
 		}
 		setResp = append(setResp, UpdateSetValue{
 			Column:    columnName,
-			Value:     "@" + placeholder,
+			Value:     "@set" + strconv.Itoa(i+1),
 			Encrypted: val,
-			CQLType:   columnType.CQLType,
+			CQLType:   cqlTypeStr,
 		})
 	}
 	return &UpdateSetResponse{
@@ -139,40 +269,38 @@ func parseAssignments(assignments []cql.IAssignmentElementContext, tableName str
 //   - query: CQL Update query
 //
 // Returns: UpdateQueryMapping struct and error if any
-func (t *Translator) TranslateUpdateQuerytoBigtable(queryStr string, isPreparedQuery bool) (*UpdateQueryMapping, error) {
+func (t *Translator) TranslateUpdateQuerytoBigtable(queryStr string, isPreparedQuery bool, sessionKeyspace string) (*UpdateQueryMapping, error) {
 	lowerQuery := strings.ToLower(queryStr)
 	query := renameLiterals(queryStr)
-
-	query, PrependColumns := TransformPrepareQueryForPrependList(query)
 	lexer := cql.NewCqlLexer(antlr.NewInputStream(query))
 	stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
 	p := cql.NewCqlParser(stream)
 	updateObj := p.Update()
+	var PrependColumns []string
 
-	if updateObj == nil {
-		return nil, errors.New("error parsing the update object")
-	}
-
-	kwUpdateObj := updateObj.KwUpdate()
-
-	if kwUpdateObj == nil {
+	if updateObj == nil || updateObj.KwUpdate() == nil {
 		return nil, errors.New("error parsing the update object")
 	}
 
 	keyspace := updateObj.Keyspace()
 	updateObj.DOT()
-
 	table := updateObj.Table()
 
-	if table == nil || keyspace == nil {
-		return nil, errors.New("invalid input paramaters found for table or keyspace")
+	var keyspaceName, tableName string
+
+	if table != nil && table.OBJECT_NAME() != nil && table.OBJECT_NAME().GetText() != "" {
+		tableName = table.OBJECT_NAME().GetText()
+	} else {
+		return nil, fmt.Errorf("invalid input paramaters found for table")
 	}
 
-	keyspaceObj := keyspace.OBJECT_NAME()
-	if keyspaceObj == nil {
-		return nil, errors.New("invalid input paramaters found for keyspace")
+	if keyspace != nil && keyspace.OBJECT_NAME() != nil && keyspace.OBJECT_NAME().GetText() != "" {
+		keyspaceName = keyspace.OBJECT_NAME().GetText()
+	} else if sessionKeyspace != "" {
+		keyspaceName = sessionKeyspace
+	} else {
+		return nil, fmt.Errorf("invalid input paramaters found for keyspace")
 	}
-	keyspaceName := keyspaceObj.GetText()
 
 	if !t.SchemaMappingConfig.InstanceExists(keyspaceName) {
 		return nil, fmt.Errorf("keyspace %s does not exist", keyspaceName)
@@ -182,11 +310,6 @@ func (t *Translator) TranslateUpdateQuerytoBigtable(queryStr string, isPreparedQ
 		return nil, fmt.Errorf("table %s does not exist", table.GetText())
 	}
 
-	tableobj := table.OBJECT_NAME()
-	if tableobj == nil {
-		return nil, errors.New("invalid input paramaters found for table")
-	}
-	tableName := tableobj.GetText()
 	var err error
 
 	timestampInfo, err := GetTimestampInfoByUpdate(queryStr, updateObj)
@@ -194,12 +317,16 @@ func (t *Translator) TranslateUpdateQuerytoBigtable(queryStr string, isPreparedQ
 		return nil, err
 	}
 	updateObj.KwSet()
+	if updateObj.Assignments() == nil || updateObj.Assignments().AllAssignmentElement() == nil {
+		return nil, errors.New("error parsing the assignment object")
+	}
+
 	assignmentObj := updateObj.Assignments()
 	allAssignmentObj := assignmentObj.AllAssignmentElement()
 	if allAssignmentObj == nil {
 		return nil, errors.New("error parsing all the assignment object")
 	}
-	setValues, err := parseAssignments(allAssignmentObj, tableName, t.SchemaMappingConfig, keyspaceName, &PrependColumns)
+	setValues, err := parseAssignments(allAssignmentObj, tableName, t.SchemaMappingConfig, keyspaceName, &PrependColumns, isPreparedQuery)
 	if err != nil {
 		return nil, err
 	}
@@ -248,14 +375,18 @@ func (t *Translator) TranslateUpdateQuerytoBigtable(queryStr string, isPreparedQ
 	var primkeyvalues []string
 	var rowKey string
 	var values []interface{}
-	var columns []Column
+	var columns []types.Column
 	for _, val := range setValues.UpdateSetValues {
 		values = append(values, val.Encrypted)
-		columns = append(columns, Column{Name: val.Column, ColumnFamily: t.SchemaMappingConfig.SystemColumnFamily, CQLType: val.CQLType})
+		cqlType, err := methods.GetCassandraColumnType(val.CQLType)
+		if err != nil {
+			return nil, err
+		}
+		columns = append(columns, types.Column{Name: val.Column, ColumnFamily: t.SchemaMappingConfig.SystemColumnFamily, CQLType: cqlType})
 	}
 	var newValues []interface{} = values
-	var newColumns []Column = columns
-	var delColumns []Column
+	var newColumns []types.Column = columns
+	var delColumns []types.Column
 	var delColumnFamily []string
 	var complexMeta map[string]*ComplexOperation
 	var rawOutput *ProcessRawCollectionsOutput // Declare rawOutput here
@@ -311,9 +442,9 @@ func (t *Translator) TranslateUpdateQuerytoBigtable(queryStr string, isPreparedQ
 		complexMeta = rawOutput.ComplexMeta // Assign complexMeta from output
 
 		for _, val := range QueryClauses.Clauses {
-			var column Column
+			var column types.Column
 			if columns, exists := t.SchemaMappingConfig.TablesMetaData[keyspaceName][tableName][val.Column]; exists {
-				column = Column{Name: columns.ColumnName, ColumnFamily: t.SchemaMappingConfig.SystemColumnFamily, CQLType: columns.ColumnType}
+				column = types.Column{Name: columns.ColumnName, ColumnFamily: t.SchemaMappingConfig.SystemColumnFamily, CQLType: columns.CQLType}
 			}
 			newColumns = append(newColumns, column)
 
@@ -372,14 +503,14 @@ func (t *Translator) TranslateUpdateQuerytoBigtable(queryStr string, isPreparedQ
 //   - A pointer to an UpdateQueryMapping populated with the new query components required for the update.
 //   - An error if any issues arise during processing, such as failure to fetch primary keys or errors
 //     handling column data or timestamp.
-func (t *Translator) BuildUpdatePrepareQuery(columnsResponse []Column, values []*primitive.Value, st *UpdateQueryMapping, protocolV primitive.ProtocolVersion) (*UpdateQueryMapping, error) {
-	var newColumns []Column
+func (t *Translator) BuildUpdatePrepareQuery(columnsResponse []types.Column, values []*primitive.Value, st *UpdateQueryMapping, protocolV primitive.ProtocolVersion) (*UpdateQueryMapping, error) {
+	var newColumns []types.Column
 	var newValues []interface{}
 	var primaryKeys []string = st.PrimaryKeys
 	var err error
 	var unencrypted map[string]interface{}
 	var delColumnFamily []string
-	var delColumns []Column                            // Added missing declaration
+	var delColumns []types.Column                      // Added missing declaration
 	var prepareOutput *ProcessPrepareCollectionsOutput // Declare prepareOutput
 
 	if len(primaryKeys) == 0 {
@@ -389,7 +520,7 @@ func (t *Translator) BuildUpdatePrepareQuery(columnsResponse []Column, values []
 			return nil, err
 		}
 	}
-	timestampInfo, values, err := ProcessTimestampByUpdate(st, values)
+	timestampInfo, values, variableMetadata, err := ProcessTimestampByUpdate(st, values)
 
 	if err != nil {
 		return nil, err
@@ -418,14 +549,14 @@ func (t *Translator) BuildUpdatePrepareQuery(columnsResponse []Column, values []
 	delColumns = prepareOutput.DelColumns
 
 	for i, clause := range st.Clauses {
-		var column Column
+		var column types.Column
 		if columns, exists := t.SchemaMappingConfig.TablesMetaData[st.Keyspace][st.Table][clause.Column]; exists {
-			column = Column{Name: columns.ColumnName}
+			column = types.Column{Name: columns.ColumnName}
 		}
 
 		if slices.Contains(primaryKeys, column.Name) {
 
-			val, _ := utilities.DecodeBytesToCassandraColumnType(values[i+indexEnd+1].Contents, st.VariableMetadata[i+indexEnd+1].Type, protocolV)
+			val, _ := utilities.DecodeBytesToCassandraColumnType(values[i+indexEnd+1].Contents, variableMetadata[i+indexEnd+1].Type, protocolV)
 			unencrypted[column.Name] = val
 		}
 	}

@@ -110,6 +110,19 @@ You can create multiple test files and place them here. You can run a single tes
 
     The image name which we are using is:
     ***`cassandra:latest`***
+    
+    > **Note:**  
+     Ensure that the Cassandra keyspace to Bigtable instance mapping is correctly configured for compliance tests to run successfully. The mapping should look like:
+    
+     ```yaml
+     instances:
+       - bigtableInstance: bigtabledevinstance
+         keyspace: bigtabledevinstance
+       - bigtableInstance: bt-instance
+         keyspace: cassandrakeysapce
+    ```
+    
+    > The `bigtableInstance` value must match the actual Bigtable instance name, and the `keyspace` must correspond to the Cassandra keyspace being tested.
 
 3.  **Environment Variables and Arguments:**
     Before running tests against the proxy, ensure you have a exported necessary environment variable..
@@ -118,7 +131,6 @@ You can create multiple test files and place them here. You can run a single tes
 
     * `GOOGLE_APPLICATION_CREDENTIALS`: Path to your Google Cloud service account credentials JSON file.
     * `GCP_PROJECT_ID`: Your Google Cloud project ID.
-    * `BIGTABLE_INSTANCE`: Your Bigtable instance ID.
     * `ZONE`: Your Google Cloud zone.
     * `INTEGRATION_TEST_CRED_PATH`: Path to your integration test credentials secret.
     * `CONTAINER_IMAGE`: Name of your created docker image.

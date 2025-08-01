@@ -23,7 +23,9 @@ listeners:
     port: 3001
     bigtable:
       projectId: test_project_id
-      instanceIds: bigtabledevinstancetest
+      instances:
+        - bigtableInstance: bigtabledevinstancetest
+          keyspace: bigtabledevinstancetest
       schemaMappingTable: schema_mapping_test
       defaultColumnFamily: cf1
       Session:

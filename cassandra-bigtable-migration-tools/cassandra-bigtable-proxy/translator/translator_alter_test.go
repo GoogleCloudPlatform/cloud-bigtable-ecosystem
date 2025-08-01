@@ -26,57 +26,119 @@ import (
 
 func TestTranslateAlterTableToBigtable(t *testing.T) {
 	var tests = []struct {
-		query    string
-		want     *AlterTableStatementMap
-		hasError bool
+		name            string
+		query           string
+		want            *AlterTableStatementMap
+		hasError        bool
+		defaultKeyspace string
 	}{
-		// add column
+		// Add column with explicit keyspace
 		{
+			name:  "Add column with explicit keyspace",
 			query: "ALTER TABLE my_keyspace.my_table ADD firstname text",
 			want: &AlterTableStatementMap{
 				Table:     "my_table",
 				Keyspace:  "my_keyspace",
 				QueryType: "alter",
-				AddColumns: []message.ColumnMetadata{
-					{
-						Keyspace: "my_keyspace",
-						Table:    "my_table",
-						Name:     "firstname",
-						Index:    0,
-						Type:     datatype.Varchar,
-					},
-				},
+				AddColumns: []message.ColumnMetadata{{
+					Keyspace: "my_keyspace",
+					Table:    "my_table",
+					Name:     "firstname",
+					Index:    0,
+					Type:     datatype.Varchar,
+				}},
 			},
-			hasError: false,
+			hasError:        false,
+			defaultKeyspace: "",
 		},
-		// add columns
+		// Add column with default keyspace
 		{
+			name:  "Add column with default keyspace",
+			query: "ALTER TABLE my_table ADD firstname text",
+			want: &AlterTableStatementMap{
+				Table:     "my_table",
+				Keyspace:  "test_keyspace",
+				QueryType: "alter",
+				AddColumns: []message.ColumnMetadata{{
+					Keyspace: "test_keyspace",
+					Table:    "my_table",
+					Name:     "firstname",
+					Index:    0,
+					Type:     datatype.Varchar,
+				}},
+			},
+			hasError:        false,
+			defaultKeyspace: "test_keyspace",
+		},
+		// Add column without keyspace and no default keyspace
+		{
+			name:            "Add column without keyspace and no default keyspace (should error)",
+			query:           "ALTER TABLE my_table ADD firstname text",
+			want:            nil,
+			hasError:        true,
+			defaultKeyspace: "",
+		},
+		// Add column with empty table name
+		{
+			name:            "Add column with empty table name (should error)",
+			query:           "ALTER TABLE . ADD firstname text",
+			want:            nil,
+			hasError:        true,
+			defaultKeyspace: "test_keyspace",
+		},
+		// Add multiple columns with explicit keyspace
+		{
+			name:  "Add multiple columns with explicit keyspace",
 			query: "ALTER TABLE my_keyspace.my_table ADD firstname text, age int",
 			want: &AlterTableStatementMap{
 				Table:     "my_table",
 				Keyspace:  "my_keyspace",
 				QueryType: "alter",
-				AddColumns: []message.ColumnMetadata{
-					{
-						Keyspace: "my_keyspace",
-						Table:    "my_table",
-						Name:     "firstname",
-						Index:    0,
-						Type:     datatype.Varchar,
-					},
-					{
-						Keyspace: "my_keyspace",
-						Table:    "my_table",
-						Name:     "age",
-						Index:    1,
-						Type:     datatype.Int,
-					},
-				},
+				AddColumns: []message.ColumnMetadata{{
+					Keyspace: "my_keyspace",
+					Table:    "my_table",
+					Name:     "firstname",
+					Index:    0,
+					Type:     datatype.Varchar,
+				}, {
+					Keyspace: "my_keyspace",
+					Table:    "my_table",
+					Name:     "age",
+					Index:    1,
+					Type:     datatype.Int,
+				}},
 			},
-			hasError: false,
+			hasError:        false,
+			defaultKeyspace: "",
 		},
-		// drop column
+		// Add multiple columns with default keyspace
 		{
+			name:  "Add multiple columns with default keyspace",
+			query: "ALTER TABLE my_table ADD firstname text, age int",
+			want: &AlterTableStatementMap{
+				Table:     "my_table",
+				Keyspace:  "test_keyspace",
+				QueryType: "alter",
+				AddColumns: []message.ColumnMetadata{{
+					Keyspace: "test_keyspace",
+					Table:    "my_table",
+					Name:     "firstname",
+					Index:    0,
+					Type:     datatype.Varchar,
+				}, {
+					Keyspace: "test_keyspace",
+					Table:    "my_table",
+					Name:     "age",
+					Index:    1,
+					Type:     datatype.Int,
+				}},
+			},
+			hasError:        false,
+			defaultKeyspace: "test_keyspace",
+		},
+		// Drop column with explicit keyspace
+		{
+			name:  "Drop column with explicit keyspace",
 			query: "ALTER TABLE my_keyspace.my_table DROP firstname",
 			want: &AlterTableStatementMap{
 				Table:       "my_table",
@@ -84,10 +146,33 @@ func TestTranslateAlterTableToBigtable(t *testing.T) {
 				QueryType:   "alter",
 				DropColumns: []string{"firstname"},
 			},
-			hasError: false,
+			hasError:        false,
+			defaultKeyspace: "",
 		},
-		// drop columns
+		// Drop column with default keyspace
 		{
+			name:  "Drop column with default keyspace",
+			query: "ALTER TABLE my_table DROP firstname",
+			want: &AlterTableStatementMap{
+				Table:       "my_table",
+				Keyspace:    "test_keyspace",
+				QueryType:   "alter",
+				DropColumns: []string{"firstname"},
+			},
+			hasError:        false,
+			defaultKeyspace: "test_keyspace",
+		},
+		// Drop column without keyspace and no default keyspace
+		{
+			name:            "Drop column without keyspace and no default keyspace (should error)",
+			query:           "ALTER TABLE my_table DROP firstname",
+			want:            nil,
+			hasError:        true,
+			defaultKeyspace: "",
+		},
+		// Drop multiple columns with explicit keyspace
+		{
+			name:  "Drop multiple columns with explicit keyspace",
 			query: "ALTER TABLE my_keyspace.my_table DROP firstname, lastname",
 			want: &AlterTableStatementMap{
 				Table:       "my_table",
@@ -95,13 +180,37 @@ func TestTranslateAlterTableToBigtable(t *testing.T) {
 				QueryType:   "alter",
 				DropColumns: []string{"firstname", "lastname"},
 			},
-			hasError: false,
+			hasError:        false,
+			defaultKeyspace: "",
 		},
-		// rename not supported
+		// Drop multiple columns with default keyspace
 		{
-			query:    "ALTER TABLE my_keyspace.my_table RENAME col1 TO col2",
-			want:     nil,
-			hasError: true,
+			name:  "Drop multiple columns with default keyspace",
+			query: "ALTER TABLE my_table DROP firstname, lastname",
+			want: &AlterTableStatementMap{
+				Table:       "my_table",
+				Keyspace:    "test_keyspace",
+				QueryType:   "alter",
+				DropColumns: []string{"firstname", "lastname"},
+			},
+			hasError:        false,
+			defaultKeyspace: "test_keyspace",
+		},
+		// Drop multiple columns without keyspace and no default keyspace
+		{
+			name:            "Drop multiple columns without keyspace and no default keyspace (should error)",
+			query:           "ALTER TABLE my_table DROP firstname, lastname",
+			want:            nil,
+			hasError:        true,
+			defaultKeyspace: "",
+		},
+		// Rename column (not supported)
+		{
+			name:            "Rename column (not supported)",
+			query:           "ALTER TABLE my_keyspace.my_table RENAME col1 TO col2",
+			want:            nil,
+			hasError:        true,
+			defaultKeyspace: "",
 		},
 	}
 
@@ -111,13 +220,15 @@ func TestTranslateAlterTableToBigtable(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		got, err := tr.TranslateAlterTableToBigtable(tt.query)
-		if tt.hasError {
-			assert.Error(t, err)
-		} else {
-			assert.NoError(t, err)
-		}
-		assert.True(t, (err != nil) == tt.hasError, tt.hasError)
-		assert.Equal(t, tt.want, got)
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tr.TranslateAlterTableToBigtable(tt.query, tt.defaultKeyspace)
+			if tt.hasError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.True(t, (err != nil) == tt.hasError, tt.hasError)
+			assert.Equal(t, tt.want, got)
+		})
 	}
 }

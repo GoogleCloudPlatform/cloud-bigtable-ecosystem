@@ -19,41 +19,55 @@ package translator
 import (
 	"errors"
 
+	methods "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/methods"
 	cql "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/third_party/cqlparser"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/utilities"
 	"github.com/antlr4-go/antlr/v4"
 	"github.com/datastax/go-cassandra-native-protocol/message"
 )
 
-func (t *Translator) TranslateCreateTableToBigtable(query string) (*CreateTableStatementMap, error) {
+func (t *Translator) TranslateCreateTableToBigtable(query, sessionKeyspace string) (*CreateTableStatementMap, error) {
 	lexer := cql.NewCqlLexer(antlr.NewInputStream(query))
 	stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
 	p := cql.NewCqlParser(stream)
 
 	createTableObj := p.CreateTable()
 
-	if createTableObj == nil {
+	if createTableObj == nil || createTableObj.Table() == nil {
 		return nil, errors.New("error while parsing create object")
 	}
 
-	table := createTableObj.Table().GetText()
-	if createTableObj.Keyspace() == nil {
+	var tableName, keyspaceName string
+
+	if createTableObj != nil && createTableObj.Table() != nil && createTableObj.Table().GetText() != "" {
+		tableName = createTableObj.Table().GetText()
+		if !validTableName.MatchString(tableName) {
+			return nil, errors.New("invalid table name parsed from query")
+		}
+	} else {
+		return nil, errors.New("invalid input paramaters found for table")
+	}
+
+	if createTableObj != nil && createTableObj.Keyspace() != nil && createTableObj.Keyspace().GetText() != "" {
+		keyspaceName = createTableObj.Keyspace().GetText()
+	} else if sessionKeyspace != "" {
+		keyspaceName = sessionKeyspace
+	} else {
 		return nil, errors.New("missing keyspace. keyspace is required")
 	}
-	keyspace := createTableObj.Keyspace().GetText()
 
 	var pmks []CreateTablePrimaryKeyConfig
 	var columns []message.ColumnMetadata
 	for i, col := range createTableObj.ColumnDefinitionList().AllColumnDefinition() {
-		dt, err := utilities.GetCassandraColumnType(col.DataType().GetText())
+		dt, err := methods.GetCassandraColumnType(col.DataType().GetText())
 
 		if err != nil {
 			return nil, err
 		}
 
 		columns = append(columns, message.ColumnMetadata{
-			Table:    table,
-			Keyspace: keyspace,
+			Table:    tableName,
+			Keyspace: keyspaceName,
 			Type:     dt,
 			Name:     col.Column().GetText(),
 			Index:    int32(i),
@@ -65,6 +79,10 @@ func (t *Translator) TranslateCreateTableToBigtable(query string) (*CreateTableS
 				KeyType: utilities.KEY_TYPE_REGULAR,
 			})
 		}
+	}
+
+	if len(columns) == 0 {
+		return nil, errors.New("no columns found in create table statement")
 	}
 
 	// nil if inline primary key definition used
@@ -109,10 +127,14 @@ func (t *Translator) TranslateCreateTableToBigtable(query string) (*CreateTableS
 		}
 	}
 
+	if len(pmks) == 0 {
+		return nil, errors.New("no primary key found in create table statement")
+	}
+
 	var stmt = CreateTableStatementMap{
-		Table:       table,
+		Table:       tableName,
 		IfNotExists: createTableObj.IfNotExist() != nil,
-		Keyspace:    keyspace,
+		Keyspace:    keyspaceName,
 		QueryType:   "create",
 		Columns:     columns,
 		PrimaryKeys: pmks,

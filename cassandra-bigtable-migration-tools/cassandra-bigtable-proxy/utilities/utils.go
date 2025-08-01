@@ -19,10 +19,10 @@ package utilities
 import (
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/collectiondecoder"
+	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/third_party/datastax/proxycore"
 	"github.com/datastax/go-cassandra-native-protocol/datatype"
 	"github.com/datastax/go-cassandra-native-protocol/primitive"
@@ -82,6 +82,7 @@ var (
 	EncodedFalse, _ = proxycore.EncodeType(datatype.Boolean, primitive.ProtocolVersion4, false)
 )
 
+// TODO: Move these variables to global level
 const (
 	// Primitive types
 	CassandraTypeText      = "text"
@@ -109,82 +110,6 @@ func IsCollectionDataType(dt datatype.DataType) bool {
 		return true
 	default:
 		return false
-	}
-}
-
-// GetCassandraColumnType() converts a string representation of a Cassandra data type into
-// a corresponding DataType value. It supports a range of common Cassandra data types,
-// including text, blob, timestamp, int, bigint, boolean, uuid, various map and list types.
-//
-// Parameters:
-//   - c: A string representing the Cassandra column data type. This function expects
-//     the data type in a specific format (e.g., "text", "int", "map<text, boolean>").
-//
-// Returns:
-//   - datatype.DataType: The corresponding DataType value for the provided string.
-//     This is used to represent the Cassandra data type in a structured format within Go.
-//   - error: An error is returned if the provided string does not match any of the known
-//     Cassandra data types. This helps in identifying unsupported or incorrectly specified
-//     data types.
-func GetCassandraColumnType(c string) (datatype.DataType, error) {
-	choice := strings.ToLower(strings.ReplaceAll(c, " ", ""))
-	if strings.HasSuffix(choice, ">") {
-		if strings.HasPrefix(choice, "frozen<") {
-			innerType, err := GetCassandraColumnType(choice[7 : len(choice)-1])
-			if err != nil {
-				return nil, fmt.Errorf("failed to extract type for '%s': %w", c, err)
-			}
-			// drop the frozen wrapper
-			return innerType, nil
-		} else if strings.HasPrefix(choice, "list<") {
-			innerType, err := GetCassandraColumnType(choice[5 : len(choice)-1])
-			if err != nil {
-				return nil, fmt.Errorf("failed to extract type for '%s': %w", c, err)
-			}
-			return datatype.NewListType(innerType), nil
-		} else if strings.HasPrefix(choice, "set<") {
-			innerType, err := GetCassandraColumnType(choice[4 : len(choice)-1])
-			if err != nil {
-				return nil, fmt.Errorf("failed to extract type for '%s': %w", c, err)
-			}
-			return datatype.NewSetType(innerType), nil
-		} else if strings.HasPrefix(choice, "map<") {
-			parts := strings.SplitN(choice[4:len(choice)-1], ",", 2)
-			if len(parts) != 2 {
-				return nil, fmt.Errorf("malformed map type")
-			}
-			keyType, err := GetCassandraColumnType(parts[0])
-			if err != nil {
-				return nil, fmt.Errorf("failed to extract type for '%s': %w", c, err)
-			}
-			valueType, err := GetCassandraColumnType(parts[1])
-			if err != nil {
-				return nil, fmt.Errorf("failed to extract type for '%s': %w", c, err)
-			}
-			return datatype.NewMapType(keyType, valueType), nil
-		}
-	}
-	switch choice {
-	case CassandraTypeText, "varchar":
-		return datatype.Varchar, nil
-	case CassandraTypeBlob:
-		return datatype.Blob, nil
-	case CassandraTypeTimestamp:
-		return datatype.Timestamp, nil
-	case CassandraTypeInt:
-		return datatype.Int, nil
-	case CassandraTypeBigint:
-		return datatype.Bigint, nil
-	case CassandraTypeBoolean:
-		return datatype.Boolean, nil
-	case CassandraTypeUuid:
-		return datatype.Uuid, nil
-	case CassandraTypeFloat:
-		return datatype.Float, nil
-	case CassandraTypeDouble:
-		return datatype.Double, nil
-	default:
-		return nil, fmt.Errorf("unsupported column type: %s", choice)
 	}
 }
 
@@ -407,7 +332,9 @@ func TypeConversion(s any, protocalV primitive.ProtocolVersion) ([]byte, error) 
 		bytes, err = proxycore.EncodeType(datatype.Float, protocalV, v)
 	case []string:
 		bytes, err = proxycore.EncodeType(SetOfStr, protocalV, v)
-
+	case datatype.DataType:
+		cqlTypeInString := fmt.Sprintf("%v", v)
+		bytes, err = proxycore.EncodeType(datatype.Varchar, protocalV, cqlTypeInString)
 	default:
 		err = fmt.Errorf("%v - %v", "Unknown Datatype Identified", s)
 	}
@@ -415,6 +342,13 @@ func TypeConversion(s any, protocalV primitive.ProtocolVersion) ([]byte, error) 
 	return bytes, err
 }
 
+/*
+DataConversionInInsertionIfRequired() converts a value to a byte array based on the provided Cassandra type and response type.
+Parameters:
+  - value: any
+  - pv: primitive.ProtocolVersion
+  - cqlType: string
+*/
 func DataConversionInInsertionIfRequired(value any, pv primitive.ProtocolVersion, cqlType string, responseType string) (any, error) {
 	switch cqlType {
 	case CassandraTypeBoolean:
@@ -449,6 +383,14 @@ func DataConversionInInsertionIfRequired(value any, pv primitive.ProtocolVersion
 	}
 }
 
+/*
+EncodeBool() encodes a boolean value to a byte array
+Parameters:
+  - value: any
+  - pv: primitive.ProtocolVersion
+
+Returns: []byte, error
+*/
 func EncodeBool(value any, pv primitive.ProtocolVersion) ([]byte, error) {
 	switch v := value.(type) {
 	case string:
@@ -487,6 +429,14 @@ func EncodeBool(value any, pv primitive.ProtocolVersion) ([]byte, error) {
 	}
 }
 
+/*
+EncodeInt() encodes an integer value to a byte array
+Parameters:
+  - value: any
+  - pv: primitive.ProtocolVersion
+
+Returns: []byte, error
+*/
 func EncodeInt(value any, pv primitive.ProtocolVersion) ([]byte, error) {
 	switch v := value.(type) {
 	case string:
@@ -511,4 +461,38 @@ func EncodeInt(value any, pv primitive.ProtocolVersion) ([]byte, error) {
 	default:
 		return nil, fmt.Errorf("unsupported type: %v", value)
 	}
+}
+
+/*
+GetClauseByValue() returns the clause that matches the value
+Parameters:
+  - clause: []types.Clause
+  - value: string
+
+Returns: types.Clause, error
+*/
+func GetClauseByValue(clause []types.Clause, value string) (types.Clause, error) {
+	for _, c := range clause {
+		if c.Value == "@"+value {
+			return c, nil
+		}
+	}
+	return types.Clause{}, fmt.Errorf("clause not found")
+}
+
+/*
+GetClauseByColumn() returns the clause that matches the column
+Parameters:
+  - clause: []types.Clause
+  - column: string
+
+Returns: types.Clause, error
+*/
+func GetClauseByColumn(clause []types.Clause, column string) (types.Clause, error) {
+	for _, c := range clause {
+		if c.Column == column {
+			return c, nil
+		}
+	}
+	return types.Clause{}, fmt.Errorf("clause not found")
 }

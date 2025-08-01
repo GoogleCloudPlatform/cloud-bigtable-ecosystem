@@ -25,8 +25,10 @@ import (
 
 	"cloud.google.com/go/bigtable"
 	"cloud.google.com/go/bigtable/bttest"
+	types "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	schemaMapping "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/schema-mapping"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/translator"
+	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/utilities"
 	"github.com/datastax/go-cassandra-native-protocol/datatype"
 	"github.com/datastax/go-cassandra-native-protocol/message"
 	"github.com/stretchr/testify/assert"
@@ -93,7 +95,7 @@ func TestInsertRow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create column family: %v", err)
 	}
-	btc := NewBigtableClient(client, adminClients, zap.NewNop(), nil, BigtableConfig{}, nil, nil, &schemaMapping.SchemaMappingConfig{})
+	btc := NewBigtableClient(client, adminClients, zap.NewNop(), BigtableConfig{}, nil, &schemaMapping.SchemaMappingConfig{}, map[string]InstanceConfig{"keyspace": {BigtableInstance: "keyspace"}})
 
 	tests := []struct {
 		name          string
@@ -106,7 +108,7 @@ func TestInsertRow(t *testing.T) {
 			data: &translator.InsertQueryMapping{
 				Table:    "test-table-insert",
 				RowKey:   "row1",
-				Columns:  []translator.Column{{ColumnFamily: "cf1", Name: "col1"}},
+				Columns:  []types.Column{{ColumnFamily: "cf1", Name: "col1"}},
 				Values:   []interface{}{[]byte("value1")},
 				Keyspace: "keyspace",
 			},
@@ -117,7 +119,7 @@ func TestInsertRow(t *testing.T) {
 			data: &translator.InsertQueryMapping{
 				Table:       "test-table-insert",
 				RowKey:      "row2",
-				Columns:     []translator.Column{{ColumnFamily: "cf1", Name: "col1"}},
+				Columns:     []types.Column{{ColumnFamily: "cf1", Name: "col1"}},
 				Values:      []interface{}{[]byte("value2")},
 				Keyspace:    "keyspace",
 				IfNotExists: true,
@@ -129,7 +131,7 @@ func TestInsertRow(t *testing.T) {
 			data: &translator.InsertQueryMapping{
 				Table:       "test-table-insert",
 				RowKey:      "row1",
-				Columns:     []translator.Column{{ColumnFamily: "cf1", Name: "col1"}},
+				Columns:     []types.Column{{ColumnFamily: "cf1", Name: "col1"}},
 				Values:      []interface{}{[]byte("value1")},
 				Keyspace:    "keyspace",
 				IfNotExists: true,
@@ -141,11 +143,11 @@ func TestInsertRow(t *testing.T) {
 			data: &translator.InsertQueryMapping{
 				Table:    "test-table-insert",
 				RowKey:   "row3",
-				Columns:  []translator.Column{{ColumnFamily: "cf1", Name: "col1"}},
+				Columns:  []types.Column{{ColumnFamily: "cf1", Name: "col1"}},
 				Values:   []interface{}{[]byte("value3")},
 				Keyspace: "invalid-keyspace",
 			},
-			expectedError: fmt.Errorf("invalid keySpace - `invalid-keyspace`"),
+			expectedError: fmt.Errorf("keyspace not found: 'invalid-keyspace'"),
 		},
 		{
 			name: "Delete an entire column family",
@@ -153,7 +155,7 @@ func TestInsertRow(t *testing.T) {
 				Table:                "test-table-insert",
 				RowKey:               "row3",
 				DeleteColumnFamilies: []string{"cf1"},
-				Columns:              []translator.Column{{ColumnFamily: "cf1", Name: "col1"}},
+				Columns:              []types.Column{{ColumnFamily: "cf1", Name: "col1"}},
 				Values:               []interface{}{[]byte("value3")},
 				Keyspace:             "keyspace",
 			},
@@ -192,13 +194,13 @@ func TestUpdateRow(t *testing.T) {
 		t.Fatalf("Failed to create column family: %v", err)
 	}
 
-	bigtableCl := NewBigtableClient(client, adminClients, zap.NewNop(), nil, BigtableConfig{}, nil, nil, &schemaMapping.SchemaMappingConfig{})
+	bigtableCl := NewBigtableClient(client, adminClients, zap.NewNop(), BigtableConfig{}, nil, &schemaMapping.SchemaMappingConfig{}, map[string]InstanceConfig{"keyspace": {BigtableInstance: "keyspace"}})
 
 	// Insert initial row
 	initialData := &translator.InsertQueryMapping{
 		Table:                "test-table-update",
 		RowKey:               "test-row",
-		Columns:              []translator.Column{{ColumnFamily: "cf1", Name: "col1"}},
+		Columns:              []types.Column{{ColumnFamily: "cf1", Name: "col1"}},
 		Values:               []interface{}{[]byte("initial value")},
 		DeleteColumnFamilies: []string{},
 		Keyspace:             "keyspace",
@@ -210,7 +212,7 @@ func TestUpdateRow(t *testing.T) {
 	updateData := &translator.UpdateQueryMapping{
 		Table:                "test-table-update",
 		RowKey:               "test-row",
-		Columns:              []translator.Column{{ColumnFamily: "cf1", Name: "col1"}},
+		Columns:              []types.Column{{ColumnFamily: "cf1", Name: "col1"}},
 		Values:               []interface{}{[]byte("updated value")},
 		DeleteColumnFamilies: []string{},
 		Keyspace:             "keyspace",
@@ -243,13 +245,13 @@ func TestDeleteRow(t *testing.T) {
 		t.Fatalf("Failed to create column family: %v", err)
 	}
 
-	btc := NewBigtableClient(client, adminClients, zap.NewNop(), nil, BigtableConfig{}, nil, nil, &schemaMapping.SchemaMappingConfig{})
+	btc := NewBigtableClient(client, adminClients, zap.NewNop(), BigtableConfig{}, nil, &schemaMapping.SchemaMappingConfig{}, map[string]InstanceConfig{"keyspace": {BigtableInstance: "keyspace"}})
 
 	// Insert initial row
 	initialData := &translator.InsertQueryMapping{
 		Table:                "test-table-delete",
 		RowKey:               "test-row",
-		Columns:              []translator.Column{{ColumnFamily: "cf1", Name: "col1"}},
+		Columns:              []types.Column{{ColumnFamily: "cf1", Name: "col1"}},
 		Values:               []interface{}{[]byte("initial value")},
 		DeleteColumnFamilies: []string{},
 		Keyspace:             "keyspace",
@@ -295,7 +297,7 @@ func TestApplyBulkMutation(t *testing.T) {
 		t.Fatalf("Failed to create column family: %v", err)
 	}
 
-	btc := NewBigtableClient(client, adminClients, zap.NewNop(), nil, BigtableConfig{}, nil, nil, &schemaMapping.SchemaMappingConfig{})
+	btc := NewBigtableClient(client, adminClients, zap.NewNop(), BigtableConfig{}, nil, &schemaMapping.SchemaMappingConfig{}, map[string]InstanceConfig{"keyspace": {BigtableInstance: "keyspace"}})
 
 	// Prepare bulk mutation data
 	mutationData := []MutationData{
@@ -354,7 +356,7 @@ func TestDeleteRowsUsingTimestamp(t *testing.T) {
 		t.Fatalf("Failed to create Bigtable admin client: %v", err)
 	}
 
-	btc := NewBigtableClient(client, adminClients, zap.NewNop(), nil, BigtableConfig{}, nil, nil, &schemaMapping.SchemaMappingConfig{})
+	btc := NewBigtableClient(client, adminClients, zap.NewNop(), BigtableConfig{}, nil, &schemaMapping.SchemaMappingConfig{}, map[string]InstanceConfig{"keyspace": {BigtableInstance: "keyspace"}})
 
 	// Define test table and data
 	tableName := "test-table-delete-timestamp"
@@ -400,7 +402,7 @@ func TestDeleteRowsUsingTimestamp(t *testing.T) {
 	deleteData.Keyspace = "invalid-keyspace"
 	_, err = btc.DeleteRowNew(ctx, deleteData)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid keySpace - `invalid-keyspace`")
+	assert.Contains(t, err.Error(), "keyspace not found: 'invalid-keyspace'")
 
 	// Test Case 3: Attempt to delete non-existent columns (should not error)
 	deleteData.Keyspace = "keyspace"
@@ -429,13 +431,13 @@ func TestMutateRowDeleteColumnFamily(t *testing.T) {
 	require.NoError(t, adminClient.CreateColumnFamily(ctx, tableName, "cf1"))
 	require.NoError(t, adminClient.CreateColumnFamily(ctx, tableName, "cf2"))
 
-	btClient := NewBigtableClient(client, adminClients, zap.NewNop(), nil, BigtableConfig{}, nil, nil, &schemaMapping.SchemaMappingConfig{})
+	btClient := NewBigtableClient(client, adminClients, zap.NewNop(), BigtableConfig{}, nil, &schemaMapping.SchemaMappingConfig{}, map[string]InstanceConfig{"keyspace": {BigtableInstance: "keyspace"}})
 
 	// Insert initial data
 	insertData := &translator.InsertQueryMapping{
 		Table:    tableName,
 		RowKey:   "row1",
-		Columns:  []translator.Column{{ColumnFamily: "cf1", Name: "col1"}, {ColumnFamily: "cf2", Name: "col2"}},
+		Columns:  []types.Column{{ColumnFamily: "cf1", Name: "col1"}, {ColumnFamily: "cf2", Name: "col2"}},
 		Values:   []interface{}{[]byte("v1"), []byte("v2")},
 		Keyspace: "keyspace",
 	}
@@ -471,13 +473,13 @@ func TestMutateRowDeleteQualifiers(t *testing.T) {
 	require.NoError(t, adminClient.CreateTable(ctx, tableName))
 	require.NoError(t, adminClient.CreateColumnFamily(ctx, tableName, "cf1"))
 
-	btClient := NewBigtableClient(client, adminClients, zap.NewNop(), nil, BigtableConfig{}, nil, nil, &schemaMapping.SchemaMappingConfig{})
+	btClient := NewBigtableClient(client, adminClients, zap.NewNop(), BigtableConfig{}, nil, &schemaMapping.SchemaMappingConfig{}, map[string]InstanceConfig{"keyspace": {BigtableInstance: "keyspace"}})
 
 	// Insert initial data with two columns
 	insertData := &translator.InsertQueryMapping{
 		Table:    tableName,
 		RowKey:   "row1",
-		Columns:  []translator.Column{{ColumnFamily: "cf1", Name: "col1"}, {ColumnFamily: "cf1", Name: "col2"}},
+		Columns:  []types.Column{{ColumnFamily: "cf1", Name: "col1"}, {ColumnFamily: "cf1", Name: "col2"}},
 		Values:   []interface{}{[]byte("v1"), []byte("v2")},
 		Keyspace: "keyspace",
 	}
@@ -488,7 +490,7 @@ func TestMutateRowDeleteQualifiers(t *testing.T) {
 	updateData := &translator.UpdateQueryMapping{
 		Table:                 tableName,
 		RowKey:                "row1",
-		DeleteColumQualifires: []translator.Column{{ColumnFamily: "cf1", Name: "col1"}},
+		DeleteColumQualifires: []types.Column{{ColumnFamily: "cf1", Name: "col1"}},
 		Keyspace:              "keyspace",
 	}
 	_, err = btClient.UpdateRow(ctx, updateData)
@@ -516,13 +518,13 @@ func TestMutateRowIfExists(t *testing.T) {
 	require.NoError(t, adminClient.CreateTable(ctx, tableName))
 	require.NoError(t, adminClient.CreateColumnFamily(ctx, tableName, "cf1"))
 
-	btClient := NewBigtableClient(client, adminClients, zap.NewNop(), nil, BigtableConfig{}, nil, nil, &schemaMapping.SchemaMappingConfig{})
+	btClient := NewBigtableClient(client, adminClients, zap.NewNop(), BigtableConfig{}, nil, &schemaMapping.SchemaMappingConfig{}, map[string]InstanceConfig{"keyspace": {BigtableInstance: "keyspace"}})
 
 	// Insert initial data
 	insertData := &translator.InsertQueryMapping{
 		Table:    tableName,
 		RowKey:   "row1",
-		Columns:  []translator.Column{{ColumnFamily: "cf1", Name: "col1"}},
+		Columns:  []types.Column{{ColumnFamily: "cf1", Name: "col1"}},
 		Values:   []interface{}{[]byte("v1")},
 		Keyspace: "keyspace",
 	}
@@ -533,7 +535,7 @@ func TestMutateRowIfExists(t *testing.T) {
 	updateData := &translator.UpdateQueryMapping{
 		Table:    tableName,
 		RowKey:   "row1",
-		Columns:  []translator.Column{{ColumnFamily: "cf1", Name: "col1"}},
+		Columns:  []types.Column{{ColumnFamily: "cf1", Name: "col1"}},
 		Values:   []interface{}{[]byte("v2")},
 		IfExists: true,
 		Keyspace: "keyspace",
@@ -569,13 +571,13 @@ func TestMutateRowIfNotExists(t *testing.T) {
 	require.NoError(t, adminClient.CreateTable(ctx, tableName))
 	require.NoError(t, adminClient.CreateColumnFamily(ctx, tableName, "cf1"))
 
-	btClient := NewBigtableClient(client, adminClients, zap.NewNop(), nil, BigtableConfig{}, nil, nil, &schemaMapping.SchemaMappingConfig{})
+	btClient := NewBigtableClient(client, adminClients, zap.NewNop(), BigtableConfig{}, nil, &schemaMapping.SchemaMappingConfig{}, map[string]InstanceConfig{"keyspace": {BigtableInstance: "keyspace"}})
 
 	// Insert a row when it does not exist
 	InsertData := &translator.InsertQueryMapping{
 		Table:       tableName,
 		RowKey:      "row1",
-		Columns:     []translator.Column{{ColumnFamily: "cf1", Name: "col1"}},
+		Columns:     []types.Column{{ColumnFamily: "cf1", Name: "col1"}},
 		Values:      []interface{}{[]byte("v1")},
 		IfNotExists: true,
 		Keyspace:    "keyspace",
@@ -610,12 +612,12 @@ func TestMutateRowNonByteValue(t *testing.T) {
 	require.NoError(t, adminClient.CreateTable(ctx, tableName))
 	require.NoError(t, adminClient.CreateColumnFamily(ctx, tableName, "cf1"))
 
-	btClient := NewBigtableClient(client, adminClients, zap.NewNop(), nil, BigtableConfig{}, nil, nil, &schemaMapping.SchemaMappingConfig{})
+	btClient := NewBigtableClient(client, adminClients, zap.NewNop(), BigtableConfig{}, nil, &schemaMapping.SchemaMappingConfig{}, map[string]InstanceConfig{"keyspace": {BigtableInstance: "keyspace"}})
 
 	updateData := &translator.UpdateQueryMapping{
 		Table:    tableName,
 		RowKey:   "row1",
-		Columns:  []translator.Column{{ColumnFamily: "cf1", Name: "col1"}},
+		Columns:  []types.Column{{ColumnFamily: "cf1", Name: "col1"}},
 		Values:   []interface{}{"invalid-value"}, // string instead of []byte
 		Keyspace: "keyspace",
 	}
@@ -628,18 +630,18 @@ func TestMutateRowInvalidKeyspace(t *testing.T) {
 	client, adminClients, ctx, err := getClient(conn)
 	require.NoError(t, err)
 
-	btClient := NewBigtableClient(client, adminClients, zap.NewNop(), nil, BigtableConfig{}, nil, nil, &schemaMapping.SchemaMappingConfig{})
+	btClient := NewBigtableClient(client, adminClients, zap.NewNop(), BigtableConfig{}, nil, &schemaMapping.SchemaMappingConfig{}, map[string]InstanceConfig{"keyspace": {BigtableInstance: "keyspace"}})
 
 	updateData := &translator.UpdateQueryMapping{
 		Table:    "any-table",
 		RowKey:   "row1",
-		Columns:  []translator.Column{{ColumnFamily: "cf1", Name: "col1"}},
+		Columns:  []types.Column{{ColumnFamily: "cf1", Name: "col1"}},
 		Values:   []interface{}{[]byte("value")},
 		Keyspace: "invalid-keyspace",
 	}
 	_, err = btClient.UpdateRow(ctx, updateData)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid keySpace - `invalid-keyspace`")
+	assert.Contains(t, err.Error(), "keyspace not found: 'invalid-keyspace'")
 }
 
 func TestComplexUpdateWithListIndex(t *testing.T) {
@@ -654,13 +656,13 @@ func TestComplexUpdateWithListIndex(t *testing.T) {
 	require.NoError(t, adminClient.CreateColumnFamily(ctx, tableName, "cf1"))
 	require.NoError(t, adminClient.CreateColumnFamily(ctx, tableName, "list"))
 
-	btClient := NewBigtableClient(client, adminClients, zap.NewNop(), nil, BigtableConfig{}, nil, nil, &schemaMapping.SchemaMappingConfig{})
+	btClient := NewBigtableClient(client, adminClients, zap.NewNop(), BigtableConfig{}, nil, &schemaMapping.SchemaMappingConfig{}, map[string]InstanceConfig{"keyspace": {BigtableInstance: "keyspace"}})
 
 	// Insert initial data with a list in cf1
 	insertData := &translator.InsertQueryMapping{
 		Table:    tableName,
 		RowKey:   "row1",
-		Columns:  []translator.Column{{ColumnFamily: "list", Name: "timestamp1"}, {ColumnFamily: "list", Name: "timestamp2"}},
+		Columns:  []types.Column{{ColumnFamily: "list", Name: "timestamp1"}, {ColumnFamily: "list", Name: "timestamp2"}},
 		Values:   []interface{}{[]byte("v1"), []byte("v2")},
 		Keyspace: "keyspace",
 	}
@@ -679,7 +681,7 @@ func TestComplexUpdateWithListIndex(t *testing.T) {
 		RowKey:           "row1",
 		ComplexOperation: ComplexOperation,
 		Keyspace:         "keyspace",
-		Columns:          []translator.Column{},
+		Columns:          []types.Column{},
 		Values:           []interface{}{},
 	}
 	_, err = btClient.UpdateRow(ctx, updateData)
@@ -705,13 +707,13 @@ func TestComplexUpdateWithListDeletion(t *testing.T) {
 	require.NoError(t, adminClient.CreateColumnFamily(ctx, tableName, "cf1"))
 	require.NoError(t, adminClient.CreateColumnFamily(ctx, tableName, "list"))
 
-	btClient := NewBigtableClient(client, adminClients, zap.NewNop(), nil, BigtableConfig{}, nil, nil, &schemaMapping.SchemaMappingConfig{})
+	btClient := NewBigtableClient(client, adminClients, zap.NewNop(), BigtableConfig{}, nil, &schemaMapping.SchemaMappingConfig{}, map[string]InstanceConfig{"keyspace": {BigtableInstance: "keyspace"}})
 
 	// Insert initial data with a list in the "list" column family
 	insertData := &translator.InsertQueryMapping{
 		Table:    tableName,
 		RowKey:   "row1",
-		Columns:  []translator.Column{{ColumnFamily: "list", Name: "timestamp1"}, {ColumnFamily: "list", Name: "timestamp2"}},
+		Columns:  []types.Column{{ColumnFamily: "list", Name: "timestamp1"}, {ColumnFamily: "list", Name: "timestamp2"}},
 		Values:   []interface{}{[]byte("v1"), []byte("v2")},
 		Keyspace: "keyspace",
 	}
@@ -730,7 +732,7 @@ func TestComplexUpdateWithListDeletion(t *testing.T) {
 		RowKey:           "row1",
 		ComplexOperation: ComplexOperation,
 		Keyspace:         "keyspace",
-		Columns:          []translator.Column{},
+		Columns:          []types.Column{},
 		Values:           []interface{}{},
 	}
 	_, err = btClient.UpdateRow(ctx, updateData)
@@ -749,7 +751,7 @@ func TestComplexUpdateInvalidKeyspace(t *testing.T) {
 	client, adminClients, ctx, err := getClient(conn)
 	require.NoError(t, err)
 
-	btClient := NewBigtableClient(client, adminClients, zap.NewNop(), nil, BigtableConfig{}, nil, nil, &schemaMapping.SchemaMappingConfig{})
+	btClient := NewBigtableClient(client, adminClients, zap.NewNop(), BigtableConfig{}, nil, &schemaMapping.SchemaMappingConfig{}, map[string]InstanceConfig{"keyspace": {BigtableInstance: "keyspace"}})
 
 	// Attempt to perform a complex update with an invalid keyspace
 	ComplexOperation := map[string]*translator.ComplexOperation{
@@ -763,12 +765,12 @@ func TestComplexUpdateInvalidKeyspace(t *testing.T) {
 		RowKey:           "row1",
 		ComplexOperation: ComplexOperation,
 		Keyspace:         "invalid-keyspace",
-		Columns:          []translator.Column{},
+		Columns:          []types.Column{},
 		Values:           []interface{}{},
 	}
 	_, err = btClient.UpdateRow(ctx, updateData)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid keySpace - `invalid-keyspace`")
+	assert.Contains(t, err.Error(), "keyspace not found: 'invalid-keyspace'")
 }
 
 func TestComplexUpdateOutOfBoundsIndex(t *testing.T) {
@@ -782,13 +784,13 @@ func TestComplexUpdateOutOfBoundsIndex(t *testing.T) {
 	require.NoError(t, adminClient.CreateColumnFamily(ctx, tableName, "cf1"))
 	require.NoError(t, adminClient.CreateColumnFamily(ctx, tableName, "list"))
 
-	btClient := NewBigtableClient(client, adminClients, zap.NewNop(), nil, BigtableConfig{}, nil, nil, &schemaMapping.SchemaMappingConfig{})
+	btClient := NewBigtableClient(client, adminClients, zap.NewNop(), BigtableConfig{}, nil, &schemaMapping.SchemaMappingConfig{}, map[string]InstanceConfig{"keyspace": {BigtableInstance: "keyspace"}})
 
 	// Insert initial data with a list in the "list" column family
 	insertData := &translator.InsertQueryMapping{
 		Table:    tableName,
 		RowKey:   "row1",
-		Columns:  []translator.Column{{ColumnFamily: "list", Name: "timestamp1"}},
+		Columns:  []types.Column{{ColumnFamily: "list", Name: "timestamp1"}},
 		Values:   []interface{}{[]byte("v1")},
 		Keyspace: "keyspace",
 	}
@@ -807,7 +809,7 @@ func TestComplexUpdateOutOfBoundsIndex(t *testing.T) {
 		RowKey:           "row1",
 		ComplexOperation: ComplexOperation,
 		Keyspace:         "keyspace",
-		Columns:          []translator.Column{},
+		Columns:          []types.Column{},
 		Values:           []interface{}{},
 	}
 	_, err = btClient.UpdateRow(ctx, updateData)
@@ -866,10 +868,10 @@ func TestCreateTable(t *testing.T) {
 	client, adminClients, ctx, err := getClient(conn)
 	require.NoError(t, err)
 
-	btClient := NewBigtableClient(client, adminClients, zap.NewNop(), nil, BigtableConfig{
+	btClient := NewBigtableClient(client, adminClients, zap.NewNop(), BigtableConfig{
 		GCPProjectID:        "project",
 		DefaultColumnFamily: "cf1",
-	}, nil, nil, &schemaMapping.SchemaMappingConfig{})
+	}, nil, &schemaMapping.SchemaMappingConfig{}, map[string]InstanceConfig{"keyspace": {BigtableInstance: "keyspace"}})
 
 	// force set up the schema mappings table
 	_, _, err = btClient.GetSchemaMappingConfigs(ctx, "keyspace", "schema-mappings")
@@ -887,10 +889,10 @@ func TestCreateTable(t *testing.T) {
 	tableMetadata, _, err := btClient.GetSchemaMappingConfigs(ctx, "keyspace", "schema-mappings")
 	require.NoError(t, err)
 
-	require.Equal(t, map[string]*schemaMapping.Column{
+	require.Equal(t, map[string]*types.Column{
 		"org": {
 			ColumnName:   "org",
-			ColumnType:   "varchar",
+			CQLType:      datatype.Varchar,
 			IsPrimaryKey: true,
 			PkPrecedence: 1,
 			IsCollection: false,
@@ -899,14 +901,13 @@ func TestCreateTable(t *testing.T) {
 				Keyspace: "keyspace",
 				Table:    "create_table_test",
 				Name:     "org",
-				// note: these indexes are based on how lexicographical order of key name in bigtable - which is wrong
-				Index: 2,
-				Type:  datatype.Varchar,
+				Index:    2,
+				Type:     datatype.Varchar,
 			},
 		},
 		"id": {
 			ColumnName:   "id",
-			ColumnType:   "bigint",
+			CQLType:      datatype.Bigint,
 			IsPrimaryKey: true,
 			PkPrecedence: 2,
 			IsCollection: false,
@@ -915,46 +916,41 @@ func TestCreateTable(t *testing.T) {
 				Keyspace: "keyspace",
 				Table:    "create_table_test",
 				Name:     "id",
-				// note: these indexes are based on how lexicographical order of key name in bigtable - which is wrong
-				Index: 0,
-				Type:  datatype.Bigint,
+				Index:    0,
+				Type:     datatype.Bigint,
 			},
 		},
 		"name": {
 			ColumnName:   "name",
-			ColumnType:   "varchar",
+			CQLType:      datatype.Varchar,
 			IsPrimaryKey: false,
 			PkPrecedence: 0,
 			IsCollection: false,
-			KeyType:      "",
+			KeyType:      utilities.KEY_TYPE_REGULAR,
 			Metadata: message.ColumnMetadata{
 				Keyspace: "keyspace",
 				Table:    "create_table_test",
 				Name:     "name",
-				// note: these indexes are based on how lexicographical order of key name in bigtable - which is wrong
-				Index: 1,
-				Type:  datatype.Varchar,
+				Index:    1,
+				Type:     datatype.Varchar,
 			},
 		},
 		"zipcode": {
 			ColumnName:   "zipcode",
-			ColumnType:   "int",
+			CQLType:      datatype.Int,
 			IsPrimaryKey: false,
 			PkPrecedence: 0,
 			IsCollection: false,
-			KeyType:      "",
+			KeyType:      utilities.KEY_TYPE_REGULAR,
 			Metadata: message.ColumnMetadata{
 				Keyspace: "keyspace",
 				Table:    "create_table_test",
 				Name:     "zipcode",
-				// note: these indexes are based on how lexicographical order of key name in bigtable - which is wrong
-				Index: 3,
-				Type:  datatype.Int,
+				Index:    3,
+				Type:     datatype.Int,
 			},
 		},
 	}, tableMetadata["create_table_test"])
-
-	// table should be cleaned up
 	info, err = adminClients["keyspace"].TableInfo(ctx, "create_table_test")
 	require.NoError(t, err)
 	require.NotNil(t, info)
@@ -964,9 +960,9 @@ func TestAlterTable(t *testing.T) {
 	client, adminClients, ctx, err := getClient(conn)
 	require.NoError(t, err)
 
-	btClient := NewBigtableClient(client, adminClients, zap.NewNop(), nil, BigtableConfig{
+	btClient := NewBigtableClient(client, adminClients, zap.NewNop(), BigtableConfig{
 		GCPProjectID: "project",
-	}, nil, nil, &schemaMapping.SchemaMappingConfig{})
+	}, nil, &schemaMapping.SchemaMappingConfig{}, map[string]InstanceConfig{"keyspace": {BigtableInstance: "keyspace"}})
 
 	// force set up the schema mappings table
 	_, _, err = btClient.GetSchemaMappingConfigs(ctx, "keyspace", "schema-mappings")
@@ -1005,10 +1001,10 @@ func TestAlterTable(t *testing.T) {
 	tableMetadata, _, err := btClient.GetSchemaMappingConfigs(ctx, "keyspace", "schema-mappings")
 	require.NoError(t, err)
 
-	require.Equal(t, tableMetadata["alter_table_test"], map[string]*schemaMapping.Column{
+	require.Equal(t, tableMetadata["alter_table_test"], map[string]*types.Column{
 		"org": {
 			ColumnName:   "org",
-			ColumnType:   "varchar",
+			CQLType:      datatype.Varchar,
 			IsPrimaryKey: true,
 			PkPrecedence: 1,
 			IsCollection: false,
@@ -1017,14 +1013,13 @@ func TestAlterTable(t *testing.T) {
 				Keyspace: "keyspace",
 				Table:    "alter_table_test",
 				Name:     "org",
-				// note: these indexes are based on how lexicographical order of key name in bigtable - which is wrong
-				Index: 2,
-				Type:  datatype.Varchar,
+				Index:    2,
+				Type:     datatype.Varchar,
 			},
 		},
 		"id": {
 			ColumnName:   "id",
-			ColumnType:   "bigint",
+			CQLType:      datatype.Bigint,
 			IsPrimaryKey: true,
 			PkPrecedence: 2,
 			IsCollection: false,
@@ -1033,41 +1028,38 @@ func TestAlterTable(t *testing.T) {
 				Keyspace: "keyspace",
 				Table:    "alter_table_test",
 				Name:     "id",
-				// note: these indexes are based on how lexicographical order of key name in bigtable - which is wrong
-				Index: 0,
-				Type:  datatype.Bigint,
+				Index:    0,
+				Type:     datatype.Bigint,
 			},
 		},
 		"name": {
 			ColumnName:   "name",
-			ColumnType:   "varchar",
+			CQLType:      datatype.Varchar,
 			IsPrimaryKey: false,
 			PkPrecedence: 0,
 			IsCollection: false,
-			KeyType:      "",
+			KeyType:      utilities.KEY_TYPE_REGULAR,
 			Metadata: message.ColumnMetadata{
 				Keyspace: "keyspace",
 				Table:    "alter_table_test",
 				Name:     "name",
-				// note: these indexes are based on how lexicographical order of key name in bigtable - which is wrong
-				Index: 1,
-				Type:  datatype.Varchar,
+				Index:    1,
+				Type:     datatype.Varchar,
 			},
 		},
 		"zodiac": {
 			ColumnName:   "zodiac",
-			ColumnType:   "varchar",
+			CQLType:      datatype.Varchar,
 			IsPrimaryKey: false,
 			PkPrecedence: 0,
 			IsCollection: false,
-			KeyType:      "",
+			KeyType:      utilities.KEY_TYPE_REGULAR,
 			Metadata: message.ColumnMetadata{
 				Keyspace: "keyspace",
 				Table:    "alter_table_test",
 				Name:     "zodiac",
-				// note: these indexes are based on how lexicographical order of key name in bigtable - which is wrong
-				Index: 3,
-				Type:  datatype.Varchar,
+				Index:    3,
+				Type:     datatype.Varchar,
 			},
 		},
 	})
@@ -1077,9 +1069,9 @@ func TestDropTable(t *testing.T) {
 	client, adminClients, ctx, err := getClient(conn)
 	require.NoError(t, err)
 
-	btClient := NewBigtableClient(client, adminClients, zap.NewNop(), nil, BigtableConfig{
+	btClient := NewBigtableClient(client, adminClients, zap.NewNop(), BigtableConfig{
 		GCPProjectID: "project",
-	}, nil, nil, &schemaMapping.SchemaMappingConfig{})
+	}, nil, &schemaMapping.SchemaMappingConfig{}, map[string]InstanceConfig{"keyspace": {BigtableInstance: "keyspace"}})
 
 	// force set up the schema mappings table
 	_, _, err = btClient.GetSchemaMappingConfigs(ctx, "keyspace", "schema-mappings")
@@ -1117,4 +1109,163 @@ func TestDropTable(t *testing.T) {
 	require.Error(t, err)
 	require.Equal(t, codes.NotFound, status.Code(err))
 	require.Nil(t, info)
+}
+
+func TestInferSQLType(t *testing.T) {
+	tests := []struct {
+		name          string
+		input         interface{}
+		expectedType  bigtable.SQLType
+		expectedError string
+	}{
+		{
+			name:         "string value",
+			input:        "test",
+			expectedType: bigtable.StringSQLType{},
+		},
+		{
+			name:         "byte slice value",
+			input:        []byte("test"),
+			expectedType: bigtable.BytesSQLType{},
+		},
+		{
+			name:         "integer value",
+			input:        42,
+			expectedType: bigtable.Int64SQLType{},
+		},
+		{
+			name:         "int32 value",
+			input:        int32(42),
+			expectedType: bigtable.Int64SQLType{},
+		},
+		{
+			name:         "int64 value",
+			input:        int64(42),
+			expectedType: bigtable.Int64SQLType{},
+		},
+		{
+			name:         "float32 value",
+			input:        float32(3.14),
+			expectedType: bigtable.Float32SQLType{},
+		},
+		{
+			name:         "float64 value",
+			input:        float64(3.14),
+			expectedType: bigtable.Float64SQLType{},
+		},
+		{
+			name:         "boolean value",
+			input:        true,
+			expectedType: bigtable.Int64SQLType{},
+		},
+		{
+			name:         "interface slice",
+			input:        []interface{}{1, 2, 3},
+			expectedType: bigtable.ArraySQLType{},
+		},
+		{
+			name:          "unsupported struct type",
+			input:         struct{}{},
+			expectedError: "unsupported type for SQL parameter inference: struct {}",
+		},
+		{
+			name:         "empty interface slice",
+			input:        []interface{}{},
+			expectedType: bigtable.ArraySQLType{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sqlType, err := inferSQLType(tt.input)
+
+			if tt.expectedError != "" {
+				assert.Error(t, err)
+				assert.Equal(t, tt.expectedError, err.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.expectedType, sqlType)
+			}
+		})
+	}
+}
+func TestBigtableClient_getClient(t *testing.T) {
+	// Setup a dummy bigtable.Client and BigtableClient struct
+	dummyClient := &bigtable.Client{}
+	instancesMap := map[string]InstanceConfig{
+		"ks1": {BigtableInstance: "inst1"},
+	}
+	clients := map[string]*bigtable.Client{
+		"inst1": dummyClient,
+	}
+	btc := &BigtableClient{
+		InstancesMap: instancesMap,
+		Clients:      clients,
+	}
+
+	t.Run("returns client when keyspace and instance exist", func(t *testing.T) {
+		client, err := btc.getClient("ks1")
+		assert.NoError(t, err)
+		assert.Equal(t, dummyClient, client)
+	})
+
+	t.Run("returns error when keyspace does not exist", func(t *testing.T) {
+		client, err := btc.getClient("missing")
+		assert.Nil(t, client)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "keyspace not found: 'missing'")
+	})
+
+	t.Run("returns error when client for instance does not exist", func(t *testing.T) {
+		btc2 := &BigtableClient{
+			InstancesMap: map[string]InstanceConfig{
+				"ks2": {BigtableInstance: "inst2"},
+			},
+			Clients: map[string]*bigtable.Client{}, // no client for inst2
+		}
+		client, err := btc2.getClient("ks2")
+		assert.Nil(t, client)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "client not found for instance 'inst2' (from keyspace 'ks2')")
+	})
+}
+func TestBigtableClient_getAdminClient(t *testing.T) {
+	// Setup a dummy bigtable.AdminClient and BigtableClient struct
+	dummyAdminClient := &bigtable.AdminClient{}
+	instancesMap := map[string]InstanceConfig{
+		"ks1": {BigtableInstance: "inst1"},
+	}
+	adminClients := map[string]*bigtable.AdminClient{
+		"inst1": dummyAdminClient,
+	}
+	btc := &BigtableClient{
+		InstancesMap: instancesMap,
+		AdminClients: adminClients,
+	}
+
+	t.Run("returns admin client when keyspace and instance exist", func(t *testing.T) {
+		client, err := btc.getAdminClient("ks1")
+		assert.NoError(t, err)
+		assert.Equal(t, dummyAdminClient, client)
+	})
+
+	t.Run("returns error when keyspace does not exist", func(t *testing.T) {
+		client, err := btc.getAdminClient("missing")
+		assert.Nil(t, client)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "keyspace not found: 'missing'")
+	})
+
+	t.Run("returns error when admin client for instance does not exist", func(t *testing.T) {
+		btc2 := &BigtableClient{
+			InstancesMap: map[string]InstanceConfig{
+				"ks2": {BigtableInstance: "inst2"},
+			},
+			AdminClients: map[string]*bigtable.AdminClient{}, // no admin client for inst2
+		}
+		client, err := btc2.getAdminClient("ks2")
+		assert.Nil(t, client)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "admin client not found for instance 'inst2' (from keyspace 'ks2')")
+	})
 }

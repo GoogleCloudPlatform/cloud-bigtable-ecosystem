@@ -17,6 +17,7 @@ package responsehandler
 
 import (
 	btpb "cloud.google.com/go/bigtable/apiv2/bigtablepb"
+	types "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	schemaMapping "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/schema-mapping"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/translator"
 	"github.com/datastax/go-cassandra-native-protocol/message"
@@ -50,11 +51,11 @@ type QueryMetadata struct {
 	ComplexUpdateSelectQuery string // select Query for complex update Scenario
 	UpdateSetValues          []translator.UpdateSetValue
 	MutationKeyRange         []interface{}
-	AliasMap                 map[string]translator.AsKeywordMeta
 	DefaultColumnFamily      string
 	IsStar                   bool
 	Limit                    translator.Limit
-	IsGroupBy                bool // isGroup by Query
+	IsGroupBy                bool           // isGroup by Query
+	Clauses                  []types.Clause // List of clauses in the query
 }
 
 type TypeHandler struct {

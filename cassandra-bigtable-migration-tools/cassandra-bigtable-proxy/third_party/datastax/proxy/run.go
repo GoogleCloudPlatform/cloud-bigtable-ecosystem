@@ -85,13 +85,20 @@ type Listener struct {
 }
 
 // Bigtable holds the Bigtable database configuration
+
+type InstancesMap struct {
+	BigtableInstance string `yaml:"bigtableInstance"`
+	Keyspace         string `yaml:"keyspace"`
+	AppProfileID     string `yaml:"appProfileID"`
+}
 type Bigtable struct {
-	ProjectID           string  `yaml:"projectId"`
-	InstanceIDs         string  `yaml:"instanceIds"`
-	SchemaMappingTable  string  `yaml:"schemaMappingTable"`
-	Session             Session `yaml:"Session"`
-	DefaultColumnFamily string  `yaml:"defaultColumnFamily"`
-	AppProfileID        string  `yaml:"appProfileID"`
+	ProjectID           string         `yaml:"projectId"`
+	Instances           []InstancesMap `yaml:"instances"`
+	InstanceIDs         string         `yaml:"instanceIds"`
+	SchemaMappingTable  string         `yaml:"schemaMappingTable"`
+	Session             Session        `yaml:"Session"`
+	DefaultColumnFamily string         `yaml:"defaultColumnFamily"`
+	AppProfileID        string         `yaml:"appProfileID"`
 }
 
 // Session describes the settings for Bigtable sessions
@@ -125,8 +132,8 @@ type runConfig struct {
 	ProxyKeyFile       string   `yaml:"proxy-key-file" help:"Path to a PEM encoded private key file. This is used to encrypt traffic for proxy clients" env:"PROXY_KEY_FILE"`
 	// hidden because we only intend the java session wrapper to use this flag
 	UserAgentOverride string `yaml:"-" help:"" hidden:"" optional:"" default:"" short:"u"`
-	ClientPid         int32     `yaml:"client-pid" help:"" hidden:"" optional:"" default:"" short:""`
-	ClientUid         uint32    `yaml:"client-uid" help:"" hidden:"" optional:"" default:"" short:""`
+	ClientPid         int32  `yaml:"client-pid" help:"" hidden:"" optional:"" default:"" short:""`
+	ClientUid         uint32 `yaml:"client-uid" help:"" hidden:"" optional:"" default:"" short:""`
 }
 
 // Run starts the proxy command. 'args' shouldn't include the executable (i.e. os.Args[1:]). It returns the exit code
@@ -232,7 +239,7 @@ func Run(ctx context.Context, args []string) int {
 	}
 	defer logger.Sync()
 	if cfg.Version {
-		cliCtx.Printf("Version - " + proxyReleaseVersion)
+		cliCtx.Printf("Version - %s", proxyReleaseVersion)
 		return 0
 	}
 
@@ -264,13 +271,34 @@ func Run(ctx context.Context, args []string) int {
 	}
 
 	for _, listener := range UserConfig.Listeners {
+		InstanceMap := make(map[string]bigtableModule.InstanceConfig)
+		if listener.Bigtable.InstanceIDs != "" {
+			instances := strings.Split(listener.Bigtable.InstanceIDs, ",")
+			for _, v := range instances {
+				InstanceMap[v] = bigtableModule.InstanceConfig{
+					BigtableInstance: v,
+					AppProfileId:     listener.Bigtable.AppProfileID,
+				}
+			}
+		} else {
+			for _, v := range listener.Bigtable.Instances {
+				AppProfileId := listener.Bigtable.AppProfileID
+				if v.AppProfileID != "" {
+					AppProfileId = v.AppProfileID
+				}
+				InstanceMap[v.Keyspace] = bigtableModule.InstanceConfig{
+					BigtableInstance: v.BigtableInstance,
+					AppProfileId:     AppProfileId,
+				}
+			}
+		}
+
 		bigtableConfig := bigtableModule.BigtableConfig{
 			NumOfChannels:       listener.Bigtable.Session.GrpcChannels,
 			SchemaMappingTable:  listener.Bigtable.SchemaMappingTable,
-			InstanceID:          listener.Bigtable.InstanceIDs,
+			InstancesMap:        InstanceMap,
 			GCPProjectID:        listener.Bigtable.ProjectID,
 			DefaultColumnFamily: listener.Bigtable.DefaultColumnFamily,
-			AppProfileID:        listener.Bigtable.AppProfileID,
 			// todo remove once we support ordered code ints
 			EncodeIntValuesWithBigEndian: encodeIntValuesWithBigEndian,
 		}
@@ -454,7 +482,7 @@ func resolveAndListen(bind string, useUnixSocket bool, unixSocketPath, certFile,
 		if err := os.RemoveAll(unixSocketPath); err != nil {
 			return nil, fmt.Errorf("failed to remove existing socket file: %v", err)
 		}
-		logger.Debug(fmt.Sprintf("Creating Unix Domain Socket"))
+		logger.Debug("Creating Unix Domain Socket")
 		listener, err := net.Listen("unix", unixSocketPath)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create Unix Domain Socket: %v", err)
@@ -462,6 +490,7 @@ func resolveAndListen(bind string, useUnixSocket bool, unixSocketPath, certFile,
 		logger.Debug("Successfully created Unix Domain Socket listener\n")
 
 		// Set socket permissions
+		// it is important for the socket permission to stay 0600 (DO NOT CHANGE)
 		if err := os.Chmod(unixSocketPath, 0600); err != nil {
 			return nil, fmt.Errorf("failed to set socket permissions: %v", err)
 		}

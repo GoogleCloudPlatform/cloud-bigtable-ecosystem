@@ -19,28 +19,41 @@ package translator
 import (
 	"errors"
 
+	methods "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/methods"
 	cql "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/third_party/cqlparser"
-	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/utilities"
 	"github.com/antlr4-go/antlr/v4"
 	"github.com/datastax/go-cassandra-native-protocol/message"
 )
 
-func (t *Translator) TranslateAlterTableToBigtable(query string) (*AlterTableStatementMap, error) {
+func (t *Translator) TranslateAlterTableToBigtable(query, sessionKeyspace string) (*AlterTableStatementMap, error) {
 	lexer := cql.NewCqlLexer(antlr.NewInputStream(query))
 	stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
 	p := cql.NewCqlParser(stream)
 
 	alterTable := p.AlterTable()
 
-	if alterTable == nil {
+	if alterTable == nil || alterTable.Table() == nil {
 		return nil, errors.New("error while parsing alter statement")
 	}
 
-	table := alterTable.Table().GetText()
-	if alterTable.Keyspace() == nil {
+	var tableName, keyspaceName string
+
+	if alterTable != nil && alterTable.Table() != nil && alterTable.Table().GetText() != "" {
+		tableName = alterTable.Table().GetText()
+		if !validTableName.MatchString(tableName) {
+			return nil, errors.New("invalid table name parsed from query")
+		}
+	} else {
+		return nil, errors.New("invalid input paramaters found for table")
+	}
+
+	if alterTable != nil && alterTable.Keyspace() != nil && alterTable.Keyspace().GetText() != "" {
+		keyspaceName = alterTable.Keyspace().GetText()
+	} else if sessionKeyspace != "" {
+		keyspaceName = sessionKeyspace
+	} else {
 		return nil, errors.New("missing keyspace. keyspace is required")
 	}
-	keyspace := alterTable.Keyspace().GetText()
 
 	var dropColumns []string
 	if alterTable.AlterTableOperation().AlterTableDropColumns() != nil {
@@ -51,14 +64,14 @@ func (t *Translator) TranslateAlterTableToBigtable(query string) (*AlterTableSta
 	var addColumns []message.ColumnMetadata
 	if alterTable.AlterTableOperation().AlterTableAdd() != nil {
 		for i, addColumn := range alterTable.AlterTableOperation().AlterTableAdd().AlterTableColumnDefinition().AllColumn() {
-			dt, err := utilities.GetCassandraColumnType(alterTable.AlterTableOperation().AlterTableAdd().AlterTableColumnDefinition().DataType(i).GetText())
+			dt, err := methods.GetCassandraColumnType(alterTable.AlterTableOperation().AlterTableAdd().AlterTableColumnDefinition().DataType(i).GetText())
 			if err != nil {
 				return nil, err
 			}
 
 			addColumns = append(addColumns, message.ColumnMetadata{
-				Table:    table,
-				Keyspace: keyspace,
+				Table:    tableName,
+				Keyspace: keyspaceName,
 				Type:     dt,
 				Name:     addColumn.GetText(),
 				Index:    int32(i),
@@ -71,8 +84,8 @@ func (t *Translator) TranslateAlterTableToBigtable(query string) (*AlterTableSta
 	}
 
 	var stmt = AlterTableStatementMap{
-		Table:       table,
-		Keyspace:    keyspace,
+		Table:       tableName,
+		Keyspace:    keyspaceName,
 		QueryType:   "alter",
 		DropColumns: dropColumns,
 		AddColumns:  addColumns,

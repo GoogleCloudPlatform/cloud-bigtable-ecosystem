@@ -1,6 +1,6 @@
 // Code generated from CqlParser.g4 by ANTLR 4.13.2. DO NOT EDIT.
 
-package cqlparser // CqlParser
+package parser // CqlParser
 
 import "github.com/antlr4-go/antlr/v4"
 
@@ -50,6 +50,18 @@ func (s *BaseCqlParserListener) EnterCql(ctx *CqlContext) {}
 
 // ExitCql is called when production cql is exited.
 func (s *BaseCqlParserListener) ExitCql(ctx *CqlContext) {}
+
+// EnterDescribeStatement is called when production describeStatement is entered.
+func (s *BaseCqlParserListener) EnterDescribeStatement(ctx *DescribeStatementContext) {}
+
+// ExitDescribeStatement is called when production describeStatement is exited.
+func (s *BaseCqlParserListener) ExitDescribeStatement(ctx *DescribeStatementContext) {}
+
+// EnterDescribeTarget is called when production describeTarget is entered.
+func (s *BaseCqlParserListener) EnterDescribeTarget(ctx *DescribeTargetContext) {}
+
+// ExitDescribeTarget is called when production describeTarget is exited.
+func (s *BaseCqlParserListener) ExitDescribeTarget(ctx *DescribeTargetContext) {}
 
 // EnterRevoke is called when production revoke is entered.
 func (s *BaseCqlParserListener) EnterRevoke(ctx *RevokeContext) {}
@@ -817,6 +829,12 @@ func (s *BaseCqlParserListener) EnterLimitSpec(ctx *LimitSpecContext) {}
 // ExitLimitSpec is called when production limitSpec is exited.
 func (s *BaseCqlParserListener) ExitLimitSpec(ctx *LimitSpecContext) {}
 
+// EnterKwLike is called when production kwLike is entered.
+func (s *BaseCqlParserListener) EnterKwLike(ctx *KwLikeContext) {}
+
+// ExitKwLike is called when production kwLike is exited.
+func (s *BaseCqlParserListener) ExitKwLike(ctx *KwLikeContext) {}
+
 // EnterFromSpec is called when production fromSpec is entered.
 func (s *BaseCqlParserListener) EnterFromSpec(ctx *FromSpecContext) {}
 
@@ -1134,6 +1152,12 @@ func (s *BaseCqlParserListener) EnterKwBatch(ctx *KwBatchContext) {}
 
 // ExitKwBatch is called when production kwBatch is exited.
 func (s *BaseCqlParserListener) ExitKwBatch(ctx *KwBatchContext) {}
+
+// EnterKwBetween is called when production kwBetween is entered.
+func (s *BaseCqlParserListener) EnterKwBetween(ctx *KwBetweenContext) {}
+
+// ExitKwBetween is called when production kwBetween is exited.
+func (s *BaseCqlParserListener) ExitKwBetween(ctx *KwBetweenContext) {}
 
 // EnterKwBegin is called when production kwBegin is entered.
 func (s *BaseCqlParserListener) EnterKwBegin(ctx *KwBeginContext) {}
@@ -1537,6 +1561,12 @@ func (s *BaseCqlParserListener) EnterKwTable(ctx *KwTableContext) {}
 // ExitKwTable is called when production kwTable is exited.
 func (s *BaseCqlParserListener) ExitKwTable(ctx *KwTableContext) {}
 
+// EnterKwTables is called when production kwTables is entered.
+func (s *BaseCqlParserListener) EnterKwTables(ctx *KwTablesContext) {}
+
+// ExitKwTables is called when production kwTables is exited.
+func (s *BaseCqlParserListener) ExitKwTables(ctx *KwTablesContext) {}
+
 // EnterKwTimestamp is called when production kwTimestamp is entered.
 func (s *BaseCqlParserListener) EnterKwTimestamp(ctx *KwTimestampContext) {}
 
@@ -1633,6 +1663,12 @@ func (s *BaseCqlParserListener) EnterKwRevoke(ctx *KwRevokeContext) {}
 // ExitKwRevoke is called when production kwRevoke is exited.
 func (s *BaseCqlParserListener) ExitKwRevoke(ctx *KwRevokeContext) {}
 
+// EnterKwGroup is called when production kwGroup is entered.
+func (s *BaseCqlParserListener) EnterKwGroup(ctx *KwGroupContext) {}
+
+// ExitKwGroup is called when production kwGroup is exited.
+func (s *BaseCqlParserListener) ExitKwGroup(ctx *KwGroupContext) {}
+
 // EnterSyntaxBracketLr is called when production syntaxBracketLr is entered.
 func (s *BaseCqlParserListener) EnterSyntaxBracketLr(ctx *SyntaxBracketLrContext) {}
 
@@ -1692,3 +1728,15 @@ func (s *BaseCqlParserListener) EnterSyntaxColon(ctx *SyntaxColonContext) {}
 
 // ExitSyntaxColon is called when production syntaxColon is exited.
 func (s *BaseCqlParserListener) ExitSyntaxColon(ctx *SyntaxColonContext) {}
+
+// EnterGroupSpec is called when production groupSpec is entered.
+func (s *BaseCqlParserListener) EnterGroupSpec(ctx *GroupSpecContext) {}
+
+// ExitGroupSpec is called when production groupSpec is exited.
+func (s *BaseCqlParserListener) ExitGroupSpec(ctx *GroupSpecContext) {}
+
+// EnterGroupSpecElement is called when production groupSpecElement is entered.
+func (s *BaseCqlParserListener) EnterGroupSpecElement(ctx *GroupSpecElementContext) {}
+
+// ExitGroupSpecElement is called when production groupSpecElement is exited.
+func (s *BaseCqlParserListener) ExitGroupSpecElement(ctx *GroupSpecElementContext) {}

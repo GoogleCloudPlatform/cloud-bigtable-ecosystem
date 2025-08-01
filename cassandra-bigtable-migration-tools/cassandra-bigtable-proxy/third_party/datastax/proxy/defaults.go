@@ -57,8 +57,11 @@ func ValidateAndApplyDefaults(cfg *UserConfig) error {
 			}
 			cfg.Listeners[i].Bigtable.ProjectID = cfg.CassandraToBigtableConfigs.ProjectID
 		}
-		if cfg.Listeners[i].Bigtable.InstanceIDs == "" {
-			return fmt.Errorf("instance id is not defined for listener %s %d", cfg.Listeners[i].Name, cfg.Listeners[i].Port)
+		if len(cfg.Listeners[i].Bigtable.Instances) == 0 && cfg.Listeners[i].Bigtable.InstanceIDs == "" {
+			return fmt.Errorf("either 'instances' or 'instance_ids' must be defined for listener %s on port %d", cfg.Listeners[i].Name, cfg.Listeners[i].Port)
+		}
+		if len(cfg.Listeners[i].Bigtable.Instances) != 0 && cfg.Listeners[i].Bigtable.InstanceIDs != "" {
+			return fmt.Errorf("only one of 'instances' or 'instance_ids' should be set for listener %s on port %d", cfg.Listeners[i].Name, cfg.Listeners[i].Port)
 		}
 	}
 	return nil

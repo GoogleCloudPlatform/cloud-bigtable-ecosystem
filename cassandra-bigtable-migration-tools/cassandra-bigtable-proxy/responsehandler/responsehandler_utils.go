@@ -132,35 +132,6 @@ func (th *TypeHandler) DecodeValue(byteArray []byte, elementType datatype.DataTy
 	return decodedValue, nil
 }
 
-// HasDollarSymbolPrefix checks if the first character of a given string is a dollar sign.
-//
-// Parameters:
-//   - s: The string to check.
-//
-// Returns: A boolean indicating whether the first character is a dollar sign.
-func HasDollarSymbolPrefix(s string) bool {
-	if len(s) == 0 {
-		return false
-	}
-	return s[0] == '$'
-}
-
-// GetMapKeyForColumn retrieves the map key associated with a specific column from the query metadata.
-//
-// Parameters:
-//   - queryMetadata: The QueryMetadata containing information about selected columns.
-//   - column: A string representing the column name for which to find the associated map key.
-//
-// Returns: A string containing the map key associated with the given column name, or an empty string if not found.
-func GetMapKeyForColumn(queryMetadata QueryMetadata, column string) string {
-	for _, value := range queryMetadata.SelectedColumns {
-		if value.Name == column || value.Alias == column {
-			return value.MapKey
-		}
-	}
-	return ""
-}
-
 // DecodeAndReturnBool decodes a byte array to a boolean value.
 //
 // Parameters:
@@ -328,7 +299,7 @@ func HandlePrimitiveEncoding(dt datatype.DataType, value interface{}, protocalVe
 	}
 	if val.Kind() == reflect.Slice {
 		if val.Len() == 0 {
-			return value, nil
+			return nil, nil
 		}
 	}
 	var decodedValue interface{}

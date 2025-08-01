@@ -19,9 +19,12 @@ package schemaMapping
 import (
 	"fmt"
 	"slices"
+	"sort"
 
+	types "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	"github.com/datastax/go-cassandra-native-protocol/datatype"
 	"github.com/datastax/go-cassandra-native-protocol/message"
+	"github.com/datastax/go-cassandra-native-protocol/primitive"
 	"go.uber.org/zap"
 )
 
@@ -29,26 +32,14 @@ const (
 	LimitValue = "limitValue"
 )
 
-type Column struct {
-	CQLType      string
-	ColumnName   string
-	ColumnType   string
-	IsPrimaryKey bool
-	PkPrecedence int
-	IsCollection bool
-	KeyType      string
-	Metadata     message.ColumnMetadata
-}
-
 type SchemaMappingConfig struct {
 	Logger             *zap.Logger
-	TablesMetaData     map[string]map[string]map[string]*Column
-	PkMetadataCache    map[string]map[string][]Column
+	TablesMetaData     map[string]map[string]map[string]*types.Column
+	PkMetadataCache    map[string]map[string][]types.Column
 	SystemColumnFamily string
 }
 
 type SelectedColumns struct {
-	FormattedColumn   string
 	Name              string
 	IsFunc            bool
 	IsAs              bool
@@ -56,8 +47,7 @@ type SelectedColumns struct {
 	Alias             string
 	MapKey            string
 	ListIndex         string
-	FuncColumnName    string
-	MapColumnName     string
+	ColumnName        string //this will be the column name for writetime function,aggregate function and Map key access
 	KeyType           string
 	IsWriteTimeColumn bool
 }
@@ -71,9 +61,9 @@ type SelectedColumns struct {
 //   - tableName: The name of the table for which primary key metadata is requested.
 //
 // Returns:
-//   - []Column: A slice of Column structs representing the primary keys of the table.
+//   - []types.Column: A slice of types.Column structs representing the primary keys of the table.
 //   - error: Returns an error if the primary key metadata is not found.
-func (c *SchemaMappingConfig) GetPkByTableName(tableName string, keySpace string) ([]Column, error) {
+func (c *SchemaMappingConfig) GetPkByTableName(tableName string, keySpace string) ([]types.Column, error) {
 	pkMeta, ok := c.PkMetadataCache[keySpace][tableName]
 	if !ok {
 		return nil, fmt.Errorf("could not find metadata for the table: %s", tableName)
@@ -81,12 +71,12 @@ func (c *SchemaMappingConfig) GetPkByTableName(tableName string, keySpace string
 	return pkMeta, nil
 }
 
-func (c *SchemaMappingConfig) GetPkByTableNameWithFilter(tableName string, keySpace string, filterPrimaryKeys []string) ([]Column, error) {
+func (c *SchemaMappingConfig) GetPkByTableNameWithFilter(tableName string, keySpace string, filterPrimaryKeys []string) ([]types.Column, error) {
 	pmks, err := c.GetPkByTableName(tableName, keySpace)
 	if err != nil {
 		return nil, err
 	}
-	var result []Column
+	var result []types.Column
 	for _, pmk := range pmks {
 		if slices.Contains(filterPrimaryKeys, pmk.ColumnName) {
 			result = append(result, pmk)
@@ -106,10 +96,10 @@ func (c *SchemaMappingConfig) GetPkByTableNameWithFilter(tableName string, keySp
 //   - columnName: The name of the column for which metadata is retrieved.
 //
 // Returns:
-//   - A pointer to a ColumnType struct containing the column's CQL type, whether it's a collection,
+//   - A pointer to a types.Column struct containing the column's CQL type, whether it's a collection,
 //     whether it's a primary key, and its key type.
 //   - An error if the table or column metadata is not found.
-func (c *SchemaMappingConfig) GetColumnType(keyspace, tableName, columnName string) (*Column, error) {
+func (c *SchemaMappingConfig) GetColumnType(keyspace, tableName, columnName string) (*types.Column, error) {
 	td, ok := c.TablesMetaData[keyspace][tableName]
 	if !ok {
 		return nil, fmt.Errorf("could not find metadata for the table: %s", tableName)
@@ -120,8 +110,12 @@ func (c *SchemaMappingConfig) GetColumnType(keyspace, tableName, columnName stri
 		return nil, fmt.Errorf("could not find column %s metadata for the table: %s", columnName, tableName)
 	}
 
-	return &Column{
-		CQLType:      col.ColumnType,
+	if col.CQLType == nil {
+		return nil, fmt.Errorf("could not find column %s metadata for the table: %s", columnName, tableName)
+	}
+
+	return &types.Column{
+		CQLType:      col.CQLType,
 		IsPrimaryKey: col.IsPrimaryKey,
 		IsCollection: col.IsCollection,
 		KeyType:      col.KeyType,
@@ -180,7 +174,7 @@ func (c *SchemaMappingConfig) GetMetadataForSelectedColumns(tableName string, co
 	if len(columnNames) == 0 {
 		return c.getAllColumnsMetadata(columnsMap), nil
 	}
-	return c.getSpecificColumnsMetadataForSelectedColumns(columnsMap, columnNames, tableName)
+	return c.getSpecificColumnsMetadataForSelectedColumns(columnsMap, columnNames, tableName, keySpace)
 }
 
 // getTimestampColumnName() constructs the appropriate name for a column used in a writetime function.
@@ -201,14 +195,14 @@ func getTimestampColumnName(aliasName string, columnName string) string {
 // It handles regular columns, writetime columns, and special columns, and logs an error for invalid configurations.
 //
 // Parameters:
-//   - columnsMap: A map where the keys are column names and the values are pointers to Column containing metadata.
+//   - columnsMap: A map where the keys are column names and the values are pointers to types.Column containing metadata.
 //   - selectedColumns: A slice of SelectedColumns representing columns that have been selected for query.
 //   - tableName: The name of the table from which columns are being selected.
 //
 // Returns:
 //   - A slice of pointers to ColumnMetadata, representing the metadata for each selected column.
 //   - An error if a column cannot be found in the map, or if there's an issue handling special columns.
-func (c *SchemaMappingConfig) getSpecificColumnsMetadataForSelectedColumns(columnsMap map[string]*Column, selectedColumns []SelectedColumns, tableName string) ([]*message.ColumnMetadata, error) {
+func (c *SchemaMappingConfig) getSpecificColumnsMetadataForSelectedColumns(columnsMap map[string]*types.Column, selectedColumns []SelectedColumns, tableName, keySpace string) ([]*message.ColumnMetadata, error) {
 	var columnMetadataList []*message.ColumnMetadata
 	var columnName string
 	for i, columnMeta := range selectedColumns {
@@ -217,7 +211,7 @@ func (c *SchemaMappingConfig) getSpecificColumnsMetadataForSelectedColumns(colum
 		if column, ok := columnsMap[columnName]; ok {
 			columnMetadataList = append(columnMetadataList, c.cloneColumnMetadata(&column.Metadata, int32(i)))
 		} else if columnMeta.IsWriteTimeColumn {
-			metadata, err := c.handleSpecialColumn(columnsMap, getTimestampColumnName(columnMeta.Alias, columnMeta.FuncColumnName), int32(i), true)
+			metadata, err := c.handleSpecialColumn(columnsMap, getTimestampColumnName(columnMeta.Alias, columnMeta.ColumnName), int32(i), true)
 			if err != nil {
 				return nil, err
 			}
@@ -228,12 +222,20 @@ func (c *SchemaMappingConfig) getSpecificColumnsMetadataForSelectedColumns(colum
 				return nil, err
 			}
 			columnMetadataList = append(columnMetadataList, metadata)
-		} else if columnMeta.IsFunc {
+		} else if columnMeta.IsFunc || columnMeta.MapKey != "" || columnMeta.IsWriteTimeColumn {
+			metadata, err := c.handleSpecialSelectedColumn(columnsMap, columnMeta, int32(i), tableName, keySpace)
+			if err != nil {
+				return nil, err
+			}
+			columnMetadataList = append(columnMetadataList, metadata)
 			c.Logger.Debug("Identified a function call", zap.String("columnName", columnName))
 		} else {
 			errMsg := fmt.Sprintf("metadata not found for the `%s` column in `%s`table", columnName, tableName)
 			c.Logger.Error(errMsg)
 			return nil, fmt.Errorf("%s", errMsg)
+		}
+		if columnMeta.IsAs {
+			columnMetadataList[i].Name = columnMeta.Alias
 		}
 	}
 	return columnMetadataList, nil
@@ -247,13 +249,15 @@ func (c *SchemaMappingConfig) getSpecificColumnsMetadataForSelectedColumns(colum
 // Returns:
 // - A slice of pointers to ColumnMetadata structs containing metadata for each requested column.
 // - An error
-func (c *SchemaMappingConfig) getAllColumnsMetadata(columnsMap map[string]*Column) []*message.ColumnMetadata {
+func (c *SchemaMappingConfig) getAllColumnsMetadata(columnsMap map[string]*types.Column) []*message.ColumnMetadata {
 	var columnMetadataList []*message.ColumnMetadata
-	var i int32 = 0
 	for _, column := range columnsMap {
-		columnMetadataList = append(columnMetadataList, c.cloneColumnMetadata(&column.Metadata, int32(i)))
-		i++
+		columnMd := column.Metadata.Clone()
+		columnMetadataList = append(columnMetadataList, columnMd)
 	}
+	sort.Slice(columnMetadataList, func(i, j int) bool {
+		return columnMetadataList[i].Index < columnMetadataList[j].Index
+	})
 	return columnMetadataList
 }
 
@@ -267,7 +271,7 @@ func (c *SchemaMappingConfig) getAllColumnsMetadata(columnsMap map[string]*Colum
 // Returns:
 // - A slice of pointers to ColumnMetadata structs containing metadata for each requested column.
 // - An error
-func (c *SchemaMappingConfig) getSpecificColumnsMetadata(columnsMap map[string]*Column, columnNames []string, tableName string) ([]*message.ColumnMetadata, error) {
+func (c *SchemaMappingConfig) getSpecificColumnsMetadata(columnsMap map[string]*types.Column, columnNames []string, tableName string) ([]*message.ColumnMetadata, error) {
 	var columnMetadataList []*message.ColumnMetadata
 	for i, columnName := range columnNames {
 		if column, ok := columnsMap[columnName]; ok {
@@ -297,7 +301,7 @@ func (c *SchemaMappingConfig) getSpecificColumnsMetadata(columnsMap map[string]*
 // Returns:
 // - Pointers to ColumnMetadata structs containing metadata for each requested column.
 // - An error
-func (c *SchemaMappingConfig) handleSpecialColumn(columnsMap map[string]*Column, columnName string, index int32, isWriteTimeFunction bool) (*message.ColumnMetadata, error) {
+func (c *SchemaMappingConfig) handleSpecialColumn(columnsMap map[string]*types.Column, columnName string, index int32, isWriteTimeFunction bool) (*message.ColumnMetadata, error) {
 	// Validate if the column is a special column
 	if !isSpecialColumn(columnName) && !isWriteTimeFunction {
 		return nil, fmt.Errorf("invalid special column: %s", columnName)
@@ -316,6 +320,54 @@ func (c *SchemaMappingConfig) handleSpecialColumn(columnsMap map[string]*Column,
 	// No matching column found
 	if columnMd == nil {
 		return nil, fmt.Errorf("special column %s not found in provided metadata", columnName)
+	}
+
+	return columnMd, nil
+}
+
+// handleSpecialSelectedColumn processes special column types and returns corresponding ColumnMetadata.
+// It handles count functions, write time columns, aliased columns, function columns, and map columns.
+//
+// Parameters:
+//   - columnsMap: A map of column names to their types.Column definitions
+//   - columnSelected: Selected column configuration including special attributes
+//   - index: The position index of the column
+//   - tableName: Name of the table containing the column
+//   - keySpace: Keyspace name containing the table
+//
+// Returns:
+//   - *message.ColumnMetadata: Metadata for the processed column
+//   - error: If the column is not found in the provided metadata
+func (c *SchemaMappingConfig) handleSpecialSelectedColumn(columnsMap map[string]*types.Column, columnSelected SelectedColumns, index int32, tableName, keySpace string) (*message.ColumnMetadata, error) {
+	var cqlType datatype.DataType
+	if columnSelected.FuncName == "count" || columnSelected.IsWriteTimeColumn {
+		// For count function, the type is always bigint
+		return &message.ColumnMetadata{
+			Keyspace: keySpace,
+			Table:    tableName,
+			Type:     datatype.Bigint,
+			Index:    index,
+			Name:     columnSelected.Name,
+		}, nil
+	}
+	lookupColumn := columnSelected.Name
+	if columnSelected.Alias != "" || columnSelected.IsFunc || columnSelected.MapKey != "" {
+		lookupColumn = columnSelected.ColumnName
+	}
+	column, ok := columnsMap[lookupColumn]
+	if !ok {
+		return nil, fmt.Errorf("special column %s not found in provided metadata", lookupColumn)
+	}
+	cqlType = column.Metadata.Type
+	if columnSelected.MapKey != "" && cqlType.GetDataTypeCode() == primitive.DataTypeCodeMap {
+		cqlType = cqlType.(datatype.MapType).GetValueType() // this gets the type of map value e.g map<varchar,int> -> datatype(int)
+	}
+	columnMd := &message.ColumnMetadata{
+		Keyspace: keySpace,
+		Table:    tableName,
+		Type:     cqlType,
+		Index:    index,
+		Name:     columnSelected.Name,
 	}
 
 	return columnMd, nil
@@ -387,4 +439,14 @@ func (c *SchemaMappingConfig) GetPkKeyType(tableName string, keySpace string, co
 		}
 	}
 	return "", fmt.Errorf("column %s is not a primary key in table %s", columnName, tableName)
+}
+
+// ListKeyspaces returns a sorted list of all keyspace names in the schema mapping.
+func (c *SchemaMappingConfig) ListKeyspaces() []string {
+	keyspaces := make([]string, 0, len(c.TablesMetaData))
+	for ks := range c.TablesMetaData {
+		keyspaces = append(keyspaces, ks)
+	}
+	sort.Strings(keyspaces)
+	return keyspaces
 }

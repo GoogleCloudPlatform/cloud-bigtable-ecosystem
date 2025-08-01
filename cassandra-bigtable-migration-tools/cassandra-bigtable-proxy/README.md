@@ -42,7 +42,7 @@ Cassandra to Cloud Bigtable Proxy Adapter is designed to forward your applicatio
 
 ## When to use Cassandra to Bigtable Proxy?
 
-`cassandra-to-bigtable-proxy` enables applications that are currently using Apache Cassandra or DataStax Enterprise (DSE) and would like to switch to use Cloud Bigtable. This Proxy Adaper can be used as Plug-N-Play for the Client Application without the need of any code changes in the Client Application.
+`cassandra-to-bigtable-proxy` enables applications that are currently using Apache Cassandra or DataStax Enterprise (DSE) and would like to switch to use Cloud Bigtable. This Proxy Adapter can be used as Plug-N-Play for the Client Application without the need of any code changes in the Client Application.
 
 ## Pre-requisites
 
@@ -248,16 +248,28 @@ listeners:
   bigtable:
     # [Optional], skip if it is the same as global_projectId.
     projectId: YOUR_GCP_PROJECT
+    #[Optional] appProfileID(Gobal)is required only if you want to use a specific app profile.
+    appProfileID: YOUR_BIGTABLE_PROFILE_ID
+    # If you want to use multiple instances then pass the instance names by comma seperated
+    # Instance(cassandra keyspace) name should not contain any special characters except underscore(_)
+    # if instanceIds values given here then proxy wont read from the below instances list
+    # Note: only either instancesIds or instances can be defined. Defining both is not allowed.
+    instanceIds: YOUR_BIGTABLE_INSTANCE 1,YOUR_BIGTABLE_INSTANCE_2
 
-    # If you want to use multiple instances then pass the instance names by comma separated
-    # Instance name should not contain any special characters except underscore(_)
-    instanceIds: YOUR_BIGTABLE_INSTANCE_ID
+
+    # If you want to use multiple instances, define them as a list of objects below.
+    instances:
+        - # [Required] The name of the Bigtable instance.
+          bigtableInstance: YOUR_BIGTABLE_INSTANCE_ID
+          # [Required] The cassandra keyspace associated with this Bigtable instance.
+          # Cassandra keyspace should not contain any special characters except underscore(_).
+          keyspace: YOUR_KEYSPACE_NAME
+          # [Optional] appProfileID is required only if you want to use a specific app profile for this instance.
+          # This will override the global appProfileID if specified.
+          appProfileID: YOUR_APP_PROFILE_ID
 
     # [Required] Name of the table  where cassandra schema to bigtable schema mapping is stored.
     schemaMappingTable: SCHEMA_MAPPING_TABLE_NAME
-
-    #[Optional] appProfileID is required only if you want to use a specific app profile.
-    appProfileID: YOUR_BIGTABLE_PROFILE_ID
 
     #[Required] Default column family for primitive data types is "cf1"
     defaultColumnFamily: DEFAULT_COLUMN_FAMILY
@@ -325,17 +337,17 @@ loggerConfig:
   ```
 
 **Important Note:** 
-* These configurations are essential and must be configured correctly before starting the proxy adapter. Incorrect configurations can lead to connection failures or unexpected behavior.
+* These configurations are essential and must be configured correctly before starting the proxy Adapter. Incorrect configurations can lead to connection failures or unexpected behavior.
 * Ensure that you replace the placeholder values (e.g., YOUR_GCP_PROJECT, PORT_NUMBER) with your actual configuration settings.
 * The defaultColumnFamily must be specified.
 * If you have created application profile then you can specify otherwise comment out it in `config.yaml` so that it will pick `default` column family automatically
 * When using multiple bigtable instances, ensure that the schema mapping table is available in all the bigtable instances.
 * When using OTEL, ensure that the OTEL collector service is configured correctly.
-* If you modify any value in the config.yaml file, you must restart the proxy adapter for the changes to take effect.
+* If you modify any value in the config.yaml file, you must restart the proxy Adapter for the changes to take effect.
 
 ## Getting started
 
-We can setup the `cassandra-to-bigtable-proxy` adapter via 3 different methods as mentioned below
+We can setup the `cassandra-to-bigtable-proxy` Adapter via 3 different methods as mentioned below
 
 - Locally build and run `cassandra-to-bigtable-proxy`
 - Run a docker image that has `cassandra-to-bigtable-proxy` installed
@@ -343,9 +355,9 @@ We can setup the `cassandra-to-bigtable-proxy` adapter via 3 different methods a
 
 ### Build and Run Proxy Locally
 
-Steps to run the adapter locally are as mentioned below:
+Steps to run the Adapter locally are as mentioned below:
 
-- Clone the repository (https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy.git)
+- Clone the repository (https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem.git)
 - Update `config.yaml`
   #### There are several ways to run/start proxy(Using Build and without Build):
   **1. Using Build**
@@ -382,6 +394,7 @@ Steps to run the adapter locally are as mentioned below:
   - **protocol-version**: Initial protocol version to use when connecting to the backend cluster, **default value: v4**
   - **log-level**: , set log level - [info/debug/error/warn] **default value: info**
   - **tcp-bind-port** or **-t**: TCP port to bind to, **default value: 9042**
+  - **rpc-address**: RPC address to bind to(This is specifically useful when connecting to zdm-proxy), **default value: 0.0.0.0**
   - **use-unix-socket** or **-u**: Enable Unix Domain Socket (UDS) connection. See [UDS Connection](#unix-domain-socket-uds-connection) for details.
   - **unix-socket-path**: Path for the Unix Domain Socket file, **default value: "/tmp/cassandra-proxy.sock"**
 
@@ -404,8 +417,8 @@ Steps to run the adapter locally are as mentioned below:
   ```sh
     docker run -d --name cassandra-bigtable-proxy \
     -p 9042:9042 \
-    -e GOOGLE_APPLICATION_CREDENTIALS="/var/run/secret/cloud.google.com/bigtable-adapter-service-account.json" \
-    -v <<path to service account>>/bigtable-adapter-service-account.json:/var/run/secret/cloud.google.com/ \
+    -e GOOGLE_APPLICATION_CREDENTIALS="/var/run/secret/cloud.google.com/bigtable-Adapter-service-account.json" \
+    -v <<path to service account>>/bigtable-Adapter-service-account.json:/var/run/secret/cloud.google.com/ \
     cassandra-to-bigtable-proxy:local
   ```
 
@@ -415,11 +428,11 @@ Steps to run the adapter locally are as mentioned below:
 
 ## Limitations for Proxy Application
 
-Detailed document - [Limitations](/docs/limitations.md)
+Detailed document - [Limitations](./docs/limitations.md)
 
 ## Guidelines for Proxy Application
 
-- The Proxy adapter supports DML operations such as INSERT, DELETE, UPDATE and SELECT.
+- The Proxy Adapter supports DML operations such as INSERT, DELETE, UPDATE and SELECT.
 - To run the Raw DML queries, it is mandatory for all values except numerics to have single quotes added to it. For eg.
 
   ```sh
@@ -483,38 +496,12 @@ Detailed document - [Limitations](/docs/limitations.md)
   | set&lt;item&gt;          |     ✓     | Col name as col family, SET item as column qualifier, value remain empty |
   | list&lt;item&gt;         |     ✓     | Col name as col family, current timestamp as column qualifier, list items as value |
 
+
 All list types follow the same storage pattern:  
 **Col name as col family, current timestamp (with nanosecond precision) as column qualifier, list items as column value.**
 
-## Limitations
 
-### Non-supported data types
-
-The proxy currently doesn't support the following data types: US-ASCII, counter, date, decimal, duration, inet, smallint, time, timeuuid, tinyint, uuid, varint, frozen and user-defined types (UDT).
-
-### Limitations with collection types
-
-While we support complex data types such as lists, sets, and maps, our current implementation has limitations regarding complex update operations on these data types. Specifically, we do not support:
-
-- Updating or adding new keys to a map. 
-- Modifying existing keys in a map.
-```  
-UPDATE example_map 
-SET data_map['new_key'] = 10 
-WHERE id = some_uuid;
-```
-- Adding new values to a set.
-
-```
-UPDATE example_set 
-SET data_set = data_set + {'new_value'}
-WHERE id = some_uuid;
-```
-
-These limitations should be considered when designing and implementing operations involving complex data types in our system.
-
-Review detailed limitations [here](/docs/limitations.md).
-
+- Before running the proxy application, make sure to stop the Cassandra service as both runs on the same port 9042.
 
 ## Run a `cassandra-to-bigtable-proxy` via systemd.
 

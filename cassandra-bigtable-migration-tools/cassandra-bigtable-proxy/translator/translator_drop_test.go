@@ -24,11 +24,39 @@ import (
 
 func TestTranslateDropTableToBigtable(t *testing.T) {
 	var tests = []struct {
-		query    string
-		want     *DropTableStatementMap
-		hasError bool
+		name            string
+		query           string
+		want            *DropTableStatementMap
+		hasError        bool
+		defaultKeyspace string
 	}{
+
 		{
+			name:  "Drop table with explicit keyspace",
+			query: "DROP TABLE my_keyspace.my_table",
+			want: &DropTableStatementMap{
+				Table:     "my_table",
+				Keyspace:  "my_keyspace",
+				QueryType: "drop",
+				IfExists:  false,
+			},
+			hasError:        false,
+			defaultKeyspace: "",
+		},
+		{
+			name:  "Drop table with IF EXISTS clause",
+			query: "DROP TABLE IF EXISTS my_keyspace.my_table",
+			want: &DropTableStatementMap{
+				Table:     "my_table",
+				Keyspace:  "my_keyspace",
+				QueryType: "drop",
+				IfExists:  true,
+			},
+			hasError:        false,
+			defaultKeyspace: "",
+		},
+		{
+			name:  "Drop table with explicit keyspace and default keyspace",
 			query: "DROP TABLE my_keyspace.my_table;",
 			want: &DropTableStatementMap{
 				Table:     "my_table",
@@ -36,17 +64,79 @@ func TestTranslateDropTableToBigtable(t *testing.T) {
 				QueryType: "drop",
 				IfExists:  false,
 			},
-			hasError: false,
+			hasError:        false,
+			defaultKeyspace: "my_keyspace",
 		},
 		{
-			query: "DROP TABLE IF EXISTS my_keyspace.my_table;",
+			name:  "Drop table with default keyspace",
+			query: "DROP TABLE my_table",
+			want: &DropTableStatementMap{
+				Table:     "my_table",
+				Keyspace:  "my_keyspace",
+				QueryType: "drop",
+				IfExists:  false,
+			},
+			hasError:        false,
+			defaultKeyspace: "my_keyspace",
+		},
+		{
+			name:            "Drop table without keyspace and no default keyspace",
+			query:           "DROP TABLE my_table",
+			want:            nil,
+			hasError:        true,
+			defaultKeyspace: "",
+		},
+		{
+			name:  "Drop table without semicolon",
+			query: "DROP TABLE my_keyspace.my_table",
+			want: &DropTableStatementMap{
+				Table:     "my_table",
+				Keyspace:  "my_keyspace",
+				QueryType: "drop",
+				IfExists:  false,
+			},
+			hasError:        false,
+			defaultKeyspace: "my_keyspace",
+		},
+		{
+			name:            "Drop table with empty table name",
+			query:           "DROP TABLE my_keyspace.;",
+			want:            nil,
+			hasError:        true,
+			defaultKeyspace: "my_keyspace",
+		},
+		{
+			name:            "Drop table with empty keyspace(Should return error as query syntax is not valid)",
+			query:           "DROP TABLE .my_table",
+			want:            nil,
+			hasError:        true,
+			defaultKeyspace: "my_keyspace",
+		},
+		{
+			name:  "IF EXISTS without keyspace, with default keyspace",
+			query: "DROP TABLE IF EXISTS my_table;",
 			want: &DropTableStatementMap{
 				Table:     "my_table",
 				Keyspace:  "my_keyspace",
 				QueryType: "drop",
 				IfExists:  true,
 			},
-			hasError: false,
+			hasError:        false,
+			defaultKeyspace: "my_keyspace",
+		},
+		{
+			name:            "IF EXISTS without keyspace, without default keyspace (should error)",
+			query:           "DROP TABLE IF EXISTS my_table",
+			want:            nil,
+			hasError:        true,
+			defaultKeyspace: "",
+		},
+		{
+			name:            "completely invalid syntax (should error)",
+			query:           "DROP my_keyspace.my_table",
+			want:            nil,
+			hasError:        true,
+			defaultKeyspace: "my_keyspace",
 		},
 	}
 
@@ -56,13 +146,15 @@ func TestTranslateDropTableToBigtable(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		got, err := tr.TranslateDropTableToBigtable(tt.query)
-		if tt.hasError {
-			assert.Error(t, err)
-		} else {
-			assert.NoError(t, err)
-		}
-		assert.True(t, (err != nil) == tt.hasError, tt.hasError)
-		assert.Equal(t, tt.want, got)
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tr.TranslateDropTableToBigtable(tt.query, tt.defaultKeyspace)
+			if tt.hasError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.True(t, (err != nil) == tt.hasError, tt.hasError)
+			assert.Equal(t, tt.want, got)
+		})
 	}
 }

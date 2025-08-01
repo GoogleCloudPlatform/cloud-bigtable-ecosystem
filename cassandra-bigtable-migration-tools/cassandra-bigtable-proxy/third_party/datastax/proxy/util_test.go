@@ -19,7 +19,8 @@ import (
 	"testing"
 	"time"
 
-	schemaMapping "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/schema-mapping"
+	types "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
+	"github.com/datastax/go-cassandra-native-protocol/datatype"
 	"github.com/datastax/go-cassandra-native-protocol/message"
 	"github.com/datastax/go-cassandra-native-protocol/primitive"
 	"github.com/stretchr/testify/assert"
@@ -152,48 +153,342 @@ func TestGetSystemQueryMetadataCache_ColumnFailure(t *testing.T) {
 
 // Test case: ConstructSystemMetadataRows function
 func TestConstructSystemMetadataRows(t *testing.T) {
-	protocolVersion := primitive.ProtocolVersion4
-
-	// Sample input metadata
-	sampleTableMetadata := map[string]map[string]map[string]*schemaMapping.Column{
-		"keyspace1": {
-			"users": {
-				"id":    {ColumnName: "id", ColumnType: "uuid", IsPrimaryKey: true},
-				"email": {ColumnName: "email", ColumnType: "text", IsPrimaryKey: false},
-			},
-		},
-	}
-
 	tests := []struct {
-		name        string
-		tableMeta   map[string]map[string]map[string]*schemaMapping.Column
-		expectEmpty bool
+		name          string
+		metadata      map[string]map[string]map[string]*types.Column
+		expectedEmpty bool
+		expectedError bool
 	}{
 		{
-			name:        "Success Case - Valid Metadata",
-			tableMeta:   sampleTableMetadata,
-			expectEmpty: false,
+			name:          "Empty Metadata - Should Return Empty Cache",
+			metadata:      nil,
+			expectedEmpty: true,
+			expectedError: false,
 		},
 		{
-			name:        "Empty Metadata - Should Return Empty Cache",
-			tableMeta:   map[string]map[string]map[string]*schemaMapping.Column{},
-			expectEmpty: true,
+			name: "Valid Metadata - Should Return Populated Cache",
+			metadata: map[string]map[string]map[string]*types.Column{
+				"test_keyspace": {
+					"test_table": {
+						"id": {
+							Name:         "id",
+							CQLType:      datatype.Uuid,
+							KeyType:      "partition",
+							IsPrimaryKey: true,
+							ColumnFamily: "cf",
+						},
+					},
+				},
+			},
+			expectedEmpty: false,
+			expectedError: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := ConstructSystemMetadataRows(tt.tableMeta)
+			cache, err := ConstructSystemMetadataRows(tt.metadata)
+			if tt.expectedError {
+				if err == nil {
+					t.Error("Expected error but got none")
+				}
+				return
+			}
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+				return
+			}
 
-			assert.NoError(t, err)
-			if tt.expectEmpty {
-				assert.Empty(t, got.KeyspaceSystemQueryMetadataCache[protocolVersion])
-				assert.Empty(t, got.TableSystemQueryMetadataCache[protocolVersion])
-				assert.NotEmpty(t, got.ColumnsSystemQueryMetadataCache[protocolVersion])
-			} else {
-				assert.NotEmpty(t, got.KeyspaceSystemQueryMetadataCache[protocolVersion])
-				assert.NotEmpty(t, got.TableSystemQueryMetadataCache[protocolVersion])
-				assert.NotEmpty(t, got.ColumnsSystemQueryMetadataCache[protocolVersion])
+			// For empty metadata test case, we should only have system metadata
+			if tt.expectedEmpty {
+				// Check that we have the expected system metadata
+				if len(cache.KeyspaceSystemQueryMetadataCache) == 0 {
+					t.Error("Expected system keyspace metadata")
+				}
+				if len(cache.TableSystemQueryMetadataCache) == 0 {
+					t.Error("Expected system table metadata")
+				}
+				if len(cache.ColumnsSystemQueryMetadataCache) == 0 {
+					t.Error("Expected system column metadata")
+				}
+				return
+			}
+
+			// For non-empty metadata, verify the cache is populated
+			if len(cache.KeyspaceSystemQueryMetadataCache) == 0 {
+				t.Error("Expected non-empty keyspace metadata cache")
+			}
+			if len(cache.TableSystemQueryMetadataCache) == 0 {
+				t.Error("Expected non-empty table metadata cache")
+			}
+			if len(cache.ColumnsSystemQueryMetadataCache) == 0 {
+				t.Error("Expected non-empty column metadata cache")
+			}
+		})
+	}
+}
+
+func TestGetKeyspaceMetadata(t *testing.T) {
+	tests := []struct {
+		name              string
+		tableMetadata     map[string]map[string]map[string]*types.Column
+		expectedCount     int
+		expectedKeyspaces []string
+	}{
+		{
+			name:              "Empty Metadata",
+			tableMetadata:     map[string]map[string]map[string]*types.Column{},
+			expectedCount:     0,
+			expectedKeyspaces: []string{},
+		},
+		{
+			name: "Single Keyspace",
+			tableMetadata: map[string]map[string]map[string]*types.Column{
+				"test_keyspace": {
+					"test_table": {
+						"id": {
+							Name:    "id",
+							CQLType: datatype.Uuid,
+						},
+					},
+				},
+			},
+			expectedCount:     1,
+			expectedKeyspaces: []string{"test_keyspace"},
+		},
+		{
+			name: "Multiple Keyspaces",
+			tableMetadata: map[string]map[string]map[string]*types.Column{
+				"keyspace1": {
+					"table1": {
+						"col1": {Name: "col1", CQLType: datatype.Varchar},
+					},
+					"table2": {
+						"col2": {Name: "col2", CQLType: datatype.Int},
+					},
+				},
+				"keyspace2": {
+					"table2": {
+						"col2": {Name: "col2", CQLType: datatype.Int},
+					},
+				},
+			},
+			expectedCount:     2,
+			expectedKeyspaces: []string{"keyspace1", "keyspace2"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := getKeyspaceMetadata(tt.tableMetadata)
+
+			// Check count
+			assert.Equal(t, tt.expectedCount, len(result), "Expected %d keyspaces, got %d", tt.expectedCount, len(result))
+
+			// Check keyspace names and structure
+			for _, row := range result {
+				assert.Equal(t, 3, len(row), "Each row should have 3 elements")
+				keyspace := row[0].(string)
+				assert.Contains(t, tt.expectedKeyspaces, keyspace, "Unexpected keyspace: %s", keyspace)
+
+				// Check durable_writes is true
+				assert.True(t, row[1].(bool), "durable_writes should be true")
+
+				// Check replication map
+				replication := row[2].(map[string]string)
+				assert.NotEmpty(t, replication, "Replication map should not be empty")
+				assert.Contains(t, replication, "class", "Replication map should contain 'class'")
+			}
+		})
+	}
+}
+
+func TestGetTableMetadata(t *testing.T) {
+	tests := []struct {
+		name           string
+		tableMetadata  map[string]map[string]map[string]*types.Column
+		expectedCount  int
+		expectedTables []struct{ keyspace, table string }
+	}{
+		{
+			name:           "Empty Metadata",
+			tableMetadata:  map[string]map[string]map[string]*types.Column{},
+			expectedCount:  0,
+			expectedTables: []struct{ keyspace, table string }{},
+		},
+		{
+			name: "Single Table",
+			tableMetadata: map[string]map[string]map[string]*types.Column{
+				"test_keyspace": {
+					"test_table": {
+						"id": {Name: "id", CQLType: datatype.Uuid},
+					},
+				},
+			},
+			expectedCount: 1,
+			expectedTables: []struct{ keyspace, table string }{
+				{"test_keyspace", "test_table"},
+			},
+		},
+		{
+			name: "Multiple Tables",
+			tableMetadata: map[string]map[string]map[string]*types.Column{
+				"keyspace1": {
+					"table1": {
+						"col1": {Name: "col1", CQLType: datatype.Varchar},
+					},
+					"table2": {
+						"col2": {Name: "col2", CQLType: datatype.Int},
+					},
+				},
+			},
+			expectedCount: 2,
+			expectedTables: []struct{ keyspace, table string }{
+				{"keyspace1", "table1"},
+				{"keyspace1", "table2"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := getTableMetadata(tt.tableMetadata)
+
+			// Check count
+			assert.Equal(t, tt.expectedCount, len(result), "Expected %d tables, got %d", tt.expectedCount, len(result))
+
+			// Check table metadata structure
+			for _, row := range result {
+				assert.Equal(t, 6, len(row), "Each row should have 6 elements")
+
+				keyspace := row[0].(string)
+				table := row[1].(string)
+
+				// Find expected table
+				found := false
+				for _, expected := range tt.expectedTables {
+					if expected.keyspace == keyspace && expected.table == table {
+						found = true
+						break
+					}
+				}
+				assert.True(t, found, "Unexpected table: %s.%s", keyspace, table)
+
+				// Check other fields
+				assert.Equal(t, "99p", row[2], "Bloom filter FP chance should be '99p'")
+				assert.Equal(t, 0.01, row[3], "Caching should be 0.01")
+
+				// Check caching map
+				caching := row[4].(map[string]string)
+				assert.Equal(t, "ALL", caching["keys"])
+				assert.Equal(t, "NONE", caching["rows_per_partition"])
+
+				// Check flags
+				flags := row[5].([]string)
+				assert.Equal(t, []string{"compound"}, flags)
+			}
+		})
+	}
+}
+
+func TestGetColumnMetadata(t *testing.T) {
+	tests := []struct {
+		name            string
+		tableMetadata   map[string]map[string]map[string]*types.Column
+		expectedCount   int
+		expectedColumns []struct{ keyspace, table, column, kind string }
+	}{
+		{
+			name:            "Empty Metadata",
+			tableMetadata:   map[string]map[string]map[string]*types.Column{},
+			expectedCount:   0,
+			expectedColumns: []struct{ keyspace, table, column, kind string }{},
+		},
+		{
+			name: "Single Column",
+			tableMetadata: map[string]map[string]map[string]*types.Column{
+				"test_keyspace": {
+					"test_table": {
+						"id": {
+							Name:         "id",
+							CQLType:      datatype.Uuid,
+							IsPrimaryKey: true,
+							KeyType:      "partition",
+						},
+					},
+				},
+			},
+			expectedCount: 1,
+			expectedColumns: []struct{ keyspace, table, column, kind string }{
+				{"test_keyspace", "test_table", "id", "partition"},
+			},
+		},
+		{
+			name: "Multiple Columns",
+			tableMetadata: map[string]map[string]map[string]*types.Column{
+				"keyspace1": {
+					"table1": {
+						"id": {
+							Name:         "id",
+							CQLType:      datatype.Uuid,
+							IsPrimaryKey: true,
+							KeyType:      "partition",
+						},
+						"name": {
+							Name:         "name",
+							CQLType:      datatype.Varchar,
+							IsPrimaryKey: true,
+							KeyType:      "clustering",
+						},
+						"age": {
+							Name:         "age",
+							CQLType:      datatype.Int,
+							IsPrimaryKey: false,
+							KeyType:      "regular",
+						},
+					},
+				},
+			},
+			expectedCount: 3,
+			expectedColumns: []struct{ keyspace, table, column, kind string }{
+				{"keyspace1", "table1", "id", "partition"},
+				{"keyspace1", "table1", "name", "clustering"},
+				{"keyspace1", "table1", "age", "regular"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := getColumnMetadata(tt.tableMetadata)
+
+			// Check count
+			assert.Equal(t, tt.expectedCount, len(result), "Expected %d columns, got %d", tt.expectedCount, len(result))
+
+			// Check column metadata structure
+			for _, row := range result {
+				assert.Equal(t, 7, len(row), "Each row should have 7 elements")
+
+				keyspace := row[0].(string)
+				table := row[1].(string)
+				column := row[2].(string)
+				kind := row[4].(string)
+
+				// Find expected column
+				found := false
+				for _, expected := range tt.expectedColumns {
+					if expected.keyspace == keyspace && expected.table == table &&
+						expected.column == column && expected.kind == kind {
+						found = true
+						break
+					}
+				}
+				assert.True(t, found, "Unexpected column: %s.%s.%s (kind: %s)", keyspace, table, column, kind)
+
+				// Check other fields
+				assert.Equal(t, "none", row[3], "Clustering order should be 'none'")
+				assert.Equal(t, 0, row[5], "Position should be 0")
+				assert.NotEmpty(t, row[6], "Type should not be empty")
 			}
 		})
 	}

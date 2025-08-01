@@ -18,11 +18,8 @@ package responsehandler
 
 import (
 	"fmt"
-	"slices"
 	"sort"
-	"strings"
 
-	btpb "cloud.google.com/go/bigtable/apiv2/bigtablepb"
 	schemaMapping "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/schema-mapping"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/third_party/datastax/proxycore"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/utilities"
@@ -30,251 +27,18 @@ import (
 	"github.com/datastax/go-cassandra-native-protocol/message"
 	"github.com/datastax/go-cassandra-native-protocol/primitive"
 	"go.uber.org/zap"
-	"google.golang.org/protobuf/proto"
 )
 
 const (
-	rowkey = "_key"
+	ROWKEY             = "_key"
+	CQL_TYPE_BIGINT    = "bigint"
+	CQL_TYPE_TIMESTAMP = "timestamp"
+	FUNC_NAME_COUNT    = "count"
 )
 
 type ResponseHandlerIface interface {
-	GetRows(result *btpb.ExecuteQueryResponse_Results, cf []*btpb.ColumnMetadata, query QueryMetadata, rowCount *int, rowMapData map[string]map[string]interface{}) (map[string]map[string]interface{}, error)
-	BuildMetadata(rowMap map[string]map[string]interface{}, query QueryMetadata) (cmd []*message.ColumnMetadata, mapKeyArr []string, err error)
-	BuildResponseRow(rowMap map[string]interface{}, query QueryMetadata, cmd []*message.ColumnMetadata, mapKeyArray []string, lastRow bool) (message.Row, error)
-}
-
-// GetRows processes ExecuteQueryResponse_Results and constructs a structured map of row data.
-//
-// Parameters:
-//   - result: A pointer to ExecuteQueryResponse_Results containing the query results.
-//   - cf: A slice of ColumnMetadata that describes the metadata of the columns returned in the query.
-//   - query: QueryMetadata containing additional information about the executed query.
-//
-// Returns: A map where each key is a string representing a unique index for each row,
-//
-//	and the value is another map representing the column data for that row.
-//	Returns an error if there is an issue unmarshalling the batch data or if no data is present.
-func (th *TypeHandler) GetRows(result *btpb.ExecuteQueryResponse_Results, columnMetadata []*btpb.ColumnMetadata, query QueryMetadata, rowCount *int, rowMapData map[string]map[string]interface{}) (map[string]map[string]interface{}, error) {
-	batch := result.Results.GetProtoRowsBatch()
-	if batch == nil {
-		return rowMapData, nil
-	}
-	protoRows := &btpb.ProtoRows{}
-	err := proto.Unmarshal(batch.BatchData, protoRows)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal protorows: %v", err)
-	}
-	values := protoRows.Values
-	for i := 0; i < len(values); i += len(columnMetadata) {
-		rowMap := th.createRow(values, i, columnMetadata, query)
-		id := fmt.Sprintf("%v", *rowCount)
-		if rowMapData[id] == nil {
-			rowMapData[id] = make(map[string]interface{})
-		}
-		if existingMap, ok := rowMapData[id]; ok {
-			for k, v := range rowMap {
-				existingMap[k] = v
-			}
-		}
-
-		(*rowCount)++
-	}
-	return rowMapData, nil
-}
-
-// createRow constructs a map representing a single row of data from the given values and column metadata.
-//
-// Parameters:
-//   - values: A slice of Value pointers representing the values of the current row.
-//   - start: An integer indicating the starting index in the values slice for the current row.
-//   - cf: A slice of ColumnMetadata that provides metadata about the columns.
-//   - query: QueryMetadata containing additional information about the executed query, such as selected columns.
-//
-// Returns: A map where keys are column names and values are the data from the corresponding value in the row.
-//
-//	Special handling is included for key columns and write time columns.
-func (th *TypeHandler) createRow(values []*btpb.Value, start int, columnMetadata []*btpb.ColumnMetadata, query QueryMetadata) map[string]interface{} {
-	var rowMap = make(map[string]interface{})
-	for i := start; i < start+len(columnMetadata); i += 1 {
-		isArray := IsArrayType(values[i])
-		if !isArray && columnMetadata[start%len(columnMetadata)].Name == rowkey {
-			rowMap[rowkey] = values[i].GetBytesValue()
-		} else {
-			pos := i % len(columnMetadata)
-			cn := ""
-			if !query.IsStar {
-				if query.SelectedColumns[pos].Alias != "" {
-					cn = query.SelectedColumns[pos].Alias
-				} else {
-					cn = query.SelectedColumns[pos].Name
-				}
-			}
-			isWritetime := false
-			//is Aggregate is true in case of aggregate function and if query uses group by then isAggregate is true
-			isAggregate := false
-			if len(query.SelectedColumns) > pos {
-				// todo: generalized the logic for writetime with aggregate
-				isWritetime = query.SelectedColumns[pos].IsWriteTimeColumn
-				isAggregate = query.SelectedColumns[pos].IsFunc
-			}
-			if query.IsGroupBy {
-				isAggregate = true
-			}
-			th.ProcessArray(values[i], &rowMap, columnMetadata[pos].Name, query, cn, isWritetime, isAggregate)
-		}
-	}
-	return rowMap
-}
-
-// IsArrayType determines if a given Value is of an array type.
-//
-// Parameters:
-//   - value: A pointer to a Value, which represents a single data entry that may encapsulate different kinds of data types.
-//
-// Returns: A boolean indicating whether the provided Value is of type ArrayValue.
-//
-//	Returns true if the Value is an array; otherwise, returns false.
-func IsArrayType(value *btpb.Value) bool {
-	_, ok := value.Kind.(*btpb.Value_ArrayValue)
-	return ok
-}
-
-// processArray processes a Value to update a given row map with array or single value data.
-// This function handles nested arrays, key-value pairs, and special write-time handling.
-//
-// Parameters:
-//   - value: A pointer to a Value, which represents the data entry to be processed, possibly as an array.
-//   - rowMap: A pointer to a map storing row data, with keys as column names and values as the associated data.
-//   - cfName: The name of the column family associated with the current processing context.
-//   - query: QueryMetadata containing additional details about the query, such as default column family.
-//   - cn: The column name string that may include an alias if specified in the query.
-//   - isWritetime: A boolean flag indicating whether the current processing context is for a 'writetime' column.
-//
-// This function does not return a value; it directly modifies the provided rowMap with processed data.
-func (th *TypeHandler) ProcessArray(value *btpb.Value, rowMap *map[string]interface{}, cfName string, query QueryMetadata, cn string, isWritetime bool, isAggregate bool) {
-	if IsArrayType(value) {
-		arr := value.GetArrayValue().Values
-		length := len(arr)
-		var key string
-		var byteValue []byte
-		for i, v := range arr {
-			if IsArrayType(v) {
-				th.ProcessArray(v, rowMap, cfName, query, cn, isWritetime, isAggregate)
-			} else if length == 2 && i == 0 {
-				key = string(v.GetBytesValue())
-			} else if length == 2 && i == 1 {
-				byteValue = v.GetBytesValue()
-			}
-		}
-		if key != "" {
-			if cfName != th.SchemaMappingConfig.SystemColumnFamily {
-				keyValMap := make(map[string]interface{})
-				keyValMap[key] = byteValue
-
-				if (*rowMap)[cfName] == nil {
-					(*rowMap)[cfName] = make([]Maptype, 0)
-				}
-				if existingMap, ok := (*rowMap)[cfName].([]Maptype); ok {
-					for k, v := range keyValMap {
-						existingMap = append(existingMap, Maptype{Key: k, Value: v})
-					}
-					(*rowMap)[cfName] = existingMap
-				} else {
-					(*rowMap)[cfName] = keyValMap
-				}
-			} else {
-				(*rowMap)[key] = byteValue
-			}
-		}
-	} else if slices.Contains(query.PrimaryKeys, cfName) {
-		(*rowMap)[cfName] = extractValue(value)
-	} else {
-		cf := func() string {
-			if HasDollarSymbolPrefix(cfName) {
-				return query.DefaultColumnFamily
-			}
-			return cfName
-		}()
-		// primary key results don't look like they're part of a column family so handle them separately
-		if cf != th.SchemaMappingConfig.SystemColumnFamily {
-			keyValMap := make(map[string]interface{})
-			if isWritetime {
-				timestamp := value.GetTimestampValue().AsTime().UnixMicro()
-				encoded, _ := proxycore.EncodeType(datatype.Timestamp, primitive.ProtocolVersion4, timestamp)
-				keyValMap[cn] = encoded
-			} else if isAggregate {
-				var val interface{}
-				switch v := value.Kind.(type) {
-				case *btpb.Value_FloatValue:
-					val = v.FloatValue
-				case *btpb.Value_IntValue:
-					val = v.IntValue
-				case *btpb.Value_BytesValue:
-					val = value.GetBytesValue()
-				case nil:
-					val = float64(0)
-				default:
-					th.Logger.Error("Unsupported value type for recieved in response")
-					return
-				}
-				keyValMap[cn] = val
-			} else {
-				keyValMap[cn] = extractValue(value)
-			}
-			if (*rowMap)[cfName] == nil {
-				(*rowMap)[cfName] = make(map[string]interface{})
-			}
-			if existingMap, ok := (*rowMap)[cfName].(map[string]interface{}); ok {
-				for k, v := range keyValMap {
-					existingMap[k] = v
-				}
-			} else {
-				(*rowMap)[cfName] = keyValMap
-			}
-		} else {
-			if isWritetime {
-				timestamp := value.GetTimestampValue().AsTime().UnixMicro()
-				encoded, _ := proxycore.EncodeType(datatype.Timestamp, primitive.ProtocolVersion4, timestamp)
-				(*rowMap)[cn] = encoded
-			} else if isAggregate {
-				var val interface{}
-				switch v := value.Kind.(type) {
-				case *btpb.Value_FloatValue:
-					val = v.FloatValue
-				case *btpb.Value_IntValue:
-					val = v.IntValue
-				case *btpb.Value_BytesValue:
-					val = value.GetBytesValue()
-				case nil:
-					val = float64(0)
-				default:
-					th.Logger.Error("Unsupported value type for recieved in response")
-					return
-				}
-				(*rowMap)[cn] = val
-
-			} else {
-				(*rowMap)[cn] = extractValue(value)
-			}
-		}
-	}
-}
-
-// todo can we improve this? feels sketchy
-func extractValue(value *btpb.Value) interface{} {
-	_, isBytes := value.Kind.(*btpb.Value_BytesValue)
-	if isBytes {
-		return value.GetBytesValue()
-	}
-	_, isInt := value.Kind.(*btpb.Value_IntValue)
-	if isInt {
-		return value.GetIntValue()
-	}
-	_, isString := value.Kind.(*btpb.Value_StringValue)
-	if isString {
-		return value.GetStringValue()
-	}
-	return nil
+	BuildMetadata(rowMap []map[string]interface{}, query QueryMetadata) (cmd []*message.ColumnMetadata, err error)
+	BuildResponseRow(rowMap map[string]interface{}, query QueryMetadata, cmd []*message.ColumnMetadata) (message.Row, error)
 }
 
 // BuildMetadata constructs metadata for given row data based on query specifications.
@@ -291,60 +55,46 @@ func extractValue(value *btpb.Value) interface{} {
 //   - err: An error if any occurs during the operation, particularly during metadata retrieval.
 //
 // This function uses helper functions to extract unique keys, handle aliases, and determine column types
-func (th *TypeHandler) BuildMetadata(rowMap map[string]map[string]interface{}, query QueryMetadata) (cmd []*message.ColumnMetadata, mapKeyArr []string, err error) {
+func (th *TypeHandler) BuildMetadata(rowMap []map[string]interface{}, query QueryMetadata) (cmd []*message.ColumnMetadata, err error) {
+	if query.IsStar {
+		return th.SchemaMappingConfig.GetMetadataForSelectedColumns(query.TableName, query.SelectedColumns, query.KeyspaceName)
+	}
 	uniqueColumns := ExtractUniqueKeys(rowMap, query)
 	i := 0
-	for index := range uniqueColumns {
-		column := uniqueColumns[index]
-		if column == rowkey {
+	for _, column := range uniqueColumns {
+		if column == ROWKEY {
 			continue
 		}
-
-		mapKey := GetMapKeyForColumn(query, column)
-
-		var cqlType string
+		var cqlType datatype.DataType
 		var err error
-		//checking if alias exists
 		columnObj := GetQueryColumn(query, i, column)
-
-		if columnObj.FuncName == "count" {
-			cqlType = "bigint"
+		if columnObj.FuncName == FUNC_NAME_COUNT {
+			cqlType = datatype.Bigint
 		} else if columnObj.IsWriteTimeColumn {
-			cqlType = "timestamp"
+			cqlType = datatype.Timestamp
 		} else {
 			lookupColumn := column
-			if alias, exists := query.AliasMap[column]; exists {
-				lookupColumn = alias.Name
-				if mapKey != "" {
-					lookupColumn = columnObj.MapColumnName
-				}
-			} else if columnObj.IsFunc {
-				lookupColumn = strings.SplitN(column, "_", 2)[1]
-			} else if mapKey != "" {
-				lookupColumn = columnObj.MapColumnName
+			if columnObj.Alias != "" || columnObj.IsFunc || columnObj.MapKey != "" {
+				lookupColumn = columnObj.ColumnName
 			}
 			cqlType, _, err = th.GetColumnMeta(query.KeyspaceName, query.TableName, lookupColumn)
 			if err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 		}
-
-		dt, err := utilities.GetCassandraColumnType(cqlType)
-		if err != nil {
-			return nil, nil, err
+		if columnObj.MapKey != "" && cqlType.GetDataTypeCode() == primitive.DataTypeCodeMap {
+			cqlType = cqlType.(datatype.MapType).GetValueType() // this gets the type of map value e.g map<varchar,int> -> datatype(int)
 		}
-
 		cmd = append(cmd, &message.ColumnMetadata{
 			Keyspace: query.KeyspaceName,
 			Table:    query.TableName,
 			Name:     column,
 			Index:    int32(i),
-			Type:     dt,
+			Type:     cqlType,
 		})
-		mapKeyArr = append(mapKeyArr, mapKey)
 		i++
 	}
-	return cmd, mapKeyArr, nil
+	return cmd, nil
 }
 
 // BuildResponseRow constructs a message.Row from a given row map based on column metadata and query specification.
@@ -359,60 +109,43 @@ func (th *TypeHandler) BuildMetadata(rowMap map[string]map[string]interface{}, q
 // Returns:
 //   - mr: A message.Row containing the serialized row data.
 //   - err: An error if any occurs during the construction of the row, especially in data retrieval or encoding.
-func (th *TypeHandler) BuildResponseRow(rowMap map[string]interface{}, query QueryMetadata, cmd []*message.ColumnMetadata, mapKeyArray []string, lastRow bool) (message.Row, error) {
+func (th *TypeHandler) BuildResponseRow(rowMap map[string]interface{}, query QueryMetadata, cmd []*message.ColumnMetadata) (message.Row, error) {
 	var mr message.Row
 	for index, metaData := range cmd {
 		key := metaData.Name
 		if rowMap[key] == nil {
 			rowMap[key] = []byte{}
-			mr = append(mr, []byte{})
+			mr = append(mr, nil)
 			continue
 		}
 		value := rowMap[key]
 
-		var cqlType string
+		var cqlType datatype.DataType
 		var err error
 		var isCollection bool
 		col := GetQueryColumn(query, index, key)
-		if col.FuncName == "count" {
-			cqlType = "bigint"
+		if col.FuncName == FUNC_NAME_COUNT {
+			cqlType = datatype.Bigint
 		} else if col.IsWriteTimeColumn {
-			cqlType = "timestamp"
-			if _, exists := query.AliasMap[key]; exists {
-				val := value.(map[string]interface{})
-				value = val[key]
-			}
-		} else if aliasKey, exists := query.AliasMap[key]; exists { //here
-			colName := aliasKey.Name
-			if col.MapKey != "" {
-				colName = col.MapColumnName
-			}
-			cqlType, isCollection, err = th.GetColumnMeta(query.KeyspaceName, query.TableName, colName)
-			if !isCollection {
-				val := value.(map[string]interface{})
-				value = val[aliasKey.Alias]
-			}
-		} else if col.IsFunc {
-			funcColumn := strings.SplitN(key, "_", 2)[1]
-			cqlType, isCollection, err = th.GetColumnMeta(query.KeyspaceName, query.TableName, funcColumn)
-		} else if col.MapKey != "" {
-			cqlType, isCollection, err = th.GetColumnMeta(query.KeyspaceName, query.TableName, col.MapColumnName)
+			cqlType = datatype.Timestamp
+		} else if col.IsFunc || col.MapKey != "" || col.IsAs {
+			cqlType, isCollection, err = th.GetColumnMeta(query.KeyspaceName, query.TableName, col.ColumnName)
 		} else {
 			cqlType, isCollection, err = th.GetColumnMeta(query.KeyspaceName, query.TableName, key)
 		}
 		if err != nil {
 			return nil, err
 		}
-		cqlType = strings.ToLower(cqlType)
-
+		if err != nil {
+			return nil, err
+		}
 		if col.IsFunc || query.IsGroupBy {
-			if col.FuncName == "count" {
-				cqlType = "bigint"
+			if col.FuncName == FUNC_NAME_COUNT {
+				cqlType = datatype.Bigint
 				metaData.Type = datatype.Bigint
-				if _, exists := query.AliasMap[key]; !exists && lastRow {
-					column := fmt.Sprintf("system.%s(%s)", col.FuncName, col.FuncColumnName)
-					metaData.Name = column
-				}
+			}
+			if value == nil {
+				value = float64(0)
 			}
 			var dt datatype.DataType
 			var val interface{}
@@ -423,10 +156,10 @@ func (th *TypeHandler) BuildResponseRow(rowMap map[string]interface{}, query Que
 			switch v := value.(type) {
 			case int64:
 				switch cqlType {
-				case "bigint":
+				case datatype.Bigint:
 					val = v
 					dt = datatype.Bigint
-				case "int":
+				case datatype.Int:
 					val = int32(v)
 					dt = datatype.Int
 				default:
@@ -434,16 +167,16 @@ func (th *TypeHandler) BuildResponseRow(rowMap map[string]interface{}, query Que
 				}
 			case float64:
 				switch cqlType {
-				case "bigint":
+				case datatype.Bigint:
 					val = int64(v)
 					dt = datatype.Bigint
-				case "int":
+				case datatype.Int:
 					val = int32(v)
 					dt = datatype.Int
-				case "float":
+				case datatype.Float:
 					val = float32(v)
 					dt = datatype.Float
-				case "double":
+				case datatype.Double:
 					val = v
 					dt = datatype.Double
 				default:
@@ -460,64 +193,50 @@ func (th *TypeHandler) BuildResponseRow(rowMap map[string]interface{}, query Que
 				return nil, fmt.Errorf("failed to encode value: %v", err)
 			}
 			value = encoded
-			// converting key to function call implementing correct column name for aggregate function call
-			if _, exists := query.AliasMap[key]; !exists && lastRow && col.IsFunc {
-				column := fmt.Sprintf("system.%s(%s)", col.FuncName, col.FuncColumnName)
-				metaData.Name = column
-			}
 
 			mr = append(mr, value.([]byte))
 			continue
 		}
-		dt, err := utilities.GetCassandraColumnType(cqlType)
 		if err != nil {
 			return nil, err
 		}
 		if isCollection {
-			if dt.GetDataTypeCode() == primitive.DataTypeCodeSet {
-				setType := dt.(datatype.SetType)
+			if cqlType.GetDataTypeCode() == primitive.DataTypeCodeSet {
+				setType := cqlType.(datatype.SetType)
 				// creating array
 				setval := []interface{}{}
 				for _, val := range value.([]Maptype) {
 					setval = append(setval, val.Key)
 				}
+				if len(setval) == 0 {
+					mr = append(mr, nil)
+					continue
+				}
 				err = th.HandleSetType(setval, &mr, setType, query.ProtocalV)
 				if err != nil {
 					return nil, err
 				}
-			} else if dt.GetDataTypeCode() == primitive.DataTypeCodeList {
-				listType := dt.(datatype.ListType)
+			} else if cqlType.GetDataTypeCode() == primitive.DataTypeCodeList {
+				listType := cqlType.(datatype.ListType)
 				listVal := []interface{}{}
 				for _, val := range value.([]Maptype) {
 					listVal = append(listVal, val.Value)
+				}
+				if len(listVal) == 0 {
+					mr = append(mr, nil)
+					continue
 				}
 				err = th.HandleListType(listVal, &mr, listType, query.ProtocalV)
 				if err != nil {
 					return nil, err
 				}
-			} else if dt.GetDataTypeCode() == primitive.DataTypeCodeMap {
-				mapType := dt.(datatype.MapType)
+			} else if cqlType.GetDataTypeCode() == primitive.DataTypeCodeMap {
+				mapType := cqlType.(datatype.MapType)
 				mapData := make(map[string]interface{})
 
-				mapKey := ""
 				if col.MapKey != "" {
-					mapKey = mapKeyArray[index]
-				}
-
-				if mapKey != "" {
-					if _, exists := query.AliasMap[key]; !exists && lastRow {
-						column := fmt.Sprintf("%s['%s']", col.MapColumnName, col.MapKey)
-						metaData.Name = column
-					}
-					if _, exists := query.AliasMap[key]; exists {
-						val := value.(map[string]interface{})
-						value = val[key]
-					}
-					if lastRow {
-						metaData.Type = mapType.GetValueType()
-					}
 					if value == nil {
-						mr = append(mr, []byte{})
+						mr = append(mr, nil)
 						continue
 					}
 					mr = append(mr, value.([]byte))
@@ -526,6 +245,10 @@ func (th *TypeHandler) BuildResponseRow(rowMap map[string]interface{}, query Que
 
 				for _, val := range value.([]Maptype) {
 					mapData[val.Key] = val.Value
+				}
+				if len(mapData) == 0 {
+					mr = append(mr, nil)
+					continue
 				}
 
 				if mapType.GetKeyType() == datatype.Varchar {
@@ -539,12 +262,12 @@ func (th *TypeHandler) BuildResponseRow(rowMap map[string]interface{}, query Que
 				}
 			}
 		} else {
-			value, err = HandlePrimitiveEncoding(dt, value, query.ProtocalV, true)
+			value, err = HandlePrimitiveEncoding(cqlType, value, query.ProtocalV, true)
 			if err != nil {
 				return nil, err
 			}
 			if value == nil {
-				mr = append(mr, []byte{})
+				mr = append(mr, nil)
 				continue
 			}
 			mr = append(mr, value.([]byte))
@@ -564,12 +287,12 @@ func (th *TypeHandler) BuildResponseRow(rowMap map[string]interface{}, query Que
 //   - A string representing the CQL type of the column.
 //   - A boolean indicating whether the column is a collection type.
 //   - An error if the metadata retrieval fails.
-func (th *TypeHandler) GetColumnMeta(keyspace, tableName, columnName string) (string, bool, error) {
-	metaStr, err := th.SchemaMappingConfig.GetColumnType(keyspace, tableName, columnName)
+func (th *TypeHandler) GetColumnMeta(keyspace, tableName, columnName string) (datatype.DataType, bool, error) {
+	column, err := th.SchemaMappingConfig.GetColumnType(keyspace, tableName, columnName)
 	if err != nil {
-		return "", false, err
+		return nil, false, err
 	}
-	return metaStr.CQLType, metaStr.IsCollection, nil
+	return column.CQLType, column.IsCollection, nil
 }
 
 // HandleSetType converts a array or set type to a Cassandra  set type.
@@ -657,7 +380,7 @@ func (th *TypeHandler) HandleListType(listData []interface{}, mr *message.Row, l
 }
 
 // ExtractUniqueKeys extracts all unique keys from a nested map and returns them as a set of UniqueKeys
-func ExtractUniqueKeys(rowMap map[string]map[string]interface{}, query QueryMetadata) []string {
+func ExtractUniqueKeys(rowMap []map[string]interface{}, query QueryMetadata) []string {
 	columns := []string{}
 	if query.IsStar {
 		uniqueKeys := make(map[string]bool)

@@ -27,94 +27,6 @@ import (
 	"go.uber.org/zap"
 )
 
-func TestIsFirstCharDollar(t *testing.T) {
-	testCases := []struct {
-		input  string
-		output bool
-	}{
-		{"$hello", true},
-		{"hello$", false},
-		{"$123", true},
-		{"", false},
-		{" ", false},
-		{"\t$", false}, // Test non-printable characters
-		{"\n$", false},
-		{"\r$", false},
-		{"\r\n$", false},
-		{"$ \t", true}, // Test whitespace after $
-		{"$ \n", true},
-		{"$ \r", true},
-		{"$ \r\n", true},
-	}
-
-	for _, tc := range testCases {
-		result := HasDollarSymbolPrefix(tc.input)
-		if result != tc.output {
-			t.Errorf("HasDollarSymbolPrefix(%q) = %v, want %v", tc.input, result, tc.output)
-		}
-	}
-}
-
-func TestGetMapField(t *testing.T) {
-	type args struct {
-		queryMetadata QueryMetadata
-		column        string
-	}
-	tests := []struct {
-		name string
-		args args
-		want string
-	}{
-		{
-			name: "Success with map key",
-			args: args{
-				queryMetadata: QueryMetadata{
-					TableName:           "user_info",
-					Query:               "SELECT name FROM user_info;",
-					KeyspaceName:        "xobni_derived",
-					IsStar:              false,
-					DefaultColumnFamily: "cf1",
-					SelectedColumns: []schemaMapping.SelectedColumns{
-						{
-							Name:   "map_with_key",
-							MapKey: "name",
-						},
-					},
-				},
-				column: "map_with_key",
-			},
-			want: "name",
-		},
-		{
-			name: "Empty with map key",
-			args: args{
-				queryMetadata: QueryMetadata{
-					TableName:           "user_info",
-					Query:               "SELECT name FROM user_info;",
-					KeyspaceName:        "xobni_derived",
-					IsStar:              false,
-					DefaultColumnFamily: "cf1",
-					SelectedColumns: []schemaMapping.SelectedColumns{
-						{
-							Name:   "map_with_key",
-							MapKey: "name",
-						},
-					},
-				},
-				column: "map_without_key",
-			},
-			want: "",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := GetMapKeyForColumn(tt.args.queryMetadata, tt.args.column); got != tt.want {
-				t.Errorf("GetMapKeyForColumn() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestTypeHandler_HandleTimestampMap(t *testing.T) {
 	type fields struct {
 		Logger              *zap.Logger
@@ -269,7 +181,7 @@ func TestTypeHandler_decodeValue(t *testing.T) {
 				elementType: datatype.Int,
 				protocalV:   primitive.ProtocolVersion3,
 			},
-			want:    interface{}([]byte(nil)),
+			want:    nil,
 			wantErr: false,
 		},
 	}

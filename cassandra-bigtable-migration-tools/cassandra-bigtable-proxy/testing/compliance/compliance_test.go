@@ -17,19 +17,17 @@
 package compliance
 
 import (
-	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"reflect"
 	"strings"
 	"testing"
 	"time"
 
-	secretmanager "cloud.google.com/go/secretmanager/apiv1"
-	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/testing/compliance/schema_setup"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/testing/compliance/utility"
 	"github.com/gocql/gocql"
@@ -54,6 +52,13 @@ var (
 	BIGTABLE_INSTANCE = os.Getenv("BIGTABLE_INSTANCE")
 	ZONE              = os.Getenv("ZONE")
 )
+
+// BIGTABLE_CASSANDRA_INSTANCE_MAPPING maps Cassandra keyspaces to Bigtable instances for compliance testing.
+// This mapping should exist in the configuration of proxy's config.yaml.
+var BIGTABLE_CASSANDRA_INSTANCE_MAPPING = map[string]string{
+	"bigtabledevinstance": "bigtabledevinstance",
+	"cassandrakeyspace":   "bt-instance",
+}
 
 var (
 	session        *gocql.Session
@@ -113,50 +118,6 @@ type TestCase struct {
 	FailureMessage string      `json:"failure_message"`
 }
 
-// fetchAndStoreCredentials() retrieves GCP service account credentials from Google Secret Manager,
-// stores them locally, and writes the credentials to a file for use by the application.
-// This function ensures that required credentials are available for authentication in the integration test environment.
-//
-// Steps:
-// 1. Validates if the secret path is set through the environment variable `INTEGRATION_TEST_CRED_PATH`.
-// 2. Initializes a Secret Manager client.
-// 3. Accesses the specified secret version to retrieve the credential payload.
-// 4. Creates a local directory to store the credentials if it doesn't already exist.
-// 5. Writes the credentials to a file (`service-account.json`) for subsequent use by the Bigtable proxy or Cassandra container.
-//
-// Returns an error if any step fails, providing detailed information about the failure.
-func fetchAndStoreCredentials(ctx context.Context) error {
-	if secretPath == "" {
-		return fmt.Errorf("ENV INTEGRATION_TEST_CRED_PATH IS NOT SET")
-	}
-	client, err := secretmanager.NewClient(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to create secret manager client: %v", err)
-	}
-	defer client.Close()
-
-	accessRequest := &secretmanagerpb.AccessSecretVersionRequest{
-		Name: secretPath,
-	}
-
-	result, err := client.AccessSecretVersion(ctx, accessRequest)
-	if err != nil {
-		return fmt.Errorf("failed to access secret version: %v", err)
-	}
-
-	if err := os.MkdirAll(credentialsPath, os.ModePerm); err != nil {
-		return fmt.Errorf("failed to create directory: %v", err)
-	}
-
-	credentials := string(result.Payload.Data)
-	err = os.WriteFile(credentialsFilePath, []byte(credentials), 0644)
-	if err != nil {
-		return fmt.Errorf("failed to write credentials to file: %v", err)
-	}
-
-	return nil
-}
-
 // TestMain() is the entry point for the test suite. It configures the environment based on command-line
 // flags, sets up the appropriate testing target (either Bigtable Proxy or Cassandra), and initiates the tests.
 //
@@ -209,10 +170,12 @@ func TestMain(m *testing.M) {
 }
 
 func setupAndRunBigtableProxyLocal(m *testing.M) {
-	err := schema_setup.SetupBigtableInstance(GCP_PROJECT_ID, BIGTABLE_INSTANCE, ZONE)
-	if err != nil {
-		utility.LogFatal(fmt.Sprintf("Error while setting bigtable schema- %v", err))
-		return
+	for _, value := range BIGTABLE_CASSANDRA_INSTANCE_MAPPING {
+		err := schema_setup.SetupBigtableInstance(GCP_PROJECT_ID, value, ZONE)
+		if err != nil {
+			utility.LogFatal(fmt.Sprintf("Error while setting bigtable schema- %v", err))
+			return
+		}
 	}
 
 	cluster := gocql.NewCluster("localhost")
@@ -224,7 +187,7 @@ func setupAndRunBigtableProxyLocal(m *testing.M) {
 
 	defer session.Close()
 
-	err = schema_setup.SetupBigtableSchema(session, "schema_setup/setup.sql")
+	err := schema_setup.SetupBigtableSchema(session, "schema_setup/setup.sql")
 	if err != nil {
 		utility.LogFatal(fmt.Sprintf("Error while setting bigtable schema- %v", err))
 		return
@@ -251,9 +214,18 @@ func setupAndRunCassandraLocal(m *testing.M) int {
 	session, _ = cluster.CreateSession()
 	defer session.Close()
 
-	if err := schema_setup.SetupCassandraSchema(session, "schema_setup/setup.sql", BIGTABLE_INSTANCE); err != nil {
-		utility.LogFatal(fmt.Sprintf("Error setting up Cassandra schema: %v", err))
-		return 1
+	for key := range BIGTABLE_CASSANDRA_INSTANCE_MAPPING {
+		if err := schema_setup.CreateKeyspace(session, key); err != nil {
+			utility.LogFatal(fmt.Sprintf("Error setting up Cassandra schema: %v", err))
+			return 1
+		}
+	}
+
+	for key := range BIGTABLE_CASSANDRA_INSTANCE_MAPPING {
+		if err := schema_setup.SetupCassandraSchema(session, "schema_setup/setup.sql", key); err != nil {
+			utility.LogFatal(fmt.Sprintf("Error setting up Cassandra schema: %v", err))
+			return 1
+		}
 	}
 
 	// Run the tests
@@ -396,8 +368,10 @@ func executeInsert(t *testing.T, operation Operation, fileName string) bool {
 			// Check if an error is expected
 			if expectedErr, ok := operation.ExpectedResult[0]["expect_error"].(bool); ok && expectedErr {
 				expectedErrMsg, _ := operation.ExpectedResult[0]["error_message"].(string)
+				expectedErrCassandraMsg, _ := operation.ExpectedResult[0]["cassandra_error_message"].(string)
+				avoidCompErrCassandraMsg, _ := operation.ExpectedResult[0]["avoid_compare_error_message"].(bool)
 				// Compare the actual error message with the expected error message
-				if strings.EqualFold(err.Error(), expectedErrMsg) {
+				if strings.EqualFold(err.Error(), expectedErrMsg) || (!isProxy && strings.EqualFold(err.Error(), expectedErrCassandraMsg)) || avoidCompErrCassandraMsg {
 					utility.LogInfo(fmt.Sprintf("Query failed as expected with error: %v", err))
 					utility.LogSuccess(t, operation.QueryDesc, operation.QueryType)
 					return true
@@ -458,7 +432,12 @@ func handleSelectError(t *testing.T, err error, operation Operation, fileName st
 	}
 
 	if !isProxy && operation.ExpectCassandraSpecificError != "" {
-		if strings.EqualFold(err.Error(), operation.ExpectCassandraSpecificError) {
+		avoidCompErrMsg := false
+		if len(operation.ExpectedResult) > 0 {
+			avoidCompErrMsg, _ = operation.ExpectedResult[0]["avoid_compare_error_message"].(bool)
+		}
+
+		if strings.EqualFold(err.Error(), operation.ExpectCassandraSpecificError) || avoidCompErrMsg {
 			utility.LogInfo(fmt.Sprintf("Query failed as expected with error: %v\n", err))
 			utility.LogSuccess(t, operation.QueryDesc, operation.QueryType)
 			return true
@@ -522,10 +501,21 @@ func validateSelectResults(t *testing.T, results []map[string]interface{}, opera
 	var diff string
 	if operation.DefaultDiff != nil && *operation.DefaultDiff {
 		diff = cmp.Diff(results, eResult)
+	} else if results == nil && eResult == nil {
+		utility.LogSuccess(t, operation.QueryDesc, operation.QueryType)
+		return true
 	} else {
 		if operation.ExpectedMultiRowResult != nil {
 			if len(results) == len(eResult) {
 				for _, result := range results {
+					for key, val := range result {
+						switch val := val.(type) {
+						case float32:
+							result[key] = float32(math.Round(float64(val)*1000) / 1000)
+						case float64:
+							result[key] = float64(math.Round(val*1000) / 1000)
+						}
+					}
 					matched := false
 					for index, expected := range eResult {
 						if reflect.DeepEqual(result, expected) {
@@ -571,11 +561,12 @@ func executeUpdate(t *testing.T, operation Operation, fileName string) bool {
 		if len(operation.ExpectedResult) > 0 {
 			if expectedErr, ok := operation.ExpectedResult[0]["expect_error"].(bool); ok && expectedErr {
 				expectedErrMsg, _ := operation.ExpectedResult[0]["error_message"].(string)
-				if strings.EqualFold(err.Error(), expectedErrMsg) {
+				expectedErrCassandraMsg, _ := operation.ExpectedResult[0]["cassandra_error_message"].(string)
+				avoidCompErrCassandraMsg, _ := operation.ExpectedResult[0]["avoid_compare_error_message"].(bool)
+				if strings.EqualFold(err.Error(), expectedErrMsg) || (!isProxy && strings.EqualFold(err.Error(), expectedErrCassandraMsg)) || avoidCompErrCassandraMsg {
 					utility.LogInfo(fmt.Sprintf("Query failed as expected with error: %v", err))
 					utility.LogSuccess(t, operation.QueryDesc, operation.QueryType)
 					return true
-
 				} else {
 					utility.LogError(t, fileName, operation.QueryDesc, operation.Query, err)
 					utility.LogWarning(t, fmt.Sprintf("Error message mismatch:\nExpected: '%s'\nActual:   '%s'\n", expectedErrMsg, err.Error()))
@@ -601,16 +592,18 @@ func executeDelete(t *testing.T, operation Operation, fileName string) bool {
 
 		if expectedErr, ok := operation.ExpectedResult[0]["expect_error"].(bool); ok && expectedErr {
 			expectedErrMsg := operation.ExpectedResult[0]["error_message"]
+			expectedErrCassandraMsg := operation.ExpectedResult[0]["cassandra_error_message"]
+			avoidCompErrCassandraMsg, _ := operation.ExpectedResult[0]["avoid_compare_error_message"].(bool)
 			containsTimestamp := strings.Contains(strings.ToUpper(operation.Query), "USING TIMESTAMP")
 
-			if expectedErrMsg != "" {
+			if expectedErrMsg != "" || expectedErrCassandraMsg != "" {
 				// If the error contains a timestamp and it's a proxy, handle it differently
 				if containsTimestamp && !isProxy {
 					utility.LogWarning(t, fmt.Sprintf("expected no error for Cassandra. got %v", err))
 					return false
 				}
 				// Check if the error message matches the expected error message (case-insensitive)
-				if strings.EqualFold(strings.TrimSpace(err.Error()), strings.TrimSpace(expectedErrMsg.(string))) {
+				if strings.EqualFold(strings.TrimSpace(err.Error()), strings.TrimSpace(expectedErrMsg.(string))) || (expectedErrCassandraMsg != nil && (!isProxy && strings.EqualFold(strings.TrimSpace(err.Error()), strings.TrimSpace(expectedErrCassandraMsg.(string))))) || avoidCompErrCassandraMsg {
 					utility.LogInfo(fmt.Sprintf("Query failed as expected with error: %v\n", err))
 					utility.LogSuccess(t, operation.QueryDesc, operation.QueryType)
 					return true

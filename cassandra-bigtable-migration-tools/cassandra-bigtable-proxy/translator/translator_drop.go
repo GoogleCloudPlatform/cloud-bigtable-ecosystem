@@ -18,32 +18,66 @@ package translator
 
 import (
 	"errors"
+	"fmt"
 
 	cql "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/third_party/cqlparser"
 	"github.com/antlr4-go/antlr/v4"
 )
 
-func (t *Translator) TranslateDropTableToBigtable(query string) (*DropTableStatementMap, error) {
+// antlrErrorListener collects syntax errors from ANTLR parsing
+type antlrErrorListener struct {
+	antlr.DefaultErrorListener
+	errors []string
+}
+
+func (l *antlrErrorListener) SyntaxError(recognizer antlr.Recognizer, offendingSymbol interface{}, line, column int, msg string, e antlr.RecognitionException) {
+	l.errors = append(l.errors, msg)
+}
+
+func (t *Translator) TranslateDropTableToBigtable(query string, sessionKeyspace string) (*DropTableStatementMap, error) {
 	lexer := cql.NewCqlLexer(antlr.NewInputStream(query))
+	errListener := &antlrErrorListener{}
+	lexer.RemoveErrorListeners()
+	lexer.AddErrorListener(errListener)
 	stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
 	p := cql.NewCqlParser(stream)
+	p.RemoveErrorListeners()
+	p.AddErrorListener(errListener)
 
 	dropTableObj := p.DropTable()
 
-	if dropTableObj == nil {
+	// Check for syntax errors after parsing
+	if len(errListener.errors) > 0 {
+		return nil, errors.New("syntax error in DROP TABLE statement: " + errListener.errors[0])
+	}
+
+	if dropTableObj == nil || dropTableObj.Table() == nil {
 		return nil, errors.New("error while parsing drop table object")
 	}
 
-	table := dropTableObj.Table().GetText()
-	if dropTableObj.Keyspace() == nil {
-		return nil, errors.New("missing keyspace. keyspace is required")
+	var tableName, keyspaceName string
+
+	if dropTableObj != nil && dropTableObj.Table() != nil && dropTableObj.Table().GetText() != "" {
+		tableName = dropTableObj.Table().GetText()
+		if !validTableName.MatchString(tableName) {
+			return nil, fmt.Errorf("invalid table name parsed from query")
+		}
+	} else {
+		return nil, fmt.Errorf("invalid input paramaters found for table")
 	}
-	keyspace := dropTableObj.Keyspace().GetText()
+
+	if dropTableObj != nil && dropTableObj.Keyspace() != nil && dropTableObj.Keyspace().GetText() != "" {
+		keyspaceName = dropTableObj.Keyspace().GetText()
+	} else if sessionKeyspace != "" {
+		keyspaceName = sessionKeyspace
+	} else {
+		return nil, fmt.Errorf("missing keyspace. keyspace is required")
+	}
 
 	var stmt = DropTableStatementMap{
-		Table:     table,
+		Table:     tableName,
 		IfExists:  dropTableObj.IfExist() != nil,
-		Keyspace:  keyspace,
+		Keyspace:  keyspaceName,
 		QueryType: "drop",
 	}
 

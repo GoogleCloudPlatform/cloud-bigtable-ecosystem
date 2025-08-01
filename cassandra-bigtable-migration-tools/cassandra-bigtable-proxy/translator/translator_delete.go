@@ -22,6 +22,7 @@ import (
 	"strconv"
 	"strings"
 
+	types "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	schemaMapping "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/schema-mapping"
 	cql "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/third_party/cqlparser"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/utilities"
@@ -53,68 +54,17 @@ func parseTableFromDelete(input cql.IFromSpecContext) (*TableObj, error) {
 		return nil, err
 	}
 
-	tableObj, keyspaceObj, err := getTableAndKeyspaceObjects(allObj)
+	keyspaceName, tableName, err := getTableAndKeyspaceObjects(allObj)
 	if err != nil {
 		return nil, err
 	}
 
 	response := TableObj{
-		TableName:    tableObj.GetText(),
-		KeyspaceName: keyspaceObj.GetText(),
+		TableName:    tableName,
+		KeyspaceName: keyspaceName,
 	}
 
 	return &response, nil
-}
-
-// getFromSpecElement() retrieves the first FROM specification element from the given context.
-//
-// Parameters:
-//   - input: A context interface of a FROM specification in a CQL query.
-//
-// Returns:
-//   - An element context containing FROM specification details.
-//   - An error if the element context is not present.
-func getFromSpecElement(input cql.IFromSpecContext) (cql.IFromSpecElementContext, error) {
-	fromSpec := input.FromSpecElement()
-	if fromSpec == nil {
-		return nil, errors.New("error while parsing fromSpec")
-	}
-	return fromSpec, nil
-}
-
-// getAllObjectNames() retrieves all object names (such as tables and keyspaces) from the FROM specification element.
-//
-// Parameters:
-//   - fromSpec: A context interface representing an element of a FROM specification in a CQL query.
-//
-// Returns:
-//   - A slice of TerminalNode containing all OBJECT_NAME entries.
-//   - An error if no object names are found or if parsing fails.
-func getAllObjectNames(fromSpec cql.IFromSpecElementContext) ([]antlr.TerminalNode, error) {
-	allObj := fromSpec.AllOBJECT_NAME()
-	if allObj == nil {
-		return nil, errors.New("error while parsing all objects from the fromSpec")
-	}
-	if len(allObj) == 0 {
-		return nil, errors.New("could not find table and keyspace name")
-	}
-	return allObj, nil
-}
-
-// getTableAndKeyspaceObjects() extracts the table and keyspace tokens from a list of object names.
-//
-// Parameters:
-//   - allObj: A slice of TerminalNode representing object names parsed from a FROM specification.
-//
-// Returns:
-//   - tableObj: The TerminalNode representing the table name.
-//   - keyspaceObj: The TerminalNode representing the keyspace name.
-//   - An error if the expected two tokens (table and keyspace) are not found.
-func getTableAndKeyspaceObjects(allObj []antlr.TerminalNode) (tableObj, keyspaceObj antlr.TerminalNode, err error) {
-	if len(allObj) == 2 {
-		return allObj[1], allObj[0], nil
-	}
-	return nil, nil, errors.New("could not find table or keyspace name")
 }
 
 // parseClauseFromDelete() parse Clauses from the Delete Query
@@ -181,8 +131,8 @@ func getRelationElements(input cql.IWhereSpecContext) ([]cql.IRelationElementCon
 //   - A map of parameters to use for prepared statements.
 //   - A slice of strings representing parameter keys.
 //   - An error if parsing column names, values, or column types fails.
-func processElements(elements []cql.IRelationElementContext, tableName string, schemaMapping *schemaMapping.SchemaMappingConfig, keyspace string) ([]Clause, map[string]interface{}, []string, error) {
-	var clauses []Clause
+func processElements(elements []cql.IRelationElementContext, tableName string, schemaMapping *schemaMapping.SchemaMappingConfig, keyspace string) ([]types.Clause, map[string]interface{}, []string, error) {
+	var clauses []types.Clause
 	params := make(map[string]interface{})
 	var paramKeys []string
 
@@ -209,7 +159,7 @@ func processElements(elements []cql.IRelationElementContext, tableName string, s
 			return nil, nil, nil, err
 		}
 
-		clause := Clause{
+		clause := types.Clause{
 			Column:       colName,
 			Operator:     operator,
 			Value:        acctualVal,
@@ -279,12 +229,12 @@ func getOperator(val cql.IRelationElementContext) (string, error) {
 // Returns:
 //   - A string representing the actual value.
 //   - An error if parsing or formatting the value fails.
-func handleColumnType(val cql.IRelationElementContext, columnType *schemaMapping.Column, placeholder string, params map[string]interface{}) (string, error) {
-	if columnType == nil || columnType.CQLType == "" {
+func handleColumnType(val cql.IRelationElementContext, columnType *types.Column, placeholder string, params map[string]interface{}) (string, error) {
+	if columnType == nil || columnType.CQLType == nil {
 		return "", nil
 	}
 
-	valConst := val.Constant()
+	valConst := val.Constant(0)
 	if valConst == nil {
 		return "", errors.New("could not parse value from query for one of the clauses")
 	}
@@ -312,7 +262,7 @@ func handleColumnType(val cql.IRelationElementContext, columnType *schemaMapping
 //   - queryStr: CQL delete query with condition
 //
 // Returns: QueryClauses and an error if any.
-func (t *Translator) TranslateDeleteQuerytoBigtable(queryStr string, isPreparedQuery bool) (*DeleteQueryMapping, error) {
+func (t *Translator) TranslateDeleteQuerytoBigtable(queryStr string, isPreparedQuery bool, sessionKeyspace string) (*DeleteQueryMapping, error) {
 	lowerQuery := strings.ToLower(queryStr)
 	query := renameLiterals(queryStr)
 	lexer := cql.NewCqlLexer(antlr.NewInputStream(query))
@@ -320,26 +270,31 @@ func (t *Translator) TranslateDeleteQuerytoBigtable(queryStr string, isPreparedQ
 	p := cql.NewCqlParser(stream)
 
 	deleteObj := p.Delete_()
-	if deleteObj == nil {
+	if deleteObj == nil || deleteObj.KwDelete() == nil {
 		return nil, errors.New("error while parsing delete object")
 	}
-	kwDeleteObj := deleteObj.KwDelete()
-	if kwDeleteObj == nil {
-		return nil, errors.New("error while parsing delete object")
-	}
+
 	tableSpec, err := parseTableFromDelete(deleteObj.FromSpec())
 	if err != nil {
 		return nil, err
-	} else if tableSpec.TableName == "" || tableSpec.KeyspaceName == "" {
-		return nil, errors.New("TranslateDeletetQuerytoBigtable: No table or keyspace name found in the query")
 	}
-	if !t.SchemaMappingConfig.InstanceExists(tableSpec.KeyspaceName) {
-		return nil, fmt.Errorf("keyspace %s does not exist", tableSpec.KeyspaceName)
+	keyspaceName := tableSpec.KeyspaceName
+	tableName := tableSpec.TableName
+
+	if keyspaceName == "" {
+		if sessionKeyspace != "" {
+			keyspaceName = sessionKeyspace
+		} else {
+			return nil, fmt.Errorf("invalid input paramaters found for keyspace")
+		}
 	}
-	if !t.SchemaMappingConfig.TableExist(tableSpec.KeyspaceName, tableSpec.TableName) {
-		return nil, fmt.Errorf("table %s does not exist", tableSpec.TableName)
+	if !t.SchemaMappingConfig.InstanceExists(keyspaceName) {
+		return nil, fmt.Errorf("keyspace %s does not exist", keyspaceName)
 	}
-	selectedColumns, err := parseDeleteColumns(deleteObj.DeleteColumnList(), tableSpec.TableName, t.SchemaMappingConfig, tableSpec.KeyspaceName)
+	if !t.SchemaMappingConfig.TableExist(keyspaceName, tableName) {
+		return nil, fmt.Errorf("table %s does not exist", tableName)
+	}
+	selectedColumns, err := parseDeleteColumns(deleteObj.DeleteColumnList(), tableName, t.SchemaMappingConfig, keyspaceName)
 	if err != nil {
 		return nil, err
 	}
@@ -359,14 +314,14 @@ func (t *Translator) TranslateDeleteQuerytoBigtable(queryStr string, isPreparedQ
 	var QueryClauses QueryClauses
 
 	if hasWhere(lowerQuery) {
-		resp, err := parseClauseFromDelete(deleteObj.WhereSpec(), tableSpec.TableName, t.SchemaMappingConfig, tableSpec.KeyspaceName)
+		resp, err := parseClauseFromDelete(deleteObj.WhereSpec(), tableName, t.SchemaMappingConfig, keyspaceName)
 		if err != nil {
 			return nil, errors.New("TranslateDeletetQuerytoBigtable: Invalid Where clause condition")
 		}
 		QueryClauses = *resp
 	}
 
-	primaryKeys, err := getPrimaryKeys(t.SchemaMappingConfig, tableSpec.TableName, tableSpec.KeyspaceName)
+	primaryKeys, err := getPrimaryKeys(t.SchemaMappingConfig, tableName, keyspaceName)
 	if err != nil {
 		return nil, err
 	}
@@ -387,7 +342,7 @@ func (t *Translator) TranslateDeleteQuerytoBigtable(queryStr string, isPreparedQ
 	// The below code checking the reuired primary keys and actual primary keys when we are having clause statements
 	if len(primaryKeysFound) != len(primaryKeys) && len(QueryClauses.Clauses) > 0 {
 		missingPrime := findFirstMissingKey(primaryKeys, primaryKeysFound)
-		missingPkColumnType, err := t.SchemaMappingConfig.GetPkKeyType(tableSpec.TableName, tableSpec.KeyspaceName, missingPrime)
+		missingPkColumnType, err := t.SchemaMappingConfig.GetPkKeyType(tableName, keyspaceName, missingPrime)
 		if err != nil {
 			return nil, err
 		}
@@ -396,7 +351,7 @@ func (t *Translator) TranslateDeleteQuerytoBigtable(queryStr string, isPreparedQ
 
 	var rowKey string
 	if !isPreparedQuery {
-		pmks, err := t.SchemaMappingConfig.GetPkByTableNameWithFilter(tableSpec.TableName, tableSpec.KeyspaceName, primaryKeys)
+		pmks, err := t.SchemaMappingConfig.GetPkByTableNameWithFilter(tableName, keyspaceName, primaryKeys)
 		if err != nil {
 			return nil, err
 		}
@@ -410,8 +365,8 @@ func (t *Translator) TranslateDeleteQuerytoBigtable(queryStr string, isPreparedQ
 	deleteQueryData := &DeleteQueryMapping{
 		Query:           query,
 		QueryType:       DELETE,
-		Table:           tableSpec.TableName,
-		Keyspace:        tableSpec.KeyspaceName,
+		Table:           tableName,
+		Keyspace:        keyspaceName,
 		Clauses:         QueryClauses.Clauses,
 		Params:          QueryClauses.Params,
 		ParamKeys:       QueryClauses.ParamKeys,

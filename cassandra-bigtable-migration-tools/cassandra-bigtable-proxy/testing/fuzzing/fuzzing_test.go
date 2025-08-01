@@ -21,6 +21,7 @@ import (
 	"math"
 	"os"
 	"testing"
+	"time"
 	"unicode/utf8"
 
 	"github.com/gocql/gocql"
@@ -46,19 +47,6 @@ func TestMain(m *testing.M) {
 
 	defer session.Close()
 
-	var tablesSql = []string{
-		// this table schema is to fuzz test all row key types. There are 2 varchar types because 1 is random (not fuzz generated) to ensure that fuzz workers don't collide row keys)
-		"CREATE TABLE IF NOT EXISTS bigtabledevinstance.fuzztestkeys (id varchar, str_key varchar, int_key int, bigint_key bigint, name varchar, PRIMARY KEY (id, str_key, int_key, bigint_key));",
-		"CREATE TABLE IF NOT EXISTS bigtabledevinstance.fuzztestcolumns (id text PRIMARY KEY, name text, code int, credited double, balance float, is_active boolean, birth_date timestamp, zip_code bigint, extra_info map<text,text>, map_text_int map<text,int>, map_text_bigint map<text,bigint>, map_text_boolean map<text,boolean>, map_text_ts map<text,timestamp>, map_text_float map<text,float>, map_text_double map<text,double>, ts_text_map map<timestamp,text>, ts_boolean_map map<timestamp,boolean>, ts_float_map map<timestamp,float>, ts_double_map map<timestamp,double>, ts_bigint_map map<timestamp,bigint>, ts_ts_map map<timestamp,timestamp>, ts_int_map map<timestamp,int>, tags set<text>, set_boolean set<boolean>, set_int set<int>, set_bigint set<bigint>, set_float set<float>, set_double set<double>, set_timestamp set<timestamp>, list_text list<text>, list_int list<int>, list_bigint list<bigint>, list_float list<float>, list_double list<double>, list_boolean list<boolean>, list_timestamp list<timestamp>);",
-	}
-
-	for i, tableSql := range tablesSql {
-		err = session.Query(tableSql).Exec()
-		if err != nil {
-			panic(fmt.Errorf("error applying create table sql %d: %w", i, err))
-		}
-	}
-
 	code := m.Run()
 
 	os.Exit(code)
@@ -76,6 +64,10 @@ func FuzzColumns(f *testing.F) {
 			return
 		}
 
+		// Create a UTC time.Time from milliseconds.
+		// The seconds part is l/1000, and the nanoseconds part is (l%1000)*1_000_000.
+		ts := time.Unix(l/1000, (l%1000)*1000_000).UTC()
+
 		iq, iv := InsertQuery{}.WithTable("bigtabledevinstance", "fuzztestcolumns").
 			WithValue("id", id).
 			WithValue("name", s).
@@ -83,44 +75,39 @@ func FuzzColumns(f *testing.F) {
 			WithValue("credited", d).
 			WithValue("balance", fl).
 			WithValue("is_active", b).
-			WithValue("birth_date", l).
+			WithValue("birth_date", ts).
 			WithValue("zip_code", l).
 			WithValue("extra_info", map[string]string{s: s}).
 			WithValue("map_text_int", map[string]int32{s: i}).
 			WithValue("map_text_bigint", map[string]int64{s: l}).
 			WithValue("map_text_boolean", map[string]bool{s: b}).
-			WithValue("map_text_ts", map[string]int64{s: l}).
+			WithValue("map_text_ts", map[string]time.Time{s: ts}).
 			WithValue("map_text_float", map[string]float32{s: fl}).
 			WithValue("map_text_double", map[string]float64{s: d}).
-			WithValue("ts_text_map", map[int64]string{l: s}).
-			WithValue("ts_boolean_map", map[int64]bool{l: b}).
-			WithValue("ts_float_map", map[int64]float32{l: fl}).
-			WithValue("ts_double_map", map[int64]float64{l: d}).
-			WithValue("ts_bigint_map", map[int64]int64{l: l}).
-			WithValue("ts_ts_map", map[int64]int64{l: l}).
-			WithValue("ts_int_map", map[int64]int32{l: i}).
+			WithValue("ts_text_map", map[time.Time]string{ts: s}).
+			WithValue("ts_boolean_map", map[time.Time]bool{ts: b}).
+			WithValue("ts_float_map", map[time.Time]float32{ts: fl}).
+			WithValue("ts_double_map", map[time.Time]float64{ts: d}).
+			WithValue("ts_bigint_map", map[time.Time]int64{ts: l}).
+			WithValue("ts_ts_map", map[time.Time]time.Time{ts: ts}).
+			WithValue("ts_int_map", map[time.Time]int32{ts: i}).
 			WithValue("tags", []string{s}).
 			WithValue("set_boolean", []bool{b}).
 			WithValue("set_int", []int32{i}).
 			WithValue("set_bigint", []int64{l}).
 			WithValue("set_float", []float32{fl}).
 			WithValue("set_double", []float64{d}).
-			WithValue("set_timestamp", []int64{l}).
+			WithValue("set_timestamp", []time.Time{ts}).
 			WithValue("list_text", []string{s}).
 			WithValue("list_int", []int32{i}).
 			WithValue("list_bigint", []int64{l}).
 			WithValue("list_float", []float32{fl}).
 			WithValue("list_double", []float64{d}).
 			WithValue("list_boolean", []bool{b}).
-			WithValue("list_timestamp", []int64{l}).
+			WithValue("list_timestamp", []time.Time{ts}).
 			Build()
 
 		err := session.Query(iq, iv...).Exec()
-
-		if !utf8.Valid([]byte(s)) {
-			assert.Error(t, err)
-			return
-		}
 
 		assert.NoError(t, err)
 
@@ -132,36 +119,36 @@ func FuzzColumns(f *testing.F) {
 			gotCredited       float64
 			gotBalance        float32
 			gotIsActive       bool
-			gotBirthDate      int64
+			gotBirthDate      time.Time
 			gotZipCode        int64
 			gotExtraInfo      map[string]string
 			gotMapTextInt     map[string]int32
 			gotMapTextBigint  map[string]int64
 			gotMapTextBoolean map[string]bool
-			gotMapTextTs      map[string]int64
+			gotMapTextTs      map[string]time.Time
 			gotMapTextFloat   map[string]float32
 			gotMapTextDouble  map[string]float64
-			gotTsTextMap      map[int64]string
-			gotTsBooleanMap   map[int64]bool
-			gotTsFloatMap     map[int64]float32
-			gotTsDoubleMap    map[int64]float64
-			gotTsBigintMap    map[int64]int64
-			gotTsTsMap        map[int64]int64
-			gotTsIntMap       map[int64]int32
+			gotTsTextMap      map[time.Time]string
+			gotTsBooleanMap   map[time.Time]bool
+			gotTsFloatMap     map[time.Time]float32
+			gotTsDoubleMap    map[time.Time]float64
+			gotTsBigintMap    map[time.Time]int64
+			gotTsTsMap        map[time.Time]time.Time
+			gotTsIntMap       map[time.Time]int32
 			gotTags           []string
 			gotSetBoolean     []bool
 			gotSetInt         []int32
 			gotSetBigint      []int64
 			gotSetFloat       []float32
 			gotSetDouble      []float64
-			gotSetTimestamp   []int64
+			gotSetTimestamp   []time.Time
 			gotListText       []string
 			gotListInt        []int32
 			gotListBigint     []int64
 			gotListFloat      []float32
 			gotListDouble     []float64
 			gotListBoolean    []bool
-			gotListTimestamp  []int64
+			gotListTimestamp  []time.Time
 		)
 
 		sq, sv, _ := SelectQuery{}.WithTable("bigtabledevinstance", "fuzztestcolumns").
@@ -258,36 +245,36 @@ func FuzzColumns(f *testing.F) {
 		assert.Equal(t, d, gotCredited)
 		assert.Equal(t, fl, gotBalance)
 		assert.Equal(t, b, gotIsActive)
-		assert.Equal(t, l, gotBirthDate)
+		assert.Equal(t, ts, gotBirthDate)
 		assert.Equal(t, l, gotZipCode)
 		assert.Equal(t, map[string]string{s: s}, gotExtraInfo)
 		assert.Equal(t, map[string]int32{s: i}, gotMapTextInt)
 		assert.Equal(t, map[string]int64{s: l}, gotMapTextBigint)
 		assert.Equal(t, map[string]bool{s: b}, gotMapTextBoolean)
-		assert.Equal(t, map[string]int64{s: l}, gotMapTextTs)
+		assert.Equal(t, map[string]time.Time{s: ts}, gotMapTextTs)
 		assert.Equal(t, map[string]float32{s: fl}, gotMapTextFloat)
 		assert.Equal(t, map[string]float64{s: d}, gotMapTextDouble)
-		assert.Equal(t, map[int64]string{l: s}, gotTsTextMap)
-		assert.Equal(t, map[int64]bool{l: b}, gotTsBooleanMap)
-		assert.Equal(t, map[int64]float32{l: fl}, gotTsFloatMap)
-		assert.Equal(t, map[int64]float64{l: d}, gotTsDoubleMap)
-		assert.Equal(t, map[int64]int64{l: l}, gotTsBigintMap)
-		assert.Equal(t, map[int64]int64{l: l}, gotTsTsMap)
-		assert.Equal(t, map[int64]int32{l: i}, gotTsIntMap)
+		assert.Equal(t, map[time.Time]string{ts: s}, gotTsTextMap)
+		assert.Equal(t, map[time.Time]bool{ts: b}, gotTsBooleanMap)
+		assert.Equal(t, map[time.Time]float32{ts: fl}, gotTsFloatMap)
+		assert.Equal(t, map[time.Time]float64{ts: d}, gotTsDoubleMap)
+		assert.Equal(t, map[time.Time]int64{ts: l}, gotTsBigintMap)
+		assert.Equal(t, map[time.Time]time.Time{ts: ts}, gotTsTsMap)
+		assert.Equal(t, map[time.Time]int32{ts: i}, gotTsIntMap)
 		assert.Equal(t, []string{s}, gotTags)
 		assert.Equal(t, []bool{b}, gotSetBoolean)
 		assert.Equal(t, []int32{i}, gotSetInt)
 		assert.Equal(t, []int64{l}, gotSetBigint)
 		assert.Equal(t, []float32{fl}, gotSetFloat)
 		assert.Equal(t, []float64{d}, gotSetDouble)
-		assert.Equal(t, []int64{l}, gotSetTimestamp)
+		assert.Equal(t, []time.Time{ts}, gotSetTimestamp)
 		assert.Equal(t, []string{s}, gotListText)
 		assert.Equal(t, []int32{i}, gotListInt)
 		assert.Equal(t, []int64{l}, gotListBigint)
 		assert.Equal(t, []float32{fl}, gotListFloat)
 		assert.Equal(t, []float64{d}, gotListDouble)
 		assert.Equal(t, []bool{b}, gotListBoolean)
-		assert.Equal(t, []int64{l}, gotListTimestamp)
+		assert.Equal(t, []time.Time{ts}, gotListTimestamp)
 	})
 }
 

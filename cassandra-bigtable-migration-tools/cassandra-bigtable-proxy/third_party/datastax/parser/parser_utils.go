@@ -194,12 +194,49 @@ func isDMLTerminator(t token) bool {
 	return t == tkEOF || t == tkEOS || t == tkInsert || t == tkUpdate || t == tkDelete || t == tkApply
 }
 
+func isHandledDescribeStmt(l *lexer) (stmt Statement, err error) {
+	t2 := l.next()
+	ds := &DescribeStatement{}
+	if t2 == tkIdentifier && l.identifier().equal("keyspaces") {
+		ds.Keyspaces = true
+		return ds, nil
+	} else if t2 == tkIdentifier && l.identifier().equal("tables") {
+		ds.Tables = true
+		return ds, nil
+	} else if t2 == tkIdentifier && l.identifier().equal("table") {
+		_, tableIdent, _, err := parseQualifiedIdentifier(l)
+		if err != nil {
+			return nil, err
+		}
+		ds.TableName = tableIdent.id
+		return ds, nil
+	} else if t2 == tkIdentifier && l.identifier().equal("keyspace") {
+		if l.next() == tkIdentifier {
+			ks := l.identifier()
+			ds.KeyspaceName = ks.id
+			return ds, nil
+		}
+		return nil, errors.New("expected keyspace name after DESCRIBE KEYSPACE")
+	} else if t2 == tkIdentifier {
+		ks := l.identifier()
+		ds.KeyspaceName = ks.id
+		return ds, nil
+	}
+	return nil, errors.New("invalid DESCRIBE statement")
+}
+
 func IsQueryHandledWithQueryType(keyspace Identifier, query string) (handled bool, stmt Statement, queryType string, err error) {
 	var l lexer
 	l.init(query)
 
 	t := l.next()
+
 	switch t {
+	case tkIdentifier:
+		if l.identifier().equal("describe") || l.identifier().equal("desc") {
+			stmt, err := isHandledDescribeStmt(&l)
+			return false, stmt, "describe", err
+		}
 	case tkSelect:
 		handled, stmt, err := isHandledSelectStmt(&l, keyspace)
 		return handled, stmt, "select", err
@@ -217,8 +254,7 @@ func IsQueryHandledWithQueryType(keyspace Identifier, query string) (handled boo
 		return false, nil, "alter", nil
 	case tkUse:
 		handled, stmt, err := isHandledUseStmt(&l)
-		return handled, stmt, "", err
+		return handled, stmt, "use", err
 	}
 	return false, nil, "", nil
-
 }

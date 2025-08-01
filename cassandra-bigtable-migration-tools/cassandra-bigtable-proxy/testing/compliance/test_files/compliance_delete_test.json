@@ -405,7 +405,8 @@
         "expected_result": [
           {
             "expect_error": true,
-            "error_message": "Non PRIMARY KEY columns found in where clause: balance "
+            "error_message": "Non PRIMARY KEY columns found in where clause: balance ",
+            "cassandra_error_message": "Non PRIMARY KEY columns found in where clause: balance "
           }
         ]
       }
@@ -482,7 +483,8 @@
         "expected_result": [
           {
             "expect_error": true,
-            "error_message": "Non PRIMARY KEY columns found in where clause: credited "
+            "error_message": "Non PRIMARY KEY columns found in where clause: credited ",
+            "cassandra_error_message": "Some partition key parts are missing: age"
           }
         ]
       }
@@ -602,7 +604,9 @@
         "expected_result": [
           {
             "expect_error": true,
-            "error_message": "could not find table or keyspace name"
+            "error_message": "table user_info does not exist",
+            "cassandra_error_message": "table user_info does not exist",
+            "avoid_compare_error_message": true
           }
         ]
       }

@@ -17,79 +17,80 @@ package responsehandler
 
 import (
 	btpb "cloud.google.com/go/bigtable/apiv2/bigtablepb"
+	types "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	schemaMapping "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/schema-mapping"
 	"github.com/datastax/go-cassandra-native-protocol/datatype"
 	"github.com/datastax/go-cassandra-native-protocol/message"
 )
 
-var mockTableConfig = map[string]map[string]map[string]*schemaMapping.Column{
+var mockTableConfig = map[string]map[string]map[string]*types.Column{
 	"test_keyspace": {"test_table": {
-		"column1": &schemaMapping.Column{
+		"column1": &types.Column{
 			ColumnName:   "column1",
-			ColumnType:   "varchar",
+			CQLType:      datatype.Varchar,
 			IsPrimaryKey: true,
 			PkPrecedence: 1,
 		},
-		"column2": &schemaMapping.Column{
+		"column2": &types.Column{
 			ColumnName:   "column2",
-			ColumnType:   "blob",
+			CQLType:      datatype.Blob,
 			IsPrimaryKey: false,
 		},
-		"column3": &schemaMapping.Column{
+		"column3": &types.Column{
 			ColumnName:   "column3",
-			ColumnType:   "boolean",
+			CQLType:      datatype.Boolean,
 			IsPrimaryKey: false,
 		},
-		"column4": &schemaMapping.Column{
+		"column4": &types.Column{
 			ColumnName:   "column4",
-			ColumnType:   "list<varchar>",
+			CQLType:      datatype.NewListType(datatype.Varchar),
 			IsPrimaryKey: false,
 			IsCollection: true,
 		},
-		"column5": &schemaMapping.Column{
+		"column5": &types.Column{
 			ColumnName:   "column5",
-			ColumnType:   "timestamp",
+			CQLType:      datatype.Timestamp,
 			IsPrimaryKey: false,
 		},
-		"column6": &schemaMapping.Column{
+		"column6": &types.Column{
 			ColumnName:   "column6",
-			ColumnType:   "int",
+			CQLType:      datatype.Int,
 			IsPrimaryKey: false,
 		},
-		"column7": &schemaMapping.Column{
+		"column7": &types.Column{
 			ColumnName:   "column7",
-			ColumnType:   "frozen<set<text>>",
+			CQLType:      datatype.NewSetType(datatype.Varchar),
 			IsPrimaryKey: false,
 			IsCollection: true,
 		},
-		"column8": &schemaMapping.Column{
+		"column8": &types.Column{
 			ColumnName:   "column8",
-			ColumnType:   "map<varchar, boolean>",
+			CQLType:      datatype.NewMapType(datatype.Varchar, datatype.Boolean),
 			IsPrimaryKey: false,
 			IsCollection: true,
 		},
-		"column9": &schemaMapping.Column{
+		"column9": &types.Column{
 			ColumnName:   "column9",
-			ColumnType:   "bigint",
+			CQLType:      datatype.Bigint,
 			IsPrimaryKey: false,
 		},
-		"column10": &schemaMapping.Column{
+		"column10": &types.Column{
 			ColumnName:   "column10",
-			ColumnType:   "varchar",
+			CQLType:      datatype.Varchar,
 			IsPrimaryKey: true,
 			PkPrecedence: 2,
 		},
-		"column11": &schemaMapping.Column{
+		"column11": &types.Column{
 			ColumnName:   "column11",
-			ColumnType:   "set<text>",
+			CQLType:      datatype.NewSetType(datatype.Varchar),
 			IsPrimaryKey: false,
 			IsCollection: true,
 		},
 	},
 		"user_info": {
-			"name": &schemaMapping.Column{
+			"name": &types.Column{
 				ColumnName:   "name",
-				ColumnType:   "text",
+				CQLType:      datatype.Varchar,
 				IsPrimaryKey: true,
 				PkPrecedence: 0,
 				IsCollection: false,
@@ -97,17 +98,17 @@ var mockTableConfig = map[string]map[string]map[string]*schemaMapping.Column{
 		}},
 }
 
-var mockPkMetadata = map[string]map[string][]schemaMapping.Column{
+var mockPkMetadata = map[string]map[string][]types.Column{
 	"test_keyspace": {"test_table": {
 		{
 			ColumnName:   "column1",
-			CQLType:      "text",
+			CQLType:      datatype.Varchar,
 			IsPrimaryKey: true,
 			PkPrecedence: 1,
 		},
 		{
 			ColumnName:   "column10",
-			ColumnType:   "text",
+			CQLType:      datatype.Varchar,
 			IsPrimaryKey: true,
 			PkPrecedence: 2,
 		},
@@ -115,7 +116,7 @@ var mockPkMetadata = map[string]map[string][]schemaMapping.Column{
 		"user_info": {
 			{
 				ColumnName:   "name",
-				CQLType:      "text",
+				CQLType:      datatype.Varchar,
 				IsPrimaryKey: true,
 				PkPrecedence: 0,
 			},

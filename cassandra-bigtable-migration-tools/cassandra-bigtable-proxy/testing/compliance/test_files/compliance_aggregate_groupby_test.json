@@ -1,0 +1,396 @@
+[
+    {
+        "title": "Comprehensive GROUP BY and aggregate function tests",
+        "description": "Test GROUP BY operations with aggregate functions and column aliases",
+        "kind": "dml",
+        "operations": [
+            {
+                "query": "INSERT INTO bigtabledevinstance.aggregation_grouping_test (region, category, item_id, sale_timestamp, quantity, price, discount, revenue_bigint) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                "query_desc": "Insert North/Electronics record 1",
+                "query_type": "INSERT",
+                "params": [
+                    {
+                        "value": "North",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": "Electronics",
+                        "datatype": "varchar"
+                    },
+                    {
+                        "value": 101,
+                        "datatype": "int"
+                    },
+                    {
+                        "value": 1736899200000000,
+                        "datatype": "timestamp"
+                    },
+                    {
+                        "value": 5,
+                        "datatype": "int"
+                    },
+                    {
+                        "value": 1200.50,
+                        "datatype": "float"
+                    },
+                    {
+                        "value": 0.1,
+                        "datatype": "double"
+                    },
+                    {
+                        "value": 6002,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "INSERT INTO bigtabledevinstance.aggregation_grouping_test (region, category, item_id, sale_timestamp, quantity, price, discount, revenue_bigint) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                "query_desc": "Insert North/Electronics record 2",
+                "query_type": "INSERT",
+                "params": [
+                    {
+                        "value": "North",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": "Electronics",
+                        "datatype": "varchar"
+                    },
+                    {
+                        "value": 102,
+                        "datatype": "int"
+                    },
+                    {
+                        "value": 1736985600000000,
+                        "datatype": "timestamp"
+                    },
+                    {
+                        "value": 2,
+                        "datatype": "int"
+                    },
+                    {
+                        "value": 850.00,
+                        "datatype": "float"
+                    },
+                    {
+                        "value": 0.05,
+                        "datatype": "double"
+                    },
+                    {
+                        "value": 1700,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "INSERT INTO bigtabledevinstance.aggregation_grouping_test (region, category, item_id, sale_timestamp, quantity, price, discount, revenue_bigint) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                "query_desc": "Insert South/Apparel record 1",
+                "query_type": "INSERT",
+                "params": [
+                    {
+                        "value": "South",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": "Apparel",
+                        "datatype": "varchar"
+                    },
+                    {
+                        "value": 201,
+                        "datatype": "int"
+                    },
+                    {
+                        "value": 1737072000000000,
+                        "datatype": "timestamp"
+                    },
+                    {
+                        "value": 10,
+                        "datatype": "int"
+                    },
+                    {
+                        "value": 45.99,
+                        "datatype": "float"
+                    },
+                    {
+                        "value": 0.2,
+                        "datatype": "double"
+                    },
+                    {
+                        "value": 459,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "INSERT INTO bigtabledevinstance.aggregation_grouping_test (region, category, item_id, sale_timestamp, quantity, price, discount, revenue_bigint) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                "query_desc": "Insert North/Apparel record 1",
+                "query_type": "INSERT",
+                "params": [
+                    {
+                        "value": "North",
+                        "datatype": "text"
+                    },
+                    {
+                        "value": "Apparel",
+                        "datatype": "varchar"
+                    },
+                    {
+                        "value": 202,
+                        "datatype": "int"
+                    },
+                    {
+                        "value": 1737158400000000,
+                        "datatype": "timestamp"
+                    },
+                    {
+                        "value": 15,
+                        "datatype": "int"
+                    },
+                    {
+                        "value": 30.50,
+                        "datatype": "float"
+                    },
+                    {
+                        "value": 0.15,
+                        "datatype": "double"
+                    },
+                    {
+                        "value": 457,
+                        "datatype": "bigint"
+                    }
+                ],
+                "expected_result": null
+            },
+            {
+                "query": "SELECT category, SUM(quantity) AS total_items, AVG(price) AS avg_price FROM bigtabledevinstance.aggregation_grouping_test GROUP BY category",
+                "query_desc": "Group by category with SUM and AVG",
+                "query_type": "SELECT",
+                "params": [],
+                "expected_multi_row_result": [
+                    [
+                        {
+                            "category": "Apparel",
+                            "datatype": "varchar"
+                        },
+                        {
+                            "total_items": 25,
+                            "datatype": "int"
+                        },
+                        {
+                            "avg_price": 38.245,
+                            "datatype": "float"
+                        }
+                    ],
+                    [
+                        {
+                            "category": "Electronics",
+                            "datatype": "varchar"
+                        },
+                        {
+                            "total_items": 7,
+                            "datatype": "int"
+                        },
+                        {
+                            "avg_price": 1025.25,
+                            "datatype": "float"
+                        }
+                    ]
+                ]
+            },
+            {
+                "query": "SELECT region, COUNT(*) AS item_count, MIN(price) AS min_price, MAX(price) AS max_price FROM bigtabledevinstance.aggregation_grouping_test GROUP BY region",
+                "query_desc": "Group by region with COUNT, MIN, MAX",
+                "query_type": "SELECT",
+                "params": [],
+                "expected_multi_row_result": [
+                    [
+                        {
+                            "region": "North",
+                            "datatype": "text"
+                        },
+                        {
+                            "item_count": 3,
+                            "datatype": "bigint"
+                        },
+                        {
+                            "min_price": 30.50,
+                            "datatype": "float"
+                        },
+                        {
+                            "max_price": 1200.50,
+                            "datatype": "float"
+                        }
+                    ],
+                    [
+                        {
+                            "region": "South",
+                            "datatype": "text"
+                        },
+                        {
+                            "item_count": 1,
+                            "datatype": "bigint"
+                        },
+                        {
+                            "min_price": 45.99,
+                            "datatype": "float"
+                        },
+                        {
+                            "max_price": 45.99,
+                            "datatype": "float"
+                        }
+                    ]
+                ],
+                "expect_cassandra_specific_error": "Group by is currently only supported on the columns of the PRIMARY KEY, got region"
+            },
+            {
+                "query": "SELECT region, category, SUM(revenue_bigint) AS total_revenue, AVG(discount) AS avg_discount FROM bigtabledevinstance.aggregation_grouping_test GROUP BY region, category",
+                "query_desc": "Group by multiple columns with SUM and AVG",
+                "query_type": "SELECT",
+                "params": [],
+                "expected_multi_row_result": [
+                    [
+                        {
+                            "region": "North",
+                            "datatype": "text"
+                        },
+                        {
+                            "category": "Apparel",
+                            "datatype": "varchar"
+                        },
+                        {
+                            "total_revenue": 457,
+                            "datatype": "bigint"
+                        },
+                        {
+                            "avg_discount": 0.15,
+                            "datatype": "double"
+                        }
+                    ],
+                    [
+                        {
+                            "region": "North",
+                            "datatype": "text"
+                        },
+                        {
+                            "category": "Electronics",
+                            "datatype": "varchar"
+                        },
+                        {
+                            "total_revenue": 7702,
+                            "datatype": "bigint"
+                        },
+                        {
+                            "avg_discount": 0.075,
+                            "datatype": "double"
+                        }
+                    ],
+                    [
+                        {
+                            "region": "South",
+                            "datatype": "text"
+                        },
+                        {
+                            "category": "Apparel",
+                            "datatype": "varchar"
+                        },
+                        {
+                            "total_revenue": 459,
+                            "datatype": "bigint"
+                        },
+                        {
+                            "avg_discount": 0.2,
+                            "datatype": "double"
+                        }
+                    ]
+                ],
+                "expect_cassandra_specific_error": "Group by is currently only supported on the columns of the PRIMARY KEY, got region"
+            },
+            {
+                "query": "SELECT category, SUM(quantity), AVG(price) FROM bigtabledevinstance.aggregation_grouping_test GROUP BY category",
+                "query_desc": "Group by category with SUM and AVG (no aliases)",
+                "query_type": "SELECT",
+                "params": [],
+                "expected_multi_row_result": [
+                    [
+                        {
+                            "category": "Apparel",
+                            "datatype": "varchar"
+                        },
+                        {
+                            "system.sum(quantity)": 25,
+                            "datatype": "int"
+                        },
+                        {
+                            "system.avg(price)": 38.245,
+                            "datatype": "float"
+                        }
+                    ],
+                    [
+                        {
+                            "category": "Electronics",
+                            "datatype": "varchar"
+                        },
+                        {
+                            "system.sum(quantity)": 7,
+                            "datatype": "int"
+                        },
+                        {
+                            "system.avg(price)": 1025.25,
+                            "datatype": "float"
+                        }
+                    ]
+                ]
+            },
+            {
+                "query": "SELECT region, COUNT(*), MIN(price), MAX(price) FROM bigtabledevinstance.aggregation_grouping_test GROUP BY region",
+                "query_desc": "Group by region with COUNT, MIN, MAX (no aliases)",
+                "query_type": "SELECT",
+                "params": [],
+                "expected_multi_row_result": [
+                    [
+                        {
+                            "region": "North",
+                            "datatype": "text"
+                        },
+                        {
+                            "system.count(*)": 3,
+                            "datatype": "bigint"
+                        },
+                        {
+                            "system.min(price)": 30.50,
+                            "datatype": "float"
+                        },
+                        {
+                            "system.max(price)": 1200.50,
+                            "datatype": "float"
+                        }
+                    ],
+                    [
+                        {
+                            "region": "South",
+                            "datatype": "text"
+                        },
+                        {
+                            "system.count(*)": 1,
+                            "datatype": "bigint"
+                        },
+                        {
+                            "system.min(price)": 45.99,
+                            "datatype": "float"
+                        },
+                        {
+                            "system.max(price)": 45.99,
+                            "datatype": "float"
+                        }
+                    ]
+                ],
+                "expect_cassandra_specific_error": "Group by is currently only supported on the columns of the PRIMARY KEY, got region"
+            }
+        ],
+        "success_message": "Successfully tested GROUP BY operations with and without aliases",
+        "failure_message": "Failed to test GROUP BY operations"
+    }
+]

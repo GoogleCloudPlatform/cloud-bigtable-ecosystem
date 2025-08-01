@@ -15,27 +15,46 @@
 cassandraToBigtableConfigs:
   # [Optional] Global default GCP Project ID
   projectId: YOUR_GCP_PROJECT_ID
-  # [Optional] schema mapping configuration table name
+  # [Optional] Global default configuration table name
   schemaMappingTable: SCHEMA_MAPPING_TABLE_NAME
   #[Required] Default column family for premitive data types
   defaultColumnFamily: DEFAULT_COLUMN_FAMILY
 
 listeners:
 - name: cluster1
-  port: PORT_NUMBER
+  port: 9042
   bigtable:
     # [Optional], skip if it is the same as global_projectId.
     projectId: YOUR_GCP_PROJECT_ID
 
-    #If you want to use multiple instances then pass the instance names by comma seperated
-    #Instance name should not contain any special characters except underscore(_)
-    instanceIds: GCP_BIGTABLE_INSTANCE_ID
+    # [Optional] appProfileID (global) is required only if you want to use a specific app profile.
+    # If a per-instance appProfileID is specified, it will override this global setting.
+    # appProfileID: GCP_BIGTABLE_APP_PROFILE_ID
 
-    # [Required] Name of the table  where cassandra schema to bigtable schema mapping is stored.
+    # If you want to use multiple instances then pass the instance names by comma seperated
+    # Instance(cassandra keyspace) name should not contain any special characters except underscore(_)
+    # if instanceIds values given here then proxy wont read from the below instances list
+    # instanceIds: GCP_BIGTABLE_INSTANCE_ID1,GCP_BIGTABLE_INSTANCE_ID2
+
+    # If you want to use multiple instances, define them as a list of objects below.
+    instances:
+    # [Required] The name of the Bigtable instance.
+    - bigtableInstance: GCP_BIGTABLE_INSTANCE_ID1
+      # [Required] The cassandra keyspace associated with this Bigtable instance.
+      # Cassandra keyspace should not contain any special characters except underscore(_).
+      keyspace: KEYSPACE_MAP_TO_INSTANCE
+      # [Optional] appProfileID is required only if you want to use a specific app profile for this instance.
+      # This will override the global appProfileID if specified.
+      # appProfileID: GCP_BIGTABLE_APP_PROFILE_ID
+      # [example for adding another keyspace instance]
+      # - bigtableInstance: GCP_BIGTABLE_INSTANCE_ID2
+      #   keyspace: KEYSPACE_MAP_TO_INSTANCE2
+      #   appProfileID: GCP_BIGTABLE_APP_PROFILE_ID
+
+      # [Required] The name of the Bigtable instance.
+
+      # [Required] Name of the table  where cassandra schema to bigtable schema mapping is stored.
     schemaMappingTable: SCHEMA_MAPPING_TABLE_NAME
-
-    #[Optional] appProfileID is required only if you want to use a specific app profile.
-    appProfileID: GCP_BIGTABLE_APP_PROFILE_ID
 
     #[Required] Default column family for primitive data types is "cf1"
     defaultColumnFamily: DEFAULT_COLUMN_FAMILY
@@ -47,7 +66,6 @@ listeners:
 otel:
   # Set enabled to true or false for OTEL metrics/traces/logs.
   enabled: False
-
   # Set enabled to true or false for client side OTEL (metrics/traces).
   enabledClientSideMetrics: True
 

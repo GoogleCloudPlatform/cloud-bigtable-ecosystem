@@ -18,7 +18,6 @@ package translator
 
 import (
 	"fmt"
-	"math"
 	"reflect"
 	"sort"
 	"strings"
@@ -26,98 +25,17 @@ import (
 	"time"
 
 	"cloud.google.com/go/bigtable"
-	"github.com/antlr4-go/antlr/v4"
-	"github.com/stretchr/testify/assert"
-
+	types "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	schemaMapping "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/schema-mapping"
+	cql "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/third_party/cqlparser"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/third_party/datastax/proxycore"
+	"github.com/antlr4-go/antlr/v4"
 	"github.com/datastax/go-cassandra-native-protocol/datatype"
 	"github.com/datastax/go-cassandra-native-protocol/message"
 	"github.com/datastax/go-cassandra-native-protocol/primitive"
+	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 )
-
-func Test_convertMapString(t *testing.T) {
-	type args struct {
-		dataStr string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    map[string]interface{}
-		wantErr bool
-	}{
-		{
-			name: "sucess",
-			args: args{
-				dataStr: "{i3=true, 5023.0=true}",
-			},
-			want: map[string]interface{}{
-				"i3":     true,
-				"5023.0": true,
-			},
-			wantErr: false,
-		},
-		{
-			name: "error",
-			args: args{
-				dataStr: "test",
-			},
-			want:    nil,
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := convertMapString(tt.args.dataStr)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("convertMapString() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("convertMapString() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-// Helper function to create a mock TerminalNode
-func createMockTerminalNode(token antlr.Token) antlr.Tree {
-	return antlr.NewTerminalNodeImpl(token)
-}
-
-func Test_treetoString(t *testing.T) {
-	tests := []struct {
-		name   string
-		input  antlr.Tree
-		expect string
-	}{
-		{
-			name:   "TerminalNode",
-			input:  createMockTerminalNode(antlr.NewCommonToken(&antlr.TokenSourceCharStreamPair{}, 1, 1, 1, 1)),
-			expect: "", // Modify the expected output accordingly
-		},
-		{
-			name:   "NonTerminalNode",
-			input:  antlr.NewErrorNodeImpl(nil),
-			expect: "", // Modify the expected output accordingly
-		},
-		{
-			name:   "NilInput",
-			input:  nil,
-			expect: "", // Modify the expected output accordingly
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := treetoString(tt.input)
-
-			if result != tt.expect {
-				t.Errorf("Test '%s' failed: expected '%s', got '%s'", tt.name, tt.expect, result)
-			}
-		})
-	}
-}
 
 func Test_hasWhere(t *testing.T) {
 	type args struct {
@@ -211,155 +129,6 @@ func TestParseTimestamp(t *testing.T) {
 	}
 }
 
-// TestConvertMap tests the convertMap function with various inputs.
-func TestConvertToMap(t *testing.T) {
-	cases := []struct {
-		name     string
-		dataStr  string
-		cqlType  string
-		expected map[string]interface{}
-		wantErr  bool
-	}{
-		{
-			name:    "Valid map<varchar, timestamp>",
-			dataStr: `{"key1":"2024-02-05T14:00:00Z", "key2":"2024-02-05T14:00:00Z"}`,
-			cqlType: "map<varchar, timestamp>",
-			expected: map[string]interface{}{
-				"key1": time.Date(2024, 2, 5, 14, 0, 0, 0, time.UTC),
-				"key2": time.Date(2024, 2, 5, 14, 0, 0, 0, time.UTC),
-			},
-		},
-		{
-			name:    "Valid map<varchar, timestamp> Case 2",
-			dataStr: `{"key1":"2023-01-30T09:00:00Z"}`,
-			cqlType: "map<varchar, timestamp>",
-			expected: map[string]interface{}{
-				"key1": time.Date(2023, time.January, 30, 9, 0, 0, 0, time.UTC),
-			},
-		},
-		{
-			name:    "Valid map<varchar, timestamp> time in unix seconds",
-			dataStr: `{"key1":1675075200}`,
-			cqlType: "map<varchar, timestamp>",
-			expected: map[string]interface{}{
-				"key1": time.Date(2023, time.January, 30, 10, 40, 0, 0, time.UTC),
-			},
-		},
-		{
-			name:    "Valid map<varchar, timestamp> time in unix miliseconds",
-			dataStr: `{"key1":1675075200}`,
-			cqlType: "map<varchar, timestamp>",
-			expected: map[string]interface{}{
-				"key1": time.Date(2023, time.January, 30, 10, 40, 0, 0, time.UTC),
-			},
-		},
-		{
-			name:    "Valid map<varchar, timestamp> time in unix miliseconds and equal operator",
-			dataStr: `{"key1"=1675075200}`,
-			cqlType: "map<varchar, timestamp>",
-			expected: map[string]interface{}{
-				"key1": time.Date(2023, time.January, 30, 10, 40, 0, 0, time.UTC),
-			},
-		},
-		{
-			name:    "Valid map<varchar, varchar> with equal ",
-			dataStr: `{"key1"="1675075200"}`,
-			cqlType: "map<varchar, varchar>",
-			expected: map[string]interface{}{
-				"key1": "1675075200",
-			},
-		},
-		{
-			name:    "Valid map<varchar, varchar> with colon",
-			dataStr: `{"key1":"1675075200"}`,
-			cqlType: "map<varchar, varchar>",
-			expected: map[string]interface{}{
-				"key1": "1675075200",
-			},
-		},
-		{
-			name:    "Invalid pair formate",
-			dataStr: `{"key11675075200, "sdfdgdgdf"}`,
-			cqlType: "map<varchar, varchar>",
-			wantErr: true,
-		},
-		{
-			name:    "Invalid timestamp format",
-			dataStr: `{"key1": "invalid-timestamp"}`,
-			cqlType: "map<varchar, timestamp>",
-			wantErr: true,
-		},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			got, err := convertToMap(tc.dataStr, tc.cqlType)
-			if (err != nil) != tc.wantErr {
-				t.Errorf("convertMap() error = %v, wantErr %v", err, tc.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tc.expected) && !tc.wantErr {
-				t.Errorf("convertMap() = %v, want %v", got, tc.expected)
-			}
-		})
-	}
-}
-
-func TestMapOfStringToString(t *testing.T) {
-	cases := []struct {
-		name     string
-		pairs    []string
-		expected map[string]interface{}
-		wantErr  bool
-	}{
-		{
-			name:  "Valid pairs with colon separator",
-			pairs: []string{"key1:value1", "key2:value2"},
-			expected: map[string]interface{}{
-				"key1": "value1",
-				"key2": "value2",
-			},
-			wantErr: false,
-		},
-		{
-			name:  "Valid pairs with equal separator",
-			pairs: []string{"key1=value1", "key2=value2"},
-			expected: map[string]interface{}{
-				"key1": "value1",
-				"key2": "value2",
-			},
-			wantErr: false,
-		},
-		{
-			name:    "Invalid pair format",
-			pairs:   []string{"key1-value1"},
-			wantErr: true,
-		},
-		{
-			name:  "Mixed separators",
-			pairs: []string{"key1:value1", "key2=value2"},
-			expected: map[string]interface{}{
-				"key1": "value1",
-				"key2": "value2",
-			},
-			wantErr: false,
-		},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			got, err := mapOfStringToString(tc.pairs)
-			if (err != nil) != tc.wantErr {
-				t.Errorf("mapOfStringToString() error = %v, wantErr %v", err, tc.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tc.expected) && !tc.wantErr {
-				t.Errorf("mapOfStringToString() got = %v, want %v", got, tc.expected)
-			}
-		})
-	}
-}
-
 func TestPrimitivesToString(t *testing.T) {
 	tests := []struct {
 		input    interface{}
@@ -414,7 +183,7 @@ func TestTranslator_GetAllColumns(t *testing.T) {
 			args: args{
 				tableName: "test_table",
 			},
-			want:    []string{"bigint_col", "blob_col", "bool_col", "column1", "column10", "column2", "column3", "column5", "column6", "column9", "int_col", "timestamp_col"},
+			want:    []string{"bigint_col", "blob_col", "bool_col", "column1", "column10", "column2", "column3", "column5", "column6", "column9", "double_col", "float_col", "int_col", "timestamp_col"},
 			want1:   "cf1",
 			wantErr: false,
 		},
@@ -455,698 +224,27 @@ func TestTranslator_GetAllColumns(t *testing.T) {
 	}
 }
 
-func TestExtractCFAndQualifiersforMap(t *testing.T) {
-	tests := []struct {
-		input         string
-		expectedCF    string
-		expectedQuals []string
-		expectedErr   bool
-	}{
-		{"cf-{q1,q2,q3}", "cf", []string{"q1", "q2", "q3"}, false},
-		{"cf-{q1}", "cf", []string{"q1"}, false},
-		{"cf-{}", "cf", []string{""}, false},
-		{"cf", "", nil, true},
-		{"-{}", "", nil, true},
-		{"cf-{,}", "cf", []string{"", ""}, false},
-		{"cf-{q1, q2 , q3}", "cf", []string{"q1", " q2 ", " q3"}, false},
-		{"", "", nil, true},
-	}
-
-	for _, tt := range tests {
-		cf, quals, err := ExtractCFAndQualifiersforMap(tt.input)
-		if (err != nil) != tt.expectedErr {
-			t.Errorf("ExtractCFAndQualifiersforMap(%v) error = %v, expectedErr %v", tt.input, err, tt.expectedErr)
-		}
-		if cf != tt.expectedCF {
-			t.Errorf("ExtractCFAndQualifiersforMap(%v) cf = %v, expected %v", tt.input, cf, tt.expectedCF)
-		}
-		if !reflect.DeepEqual(quals, tt.expectedQuals) {
-			t.Errorf("ExtractCFAndQualifiersforMap(%v) quals = %v, expected %v", tt.input, quals, tt.expectedQuals)
-		}
-	}
-}
-
-func Test_processCollectionColumnsForRawQueries(t *testing.T) {
-	trueVal, _ := formatValues("true", "boolean", primitive.ProtocolVersion4)
-	falseVal, _ := formatValues("false", "boolean", primitive.ProtocolVersion4)
-	textVal, _ := formatValues("test", "varchar", primitive.ProtocolVersion4)
-	textVal2, _ := formatValues("test2", "varchar", primitive.ProtocolVersion4)
-	emptyVal, _ := formatValues("", "varchar", primitive.ProtocolVersion4)
-	intVal, _ := formatValues("10", "int", primitive.ProtocolVersion4)
-	intVal2, _ := formatValues("20", "int", primitive.ProtocolVersion4)
-	floatVal, _ := formatValues("10.10", "float", primitive.ProtocolVersion4)
-	doubleVal, _ := formatValues("10.10101", "double", primitive.ProtocolVersion4)
-	timestampVal, _ := formatValues("1234567890", "timestamp", primitive.ProtocolVersion4)
-	bigintVal, _ := formatValues("1234567890", "bigint", primitive.ProtocolVersion4)
-	bigintVal2, _ := formatValues("1234567891", "bigint", primitive.ProtocolVersion4)
-	type args struct {
-		columns   []Column
-		values    []interface{}
-		tableName string
-		t         *Translator
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    []Column
-		want1   []interface{}
-		want2   []string
-		want3   []Column
-		wantErr bool
-	}{
-		{
-			name: "Valid Input For Text Boolean",
-			args: args{
-				columns:   []Column{{Name: "map_text_bool_col", ColumnFamily: "map_text_bool_col", CQLType: "map<varchar,boolean>"}}, // Updated column name
-				values:    []interface{}{"{test:true}"},
-				tableName: "test_table",
-				t: &Translator{
-					Logger:              zap.NewNop(),
-					SchemaMappingConfig: GetSchemaMappingConfig(),
-				},
-			},
-			want: []Column{
-				{Name: "test", ColumnFamily: "map_text_bool_col", CQLType: "bigint"}, // Updated column family
-			},
-			want1: []interface{}{trueVal},
-			want2: []string{
-				"map_text_bool_col", // Updated column name
-			},
-			want3:   []Column{},
-			wantErr: false,
-		},
-		{
-			name: "Valid Input For Text Text",
-			args: args{
-				columns:   []Column{{Name: "map_text_text", ColumnFamily: "map_text_text", CQLType: "map<varchar,varchar>"}},
-				values:    []interface{}{"{test:test}"},
-				tableName: "non_primitive_table",
-				t: &Translator{
-					Logger:              zap.NewNop(),
-					SchemaMappingConfig: GetSchemaMappingConfig(),
-				},
-			},
-			want: []Column{
-				{Name: "test", ColumnFamily: "map_text_text", CQLType: "varchar"},
-			},
-			want1: []interface{}{textVal},
-			want2: []string{
-				"map_text_text",
-			},
-			want3:   []Column{},
-			wantErr: false,
-		},
-		{
-			name: "Valid Input For Text Int",
-			args: args{
-				columns:   []Column{{Name: "map_text_int", ColumnFamily: "map_text_int", CQLType: "map<varchar,int>"}},
-				values:    []interface{}{"{test:10}"},
-				tableName: "non_primitive_table",
-				t: &Translator{
-					Logger:              zap.NewNop(),
-					SchemaMappingConfig: GetSchemaMappingConfig(),
-				},
-			},
-			want: []Column{
-				{Name: "test", ColumnFamily: "map_text_int", CQLType: "bigint"},
-			},
-			want1: []interface{}{intVal},
-			want2: []string{
-				"map_text_int",
-			},
-			want3:   []Column{},
-			wantErr: false,
-		},
-		{
-			name: "Valid Input For Text Float",
-			args: args{
-				columns:   []Column{{Name: "map_text_float", ColumnFamily: "map_text_float", CQLType: "map<varchar,float>"}},
-				values:    []interface{}{"{test:10.10}"},
-				tableName: "non_primitive_table",
-				t: &Translator{
-					Logger:              zap.NewNop(),
-					SchemaMappingConfig: GetSchemaMappingConfig(),
-				},
-			},
-			want: []Column{
-				{Name: "test", ColumnFamily: "map_text_float", CQLType: "float"},
-			},
-			want1: []interface{}{floatVal},
-			want2: []string{
-				"map_text_float",
-			},
-			want3:   []Column{},
-			wantErr: false,
-		},
-		{
-			name: "Valid Input For Text Double",
-			args: args{
-				columns:   []Column{{Name: "map_text_double", ColumnFamily: "map_text_double", CQLType: "map<varchar,double>"}},
-				values:    []interface{}{"{test:10.10101}"},
-				tableName: "non_primitive_table",
-				t: &Translator{
-					Logger:              zap.NewNop(),
-					SchemaMappingConfig: GetSchemaMappingConfig(),
-				},
-			},
-			want: []Column{
-				{Name: "test", ColumnFamily: "map_text_double", CQLType: "double"},
-			},
-			want1: []interface{}{doubleVal},
-			want2: []string{
-				"map_text_double",
-			},
-			want3:   []Column{},
-			wantErr: false,
-		},
-		{
-			name: "Valid Input For Text Timestamp",
-			args: args{
-				columns:   []Column{{Name: "map_text_timestamp", ColumnFamily: "map_text_timestamp", CQLType: "map<varchar,timestamp>"}},
-				values:    []interface{}{"{test:1234567890}"},
-				tableName: "non_primitive_table",
-				t: &Translator{
-					Logger:              zap.NewNop(),
-					SchemaMappingConfig: GetSchemaMappingConfig(),
-				},
-			},
-			want: []Column{
-				{Name: "test", ColumnFamily: "map_text_timestamp", CQLType: "timestamp"},
-			},
-			want1: []interface{}{timestampVal},
-			want2: []string{
-				"map_text_timestamp",
-			},
-			want3:   []Column{},
-			wantErr: false,
-		},
-		{
-			name: "Valid Input For Timestamp Text",
-			args: args{
-				columns:   []Column{{Name: "map_timestamp_text", ColumnFamily: "map_timestamp_text", CQLType: "map<timestamp,varchar>"}},
-				values:    []interface{}{"{1234567890:test}"},
-				tableName: "non_primitive_table",
-				t: &Translator{
-					Logger:              zap.NewNop(),
-					SchemaMappingConfig: GetSchemaMappingConfig(),
-				},
-			},
-			want: []Column{
-				{Name: "1234567890", ColumnFamily: "map_timestamp_text", CQLType: "varchar"},
-			},
-			want1: []interface{}{textVal},
-			want2: []string{
-				"map_timestamp_text",
-			},
-			want3:   []Column{},
-			wantErr: false,
-		},
-		{
-			name: "Valid Input For Timestamp Int",
-			args: args{
-				columns:   []Column{{Name: "map_timestamp_int", ColumnFamily: "map_timestamp_int", CQLType: "map<timestamp,int>"}},
-				values:    []interface{}{"{1234567890:10}"},
-				tableName: "non_primitive_table",
-				t: &Translator{
-					Logger:              zap.NewNop(),
-					SchemaMappingConfig: GetSchemaMappingConfig(),
-				},
-			},
-			want: []Column{
-				{Name: "1234567890", ColumnFamily: "map_timestamp_int", CQLType: "bigint"},
-			},
-			want1: []interface{}{intVal},
-			want2: []string{
-				"map_timestamp_int",
-			},
-			want3:   []Column{},
-			wantErr: false,
-		},
-		{
-			name: "Valid Input For Timestamp Boolean",
-			args: args{
-				columns:   []Column{{Name: "map_timestamp_boolean", ColumnFamily: "map_timestamp_boolean", CQLType: "map<timestamp,boolean>"}},
-				values:    []interface{}{"{1234567890:true}"},
-				tableName: "non_primitive_table",
-				t: &Translator{
-					Logger:              zap.NewNop(),
-					SchemaMappingConfig: GetSchemaMappingConfig(),
-				},
-			},
-			want: []Column{
-				{Name: "1234567890", ColumnFamily: "map_timestamp_boolean", CQLType: "bigint"},
-			},
-			want1: []interface{}{trueVal},
-			want2: []string{
-				"map_timestamp_boolean",
-			},
-			want3:   []Column{},
-			wantErr: false,
-		},
-		{
-			name: "Valid Input For Timestamp Timestamp",
-			args: args{
-				columns:   []Column{{Name: "map_timestamp_timestamp", ColumnFamily: "map_timestamp_timestamp", CQLType: "map<timestamp,timestamp>"}},
-				values:    []interface{}{"{1234567890:1234567890}"},
-				tableName: "non_primitive_table",
-				t: &Translator{
-					Logger:              zap.NewNop(),
-					SchemaMappingConfig: GetSchemaMappingConfig(),
-				},
-			},
-			want: []Column{
-				{Name: "1234567890", ColumnFamily: "map_timestamp_timestamp", CQLType: "timestamp"},
-			},
-			want1: []interface{}{timestampVal},
-			want2: []string{
-				"map_timestamp_timestamp",
-			},
-			want3:   []Column{},
-			wantErr: false,
-		},
-		{
-			name: "Valid Input For Timestamp Bigint",
-			args: args{
-				columns:   []Column{{Name: "map_timestamp_bigint", ColumnFamily: "map_timestamp_bigint", CQLType: "map<timestamp,bigint>"}},
-				values:    []interface{}{"{1234567890:1234567890}"},
-				tableName: "non_primitive_table",
-				t: &Translator{
-					Logger:              zap.NewNop(),
-					SchemaMappingConfig: GetSchemaMappingConfig(),
-				},
-			},
-			want: []Column{
-				{Name: "1234567890", ColumnFamily: "map_timestamp_bigint", CQLType: "bigint"},
-			},
-			want1: []interface{}{bigintVal},
-			want2: []string{
-				"map_timestamp_bigint",
-			},
-			want3:   []Column{},
-			wantErr: false,
-		},
-		{
-			name: "Valid Input For Timestamp Float",
-			args: args{
-				columns:   []Column{{Name: "map_timestamp_float", ColumnFamily: "map_timestamp_float", CQLType: "map<timestamp,float>"}},
-				values:    []interface{}{"{1234567890:10.10}"},
-				tableName: "non_primitive_table",
-				t: &Translator{
-					Logger:              zap.NewNop(),
-					SchemaMappingConfig: GetSchemaMappingConfig(),
-				},
-			},
-			want: []Column{
-				{Name: "1234567890", ColumnFamily: "map_timestamp_float", CQLType: "float"},
-			},
-			want1: []interface{}{floatVal},
-			want2: []string{
-				"map_timestamp_float",
-			},
-			want3:   []Column{},
-			wantErr: false,
-		},
-		{
-			name: "Valid Input For Timestamp Double",
-			args: args{
-				columns:   []Column{{Name: "map_timestamp_double", ColumnFamily: "map_timestamp_double", CQLType: "map<timestamp,double>"}},
-				values:    []interface{}{"{1234567890:10.10101}"},
-				tableName: "non_primitive_table",
-				t: &Translator{
-					Logger:              zap.NewNop(),
-					SchemaMappingConfig: GetSchemaMappingConfig(),
-				},
-			},
-			want: []Column{
-				{Name: "1234567890", ColumnFamily: "map_timestamp_double", CQLType: "double"},
-			},
-			want1: []interface{}{doubleVal},
-			want2: []string{
-				"map_timestamp_double",
-			},
-			want3:   []Column{},
-			wantErr: false,
-		},
-		{
-			name: "Valid Input For Set<Text>",
-			args: args{
-				columns:   []Column{{Name: "set_text", ColumnFamily: "set_text", CQLType: "set<varchar>"}},
-				values:    []interface{}{"{'test'}"},
-				tableName: "non_primitive_table",
-				t: &Translator{
-					Logger:              zap.NewNop(),
-					SchemaMappingConfig: GetSchemaMappingConfig(),
-				},
-			},
-			want: []Column{
-				{Name: "test", ColumnFamily: "set_text", CQLType: "varchar"},
-			},
-			want1: []interface{}{emptyVal},
-			want2: []string{
-				"set_text",
-			},
-			want3:   []Column{},
-			wantErr: false,
-		},
-		{
-			name: "Valid Input For Set<Boolean>",
-			args: args{
-				columns:   []Column{{Name: "set_boolean", ColumnFamily: "set_boolean", CQLType: "set<boolean>"}},
-				values:    []interface{}{"{'true'}"},
-				tableName: "non_primitive_table",
-				t: &Translator{
-					Logger:              zap.NewNop(),
-					SchemaMappingConfig: GetSchemaMappingConfig(),
-				},
-			},
-			want: []Column{
-				{Name: "1", ColumnFamily: "set_boolean", CQLType: "boolean"},
-			},
-			want1: []interface{}{emptyVal},
-			want2: []string{
-				"set_boolean",
-			},
-			want3:   []Column{},
-			wantErr: false,
-		},
-		{
-			name: "Valid Input For Set<Int>",
-			args: args{
-				columns:   []Column{{Name: "set_int", ColumnFamily: "set_int", CQLType: "set<int>"}},
-				values:    []interface{}{"{'10'}"},
-				tableName: "non_primitive_table",
-				t: &Translator{
-					Logger:              zap.NewNop(),
-					SchemaMappingConfig: GetSchemaMappingConfig(),
-				},
-			},
-			want: []Column{
-				{Name: "10", ColumnFamily: "set_int", CQLType: "int"},
-			},
-			want1: []interface{}{emptyVal},
-			want2: []string{
-				"set_int",
-			},
-			want3:   []Column{},
-			wantErr: false,
-		},
-		{
-			name: "Valid Input For Set<Float>",
-			args: args{
-				columns:   []Column{{Name: "set_float", ColumnFamily: "set_float", CQLType: "set<float>"}},
-				values:    []interface{}{"{10.10}"},
-				tableName: "non_primitive_table",
-				t: &Translator{
-					Logger:              zap.NewNop(),
-					SchemaMappingConfig: GetSchemaMappingConfig(),
-				},
-			},
-			want: []Column{
-				{Name: "10.10", ColumnFamily: "set_float", CQLType: "float"},
-			},
-			want1: []interface{}{emptyVal},
-			want2: []string{
-				"set_float",
-			},
-			want3:   []Column{},
-			wantErr: false,
-		},
-		{
-			name: "Valid Input For Set<Double>",
-			args: args{
-				columns:   []Column{{Name: "set_double", ColumnFamily: "set_double", CQLType: "set<double>"}},
-				values:    []interface{}{"{10.10101}"},
-				tableName: "non_primitive_table",
-				t: &Translator{
-					Logger:              zap.NewNop(),
-					SchemaMappingConfig: GetSchemaMappingConfig(),
-				},
-			},
-			want: []Column{
-				{Name: "10.10101", ColumnFamily: "set_double", CQLType: "double"},
-			},
-			want1: []interface{}{emptyVal},
-			want2: []string{
-				"set_double",
-			},
-			want3:   []Column{},
-			wantErr: false,
-		},
-		{
-			name: "Valid Input For Set<BigInt>",
-			args: args{
-				columns:   []Column{{Name: "set_bigint", ColumnFamily: "set_bigint", CQLType: "set<bigint>"}},
-				values:    []interface{}{"{1234567890123}"},
-				tableName: "non_primitive_table",
-				t: &Translator{
-					Logger:              zap.NewNop(),
-					SchemaMappingConfig: GetSchemaMappingConfig(),
-				},
-			},
-			want: []Column{
-				{Name: "1234567890123", ColumnFamily: "set_bigint", CQLType: "bigint"},
-			},
-			want1: []interface{}{emptyVal},
-			want2: []string{
-				"set_bigint",
-			},
-			want3:   []Column{},
-			wantErr: false,
-		},
-		{
-			name: "Valid Input For Set<Timestamp>",
-			args: args{
-				columns:   []Column{{Name: "set_timestamp", ColumnFamily: "set_timestamp", CQLType: "set<timestamp>"}},
-				values:    []interface{}{"{'1234567890'}"},
-				tableName: "non_primitive_table",
-				t: &Translator{
-					Logger:              zap.NewNop(),
-					SchemaMappingConfig: GetSchemaMappingConfig(),
-				},
-			},
-			want: []Column{
-				{Name: "1234567890", ColumnFamily: "set_timestamp", CQLType: "timestamp"},
-			},
-			want1: []interface{}{emptyVal},
-			want2: []string{
-				"set_timestamp",
-			},
-			want3:   []Column{},
-			wantErr: false,
-		},
-		{
-			name: "Valid Input For List<Text>",
-			args: args{
-				columns:   []Column{{Name: "list_text", ColumnFamily: "list_text", CQLType: "list<varchar>"}},
-				values:    []interface{}{"['test', 'test2']"},
-				tableName: "non_primitive_table",
-				t: &Translator{
-					Logger:              zap.NewNop(),
-					SchemaMappingConfig: GetSchemaMappingConfig(),
-				},
-			},
-			want: []Column{
-				{Name: fmt.Sprintf("%x", getEncodedTimestamp(0, 2, false)), ColumnFamily: "list_text", CQLType: "varchar"},
-				{Name: fmt.Sprintf("%x", getEncodedTimestamp(1, 2, false)), ColumnFamily: "list_text", CQLType: "varchar"},
-			},
-			want1: []interface{}{textVal, textVal2},
-			want2: []string{
-				"list_text",
-			},
-			want3:   []Column{},
-			wantErr: false,
-		},
-		{
-			name: "Valid Input For List<Int>",
-			args: args{
-				columns:   []Column{{Name: "list_int", ColumnFamily: "list_int", CQLType: "list<int>"}},
-				values:    []interface{}{"[10, 20]"},
-				tableName: "non_primitive_table",
-				t: &Translator{
-					Logger:              zap.NewNop(),
-					SchemaMappingConfig: GetSchemaMappingConfig(),
-				},
-			},
-			want: []Column{
-				{Name: fmt.Sprintf("%x", getEncodedTimestamp(0, 2, false)), ColumnFamily: "list_int", CQLType: "int"},
-				{Name: fmt.Sprintf("%x", getEncodedTimestamp(1, 2, false)), ColumnFamily: "list_int", CQLType: "int"},
-			},
-			want1: []interface{}{intVal, intVal2},
-			want2: []string{
-				"list_int",
-			},
-			want3:   []Column{},
-			wantErr: false,
-		},
-		{
-			name: "Valid Input For List<BigInt>",
-			args: args{
-				columns:   []Column{{Name: "list_bigint", ColumnFamily: "list_bigint", CQLType: "list<bigint>"}},
-				values:    []interface{}{"[1234567890, 1234567891]"},
-				tableName: "non_primitive_table",
-				t: &Translator{
-					Logger:              zap.NewNop(),
-					SchemaMappingConfig: GetSchemaMappingConfig(),
-				},
-			},
-			want: []Column{
-				{Name: fmt.Sprintf("%x", getEncodedTimestamp(0, 2, false)), ColumnFamily: "list_bigint", CQLType: "bigint"},
-				{Name: fmt.Sprintf("%x", getEncodedTimestamp(1, 2, false)), ColumnFamily: "list_bigint", CQLType: "bigint"},
-			},
-			want1: []interface{}{bigintVal, bigintVal2},
-			want2: []string{
-				"list_bigint",
-			},
-			want3:   []Column{},
-			wantErr: false,
-		},
-		{
-			name: "Valid Input For List<Boolean>",
-			args: args{
-				columns:   []Column{{Name: "list_boolean", ColumnFamily: "list_boolean", CQLType: "list<boolean>"}},
-				values:    []interface{}{"[true, false]"},
-				tableName: "non_primitive_table",
-				t: &Translator{
-					Logger:              zap.NewNop(),
-					SchemaMappingConfig: GetSchemaMappingConfig(),
-				},
-			},
-			want: []Column{
-				{Name: fmt.Sprintf("%x", getEncodedTimestamp(0, 2, false)), ColumnFamily: "list_boolean", CQLType: "boolean"},
-				{Name: fmt.Sprintf("%x", getEncodedTimestamp(1, 2, false)), ColumnFamily: "list_boolean", CQLType: "boolean"},
-			},
-			want1: []interface{}{trueVal, falseVal},
-			want2: []string{
-				"list_boolean",
-			},
-			want3:   []Column{},
-			wantErr: false,
-		},
-		{
-			name: "Valid Input For List<Float>",
-			args: args{
-				columns:   []Column{{Name: "list_float", ColumnFamily: "list_float", CQLType: "list<float>"}},
-				values:    []interface{}{"[10.10, 10.10]"},
-				tableName: "non_primitive_table",
-				t: &Translator{
-					Logger:              zap.NewNop(),
-					SchemaMappingConfig: GetSchemaMappingConfig(),
-				},
-			},
-			want: []Column{
-				{Name: fmt.Sprintf("%x", getEncodedTimestamp(0, 2, false)), ColumnFamily: "list_float", CQLType: "float"},
-				{Name: fmt.Sprintf("%x", getEncodedTimestamp(1, 2, false)), ColumnFamily: "list_float", CQLType: "float"},
-			},
-			want1: []interface{}{floatVal, floatVal},
-			want2: []string{
-				"list_float",
-			},
-			want3:   []Column{},
-			wantErr: false,
-		},
-		{
-			name: "Valid Input For List<Double>",
-			args: args{
-				columns:   []Column{{Name: "list_double", ColumnFamily: "list_double", CQLType: "list<double>"}},
-				values:    []interface{}{"[10.10101, 10.10101]"},
-				tableName: "non_primitive_table",
-				t: &Translator{
-					Logger:              zap.NewNop(),
-					SchemaMappingConfig: GetSchemaMappingConfig(),
-				},
-			},
-			want: []Column{
-				{Name: fmt.Sprintf("%x", getEncodedTimestamp(0, 2, false)), ColumnFamily: "list_double", CQLType: "double"},
-				{Name: fmt.Sprintf("%x", getEncodedTimestamp(1, 2, false)), ColumnFamily: "list_double", CQLType: "double"},
-			},
-			want1: []interface{}{doubleVal, doubleVal},
-			want2: []string{
-				"list_double",
-			},
-			want3:   []Column{},
-			wantErr: false,
-		},
-		{
-			name: "Valid Input For List<Timestamp>",
-			args: args{
-				columns:   []Column{{Name: "list_timestamp", ColumnFamily: "list_timestamp", CQLType: "list<timestamp>"}},
-				values:    []interface{}{"[1234567890, 1234567890]"},
-				tableName: "non_primitive_table",
-				t: &Translator{
-					Logger:              zap.NewNop(),
-					SchemaMappingConfig: GetSchemaMappingConfig(),
-				},
-			},
-			want: []Column{
-				{Name: fmt.Sprintf("%x", getEncodedTimestamp(0, 2, false)), ColumnFamily: "list_timestamp", CQLType: "timestamp"},
-				{Name: fmt.Sprintf("%x", getEncodedTimestamp(1, 2, false)), ColumnFamily: "list_timestamp", CQLType: "timestamp"},
-			},
-			want1: []interface{}{timestampVal, timestampVal},
-			want2: []string{
-				"list_timestamp",
-			},
-			want3:   []Column{},
-			wantErr: false,
-		},
-	} // Correctly close the tests slice definition here
-
-	for _, tt := range tests { // Start the loop after the slice definition
-		t.Run(tt.name, func(t *testing.T) {
-			// Call the function being tested
-			input := ProcessRawCollectionsInput{
-				Columns:        tt.args.columns,
-				Values:         tt.args.values,
-				TableName:      tt.args.tableName,
-				Translator:     tt.args.t,
-				KeySpace:       "test_keyspace",
-				PrependColumns: nil, // Assuming nil for these tests, adjust if needed
-			}
-			output, err := processCollectionColumnsForRawQueries(input)
-
-			if (err != nil) != tt.wantErr {
-				t.Errorf("processCollectionColumnsForRawQueries() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if err == nil { // Only check output if no error was expected/occurred
-				if !strings.Contains(tt.name, "List") && !reflect.DeepEqual(output.NewColumns, tt.want) {
-					t.Errorf("processCollectionColumnsForRawQueries() output.NewColumns = %v, want %v", output.NewColumns, tt.want)
-				}
-				if !reflect.DeepEqual(output.NewValues, tt.want1) {
-					t.Errorf("processCollectionColumnsForRawQueries() output.NewValues = %v, want %v", output.NewValues, tt.want1)
-				}
-				if !reflect.DeepEqual(output.DelColumnFamily, tt.want2) {
-					t.Errorf("processCollectionColumnsForRawQueries() output.DelColumnFamily = %v, want %v", output.DelColumnFamily, tt.want2)
-				}
-				// Note: tt.want3 (DelColumns) comparison is missing in the original test, adding it might be good practice
-				// if !reflect.DeepEqual(output.DelColumns, tt.want3) {
-				// 	t.Errorf("processCollectionColumnsForRawQueries() output.DelColumns = %v, want %v", output.DelColumns, tt.want3)
-				// }
-			}
-		})
-	}
-}
-
 func TestStringToPrimitives(t *testing.T) {
 	tests := []struct {
 		value    string
-		cqlType  string
+		cqlType  datatype.DataType
 		expected interface{}
 		hasError bool
 	}{
-		{"123", "int", int32(123), false},
-		{"not_an_int", "int", nil, true},
-		{"123456789", "bigint", int64(123456789), false},
-		{"not_a_bigint", "bigint", nil, true},
-		{"3.14", "float", float32(3.14), false},
-		{"not_a_float", "float", nil, true},
-		{"3.1415926535", "double", float64(3.1415926535), false},
-		{"not_a_double", "double", nil, true},
-		{"true", "boolean", true, false},
-		{"false", "boolean", false, false},
-		{"not_a_boolean", "boolean", nil, true},
-		{"blob_data", "blob", "blob_data", false},
-		{"hello", "text", "hello", false},
-		{"123", "unsupported_type", nil, true},
+		{"123", datatype.Int, int32(123), false},
+		{"not_an_int", datatype.Int, nil, true},
+		{"123456789", datatype.Bigint, int64(123456789), false},
+		{"not_a_bigint", datatype.Bigint, nil, true},
+		{"3.14", datatype.Float, float32(3.14), false},
+		{"not_a_float", datatype.Float, nil, true},
+		{"3.1415926535", datatype.Double, float64(3.1415926535), false},
+		{"not_a_double", datatype.Double, nil, true},
+		{"true", datatype.Boolean, int64(1), false},
+		{"false", datatype.Boolean, int64(0), false},
+		{"not_a_boolean", datatype.Boolean, nil, true},
+		{"blob_data", datatype.Blob, "blob_data", false},
+		{"hello", datatype.Varchar, "hello", false},
+		{"123", nil, nil, true},
 	}
 
 	for _, tt := range tests {
@@ -1165,7 +263,7 @@ func TestStringToPrimitives(t *testing.T) {
 func Test_formatValues(t *testing.T) {
 	type args struct {
 		value     string
-		cqlType   string
+		cqlType   datatype.DataType
 		protocolV primitive.ProtocolVersion
 	}
 	tests := []struct {
@@ -1176,43 +274,43 @@ func Test_formatValues(t *testing.T) {
 	}{
 		{
 			name:    "Invalid int",
-			args:    args{"abc", "int", primitive.ProtocolVersion4},
+			args:    args{"abc", datatype.Int, primitive.ProtocolVersion4},
 			want:    nil,
 			wantErr: true,
 		},
 		{
 			name:    "Invalid bigint",
-			args:    args{"abc", "bigint", primitive.ProtocolVersion4},
+			args:    args{"abc", datatype.Bigint, primitive.ProtocolVersion4},
 			want:    nil,
 			wantErr: true,
 		},
 		{
 			name:    "Invalid float",
-			args:    args{"abc", "float", primitive.ProtocolVersion4},
+			args:    args{"abc", datatype.Float, primitive.ProtocolVersion4},
 			want:    nil,
 			wantErr: true,
 		},
 		{
 			name:    "Invalid double",
-			args:    args{"abc", "double", primitive.ProtocolVersion4},
+			args:    args{"abc", datatype.Double, primitive.ProtocolVersion4},
 			want:    nil,
 			wantErr: true,
 		},
 		{
 			name:    "Invalid boolean",
-			args:    args{"abc", "boolean", primitive.ProtocolVersion4},
+			args:    args{"abc", datatype.Boolean, primitive.ProtocolVersion4},
 			want:    nil,
 			wantErr: true,
 		},
 		{
 			name:    "Invalid timestamp",
-			args:    args{"abc", "timestamp", primitive.ProtocolVersion4},
+			args:    args{"abc", datatype.Timestamp, primitive.ProtocolVersion4},
 			want:    nil,
 			wantErr: true,
 		},
 		{
 			name:    "Unsupported type",
-			args:    args{"123", "unsupported", primitive.ProtocolVersion4},
+			args:    args{"123", nil, primitive.ProtocolVersion4},
 			want:    nil,
 			wantErr: true,
 		},
@@ -1257,73 +355,73 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 
 	valuesTextText := map[string]string{"test": "test"}
 	textBytesTextText, _ := proxycore.EncodeType(mapTypeTextText, primitive.ProtocolVersion4, valuesTextText)
-	textValue, _ := formatValues("test", "varchar", primitive.ProtocolVersion4)
-	trueVal, _ := formatValues("true", "boolean", primitive.ProtocolVersion4)
+	textValue, _ := formatValues("test", datatype.Varchar, primitive.ProtocolVersion4)
+	trueVal, _ := formatValues("true", datatype.Boolean, primitive.ProtocolVersion4)
 
 	valuesTextBool := map[string]bool{"test": true}
 	textBytesTextBool, _ := proxycore.EncodeType(mapTypeTextBool, primitive.ProtocolVersion4, valuesTextBool)
 
 	valuesTextInt := map[string]int{"test": 42}
 	textBytesTextInt, _ := proxycore.EncodeType(mapTypeTextInt, primitive.ProtocolVersion4, valuesTextInt)
-	intValue, _ := formatValues("42", "int", primitive.ProtocolVersion4)
+	intValue, _ := formatValues("42", datatype.Int, primitive.ProtocolVersion4)
 
 	valuesTextFloat := map[string]float32{"test": 3.14}
 	textBytesTextFloat, _ := proxycore.EncodeType(mapTypeTextFloat, primitive.ProtocolVersion4, valuesTextFloat)
-	floatValue, _ := formatValues("3.14", "float", primitive.ProtocolVersion4)
+	floatValue, _ := formatValues("3.14", datatype.Float, primitive.ProtocolVersion4)
 
 	valuesTextDouble := map[string]float64{"test": 6.283}
 	textBytesTextDouble, _ := proxycore.EncodeType(mapTypeTextDouble, primitive.ProtocolVersion4, valuesTextDouble)
-	doubleValue, _ := formatValues("6.283", "double", primitive.ProtocolVersion4)
+	doubleValue, _ := formatValues("6.283", datatype.Double, primitive.ProtocolVersion4)
 
 	valuesTextTimestamp := map[string]time.Time{"test": time.Unix(1633046400, 0)} // Example timestamp
 	textBytesTextTimestamp, _ := proxycore.EncodeType(mapTypeTextTimestamp, primitive.ProtocolVersion4, valuesTextTimestamp)
-	timestampValue, _ := formatValues("1633046400000", "timestamp", primitive.ProtocolVersion4) // Example in milliseconds
+	timestampValue, _ := formatValues("1633046400000", datatype.Timestamp, primitive.ProtocolVersion4) // Example in milliseconds
 
 	valuesTimestampBoolean := map[time.Time]bool{
 		time.Unix(1633046400, 0): true,
 	}
 	textBytesTimestampBoolean, _ := proxycore.EncodeType(mapTypeTimestampBoolean, primitive.ProtocolVersion4, valuesTimestampBoolean)
-	timestampBooleanValue, _ := formatValues("true", "boolean", primitive.ProtocolVersion4)
+	timestampBooleanValue, _ := formatValues("true", datatype.Boolean, primitive.ProtocolVersion4)
 
 	valuesTimestampText := map[time.Time]string{
 		time.Unix(1633046400, 0): "example_text", // Example timestamp as key with text value
 	}
 	textBytesTimestampText, _ := proxycore.EncodeType(mapTypeTimestampText, primitive.ProtocolVersion4, valuesTimestampText)
-	timestampTextValue, _ := formatValues("example_text", "varchar", primitive.ProtocolVersion4)
+	timestampTextValue, _ := formatValues("example_text", datatype.Varchar, primitive.ProtocolVersion4)
 
 	valuesTimestampInt := map[time.Time]int{
 		time.Unix(1633046400, 0): 42, // Example timestamp as key with int value
 	}
 	textBytesTimestampInt, _ := proxycore.EncodeType(mapTypeTimestampInt, primitive.ProtocolVersion4, valuesTimestampInt)
-	timestampIntValue, _ := formatValues("42", "int", primitive.ProtocolVersion4)
+	timestampIntValue, _ := formatValues("42", datatype.Int, primitive.ProtocolVersion4)
 
 	valuesTimestampFloat := map[time.Time]float32{
 		time.Unix(1633046400, 0): 3.14, // Example timestamp as key with float value
 	}
 	textBytesTimestampFloat, _ := proxycore.EncodeType(mapTypeTimestampFloat, primitive.ProtocolVersion4, valuesTimestampFloat)
-	timestampFloatValue, _ := formatValues("3.14", "float", primitive.ProtocolVersion4)
+	timestampFloatValue, _ := formatValues("3.14", datatype.Float, primitive.ProtocolVersion4)
 
 	valuesTimestampBigint := map[time.Time]int64{
 		time.Unix(1633046400, 0): 1234567890123, // Example timestamp as key with bigint value
 	}
 	textBytesTimestampBigint, _ := proxycore.EncodeType(mapTypeTimestampBigint, primitive.ProtocolVersion4, valuesTimestampBigint)
-	timestampBigintValue, _ := formatValues("1234567890123", "bigint", primitive.ProtocolVersion4)
+	timestampBigintValue, _ := formatValues("1234567890123", datatype.Bigint, primitive.ProtocolVersion4)
 
 	valuesTimestampDouble := map[time.Time]float64{
 		time.Unix(1633046400, 0): 6.283, // Example timestamp as key with double value
 	}
 	textBytesTimestampDouble, _ := proxycore.EncodeType(mapTypeTimestampDouble, primitive.ProtocolVersion4, valuesTimestampDouble)
-	timestampDoubleValue, _ := formatValues("6.283", "double", primitive.ProtocolVersion4)
+	timestampDoubleValue, _ := formatValues("6.283", datatype.Double, primitive.ProtocolVersion4)
 
 	valuesTimestampTimestamp := map[time.Time]time.Time{
 		time.Unix(1633046400, 0): time.Unix(1633126400, 0), // Example timestamp as key with timestamp value
 	}
 	textBytesTimestampTimestamp, _ := proxycore.EncodeType(mapTypeTimestampTimestamp, primitive.ProtocolVersion4, valuesTimestampTimestamp)
-	timestampTimestampValue, _ := formatValues("1633126400000", "timestamp", primitive.ProtocolVersion4) // Example in milliseconds
+	timestampTimestampValue, _ := formatValues("1633126400000", datatype.Timestamp, primitive.ProtocolVersion4) // Example in milliseconds
 
 	valuesTextBigint := map[string]int64{"test": 1234567890123}
 	textBytesTextBigint, _ := proxycore.EncodeType(mapTypeTextBigint, primitive.ProtocolVersion4, valuesTextBigint)
-	bigintValue, _ := formatValues("1234567890123", "bigint", primitive.ProtocolVersion4)
+	bigintValue, _ := formatValues("1234567890123", datatype.Bigint, primitive.ProtocolVersion4)
 
 	valuesSetBoolean := []bool{true}
 	valuesSetInt := []int32{12}
@@ -1341,7 +439,7 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 	setBytesDouble, _ := proxycore.EncodeType(setTypeDouble, primitive.ProtocolVersion4, valuesSetDouble)
 	setBytesTimestamp, _ := proxycore.EncodeType(setTypeTimestamp, primitive.ProtocolVersion4, valuesSetTimestamp)
 
-	emptyVal, _ := formatValues("", "varchar", primitive.ProtocolVersion4)
+	emptyVal, _ := formatValues("", datatype.Varchar, primitive.ProtocolVersion4)
 	listTextType := datatype.NewListType(datatype.Varchar)
 	valuesListText := []string{"test"}
 	listBytesText, _ := proxycore.EncodeType(listTextType, primitive.ProtocolVersion4, valuesListText)
@@ -1370,20 +468,20 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 	valuesListTimestamp := []int64{1633046400000}
 	listBytesTimestamp, _ := proxycore.EncodeType(listTimestampType, primitive.ProtocolVersion4, valuesListTimestamp)
 
-	floatVal, _ := formatValues("3.14", "float", primitive.ProtocolVersion4)
-	doubleVal, _ := formatValues("6.283", "double", primitive.ProtocolVersion4)
-	timestampVal, _ := formatValues("1633046400000", "timestamp", primitive.ProtocolVersion4)
+	floatVal, _ := formatValues("3.14", datatype.Float, primitive.ProtocolVersion4)
+	doubleVal, _ := formatValues("6.283", datatype.Double, primitive.ProtocolVersion4)
+	timestampVal, _ := formatValues("1633046400000", datatype.Timestamp, primitive.ProtocolVersion4)
 
 	tests := []struct {
 		name             string
-		columns          []Column
+		columns          []types.Column
 		variableMetadata []*message.ColumnMetadata
 		values           []*primitive.Value
 		tableName        string
 		protocolV        primitive.ProtocolVersion
 		primaryKeys      []string
 		translator       *Translator
-		want             []Column
+		want             []types.Column
 		want1            []interface{}
 		want2            map[string]interface{}
 		want3            int
@@ -1392,8 +490,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 	}{
 		{
 			name: "Valid Input For Timestamp Float",
-			columns: []Column{
-				{Name: "map_timestamp_float", ColumnFamily: "map_timestamp_float", CQLType: "map<timestamp,float>"},
+			columns: []types.Column{
+				{Name: "map_timestamp_float", ColumnFamily: "map_timestamp_float", CQLType: datatype.NewMapType(datatype.Timestamp, datatype.Float)},
 			},
 			variableMetadata: []*message.ColumnMetadata{},
 			values: []*primitive.Value{
@@ -1407,8 +505,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 				Logger:              zap.NewNop(),
 				SchemaMappingConfig: GetSchemaMappingConfig(),
 			},
-			want: []Column{
-				{Name: "1633046400000", ColumnFamily: "map_timestamp_float", CQLType: "float"},
+			want: []types.Column{
+				{Name: "1633046400000", ColumnFamily: "map_timestamp_float", CQLType: datatype.Float},
 			},
 			want1:   []interface{}{timestampFloatValue},
 			want2:   map[string]interface{}{},
@@ -1418,8 +516,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 		},
 		{
 			name: "Valid Input For Text Timestamp",
-			columns: []Column{
-				{Name: "map_text_timestamp", ColumnFamily: "map_text_timestamp", CQLType: "map<varchar,timestamp>"},
+			columns: []types.Column{
+				{Name: "map_text_timestamp", ColumnFamily: "map_text_timestamp", CQLType: datatype.NewMapType(datatype.Varchar, datatype.Timestamp)},
 			},
 			variableMetadata: []*message.ColumnMetadata{},
 			values: []*primitive.Value{
@@ -1432,8 +530,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 				Logger:              zap.NewNop(),
 				SchemaMappingConfig: GetSchemaMappingConfig(),
 			},
-			want: []Column{
-				{Name: "test", ColumnFamily: "map_text_timestamp", CQLType: "bigint"},
+			want: []types.Column{
+				{Name: "test", ColumnFamily: "map_text_timestamp", CQLType: datatype.Timestamp},
 			},
 			want1:   []interface{}{timestampValue},
 			want2:   map[string]interface{}{},
@@ -1443,8 +541,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 		},
 		{
 			name: "Valid Input For Timestamp Text",
-			columns: []Column{
-				{Name: "map_timestamp_text", ColumnFamily: "map_timestamp_text", CQLType: "map<timestamp,varchar>"},
+			columns: []types.Column{
+				{Name: "map_timestamp_text", ColumnFamily: "map_timestamp_text", CQLType: datatype.NewMapType(datatype.Timestamp, datatype.Varchar)},
 			},
 			variableMetadata: []*message.ColumnMetadata{},
 			values: []*primitive.Value{
@@ -1457,8 +555,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 				Logger:              zap.NewNop(),
 				SchemaMappingConfig: GetSchemaMappingConfig(),
 			},
-			want: []Column{
-				{Name: "1633046400000", ColumnFamily: "map_timestamp_text", CQLType: "varchar"},
+			want: []types.Column{
+				{Name: "1633046400000", ColumnFamily: "map_timestamp_text", CQLType: datatype.Varchar},
 			},
 			want1:   []interface{}{timestampTextValue},
 			want2:   map[string]interface{}{},
@@ -1468,8 +566,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 		},
 		{
 			name: "Valid Input For Set Timestamp",
-			columns: []Column{
-				{Name: "set_timestamp", ColumnFamily: "set_timestamp", CQLType: "set<timestamp>"},
+			columns: []types.Column{
+				{Name: "set_timestamp", ColumnFamily: "set_timestamp", CQLType: datatype.NewSetType(datatype.Timestamp)},
 			},
 			variableMetadata: []*message.ColumnMetadata{},
 			values: []*primitive.Value{
@@ -1482,8 +580,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 				Logger:              zap.NewNop(),
 				SchemaMappingConfig: GetSchemaMappingConfig(),
 			},
-			want: []Column{
-				{Name: "1633046400", ColumnFamily: "set_timestamp", CQLType: "bigint"},
+			want: []types.Column{
+				{Name: "1633046400", ColumnFamily: "set_timestamp", CQLType: datatype.Bigint},
 			},
 			want1:   []interface{}{emptyVal},
 			want2:   map[string]interface{}{},
@@ -1493,8 +591,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 		},
 		{
 			name: "Valid Input For Set Double",
-			columns: []Column{
-				{Name: "set_double", ColumnFamily: "set_double", CQLType: "set<double>"},
+			columns: []types.Column{
+				{Name: "set_double", ColumnFamily: "set_double", CQLType: datatype.NewSetType(datatype.Double)},
 			},
 			variableMetadata: []*message.ColumnMetadata{},
 			values: []*primitive.Value{
@@ -1507,8 +605,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 				Logger:              zap.NewNop(),
 				SchemaMappingConfig: GetSchemaMappingConfig(),
 			},
-			want: []Column{
-				{Name: "6.283", ColumnFamily: "set_double", CQLType: "double"},
+			want: []types.Column{
+				{Name: "6.283", ColumnFamily: "set_double", CQLType: datatype.Double},
 			},
 			want1:   []interface{}{emptyVal},
 			want2:   map[string]interface{}{},
@@ -1518,8 +616,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 		},
 		{
 			name: "Valid Input For Set Float",
-			columns: []Column{
-				{Name: "set_float", ColumnFamily: "set_float", CQLType: "set<float>"},
+			columns: []types.Column{
+				{Name: "set_float", ColumnFamily: "set_float", CQLType: datatype.NewSetType(datatype.Float)},
 			},
 			variableMetadata: []*message.ColumnMetadata{},
 			values: []*primitive.Value{
@@ -1532,8 +630,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 				Logger:              zap.NewNop(),
 				SchemaMappingConfig: GetSchemaMappingConfig(),
 			},
-			want: []Column{
-				{Name: "6.283", ColumnFamily: "set_float", CQLType: "float"},
+			want: []types.Column{
+				{Name: "6.283", ColumnFamily: "set_float", CQLType: datatype.Float},
 			},
 			want1:   []interface{}{emptyVal},
 			want2:   map[string]interface{}{},
@@ -1543,8 +641,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 		},
 		{
 			name: "Valid Input For Set Text",
-			columns: []Column{
-				{Name: "set_text", ColumnFamily: "set_text", CQLType: "set<varchar>"},
+			columns: []types.Column{
+				{Name: "set_text", ColumnFamily: "set_text", CQLType: datatype.NewSetType(datatype.Varchar)},
 			},
 			variableMetadata: []*message.ColumnMetadata{},
 			values: []*primitive.Value{
@@ -1557,8 +655,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 				Logger:              zap.NewNop(),
 				SchemaMappingConfig: GetSchemaMappingConfig(),
 			},
-			want: []Column{
-				{Name: "test", ColumnFamily: "set_text", CQLType: "varchar"},
+			want: []types.Column{
+				{Name: "test", ColumnFamily: "set_text", CQLType: datatype.Varchar},
 			},
 			want1:   []interface{}{emptyVal},
 			want2:   map[string]interface{}{},
@@ -1568,8 +666,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 		},
 		{
 			name: "Valid Input For Set BigInt",
-			columns: []Column{
-				{Name: "set_bigint", ColumnFamily: "set_bigint", CQLType: "set<bigint>"},
+			columns: []types.Column{
+				{Name: "set_bigint", ColumnFamily: "set_bigint", CQLType: datatype.NewSetType(datatype.Bigint)},
 			},
 			variableMetadata: []*message.ColumnMetadata{},
 			values: []*primitive.Value{
@@ -1582,8 +680,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 				Logger:              zap.NewNop(),
 				SchemaMappingConfig: GetSchemaMappingConfig(),
 			},
-			want: []Column{
-				{Name: "12372432764", ColumnFamily: "set_bigint", CQLType: "bigint"},
+			want: []types.Column{
+				{Name: "12372432764", ColumnFamily: "set_bigint", CQLType: datatype.Bigint},
 			},
 			want1:   []interface{}{emptyVal},
 			want2:   map[string]interface{}{},
@@ -1593,8 +691,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 		},
 		{
 			name: "Valid Input For Set Int",
-			columns: []Column{
-				{Name: "set_int", ColumnFamily: "set_int", CQLType: "set<int>"},
+			columns: []types.Column{
+				{Name: "set_int", ColumnFamily: "set_int", CQLType: datatype.NewSetType(datatype.Int)},
 			},
 			variableMetadata: []*message.ColumnMetadata{},
 			values: []*primitive.Value{
@@ -1607,8 +705,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 				Logger:              zap.NewNop(),
 				SchemaMappingConfig: GetSchemaMappingConfig(),
 			},
-			want: []Column{
-				{Name: "12", ColumnFamily: "set_int", CQLType: "int"},
+			want: []types.Column{
+				{Name: "12", ColumnFamily: "set_int", CQLType: datatype.Int},
 			},
 			want1:   []interface{}{emptyVal},
 			want2:   map[string]interface{}{},
@@ -1618,8 +716,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 		},
 		{
 			name: "Valid Input For Timestamp Timestamp",
-			columns: []Column{
-				{Name: "map_timestamp_timestamp", ColumnFamily: "map_timestamp_timestamp", CQLType: "map<timestamp,timestamp>"},
+			columns: []types.Column{
+				{Name: "map_timestamp_timestamp", ColumnFamily: "map_timestamp_timestamp", CQLType: datatype.NewMapType(datatype.Timestamp, datatype.Timestamp)},
 			},
 			variableMetadata: []*message.ColumnMetadata{},
 			values: []*primitive.Value{
@@ -1632,8 +730,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 				Logger:              zap.NewNop(),
 				SchemaMappingConfig: GetSchemaMappingConfig(),
 			},
-			want: []Column{
-				{Name: "1633046400000", ColumnFamily: "map_timestamp_timestamp", CQLType: "bigint"},
+			want: []types.Column{
+				{Name: "1633046400000", ColumnFamily: "map_timestamp_timestamp", CQLType: datatype.Timestamp},
 			},
 			want1:   []interface{}{timestampTimestampValue},
 			want2:   map[string]interface{}{},
@@ -1643,8 +741,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 		},
 		{
 			name: "Valid Input For Text Bigint",
-			columns: []Column{
-				{Name: "map_text_bigint", ColumnFamily: "map_text_bigint", CQLType: "map<varchar,bigint>"},
+			columns: []types.Column{
+				{Name: "map_text_bigint", ColumnFamily: "map_text_bigint", CQLType: datatype.NewMapType(datatype.Varchar, datatype.Bigint)},
 			},
 			variableMetadata: []*message.ColumnMetadata{},
 			values: []*primitive.Value{
@@ -1657,8 +755,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 				Logger:              zap.NewNop(),
 				SchemaMappingConfig: GetSchemaMappingConfig(),
 			},
-			want: []Column{
-				{Name: "test", ColumnFamily: "map_text_bigint", CQLType: "bigint"},
+			want: []types.Column{
+				{Name: "test", ColumnFamily: "map_text_bigint", CQLType: datatype.Bigint},
 			},
 			want1:   []interface{}{bigintValue},
 			want2:   map[string]interface{}{},
@@ -1668,8 +766,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 		},
 		{
 			name: "Valid Input For Timestamp Int",
-			columns: []Column{
-				{Name: "map_timestamp_int", ColumnFamily: "map_timestamp_int", CQLType: "map<timestamp,int>"},
+			columns: []types.Column{
+				{Name: "map_timestamp_int", ColumnFamily: "map_timestamp_int", CQLType: datatype.NewMapType(datatype.Timestamp, datatype.Int)},
 			},
 			variableMetadata: []*message.ColumnMetadata{},
 			values: []*primitive.Value{
@@ -1682,8 +780,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 				Logger:              zap.NewNop(),
 				SchemaMappingConfig: GetSchemaMappingConfig(),
 			},
-			want: []Column{
-				{Name: "1633046400000", ColumnFamily: "map_timestamp_int", CQLType: "int"},
+			want: []types.Column{
+				{Name: "1633046400000", ColumnFamily: "map_timestamp_int", CQLType: datatype.Int},
 			},
 			want1:   []interface{}{timestampIntValue},
 			want2:   map[string]interface{}{},
@@ -1693,8 +791,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 		},
 		{
 			name: "Valid Input For Set Boolean",
-			columns: []Column{
-				{Name: "set_boolean", ColumnFamily: "set_boolean", CQLType: "set<boolean>"},
+			columns: []types.Column{
+				{Name: "set_boolean", ColumnFamily: "set_boolean", CQLType: datatype.NewSetType(datatype.Boolean)},
 			},
 			variableMetadata: []*message.ColumnMetadata{},
 			values: []*primitive.Value{
@@ -1707,8 +805,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 				Logger:              zap.NewNop(),
 				SchemaMappingConfig: GetSchemaMappingConfig(),
 			},
-			want: []Column{
-				{Name: "1", ColumnFamily: "set_boolean", CQLType: "boolean"},
+			want: []types.Column{
+				{Name: "1", ColumnFamily: "set_boolean", CQLType: datatype.Boolean},
 			},
 			want1:   []interface{}{emptyVal},
 			want2:   map[string]interface{}{},
@@ -1718,8 +816,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 		},
 		{
 			name: "Valid Input For Text Boolean",
-			columns: []Column{
-				{Name: "map_text_boolean", ColumnFamily: "map_text_boolean", CQLType: "map<varchar,boolean>"},
+			columns: []types.Column{
+				{Name: "map_text_boolean", ColumnFamily: "map_text_boolean", CQLType: datatype.NewMapType(datatype.Varchar, datatype.Boolean)},
 			},
 			variableMetadata: []*message.ColumnMetadata{},
 			values: []*primitive.Value{
@@ -1732,8 +830,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 				Logger:              zap.NewNop(),
 				SchemaMappingConfig: GetSchemaMappingConfig(),
 			},
-			want: []Column{
-				{Name: "test", ColumnFamily: "map_text_boolean", CQLType: "boolean"},
+			want: []types.Column{
+				{Name: "test", ColumnFamily: "map_text_boolean", CQLType: datatype.Boolean},
 			},
 			want1:   []interface{}{trueVal},
 			want2:   map[string]interface{}{},
@@ -1743,8 +841,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 		},
 		{
 			name: "Valid Input For Text Text",
-			columns: []Column{
-				{Name: "map_text_text", ColumnFamily: "map_text_text", CQLType: "map<varchar,varchar>"},
+			columns: []types.Column{
+				{Name: "map_text_text", ColumnFamily: "map_text_text", CQLType: datatype.NewMapType(datatype.Varchar, datatype.Varchar)},
 			},
 			variableMetadata: []*message.ColumnMetadata{},
 			values: []*primitive.Value{
@@ -1757,8 +855,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 				Logger:              zap.NewNop(),
 				SchemaMappingConfig: GetSchemaMappingConfig(),
 			},
-			want: []Column{
-				{Name: "test", ColumnFamily: "map_text_text", CQLType: "varchar"},
+			want: []types.Column{
+				{Name: "test", ColumnFamily: "map_text_text", CQLType: datatype.Varchar},
 			},
 			want1:   []interface{}{textValue},
 			want2:   map[string]interface{}{},
@@ -1768,8 +866,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 		},
 		{
 			name: "Valid Input For Text Int",
-			columns: []Column{
-				{Name: "map_text_int", ColumnFamily: "map_text_int", CQLType: "map<varchar,int>"},
+			columns: []types.Column{
+				{Name: "map_text_int", ColumnFamily: "map_text_int", CQLType: datatype.NewMapType(datatype.Varchar, datatype.Int)},
 			},
 			variableMetadata: []*message.ColumnMetadata{},
 			values: []*primitive.Value{
@@ -1782,8 +880,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 				Logger:              zap.NewNop(),
 				SchemaMappingConfig: GetSchemaMappingConfig(),
 			},
-			want: []Column{
-				{Name: "test", ColumnFamily: "map_text_int", CQLType: "int"},
+			want: []types.Column{
+				{Name: "test", ColumnFamily: "map_text_int", CQLType: datatype.Int},
 			},
 			want1:   []interface{}{intValue},
 			want2:   map[string]interface{}{},
@@ -1793,8 +891,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 		},
 		{
 			name: "Valid Input For Text Float",
-			columns: []Column{
-				{Name: "map_text_float", ColumnFamily: "map_text_float", CQLType: "map<varchar,float>"},
+			columns: []types.Column{
+				{Name: "map_text_float", ColumnFamily: "map_text_float", CQLType: datatype.NewMapType(datatype.Varchar, datatype.Float)},
 			},
 			variableMetadata: []*message.ColumnMetadata{},
 			values: []*primitive.Value{
@@ -1807,8 +905,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 				Logger:              zap.NewNop(),
 				SchemaMappingConfig: GetSchemaMappingConfig(),
 			},
-			want: []Column{
-				{Name: "test", ColumnFamily: "map_text_float", CQLType: "float"},
+			want: []types.Column{
+				{Name: "test", ColumnFamily: "map_text_float", CQLType: datatype.Float},
 			},
 			want1:   []interface{}{floatValue},
 			want2:   map[string]interface{}{},
@@ -1818,8 +916,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 		},
 		{
 			name: "Valid Input For Text Double",
-			columns: []Column{
-				{Name: "map_text_double", ColumnFamily: "map_text_double", CQLType: "map<varchar,double>"},
+			columns: []types.Column{
+				{Name: "map_text_double", ColumnFamily: "map_text_double", CQLType: datatype.NewMapType(datatype.Varchar, datatype.Double)},
 			},
 			variableMetadata: []*message.ColumnMetadata{},
 			values: []*primitive.Value{
@@ -1832,8 +930,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 				Logger:              zap.NewNop(),
 				SchemaMappingConfig: GetSchemaMappingConfig(),
 			},
-			want: []Column{
-				{Name: "test", ColumnFamily: "map_text_double", CQLType: "double"},
+			want: []types.Column{
+				{Name: "test", ColumnFamily: "map_text_double", CQLType: datatype.Double},
 			},
 			want1:   []interface{}{doubleValue},
 			want2:   map[string]interface{}{},
@@ -1843,8 +941,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 		},
 		{
 			name: "Valid Input For Timestamp Boolean",
-			columns: []Column{
-				{Name: "map_timestamp_boolean", ColumnFamily: "map_timestamp_boolean", CQLType: "map<timestamp,boolean>"},
+			columns: []types.Column{
+				{Name: "map_timestamp_boolean", ColumnFamily: "map_timestamp_boolean", CQLType: datatype.NewMapType(datatype.Timestamp, datatype.Boolean)},
 			},
 			variableMetadata: []*message.ColumnMetadata{},
 			values: []*primitive.Value{
@@ -1857,8 +955,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 				Logger:              zap.NewNop(),
 				SchemaMappingConfig: GetSchemaMappingConfig(),
 			},
-			want: []Column{
-				{Name: "1633046400000", ColumnFamily: "map_timestamp_boolean", CQLType: "boolean"},
+			want: []types.Column{
+				{Name: "1633046400000", ColumnFamily: "map_timestamp_boolean", CQLType: datatype.Boolean},
 			},
 			want1:   []interface{}{timestampBooleanValue},
 			want2:   map[string]interface{}{},
@@ -1868,8 +966,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 		},
 		{
 			name: "Valid Input For Timestamp Double",
-			columns: []Column{
-				{Name: "map_timestamp_double", ColumnFamily: "map_timestamp_double", CQLType: "map<timestamp,double>"},
+			columns: []types.Column{
+				{Name: "map_timestamp_double", ColumnFamily: "map_timestamp_double", CQLType: datatype.NewMapType(datatype.Timestamp, datatype.Double)},
 			},
 			variableMetadata: []*message.ColumnMetadata{},
 			values: []*primitive.Value{
@@ -1882,8 +980,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 				Logger:              zap.NewNop(),
 				SchemaMappingConfig: GetSchemaMappingConfig(),
 			},
-			want: []Column{
-				{Name: "1633046400000", ColumnFamily: "map_timestamp_double", CQLType: "double"},
+			want: []types.Column{
+				{Name: "1633046400000", ColumnFamily: "map_timestamp_double", CQLType: datatype.Double},
 			},
 			want1:   []interface{}{timestampDoubleValue},
 			want2:   map[string]interface{}{},
@@ -1893,8 +991,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 		},
 		{
 			name: "Valid Input For Timestamp Bigint",
-			columns: []Column{
-				{Name: "map_timestamp_bigint", ColumnFamily: "map_timestamp_bigint", CQLType: "map<timestamp,bigint>"},
+			columns: []types.Column{
+				{Name: "map_timestamp_bigint", ColumnFamily: "map_timestamp_bigint", CQLType: datatype.NewMapType(datatype.Timestamp, datatype.Bigint)},
 			},
 			variableMetadata: []*message.ColumnMetadata{},
 			values: []*primitive.Value{
@@ -1907,8 +1005,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 				Logger:              zap.NewNop(),
 				SchemaMappingConfig: GetSchemaMappingConfig(),
 			},
-			want: []Column{
-				{Name: "1633046400000", ColumnFamily: "map_timestamp_bigint", CQLType: "bigint"},
+			want: []types.Column{
+				{Name: "1633046400000", ColumnFamily: "map_timestamp_bigint", CQLType: datatype.Bigint},
 			},
 			want1:   []interface{}{timestampBigintValue},
 			want2:   map[string]interface{}{},
@@ -1917,147 +1015,9 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Invalid Input For Set Bigint",
-			columns: []Column{
-				{Name: "set_bigint", ColumnFamily: "set_bigint", CQLType: "set<bigint>"},
-			},
-			variableMetadata: []*message.ColumnMetadata{},
-			values: []*primitive.Value{
-				{Contents: setBytesBoolean}, // Invalid type
-			},
-			tableName:   "non_primitive_table",
-			protocolV:   primitive.ProtocolVersion4,
-			primaryKeys: []string{},
-			translator: &Translator{
-				Logger:              zap.NewNop(),
-				SchemaMappingConfig: GetSchemaMappingConfig(),
-			},
-			want:    nil,
-			want1:   nil,
-			want2:   nil,
-			want3:   0,
-			want4:   nil,
-			wantErr: true,
-		},
-		{
-			name: "Invalid Input For Text Bigint",
-			columns: []Column{
-				{Name: "map_text_bigint", ColumnFamily: "map_text_bigint", CQLType: "map<varchar,bigint>"},
-			},
-			variableMetadata: []*message.ColumnMetadata{},
-			values: []*primitive.Value{
-				{Contents: textBytesTimestampBoolean},
-			},
-			tableName:   "non_primitive_table",
-			protocolV:   primitive.ProtocolVersion4,
-			primaryKeys: []string{},
-			translator: &Translator{
-				Logger:              zap.NewNop(),
-				SchemaMappingConfig: GetSchemaMappingConfig(),
-			},
-			want:    nil,
-			want1:   nil,
-			want2:   nil,
-			want3:   0,
-			want4:   nil,
-			wantErr: true,
-		},
-		{
-			name: "Invalid Input For Set Int",
-			columns: []Column{
-				{Name: "set_int", ColumnFamily: "set_int", CQLType: "set<int>"},
-			},
-			variableMetadata: []*message.ColumnMetadata{},
-			values: []*primitive.Value{
-				{Contents: setBytesBoolean}, // Invalid type
-			},
-			tableName:   "non_primitive_table",
-			protocolV:   primitive.ProtocolVersion4,
-			primaryKeys: []string{},
-			translator: &Translator{
-				Logger:              zap.NewNop(),
-				SchemaMappingConfig: GetSchemaMappingConfig(),
-			},
-			want:    nil,
-			want1:   nil,
-			want2:   nil,
-			want3:   0,
-			want4:   nil,
-			wantErr: true,
-		},
-		{
-			name: "Invalid Input For Set Float",
-			columns: []Column{
-				{Name: "set_float", ColumnFamily: "set_float", CQLType: "set<float>"},
-			},
-			variableMetadata: []*message.ColumnMetadata{},
-			values: []*primitive.Value{
-				{Contents: setBytesBoolean},
-			},
-			tableName:   "non_primitive_table",
-			protocolV:   primitive.ProtocolVersion4,
-			primaryKeys: []string{},
-			translator: &Translator{
-				Logger:              zap.NewNop(),
-				SchemaMappingConfig: GetSchemaMappingConfig(),
-			},
-			want:    nil,
-			want1:   nil,
-			want2:   nil,
-			want3:   0,
-			want4:   nil,
-			wantErr: true,
-		},
-		{
-			name: "Invalid Input For Set Double",
-			columns: []Column{
-				{Name: "set_double", ColumnFamily: "set_double", CQLType: "set<double>"},
-			},
-			variableMetadata: []*message.ColumnMetadata{},
-			values: []*primitive.Value{
-				{Contents: setBytesBoolean},
-			},
-			tableName:   "non_primitive_table",
-			protocolV:   primitive.ProtocolVersion4,
-			primaryKeys: []string{},
-			translator: &Translator{
-				Logger:              zap.NewNop(),
-				SchemaMappingConfig: GetSchemaMappingConfig(),
-			},
-			want:    nil,
-			want1:   nil,
-			want2:   nil,
-			want3:   0,
-			want4:   nil,
-			wantErr: true,
-		},
-		{
-			name: "Invalid Input For Set Timestamp",
-			columns: []Column{
-				{Name: "set_timestamp", ColumnFamily: "set_timestamp", CQLType: "set<timestamp>"},
-			},
-			variableMetadata: []*message.ColumnMetadata{},
-			values: []*primitive.Value{
-				{Contents: setBytesBoolean},
-			},
-			tableName:   "non_primitive_table",
-			protocolV:   primitive.ProtocolVersion4,
-			primaryKeys: []string{},
-			translator: &Translator{
-				Logger:              zap.NewNop(),
-				SchemaMappingConfig: GetSchemaMappingConfig(),
-			},
-			want:    nil,
-			want1:   nil,
-			want2:   nil,
-			want3:   0,
-			want4:   nil,
-			wantErr: true,
-		},
-		{
 			name: "Valid Input For List<text>",
-			columns: []Column{
-				{Name: "list_text", ColumnFamily: "list_text", CQLType: "list<varchar>"},
+			columns: []types.Column{
+				{Name: "list_text", ColumnFamily: "list_text", CQLType: datatype.NewListType(datatype.Varchar)},
 			},
 			values: []*primitive.Value{
 				{Contents: listBytesText},
@@ -2069,8 +1029,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 				Logger:              zap.NewNop(),
 				SchemaMappingConfig: GetSchemaMappingConfig(),
 			},
-			want: []Column{
-				{Name: time.Now().Format("20060102150405.000"), ColumnFamily: "list_text", CQLType: "varchar"},
+			want: []types.Column{
+				{Name: time.Now().Format("20060102150405.000"), ColumnFamily: "list_text", CQLType: datatype.Varchar},
 			},
 			want1:   []interface{}{textValue},
 			want2:   map[string]interface{}{},
@@ -2080,8 +1040,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 		},
 		{
 			name: "Valid Input For List<int>",
-			columns: []Column{
-				{Name: "list_int", ColumnFamily: "list_int", CQLType: "list<int>"},
+			columns: []types.Column{
+				{Name: "list_int", ColumnFamily: "list_int", CQLType: datatype.NewListType(datatype.Int)},
 			},
 			values: []*primitive.Value{
 				{Contents: listBytesInt},
@@ -2093,8 +1053,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 				Logger:              zap.NewNop(),
 				SchemaMappingConfig: GetSchemaMappingConfig(),
 			},
-			want: []Column{
-				{Name: time.Now().Format("20060102150405.000"), ColumnFamily: "list_int", CQLType: "int"},
+			want: []types.Column{
+				{Name: time.Now().Format("20060102150405.000"), ColumnFamily: "list_int", CQLType: datatype.Int},
 			},
 			want1:   []interface{}{intValue},
 			want2:   map[string]interface{}{},
@@ -2104,8 +1064,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 		},
 		{
 			name: "Valid Input For List<bigint>",
-			columns: []Column{
-				{Name: "list_bigint", ColumnFamily: "list_bigint", CQLType: "list<bigint>"},
+			columns: []types.Column{
+				{Name: "list_bigint", ColumnFamily: "list_bigint", CQLType: datatype.NewListType(datatype.Bigint)},
 			},
 			values: []*primitive.Value{
 				{Contents: listBytesBigint},
@@ -2117,8 +1077,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 				Logger:              zap.NewNop(),
 				SchemaMappingConfig: GetSchemaMappingConfig(),
 			},
-			want: []Column{
-				{Name: time.Now().Format("20060102150405.000"), ColumnFamily: "list_bigint", CQLType: "bigint"},
+			want: []types.Column{
+				{Name: time.Now().Format("20060102150405.000"), ColumnFamily: "list_bigint", CQLType: datatype.Bigint},
 			},
 			want1:   []interface{}{bigintValue},
 			want2:   map[string]interface{}{},
@@ -2128,8 +1088,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 		},
 		{
 			name: "Valid Input For List<boolean>",
-			columns: []Column{
-				{Name: "list_boolean", ColumnFamily: "list_boolean", CQLType: "list<boolean>"},
+			columns: []types.Column{
+				{Name: "list_boolean", ColumnFamily: "list_boolean", CQLType: datatype.NewListType(datatype.Boolean)},
 			},
 			values: []*primitive.Value{
 				{Contents: listBytesBool},
@@ -2141,8 +1101,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 				Logger:              zap.NewNop(),
 				SchemaMappingConfig: GetSchemaMappingConfig(),
 			},
-			want: []Column{
-				{Name: time.Now().Format("20060102150405.000"), ColumnFamily: "list_boolean", CQLType: "boolean"},
+			want: []types.Column{
+				{Name: time.Now().Format("20060102150405.000"), ColumnFamily: "list_boolean", CQLType: datatype.Boolean},
 			},
 			want1:   []interface{}{trueVal},
 			want2:   map[string]interface{}{},
@@ -2152,8 +1112,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 		},
 		{
 			name: "Valid Input For List<float>",
-			columns: []Column{
-				{Name: "list_float", ColumnFamily: "list_float", CQLType: "list<float>"},
+			columns: []types.Column{
+				{Name: "list_float", ColumnFamily: "list_float", CQLType: datatype.NewListType(datatype.Float)},
 			},
 			values: []*primitive.Value{
 				{Contents: listBytesFloat},
@@ -2165,8 +1125,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 				Logger:              zap.NewNop(),
 				SchemaMappingConfig: GetSchemaMappingConfig(),
 			},
-			want: []Column{
-				{Name: time.Now().Format("20060102150405.000"), ColumnFamily: "list_float", CQLType: "float"},
+			want: []types.Column{
+				{Name: time.Now().Format("20060102150405.000"), ColumnFamily: "list_float", CQLType: datatype.Float},
 			},
 			want1:   []interface{}{floatVal},
 			want2:   map[string]interface{}{},
@@ -2176,8 +1136,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 		},
 		{
 			name: "Valid Input For List<double>",
-			columns: []Column{
-				{Name: "list_double", ColumnFamily: "list_double", CQLType: "list<double>"},
+			columns: []types.Column{
+				{Name: "list_double", ColumnFamily: "list_double", CQLType: datatype.NewListType(datatype.Double)},
 			},
 			values: []*primitive.Value{
 				{Contents: listBytesDouble},
@@ -2189,8 +1149,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 				Logger:              zap.NewNop(),
 				SchemaMappingConfig: GetSchemaMappingConfig(),
 			},
-			want: []Column{
-				{Name: time.Now().Format("20060102150405.000"), ColumnFamily: "list_double", CQLType: "double"},
+			want: []types.Column{
+				{Name: time.Now().Format("20060102150405.000"), ColumnFamily: "list_double", CQLType: datatype.Double},
 			},
 			want1:   []interface{}{doubleVal},
 			want2:   map[string]interface{}{},
@@ -2200,8 +1160,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 		},
 		{
 			name: "Valid Input For List<timestamp>",
-			columns: []Column{
-				{Name: "list_timestamp", ColumnFamily: "list_timestamp", CQLType: "list<timestamp>"},
+			columns: []types.Column{
+				{Name: "list_timestamp", ColumnFamily: "list_timestamp", CQLType: datatype.NewListType(datatype.Timestamp)},
 			},
 			values: []*primitive.Value{
 				{Contents: listBytesTimestamp},
@@ -2213,8 +1173,8 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 				Logger:              zap.NewNop(),
 				SchemaMappingConfig: GetSchemaMappingConfig(),
 			},
-			want: []Column{
-				{Name: time.Now().Format("20060102150405.000"), ColumnFamily: "list_timestamp", CQLType: "bigint"},
+			want: []types.Column{
+				{Name: time.Now().Format("20060102150405.000"), ColumnFamily: "list_timestamp", CQLType: datatype.Bigint},
 			},
 			want1:   []interface{}{timestampVal},
 			want2:   map[string]interface{}{},
@@ -2429,7 +1389,7 @@ func TestProcessComplexUpdate(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		columns        []Column
+		columns        []types.Column
 		values         []interface{}
 		prependColumns []string
 		expectedMeta   map[string]*ComplexOperation
@@ -2437,33 +1397,38 @@ func TestProcessComplexUpdate(t *testing.T) {
 	}{
 		{
 			name: "successful collection update for map and list",
-			columns: []Column{
-				{Name: "map_text_bool_col", CQLType: "map<varchar, boolean>"},
-				{Name: "list_text", CQLType: "list<varchar>"},
+			columns: []types.Column{
+				{Name: "map_text_bool_col", CQLType: datatype.NewMapType(datatype.Varchar, datatype.Boolean)},
+				{Name: "list_text", CQLType: datatype.NewListType(datatype.Varchar)},
 			},
 			values: []interface{}{
-				"map_text_bool_col+{key:?}",
-				"list_text+?",
+				ComplexAssignment{
+					Left:      "map_text_bool_col",
+					Operation: "+",
+					Right:     "{key:?}",
+				},
+				ComplexAssignment{
+					Left:      "list_text",
+					Operation: "+",
+					Right:     "?",
+				},
 			},
 			prependColumns: []string{"list_text"},
 			expectedMeta: map[string]*ComplexOperation{
 				"map_text_bool_col": {
-					Append:           true,
-					mapKey:           "key",
-					ExpectedDatatype: datatype.Boolean,
+					Append: true,
 				},
 				"list_text": {
-					mapKey:      "",
-					Append:      false,
-					PrependList: true,
+					Append:      true,
+					PrependList: false,
 				},
 			},
 			expectedErr: nil,
 		},
 		{
 			name: "non-collection column should be skipped",
-			columns: []Column{
-				{Name: "pk_1_text", CQLType: "varchar"},
+			columns: []types.Column{
+				{Name: "pk_1_text", CQLType: datatype.Varchar},
 			},
 			values: []interface{}{
 				"pk_1_text+value",
@@ -2560,83 +1525,19 @@ func TestExtractWritetimeValue(t *testing.T) {
 	}
 }
 
-func TestTransformPrepareQueryForPrependList(t *testing.T) {
-	tests := []struct {
-		name            string
-		query           string
-		expectedQuery   string
-		expectedColumns []string
-	}{
-		{
-			name:            "No WHERE clause",
-			query:           "UPDATE table SET pk_1_text = ?",
-			expectedQuery:   "UPDATE table SET pk_1_text = ?",
-			expectedColumns: nil,
-		},
-		{
-			name:            "No prepend operation",
-			query:           "UPDATE table SET pk_1_text = ? WHERE id = ?",
-			expectedQuery:   "UPDATE table SET pk_1_text = ? WHERE id = ?",
-			expectedColumns: nil,
-		},
-		{
-			name:            "Prepend operation detected",
-			query:           "UPDATE table SET pk_1_text = ? + pk_1_text WHERE id = ?",
-			expectedQuery:   "UPDATE table SET pk_1_text = pk_1_text + ? WHERE id = ?",
-			expectedColumns: []string{"pk_1_text"},
-		},
-		{
-			name:            "Multiple assignments with prepend",
-			query:           "UPDATE table SET pk_1_text = ? + pk_1_text, blob_col = ? WHERE id = ?",
-			expectedQuery:   "UPDATE table SET pk_1_text = pk_1_text + ?, blob_col = ? WHERE id = ?",
-			expectedColumns: []string{"pk_1_text"},
-		},
-		{
-			name:            "Multiple prepend operations",
-			query:           "UPDATE table SET pk_1_text = ? + pk_1_text, blob_col = ? + blob_col WHERE id = ?",
-			expectedQuery:   "UPDATE table SET pk_1_text = pk_1_text + ?, blob_col = blob_col + ? WHERE id = ?",
-			expectedColumns: []string{"pk_1_text", "blob_col"},
-		},
-		{
-			name:            "Prepend operation with different variable names",
-			query:           "UPDATE table SET pk_1_text = ? + blob_col WHERE id = ?",
-			expectedQuery:   "UPDATE table SET pk_1_text = ? + blob_col WHERE id = ?",
-			expectedColumns: nil,
-		},
-		{
-			name:            "Prepend operation with quotes",
-			query:           `UPDATE table SET pk_1_text = '?' + pk_1_text WHERE id = ?`,
-			expectedQuery:   `UPDATE table SET pk_1_text = pk_1_text + '?' WHERE id = ?`,
-			expectedColumns: []string{"pk_1_text"},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			modifiedQuery, columns := TransformPrepareQueryForPrependList(tt.query)
-			if modifiedQuery != tt.expectedQuery {
-				t.Errorf("TransformPrepareQueryForPrependList() modifiedQuery = %v, want %v", modifiedQuery, tt.expectedQuery)
-			}
-			if !reflect.DeepEqual(columns, tt.expectedColumns) {
-				t.Errorf("TransformPrepareQueryForPrependList() columns = %v, want %v", columns, tt.expectedColumns)
-			}
-		})
-	}
-}
-
 func TestCastColumns(t *testing.T) {
 	tests := []struct {
 		name         string
-		colMeta      *schemaMapping.Column
+		colMeta      *types.Column
 		columnFamily string
 		want         string
 		wantErr      bool
 	}{
 		{
 			name: "integer type",
-			colMeta: &schemaMapping.Column{
+			colMeta: &types.Column{
 				ColumnName: "age",
-				ColumnType: "int",
+				CQLType:    datatype.Int,
 			},
 			columnFamily: "cf1",
 			want:         "TO_INT64(cf1['age'])",
@@ -2644,9 +1545,9 @@ func TestCastColumns(t *testing.T) {
 		},
 		{
 			name: "bigint type",
-			colMeta: &schemaMapping.Column{
+			colMeta: &types.Column{
 				ColumnName: "timestamp",
-				ColumnType: "bigint",
+				CQLType:    datatype.Bigint,
 			},
 			columnFamily: "cf1",
 			want:         "TO_INT64(cf1['timestamp'])",
@@ -2654,9 +1555,9 @@ func TestCastColumns(t *testing.T) {
 		},
 		{
 			name: "float type",
-			colMeta: &schemaMapping.Column{
+			colMeta: &types.Column{
 				ColumnName: "price",
-				ColumnType: "float",
+				CQLType:    datatype.Float,
 			},
 			columnFamily: "cf1",
 			want:         "TO_FLOAT32(cf1['price'])",
@@ -2664,9 +1565,9 @@ func TestCastColumns(t *testing.T) {
 		},
 		{
 			name: "double type",
-			colMeta: &schemaMapping.Column{
+			colMeta: &types.Column{
 				ColumnName: "value",
-				ColumnType: "double",
+				CQLType:    datatype.Double,
 			},
 			columnFamily: "cf1",
 			want:         "TO_FLOAT64(cf1['value'])",
@@ -2674,9 +1575,9 @@ func TestCastColumns(t *testing.T) {
 		},
 		{
 			name: "boolean type",
-			colMeta: &schemaMapping.Column{
+			colMeta: &types.Column{
 				ColumnName: "active",
-				ColumnType: "boolean",
+				CQLType:    datatype.Boolean,
 			},
 			columnFamily: "cf1",
 			want:         "TO_INT64(cf1['active'])",
@@ -2684,9 +1585,9 @@ func TestCastColumns(t *testing.T) {
 		},
 		{
 			name: "timestamp type",
-			colMeta: &schemaMapping.Column{
+			colMeta: &types.Column{
 				ColumnName: "created_at",
-				ColumnType: "timestamp",
+				CQLType:    datatype.Timestamp,
 			},
 			columnFamily: "cf1",
 			want:         "TO_TIME(cf1['created_at'])",
@@ -2694,9 +1595,9 @@ func TestCastColumns(t *testing.T) {
 		},
 		{
 			name: "blob type",
-			colMeta: &schemaMapping.Column{
+			colMeta: &types.Column{
 				ColumnName: "data",
-				ColumnType: "blob",
+				CQLType:    datatype.Blob,
 			},
 			columnFamily: "cf1",
 			want:         "TO_BLOB(cf1['data'])",
@@ -2704,9 +1605,9 @@ func TestCastColumns(t *testing.T) {
 		},
 		{
 			name: "text type",
-			colMeta: &schemaMapping.Column{
+			colMeta: &types.Column{
 				ColumnName: "name",
-				ColumnType: "text",
+				CQLType:    datatype.Varchar,
 			},
 			columnFamily: "cf1",
 			want:         "cf1['name']",
@@ -2714,9 +1615,9 @@ func TestCastColumns(t *testing.T) {
 		},
 		{
 			name: "unsupported type",
-			colMeta: &schemaMapping.Column{
+			colMeta: &types.Column{
 				ColumnName: "unsupported",
-				ColumnType: "unknown_type",
+				CQLType:    nil,
 			},
 			columnFamily: "cf1",
 			want:         "",
@@ -2724,9 +1625,9 @@ func TestCastColumns(t *testing.T) {
 		},
 		{
 			name: "handle special characters in column name",
-			colMeta: &schemaMapping.Column{
+			colMeta: &types.Column{
 				ColumnName: "special-name",
-				ColumnType: "text",
+				CQLType:    datatype.Varchar,
 			},
 			columnFamily: "cf1",
 			want:         "cf1['special-name']",
@@ -2762,7 +1663,7 @@ func compareComplexOperation(expected, actual *ComplexOperation) bool {
 func TestTranslator_CreateOrderedCodeKey(t *testing.T) {
 	tests := []struct {
 		name                         string
-		pmks                         []schemaMapping.Column
+		pmks                         []types.Column
 		values                       map[string]interface{}
 		want                         []byte
 		encodeIntValuesWithBigEndian bool
@@ -2770,11 +1671,10 @@ func TestTranslator_CreateOrderedCodeKey(t *testing.T) {
 	}{
 		{
 			name: "simple string",
-			pmks: []schemaMapping.Column{
+			pmks: []types.Column{
 				{
-					CQLType:      "varchar",
+					CQLType:      datatype.Varchar,
 					ColumnName:   "user_id",
-					ColumnType:   "varchar",
 					IsPrimaryKey: true,
 					PkPrecedence: 1,
 				},
@@ -2788,11 +1688,10 @@ func TestTranslator_CreateOrderedCodeKey(t *testing.T) {
 		},
 		{
 			name: "int nonzero",
-			pmks: []schemaMapping.Column{
+			pmks: []types.Column{
 				{
-					CQLType:      "bigint",
+					CQLType:      datatype.Bigint,
 					ColumnName:   "user_id",
-					ColumnType:   "bigint",
 					IsPrimaryKey: true,
 					PkPrecedence: 1,
 				},
@@ -2806,11 +1705,10 @@ func TestTranslator_CreateOrderedCodeKey(t *testing.T) {
 		},
 		{
 			name: "int32 nonzero",
-			pmks: []schemaMapping.Column{
+			pmks: []types.Column{
 				{
-					CQLType:      "int",
+					CQLType:      datatype.Int,
 					ColumnName:   "user_id",
-					ColumnType:   "int",
 					IsPrimaryKey: true,
 					PkPrecedence: 1,
 				},
@@ -2824,11 +1722,10 @@ func TestTranslator_CreateOrderedCodeKey(t *testing.T) {
 		},
 		{
 			name: "int32 nonzero big endian",
-			pmks: []schemaMapping.Column{
+			pmks: []types.Column{
 				{
-					CQLType:      "int",
+					CQLType:      datatype.Int,
 					ColumnName:   "user_id",
-					ColumnType:   "int",
 					IsPrimaryKey: true,
 					PkPrecedence: 1,
 				},
@@ -2842,11 +1739,10 @@ func TestTranslator_CreateOrderedCodeKey(t *testing.T) {
 		},
 		{
 			name: "int32 max",
-			pmks: []schemaMapping.Column{
+			pmks: []types.Column{
 				{
-					CQLType:      "int",
+					CQLType:      datatype.Int,
 					ColumnName:   "user_id",
-					ColumnType:   "int",
 					IsPrimaryKey: true,
 					PkPrecedence: 1,
 				},
@@ -2860,11 +1756,10 @@ func TestTranslator_CreateOrderedCodeKey(t *testing.T) {
 		},
 		{
 			name: "int64 max",
-			pmks: []schemaMapping.Column{
+			pmks: []types.Column{
 				{
-					CQLType:      "bigint",
+					CQLType:      datatype.Bigint,
 					ColumnName:   "user_id",
-					ColumnType:   "bigint",
 					IsPrimaryKey: true,
 					PkPrecedence: 1,
 				},
@@ -2878,11 +1773,10 @@ func TestTranslator_CreateOrderedCodeKey(t *testing.T) {
 		},
 		{
 			name: "negative int",
-			pmks: []schemaMapping.Column{
+			pmks: []types.Column{
 				{
-					CQLType:      "bigint",
+					CQLType:      datatype.Bigint,
 					ColumnName:   "user_id",
-					ColumnType:   "bigint",
 					IsPrimaryKey: true,
 					PkPrecedence: 1,
 				},
@@ -2896,11 +1790,10 @@ func TestTranslator_CreateOrderedCodeKey(t *testing.T) {
 		},
 		{
 			name: "negative int big endian fails",
-			pmks: []schemaMapping.Column{
+			pmks: []types.Column{
 				{
-					CQLType:      "bigint",
+					CQLType:      datatype.Bigint,
 					ColumnName:   "user_id",
-					ColumnType:   "bigint",
 					IsPrimaryKey: true,
 					PkPrecedence: 1,
 				},
@@ -2914,11 +1807,10 @@ func TestTranslator_CreateOrderedCodeKey(t *testing.T) {
 		},
 		{
 			name: "int zero",
-			pmks: []schemaMapping.Column{
+			pmks: []types.Column{
 				{
-					CQLType:      "bigint",
+					CQLType:      datatype.Bigint,
 					ColumnName:   "user_id",
-					ColumnType:   "bigint",
 					IsPrimaryKey: true,
 					PkPrecedence: 1,
 				},
@@ -2932,11 +1824,10 @@ func TestTranslator_CreateOrderedCodeKey(t *testing.T) {
 		},
 		{
 			name: "int zero big endian",
-			pmks: []schemaMapping.Column{
+			pmks: []types.Column{
 				{
-					CQLType:      "bigint",
+					CQLType:      datatype.Bigint,
 					ColumnName:   "user_id",
-					ColumnType:   "bigint",
 					IsPrimaryKey: true,
 					PkPrecedence: 1,
 				},
@@ -2950,25 +1841,22 @@ func TestTranslator_CreateOrderedCodeKey(t *testing.T) {
 		},
 		{
 			name: "compound key",
-			pmks: []schemaMapping.Column{
+			pmks: []types.Column{
 				{
-					CQLType:      "varchar",
+					CQLType:      datatype.Varchar,
 					ColumnName:   "user_id",
-					ColumnType:   "varchar",
 					IsPrimaryKey: true,
 					PkPrecedence: 1,
 				},
 				{
-					CQLType:      "bigint",
+					CQLType:      datatype.Bigint,
 					ColumnName:   "team_num",
-					ColumnType:   "bigint",
 					IsPrimaryKey: true,
 					PkPrecedence: 2,
 				},
 				{
-					CQLType:      "varchar",
+					CQLType:      datatype.Varchar,
 					ColumnName:   "city",
-					ColumnType:   "varchar",
 					IsPrimaryKey: true,
 					PkPrecedence: 3,
 				},
@@ -2984,25 +1872,22 @@ func TestTranslator_CreateOrderedCodeKey(t *testing.T) {
 		},
 		{
 			name: "compound key big endian",
-			pmks: []schemaMapping.Column{
+			pmks: []types.Column{
 				{
-					CQLType:      "varchar",
+					CQLType:      datatype.Varchar,
 					ColumnName:   "user_id",
-					ColumnType:   "varchar",
 					IsPrimaryKey: true,
 					PkPrecedence: 1,
 				},
 				{
-					CQLType:      "bigint",
+					CQLType:      datatype.Bigint,
 					ColumnName:   "team_num",
-					ColumnType:   "bigint",
 					IsPrimaryKey: true,
 					PkPrecedence: 2,
 				},
 				{
-					CQLType:      "varchar",
+					CQLType:      datatype.Varchar,
 					ColumnName:   "city",
-					ColumnType:   "varchar",
 					IsPrimaryKey: true,
 					PkPrecedence: 3,
 				},
@@ -3018,32 +1903,28 @@ func TestTranslator_CreateOrderedCodeKey(t *testing.T) {
 		},
 		{
 			name: "compound key with trailing empty",
-			pmks: []schemaMapping.Column{
+			pmks: []types.Column{
 				{
-					CQLType:      "varchar",
+					CQLType:      datatype.Varchar,
 					ColumnName:   "user_id",
-					ColumnType:   "varchar",
 					IsPrimaryKey: true,
 					PkPrecedence: 1,
 				},
 				{
-					CQLType:      "bigint",
+					CQLType:      datatype.Bigint,
 					ColumnName:   "team_num",
-					ColumnType:   "bigint",
 					IsPrimaryKey: true,
 					PkPrecedence: 2,
 				},
 				{
-					CQLType:      "varchar",
+					CQLType:      datatype.Varchar,
 					ColumnName:   "city",
-					ColumnType:   "varchar",
 					IsPrimaryKey: true,
 					PkPrecedence: 3,
 				},
 				{
-					CQLType:      "varchar",
+					CQLType:      datatype.Varchar,
 					ColumnName:   "borough",
-					ColumnType:   "varchar",
 					IsPrimaryKey: true,
 					PkPrecedence: 4,
 				},
@@ -3060,32 +1941,28 @@ func TestTranslator_CreateOrderedCodeKey(t *testing.T) {
 		},
 		{
 			name: "compound key with trailing empty big endian",
-			pmks: []schemaMapping.Column{
+			pmks: []types.Column{
 				{
-					CQLType:      "varchar",
+					CQLType:      datatype.Varchar,
 					ColumnName:   "user_id",
-					ColumnType:   "varchar",
 					IsPrimaryKey: true,
 					PkPrecedence: 1,
 				},
 				{
-					CQLType:      "bigint",
+					CQLType:      datatype.Bigint,
 					ColumnName:   "team_num",
-					ColumnType:   "bigint",
 					IsPrimaryKey: true,
 					PkPrecedence: 2,
 				},
 				{
-					CQLType:      "varchar",
+					CQLType:      datatype.Varchar,
 					ColumnName:   "city",
-					ColumnType:   "varchar",
 					IsPrimaryKey: true,
 					PkPrecedence: 3,
 				},
 				{
-					CQLType:      "varchar",
+					CQLType:      datatype.Varchar,
 					ColumnName:   "borough",
-					ColumnType:   "varchar",
 					IsPrimaryKey: true,
 					PkPrecedence: 4,
 				},
@@ -3102,25 +1979,22 @@ func TestTranslator_CreateOrderedCodeKey(t *testing.T) {
 		},
 		{
 			name: "compound key with empty middle",
-			pmks: []schemaMapping.Column{
+			pmks: []types.Column{
 				{
-					CQLType:      "blob",
+					CQLType:      datatype.Blob,
 					ColumnName:   "user_id",
-					ColumnType:   "blob",
 					IsPrimaryKey: true,
 					PkPrecedence: 1,
 				},
 				{
-					CQLType:      "blob",
+					CQLType:      datatype.Blob,
 					ColumnName:   "team_id",
-					ColumnType:   "blob",
 					IsPrimaryKey: true,
 					PkPrecedence: 2,
 				},
 				{
-					CQLType:      "blob",
+					CQLType:      datatype.Blob,
 					ColumnName:   "city",
-					ColumnType:   "blob",
 					IsPrimaryKey: true,
 					PkPrecedence: 3,
 				},
@@ -3136,11 +2010,10 @@ func TestTranslator_CreateOrderedCodeKey(t *testing.T) {
 		},
 		{
 			name: "bytes with delimiter",
-			pmks: []schemaMapping.Column{
+			pmks: []types.Column{
 				{
-					CQLType:      "blob",
+					CQLType:      datatype.Blob,
 					ColumnName:   "user_id",
-					ColumnType:   "blob",
 					IsPrimaryKey: true,
 					PkPrecedence: 1,
 				},
@@ -3154,32 +2027,28 @@ func TestTranslator_CreateOrderedCodeKey(t *testing.T) {
 		},
 		{
 			name: "compound key with 2 empty middle fields",
-			pmks: []schemaMapping.Column{
+			pmks: []types.Column{
 				{
-					CQLType:      "blob",
+					CQLType:      datatype.Blob,
 					ColumnName:   "user_id",
-					ColumnType:   "blob",
 					IsPrimaryKey: true,
 					PkPrecedence: 1,
 				},
 				{
-					CQLType:      "blob",
+					CQLType:      datatype.Blob,
 					ColumnName:   "team_num",
-					ColumnType:   "blob",
 					IsPrimaryKey: true,
 					PkPrecedence: 2,
 				},
 				{
-					CQLType:      "blob",
+					CQLType:      datatype.Blob,
 					ColumnName:   "city",
-					ColumnType:   "blob",
 					IsPrimaryKey: true,
 					PkPrecedence: 3,
 				},
 				{
-					CQLType:      "blob",
+					CQLType:      datatype.Blob,
 					ColumnName:   "borough",
-					ColumnType:   "blob",
 					IsPrimaryKey: true,
 					PkPrecedence: 4,
 				},
@@ -3196,18 +2065,16 @@ func TestTranslator_CreateOrderedCodeKey(t *testing.T) {
 		},
 		{
 			name: "byte strings",
-			pmks: []schemaMapping.Column{
+			pmks: []types.Column{
 				{
-					CQLType:      "blob",
+					CQLType:      datatype.Blob,
 					ColumnName:   "user_id",
-					ColumnType:   "blob",
 					IsPrimaryKey: true,
 					PkPrecedence: 1,
 				},
 				{
-					CQLType:      "blob",
+					CQLType:      datatype.Blob,
 					ColumnName:   "city",
-					ColumnType:   "blob",
 					IsPrimaryKey: true,
 					PkPrecedence: 2,
 				},
@@ -3222,18 +2089,16 @@ func TestTranslator_CreateOrderedCodeKey(t *testing.T) {
 		},
 		{
 			name: "empty first value",
-			pmks: []schemaMapping.Column{
+			pmks: []types.Column{
 				{
-					CQLType:      "varchar",
+					CQLType:      datatype.Varchar,
 					ColumnName:   "user_id",
-					ColumnType:   "varchar",
 					IsPrimaryKey: true,
 					PkPrecedence: 1,
 				},
 				{
-					CQLType:      "blob",
+					CQLType:      datatype.Blob,
 					ColumnName:   "city",
-					ColumnType:   "blob",
 					IsPrimaryKey: true,
 					PkPrecedence: 2,
 				},
@@ -3248,25 +2113,22 @@ func TestTranslator_CreateOrderedCodeKey(t *testing.T) {
 		},
 		{
 			name: "null escaped",
-			pmks: []schemaMapping.Column{
+			pmks: []types.Column{
 				{
-					CQLType:      "varchar",
+					CQLType:      datatype.Varchar,
 					ColumnName:   "user_id",
-					ColumnType:   "varchar",
 					IsPrimaryKey: true,
 					PkPrecedence: 1,
 				},
 				{
-					CQLType:      "varchar",
+					CQLType:      datatype.Varchar,
 					ColumnName:   "city",
-					ColumnType:   "varchar",
 					IsPrimaryKey: true,
 					PkPrecedence: 2,
 				},
 				{
-					CQLType:      "varchar",
+					CQLType:      datatype.Varchar,
 					ColumnName:   "borough",
-					ColumnType:   "varchar",
 					IsPrimaryKey: true,
 					PkPrecedence: 3,
 				},
@@ -3282,25 +2144,22 @@ func TestTranslator_CreateOrderedCodeKey(t *testing.T) {
 		},
 		{
 			name: "null escaped",
-			pmks: []schemaMapping.Column{
+			pmks: []types.Column{
 				{
-					CQLType:      "varchar",
+					CQLType:      datatype.Varchar,
 					ColumnName:   "user_id",
-					ColumnType:   "varchar",
 					IsPrimaryKey: true,
 					PkPrecedence: 1,
 				},
 				{
-					CQLType:      "bigint",
+					CQLType:      datatype.Bigint,
 					ColumnName:   "team_num",
-					ColumnType:   "bigint",
 					IsPrimaryKey: true,
 					PkPrecedence: 2,
 				},
 				{
-					CQLType:      "varchar",
+					CQLType:      datatype.Varchar,
 					ColumnName:   "city",
-					ColumnType:   "varchar",
 					IsPrimaryKey: true,
 					PkPrecedence: 3,
 				},
@@ -3316,11 +2175,10 @@ func TestTranslator_CreateOrderedCodeKey(t *testing.T) {
 		},
 		{
 			name: "invalid utf8 varchar returns error",
-			pmks: []schemaMapping.Column{
+			pmks: []types.Column{
 				{
-					CQLType:      "varchar",
+					CQLType:      datatype.Varchar,
 					ColumnName:   "user_id",
-					ColumnType:   "varchar",
 					IsPrimaryKey: true,
 					PkPrecedence: 1,
 				},
@@ -3334,11 +2192,10 @@ func TestTranslator_CreateOrderedCodeKey(t *testing.T) {
 		},
 		{
 			name: "null char",
-			pmks: []schemaMapping.Column{
+			pmks: []types.Column{
 				{
-					CQLType:      "varchar",
+					CQLType:      datatype.Varchar,
 					ColumnName:   "user_id",
-					ColumnType:   "varchar",
 					IsPrimaryKey: true,
 					PkPrecedence: 1,
 				},
@@ -3571,244 +2428,6 @@ func TestEncodeInt(t *testing.T) {
 	}
 }
 
-func TestDataConversionInInsertionIfRequired(t *testing.T) {
-	tests := []struct {
-		name string
-		args struct {
-			value        interface{}
-			pv           primitive.ProtocolVersion
-			cqlType      string
-			responseType string
-		}
-		want    interface{}
-		wantErr bool
-	}{
-		{
-			name: "Boolean to string true",
-			args: struct {
-				value        interface{}
-				pv           primitive.ProtocolVersion
-				cqlType      string
-				responseType string
-			}{
-				value:        "true",
-				pv:           primitive.ProtocolVersion4,
-				cqlType:      "boolean",
-				responseType: "string",
-			},
-			want:    "1",
-			wantErr: false,
-		},
-		{
-			name: "Boolean to string false",
-			args: struct {
-				value        interface{}
-				pv           primitive.ProtocolVersion
-				cqlType      string
-				responseType string
-			}{
-				value:        "false",
-				pv:           primitive.ProtocolVersion4,
-				cqlType:      "boolean",
-				responseType: "string",
-			},
-			want:    "0",
-			wantErr: false,
-		},
-		{
-			name: "Invalid boolean string",
-			args: struct {
-				value        interface{}
-				pv           primitive.ProtocolVersion
-				cqlType      string
-				responseType string
-			}{
-				// value is not a valid boolean string
-				value:        "notabool",
-				pv:           primitive.ProtocolVersion4,
-				cqlType:      "boolean",
-				responseType: "string",
-			},
-			want:    nil,
-			wantErr: true,
-		},
-		{
-			name: "Boolean to EncodeBool",
-			args: struct {
-				value        interface{}
-				pv           primitive.ProtocolVersion
-				cqlType      string
-				responseType string
-			}{
-				value:        true,
-				pv:           primitive.ProtocolVersion4,
-				cqlType:      "boolean",
-				responseType: "default",
-			},
-			want:    []byte{0, 0, 0, 0, 0, 0, 0, 1}, // Expecting boolean encoding, replace as needed
-			wantErr: false,
-		},
-		{
-			name: "Int to string",
-			args: struct {
-				value        interface{}
-				pv           primitive.ProtocolVersion
-				cqlType      string
-				responseType string
-			}{
-				value:        "123",
-				pv:           primitive.ProtocolVersion4,
-				cqlType:      "int",
-				responseType: "string",
-			},
-			want:    "123",
-			wantErr: false,
-		},
-		{
-			name: "Invalid int string",
-			args: struct {
-				value        interface{}
-				pv           primitive.ProtocolVersion
-				cqlType      string
-				responseType string
-			}{
-				// value is not a valid int string
-				value:        "notanint",
-				pv:           primitive.ProtocolVersion4,
-				cqlType:      "int",
-				responseType: "string",
-			},
-			want:    nil,
-			wantErr: true,
-		},
-		{
-			name: "Int to EncodeInt",
-			args: struct {
-				value        interface{}
-				pv           primitive.ProtocolVersion
-				cqlType      string
-				responseType string
-			}{
-				value:        int32(12),
-				pv:           primitive.ProtocolVersion4,
-				cqlType:      "int",
-				responseType: "default",
-			},
-			want:    []byte{0, 0, 0, 0, 0, 0, 0, 12}, // Expecting int encoding, replace as needed
-			wantErr: false,
-		},
-		{
-			name: "Int min value",
-			args: struct {
-				value        interface{}
-				pv           primitive.ProtocolVersion
-				cqlType      string
-				responseType string
-			}{
-				value:        int32(math.MaxInt32),
-				pv:           primitive.ProtocolVersion4,
-				cqlType:      "int",
-				responseType: "default",
-			},
-			want:    []byte{0, 0, 0, 0, 127, 255, 255, 255},
-			wantErr: false,
-		},
-		{
-			name: "BigInt to EncodeBigInt",
-			args: struct {
-				value        interface{}
-				pv           primitive.ProtocolVersion
-				cqlType      string
-				responseType string
-			}{
-				value:        int32(12),
-				pv:           primitive.ProtocolVersion4,
-				cqlType:      "int",
-				responseType: "default",
-			},
-			want:    []byte{0, 0, 0, 0, 0, 0, 0, 12},
-			wantErr: false,
-		},
-		{
-			name: "BigInt max value",
-			args: struct {
-				value        interface{}
-				pv           primitive.ProtocolVersion
-				cqlType      string
-				responseType string
-			}{
-				value:        int64(math.MaxInt64),
-				pv:           primitive.ProtocolVersion4,
-				cqlType:      "bigint",
-				responseType: "default",
-			},
-			want:    []byte{127, 255, 255, 255, 255, 255, 255, 255},
-			wantErr: false,
-		},
-		{
-			name: "BigInt min value",
-			args: struct {
-				value        interface{}
-				pv           primitive.ProtocolVersion
-				cqlType      string
-				responseType string
-			}{
-				value:        int64(math.MinInt64),
-				pv:           primitive.ProtocolVersion4,
-				cqlType:      "bigint",
-				responseType: "default",
-			},
-			want:    []byte{128, 0, 0, 0, 0, 0, 0, 0},
-			wantErr: false,
-		},
-		{
-			name: "Int max",
-			args: struct {
-				value        interface{}
-				pv           primitive.ProtocolVersion
-				cqlType      string
-				responseType string
-			}{
-				value:        int32(math.MaxInt32),
-				pv:           primitive.ProtocolVersion4,
-				cqlType:      "int",
-				responseType: "default",
-			},
-			want:    []byte{0, 0, 0, 0, 127, 255, 255, 255},
-			wantErr: false,
-		},
-		{
-			name: "Unsupported cqlType",
-			args: struct {
-				value        interface{}
-				pv           primitive.ProtocolVersion
-				cqlType      string
-				responseType string
-			}{
-				value:        "anything",
-				pv:           primitive.ProtocolVersion4,
-				cqlType:      "unsupported",
-				responseType: "default",
-			},
-			want:    "anything",
-			wantErr: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := DataConversionInInsertionIfRequired(tt.args.value, tt.args.pv, tt.args.cqlType, tt.args.responseType)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("DataConversionInInsertionIfRequired() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("DataConversionInInsertionIfRequired() got = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestProcessCollectionColumnsForPrepareQueries_ComplexMetaAndNonCollection(t *testing.T) {
 	translator := &Translator{
 		Logger:              zap.NewNop(),
@@ -3832,34 +2451,34 @@ func TestProcessCollectionColumnsForPrepareQueries_ComplexMetaAndNonCollection(t
 	// --- Test Cases ---
 	tests := []struct {
 		name            string
-		columnsResponse []Column
+		columnsResponse []types.Column
 		values          []*primitive.Value
 		complexMeta     map[string]*ComplexOperation
 		primaryKeys     []string
 		// Expected outputs
-		wantNewColumns   []Column
+		wantNewColumns   []types.Column
 		wantNewValues    []interface{}
 		wantUnencrypted  map[string]interface{}
 		wantIndexEnd     int
 		wantDelColFamily []string
-		wantDelColumns   []Column
+		wantDelColumns   []types.Column
 		wantErr          bool
 	}{
 		{
 			name: "Non-collection column (text)",
-			columnsResponse: []Column{
-				{Name: "pk_1_text", CQLType: "varchar", ColumnFamily: "cf1"},
+			columnsResponse: []types.Column{
+				{Name: "pk_1_text", CQLType: datatype.Varchar, ColumnFamily: "cf1"},
 			},
 			values: []*primitive.Value{
 				{Contents: textValueBytes},
 			},
 			complexMeta: map[string]*ComplexOperation{},
 			primaryKeys: []string{"pk_1_text"},
-			wantNewColumns: []Column{
-				{Name: "pk_1_text", CQLType: "varchar", ColumnFamily: "cf1"},
+			wantNewColumns: []types.Column{
+				{Name: "pk_1_text", CQLType: datatype.Varchar, ColumnFamily: "cf1"},
 			},
 			wantNewValues:    []interface{}{textValueBytes},
-			wantUnencrypted:  map[string]interface{}{"pk_1_text": "testValue"},
+			wantUnencrypted:  map[string]interface{}{},
 			wantIndexEnd:     0,
 			wantDelColFamily: nil,
 			wantDelColumns:   nil,
@@ -3867,16 +2486,16 @@ func TestProcessCollectionColumnsForPrepareQueries_ComplexMetaAndNonCollection(t
 		},
 		{
 			name: "Non-collection column (int)",
-			columnsResponse: []Column{
-				{Name: "column_int", CQLType: "int", ColumnFamily: "cf1"},
+			columnsResponse: []types.Column{
+				{Name: "column_int", CQLType: datatype.Int, ColumnFamily: "cf1"},
 			},
 			values: []*primitive.Value{
 				{Contents: intValueBytes},
 			},
 			complexMeta: map[string]*ComplexOperation{},
 			primaryKeys: []string{},
-			wantNewColumns: []Column{
-				{Name: "column_int", CQLType: "int", ColumnFamily: "cf1"},
+			wantNewColumns: []types.Column{
+				{Name: "column_int", CQLType: datatype.Int, ColumnFamily: "cf1"},
 			},
 
 			wantNewValues:    []interface{}{[]byte{0, 0, 0, 0, 0, 0, 0, 123}},
@@ -3888,8 +2507,8 @@ func TestProcessCollectionColumnsForPrepareQueries_ComplexMetaAndNonCollection(t
 		},
 		{
 			name: "Map append for specific key",
-			columnsResponse: []Column{
-				{Name: "map_text_text", CQLType: "map<varchar,varchar>", ColumnFamily: "map_text_text"},
+			columnsResponse: []types.Column{
+				{Name: "map_text_text", CQLType: datatype.NewMapType(datatype.Varchar, datatype.Varchar), ColumnFamily: "map_text_text"},
 			},
 			values: []*primitive.Value{
 				{Contents: textValue2Bytes},
@@ -3902,8 +2521,8 @@ func TestProcessCollectionColumnsForPrepareQueries_ComplexMetaAndNonCollection(t
 				},
 			},
 			primaryKeys: []string{},
-			wantNewColumns: []Column{
-				{Name: "newKey", ColumnFamily: "map_text_text", CQLType: "varchar"},
+			wantNewColumns: []types.Column{
+				{Name: "newKey", ColumnFamily: "map_text_text", CQLType: datatype.Varchar},
 			},
 			wantNewValues:    []interface{}{textValue2Bytes},
 			wantUnencrypted:  map[string]interface{}{},
@@ -3914,8 +2533,8 @@ func TestProcessCollectionColumnsForPrepareQueries_ComplexMetaAndNonCollection(t
 		},
 		{
 			name: "Map delete",
-			columnsResponse: []Column{
-				{Name: "map_text_text", CQLType: "map<varchar,varchar>", ColumnFamily: "map_text_text"},
+			columnsResponse: []types.Column{
+				{Name: "map_text_text", CQLType: datatype.NewMapType(datatype.Varchar, datatype.Varchar), ColumnFamily: "map_text_text"},
 			},
 			values: []*primitive.Value{
 				// Value contains the keys to delete, encoded as a set<text>
@@ -3933,7 +2552,7 @@ func TestProcessCollectionColumnsForPrepareQueries_ComplexMetaAndNonCollection(t
 			wantUnencrypted:  map[string]interface{}{},
 			wantIndexEnd:     0,
 			wantDelColFamily: nil, // Delete specific keys, not the whole family
-			wantDelColumns: []Column{
+			wantDelColumns: []types.Column{
 				{Name: "elem1", ColumnFamily: "map_text_text"},
 				{Name: "elem2", ColumnFamily: "map_text_text"},
 			},
@@ -3941,8 +2560,8 @@ func TestProcessCollectionColumnsForPrepareQueries_ComplexMetaAndNonCollection(t
 		},
 		{
 			name: "List update by index",
-			columnsResponse: []Column{
-				{Name: "list_text", CQLType: "list<text>", ColumnFamily: "list_text"},
+			columnsResponse: []types.Column{
+				{Name: "list_text", CQLType: datatype.NewListType(datatype.Varchar), ColumnFamily: "list_text"},
 			},
 			values: []*primitive.Value{
 				{Contents: textValue3Bytes}, // The new value for the specific index
@@ -3964,8 +2583,8 @@ func TestProcessCollectionColumnsForPrepareQueries_ComplexMetaAndNonCollection(t
 		},
 		{
 			name: "Set delete elements",
-			columnsResponse: []Column{
-				{Name: "set_text", CQLType: "set<text>", ColumnFamily: "set_text"},
+			columnsResponse: []types.Column{
+				{Name: "set_text", CQLType: datatype.NewSetType(datatype.Varchar), ColumnFamily: "set_text"},
 			},
 			values: []*primitive.Value{
 				{Contents: setValueBytes}, // The set containing elements to delete
@@ -3982,7 +2601,7 @@ func TestProcessCollectionColumnsForPrepareQueries_ComplexMetaAndNonCollection(t
 			wantUnencrypted:  map[string]interface{}{},
 			wantIndexEnd:     0,
 			wantDelColFamily: nil, // Deleting specific elements
-			wantDelColumns: []Column{
+			wantDelColumns: []types.Column{
 				{Name: "elem1", ColumnFamily: "set_text"},
 				{Name: "elem2", ColumnFamily: "set_text"},
 			},
@@ -4096,427 +2715,21 @@ func TestProcessCollectionColumnsForPrepareQueries_ComplexMetaAndNonCollection(t
 		})
 	}
 }
-func TestExtractMapKey(t *testing.T) {
-	tests := []struct {
-		name        string
-		input       string
-		wantMapName string
-		wantMapKey  string
-	}{
-		{
-			name:        "Valid map key with quotes",
-			input:       "mymap['key1']",
-			wantMapName: "mymap",
-			wantMapKey:  "key1",
-		},
-		{
-			name:        "Valid map key without quotes",
-			input:       "mymap[key1]",
-			wantMapName: "mymap",
-			wantMapKey:  "key1",
-		},
-		{
-			name:        "No map key",
-			input:       "mymap",
-			wantMapName: "mymap",
-			wantMapKey:  "",
-		},
-		{
-			name:        "Invalid format - missing closing bracket",
-			input:       "mymap[key1",
-			wantMapName: "mymap[key1",
-			wantMapKey:  "",
-		},
-		{
-			name:        "Invalid format - missing opening bracket",
-			input:       "mymap]key1]",
-			wantMapName: "mymap]key1]",
-			wantMapKey:  "",
-		},
-		{
-			name:        "Multiple quotes in key",
-			input:       "mymap['key''1']",
-			wantMapName: "mymap",
-			wantMapKey:  "key1",
-		},
-		{
-			name:        "Complex map name",
-			input:       "my_complex_map[key1]",
-			wantMapName: "my_complex_map",
-			wantMapKey:  "key1",
-		},
-	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			gotMapName, gotMapKey := ExtractMapKey(tt.input)
-			if gotMapName != tt.wantMapName {
-				t.Errorf("ExtractMapKey() gotMapName = %v, want %v", gotMapName, tt.wantMapName)
-			}
-			if gotMapKey != tt.wantMapKey {
-				t.Errorf("ExtractMapKey() gotMapKey = %v, want %v", gotMapKey, tt.wantMapKey)
-			}
-		})
-	}
-}
-func Test_processListCollectionRaw(t *testing.T) {
-	tests := []struct {
-		name            string
-		val             string
-		colFamily       string
-		cqlType         string
-		prependCol      []string
-		complexMeta     map[string]*ComplexOperation
-		wantColumns     []Column
-		wantValues      []interface{}
-		wantComplexMeta map[string]*ComplexOperation
-		wantErr         bool
-	}{
-		{
-			name:        "Simple list<varchar>",
-			val:         "['value1', 'value2']",
-			colFamily:   "list_text",
-			cqlType:     "varchar",
-			prependCol:  []string{},
-			complexMeta: make(map[string]*ComplexOperation),
-			wantColumns: []Column{
-				{Name: time.Now().Format("20060102150405.999"), ColumnFamily: "list_text", CQLType: "varchar"},
-				{Name: time.Now().Format("20060102150405.998"), ColumnFamily: "list_text", CQLType: "varchar"},
-			},
-			wantValues: []interface{}{
-				[]byte("value1"),
-				[]byte("value2"),
-			},
-			wantComplexMeta: make(map[string]*ComplexOperation),
-			wantErr:         false,
-		},
-		{
-			name:        "List with index operation",
-			val:         "['0:newvalue']",
-			colFamily:   "list_text",
-			cqlType:     "varchar",
-			prependCol:  []string{},
-			complexMeta: make(map[string]*ComplexOperation),
-			wantColumns: nil,
-			wantValues:  []interface{}{},
-			wantComplexMeta: map[string]*ComplexOperation{
-				"list_text": {
-					UpdateListIndex: "0",
-					Value:           []byte("newvalue"),
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name:       "List with delete operation",
-			val:        "['value1', 'value2']",
-			colFamily:  "list_text",
-			cqlType:    "varchar",
-			prependCol: []string{},
-			complexMeta: map[string]*ComplexOperation{
-				"list_text": {
-					ListDelete: true,
-				},
-			},
-			wantColumns: nil,
-			wantValues:  []interface{}{},
-			wantComplexMeta: map[string]*ComplexOperation{
-				"list_text": {
-					ListDelete:       true,
-					ListDeleteValues: [][]byte{[]byte("value1"), []byte("value2")},
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name:        "List with prepend operation",
-			val:         "['value1', 'value2']",
-			colFamily:   "list_text",
-			cqlType:     "varchar",
-			prependCol:  []string{"list_text"},
-			complexMeta: make(map[string]*ComplexOperation),
-			wantColumns: []Column{
-				{Name: time.Now().Format("20060102150405.001"), ColumnFamily: "list_text", CQLType: "varchar"},
-				{Name: time.Now().Format("20060102150405.002"), ColumnFamily: "list_text", CQLType: "varchar"},
-			},
-			wantValues: []interface{}{
-				[]byte("value1"),
-				[]byte("value2"),
-			},
-			wantComplexMeta: make(map[string]*ComplexOperation),
-			wantErr:         false,
-		},
-		{
-			name:            "Invalid list format",
-			val:             "[\"?value1', 'value2']",
-			colFamily:       "list_text",
-			cqlType:         "varchar",
-			prependCol:      []string{},
-			complexMeta:     make(map[string]*ComplexOperation),
-			wantColumns:     nil,
-			wantValues:      nil,
-			wantComplexMeta: make(map[string]*ComplexOperation),
-			wantErr:         true,
-		},
-		{
-			name:        "Invalid index operation format",
-			val:         "['0value']", // Missing colon
-			colFamily:   "list_text",
-			cqlType:     "varchar",
-			prependCol:  []string{},
-			complexMeta: make(map[string]*ComplexOperation),
-			wantColumns: []Column{
-				{Name: time.Now().Format("20060102150405.999"), ColumnFamily: "list_text", CQLType: "varchar"},
-			},
-			wantValues: []interface{}{
-				[]byte("0value"),
-			},
-			wantComplexMeta: make(map[string]*ComplexOperation),
-			wantErr:         false,
-		},
-		{
-			name:        "List<int>",
-			val:         "['42', '123']",
-			colFamily:   "list_int",
-			cqlType:     "int",
-			prependCol:  []string{},
-			complexMeta: make(map[string]*ComplexOperation),
-			wantColumns: []Column{
-				{Name: time.Now().Format("20060102150405.999"), ColumnFamily: "list_int", CQLType: "int"},
-				{Name: time.Now().Format("20060102150405.998"), ColumnFamily: "list_int", CQLType: "int"},
-			},
-			wantValues: []interface{}{
-				[]byte{0, 0, 0, 0, 0, 0, 0, 42},
-				[]byte{0, 0, 0, 0, 0, 0, 0, 123},
-			},
-			wantComplexMeta: make(map[string]*ComplexOperation),
-			wantErr:         false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			gotColumns, gotValues, err := processListCollectionRaw(tt.val, tt.colFamily, tt.cqlType, tt.prependCol, tt.complexMeta)
-
-			if (err != nil) != tt.wantErr {
-				t.Errorf("processListCollectionRaw() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-
-			if tt.wantErr {
-				return
-			}
-
-			// For list types, normalize Names for comparison
-			if len(gotColumns) > 0 {
-				for i := range gotColumns {
-					gotColumns[i].Name = fmt.Sprintf("list_index_%d", i)
-				}
-				for i := range tt.wantColumns {
-					tt.wantColumns[i].Name = fmt.Sprintf("list_index_%d", i)
-				}
-			}
-
-			// Compare columns
-			if !reflect.DeepEqual(gotColumns, tt.wantColumns) {
-				t.Errorf("processListCollectionRaw() gotColumns = %v, want %v", gotColumns, tt.wantColumns)
-			}
-
-			// Compare values length
-			if len(gotValues) != len(tt.wantValues) {
-				t.Errorf("processListCollectionRaw() gotValues length = %d, want %d", len(gotValues), len(tt.wantValues))
-				return
-			}
-
-			// Compare values content
-			for i := range gotValues {
-				gotBytes, okGot := gotValues[i].([]byte)
-				wantBytes, okWant := tt.wantValues[i].([]byte)
-				if !okGot || !okWant {
-					t.Errorf("processListCollectionRaw() value type mismatch at index %d", i)
-					continue
-				}
-				if !reflect.DeepEqual(gotBytes, wantBytes) {
-					t.Errorf("processListCollectionRaw() value mismatch at index %d: got %v, want %v", i, gotBytes, wantBytes)
-				}
-			}
-
-			// Compare complexMeta
-			if !reflect.DeepEqual(tt.complexMeta, tt.wantComplexMeta) {
-				t.Errorf("processListCollectionRaw() complexMeta = %v, want %v", tt.complexMeta, tt.wantComplexMeta)
-			}
-		})
-	}
-}
-
-func TestProcessListColumnGeneric(t *testing.T) {
-	protocolV := primitive.ProtocolVersion4
-	tests := []struct {
-		name        string
-		decodedVal  interface{}
-		colFamily   string
-		cqlType     string
-		complexMeta *ComplexOperation
-		wantColumns []Column
-		wantValues  []interface{}
-		wantErr     bool
-	}{
-		{
-			name:        "Process list of strings",
-			decodedVal:  []string{"value1", "value2"},
-			colFamily:   "cf1",
-			cqlType:     "varchar",
-			complexMeta: nil,
-			wantColumns: []Column{
-				{ColumnFamily: "cf1", CQLType: "varchar"},
-				{ColumnFamily: "cf1", CQLType: "varchar"},
-			},
-			wantValues: []interface{}{
-				[]byte("value1"),
-				[]byte("value2"),
-			},
-			wantErr: false,
-		},
-		{
-			name:        "Process list of integers",
-			decodedVal:  []int32{42, 123},
-			colFamily:   "cf1",
-			cqlType:     "int",
-			complexMeta: nil,
-			wantColumns: []Column{
-				{ColumnFamily: "cf1", CQLType: "int"},
-				{ColumnFamily: "cf1", CQLType: "int"},
-			},
-			wantValues: []interface{}{
-				[]byte{0, 0, 0, 0, 0, 0, 0, 42},
-				[]byte{0, 0, 0, 0, 0, 0, 0, 123},
-			},
-			wantErr: false,
-		},
-		{
-			name:        "Process list with prepend operation",
-			decodedVal:  []string{"value1", "value2"},
-			colFamily:   "cf1",
-			cqlType:     "varchar",
-			complexMeta: &ComplexOperation{PrependList: true},
-			wantColumns: []Column{
-				{ColumnFamily: "cf1", CQLType: "varchar"},
-				{ColumnFamily: "cf1", CQLType: "varchar"},
-			},
-			wantValues: []interface{}{
-				[]byte("value1"),
-				[]byte("value2"),
-			},
-			wantErr: false,
-		},
-		{
-			name:        "Process list with delete operation",
-			decodedVal:  []string{"value1", "value2"},
-			colFamily:   "cf1",
-			cqlType:     "varchar",
-			complexMeta: &ComplexOperation{ListDelete: true},
-			wantColumns: nil,
-			wantValues:  []interface{}{},
-			wantErr:     false,
-		},
-		{
-			name:        "Invalid decoded value type",
-			decodedVal:  "not a list",
-			colFamily:   "cf1",
-			cqlType:     "varchar",
-			complexMeta: nil,
-			wantColumns: nil,
-			wantValues:  nil,
-			wantErr:     true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var gotColumns []Column
-			var gotValues []interface{}
-
-			var err error
-			switch v := tt.decodedVal.(type) {
-			case []string:
-				err = processListColumnGeneric[string](v, protocolV, tt.colFamily, tt.cqlType, &gotValues, &gotColumns, tt.complexMeta)
-			case []int32:
-				err = processListColumnGeneric[int32](v, protocolV, tt.colFamily, tt.cqlType, &gotValues, &gotColumns, tt.complexMeta)
-			default:
-				err = processListColumnGeneric[string](v, protocolV, tt.colFamily, tt.cqlType, &gotValues, &gotColumns, tt.complexMeta)
-			}
-
-			if (err != nil) != tt.wantErr {
-				t.Errorf("processListColumnGeneric() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-
-			if tt.wantErr {
-				return
-			}
-
-			// Check list delete values are set correctly
-			if tt.complexMeta != nil && tt.complexMeta.ListDelete {
-				if len(tt.complexMeta.ListDeleteValues) != len(tt.decodedVal.([]string)) {
-					t.Errorf("ListDeleteValues length = %d, want %d",
-						len(tt.complexMeta.ListDeleteValues), len(tt.decodedVal.([]string)))
-				}
-				return
-			}
-
-			// Check columns length
-			if len(gotColumns) != len(tt.wantColumns) {
-				t.Errorf("got %d columns, want %d", len(gotColumns), len(tt.wantColumns))
-				return
-			}
-
-			// Check values length
-			if len(gotValues) != len(tt.wantValues) {
-				t.Errorf("got %d values, want %d", len(gotValues), len(tt.wantValues))
-				return
-			}
-
-			// Compare column properties (excluding Name which contains timestamp)
-			for i := range gotColumns {
-				if gotColumns[i].ColumnFamily != tt.wantColumns[i].ColumnFamily {
-					t.Errorf("Column %d: got ColumnFamily %v, want %v",
-						i, gotColumns[i].ColumnFamily, tt.wantColumns[i].ColumnFamily)
-				}
-				if gotColumns[i].CQLType != tt.wantColumns[i].CQLType {
-					t.Errorf("Column %d: got CQLType %v, want %v",
-						i, gotColumns[i].CQLType, tt.wantColumns[i].CQLType)
-				}
-			}
-
-			// Compare values
-			for i := range gotValues {
-				gotBytes, ok1 := gotValues[i].([]byte)
-				wantBytes, ok2 := tt.wantValues[i].([]byte)
-				if !ok1 || !ok2 {
-					t.Errorf("Value %d: type conversion error", i)
-					continue
-				}
-				if !reflect.DeepEqual(gotBytes, wantBytes) {
-					t.Errorf("Value %d: got %v, want %v", i, gotBytes, wantBytes)
-				}
-			}
-		})
-	}
-}
 func TestProcessComplexUpdate_SuccessfulCases(t *testing.T) {
 	translator := &Translator{
 		SchemaMappingConfig: &schemaMapping.SchemaMappingConfig{
-			TablesMetaData: map[string]map[string]map[string]*schemaMapping.Column{
+			TablesMetaData: map[string]map[string]map[string]*types.Column{
 				"keyspace1": {
 					"table1": {
 						"map_col": {
 							ColumnName:   "map_col",
-							ColumnType:   "map<varchar,varchar>",
+							CQLType:      datatype.NewMapType(datatype.Varchar, datatype.Varchar),
 							IsCollection: true,
 						},
 						"list_col": {
 							ColumnName:   "list_col",
-							ColumnType:   "list<text>",
+							CQLType:      datatype.NewListType(datatype.Varchar),
 							IsCollection: true,
 						},
 					},
@@ -4527,7 +2740,7 @@ func TestProcessComplexUpdate_SuccessfulCases(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		columns        []Column
+		columns        []types.Column
 		values         []interface{}
 		tableName      string
 		keyspaceName   string
@@ -4537,69 +2750,94 @@ func TestProcessComplexUpdate_SuccessfulCases(t *testing.T) {
 	}{
 		{
 			name: "map append operation",
-			columns: []Column{
-				{Name: "map_col", CQLType: "map<varchar,varchar>"},
+			columns: []types.Column{
+				{Name: "map_col", CQLType: datatype.NewMapType(datatype.Varchar, datatype.Varchar)},
 			},
-			values:         []interface{}{"map_col+{key:?}"},
+			// values:         []interface{}{"map_col+{key:?}"},
+			values: []interface{}{
+				ComplexAssignment{
+					Column:    "map_col",
+					Operation: "+",
+					Left:      "key",
+				},
+			},
 			tableName:      "table1",
 			keyspaceName:   "keyspace1",
 			prependColumns: []string{},
 			wantMeta: map[string]*ComplexOperation{
 				"map_col": {
-					Append:           true,
-					mapKey:           "key",
-					ExpectedDatatype: datatype.Varchar,
+					Append: true,
 				},
 			},
 			wantErr: false,
 		},
 		{
 			name: "list prepend operation",
-			columns: []Column{
-				{Name: "list_col", CQLType: "list<text>"},
+			columns: []types.Column{
+				{Name: "list_col", CQLType: datatype.NewListType(datatype.Varchar)},
 			},
-			values:         []interface{}{"list_col+?"},
+			values: []interface{}{
+				ComplexAssignment{
+					Column:    "list_col",
+					Operation: "+",
+					Left:      "key",
+					Right:     "list_col",
+				},
+			},
 			tableName:      "table1",
 			keyspaceName:   "keyspace1",
 			prependColumns: []string{"list_col"},
 			wantMeta: map[string]*ComplexOperation{
 				"list_col": {
 					PrependList: true,
-					mapKey:      "",
+					mapKey:      nil,
 				},
 			},
 			wantErr: false,
 		},
 		{
 			name: "multiple operations",
-			columns: []Column{
-				{Name: "map_col", CQLType: "map<varchar,varchar>"},
-				{Name: "list_col", CQLType: "list<text>"},
+			columns: []types.Column{
+				{Name: "map_col", CQLType: datatype.NewMapType(datatype.Varchar, datatype.Varchar)},
+				{Name: "list_col", CQLType: datatype.NewListType(datatype.Varchar)},
 			},
+			// values: []interface{}{
+			// 	"map_col+{key:?}",
+			// 	"list_col+?",
+			// },
 			values: []interface{}{
-				"map_col+{key:?}",
-				"list_col+?",
+				ComplexAssignment{
+					Column:    "map_col",
+					Operation: "+",
+					Left:      "key",
+					Right:     "map_col",
+				},
+				ComplexAssignment{
+					Column:    "list_col",
+					Operation: "+",
+					Left:      "key",
+					Right:     "list_col",
+				},
 			},
 			tableName:      "table1",
 			keyspaceName:   "keyspace1",
 			prependColumns: []string{"list_col"},
 			wantMeta: map[string]*ComplexOperation{
 				"map_col": {
-					Append:           true,
-					mapKey:           "key",
-					ExpectedDatatype: datatype.Varchar,
+					Append: true,
+					mapKey: nil,
 				},
 				"list_col": {
 					PrependList: true,
-					mapKey:      "",
+					mapKey:      nil,
 				},
 			},
 			wantErr: false,
 		},
 		{
 			name: "non-collection column operation",
-			columns: []Column{
-				{Name: "normal_col", CQLType: "varchar"},
+			columns: []types.Column{
+				{Name: "normal_col", CQLType: datatype.Varchar},
 			},
 			values:         []interface{}{"normal_col+value"},
 			tableName:      "table1",
@@ -4610,8 +2848,8 @@ func TestProcessComplexUpdate_SuccessfulCases(t *testing.T) {
 		},
 		{
 			name: "skip invalid value type",
-			columns: []Column{
-				{Name: "map_col", CQLType: "map<varchar,varchar>"},
+			columns: []types.Column{
+				{Name: "map_col", CQLType: datatype.NewMapType(datatype.Varchar, datatype.Varchar)},
 			},
 			values:         []interface{}{123}, // Not a string
 			tableName:      "table1",
@@ -4653,161 +2891,864 @@ func TestProcessComplexUpdate_SuccessfulCases(t *testing.T) {
 		})
 	}
 }
-func TestProcessColumnUpdate(t *testing.T) {
+
+// --- Mocks for ANTLR interfaces ---
+type mockFromSpecContext struct {
+	cql.IFromSpecContext
+	fromSpecElement cql.IFromSpecElementContext
+}
+
+func (m *mockFromSpecContext) FromSpecElement() cql.IFromSpecElementContext {
+	return m.fromSpecElement
+}
+
+type mockFromSpecElementContext struct {
+	cql.IFromSpecElementContext
+	objectNames []antlr.TerminalNode
+}
+
+func (m *mockFromSpecElementContext) AllOBJECT_NAME() []antlr.TerminalNode {
+	return m.objectNames
+}
+
+type mockTerminalNode struct {
+	antlr.TerminalNode
+	text string
+}
+
+func (m *mockTerminalNode) GetText() string {
+	return m.text
+}
+
+// Tests for getFromSpecElement
+func Test_getFromSpecElement(t *testing.T) {
 	tests := []struct {
-		name           string
-		val            string
-		column         Column
-		prependColumns []string
-		want           *ComplexOperation
-		wantErr        bool
+		name       string
+		ctx        cql.IFromSpecContext
+		want       cql.IFromSpecElementContext
+		wantErr    bool
+		wantErrMsg string
 	}{
 		{
-			name: "map append operation",
-			val:  "map_col+{key:?}",
-			column: Column{
-				Name:    "map_col",
-				CQLType: "map<varchar,varchar>",
-			},
-			prependColumns: []string{},
-			want: &ComplexOperation{
-				Append:           true,
-				mapKey:           "key",
-				ExpectedDatatype: datatype.Varchar,
+			name:    "Valid fromSpecElement",
+			ctx:     &mockFromSpecContext{fromSpecElement: &mockFromSpecElementContext{}},
+			want:    &mockFromSpecElementContext{},
+			wantErr: false,
+		},
+		{
+			name:    "Nil fromSpecElement",
+			ctx:     &mockFromSpecContext{fromSpecElement: nil},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:       "Nil input context",
+			ctx:        nil,
+			want:       nil,
+			wantErr:    true,
+			wantErrMsg: "input context is nil",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := getFromSpecElement(tt.ctx)
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Nil(t, result)
+				if tt.wantErrMsg != "" {
+					assert.Equal(t, tt.wantErrMsg, err.Error())
+				}
+			} else {
+				assert.NoError(t, err)
+				// Can't use reflect.DeepEqual for interfaces with methods, so just check type
+				assert.IsType(t, tt.want, result)
+			}
+		})
+	}
+}
+
+// Tests for getAllObjectNames
+func Test_getAllObjectNames(t *testing.T) {
+	tests := []struct {
+		name     string
+		fromSpec cql.IFromSpecElementContext
+		want     []antlr.TerminalNode
+		wantErr  bool
+	}{
+		{
+			name: "Both keyspace and table present",
+			fromSpec: &mockFromSpecElementContext{objectNames: []antlr.TerminalNode{
+				&mockTerminalNode{text: "ks"},
+				&mockTerminalNode{text: "tbl"},
+			}},
+			want: []antlr.TerminalNode{
+				&mockTerminalNode{text: "ks"},
+				&mockTerminalNode{text: "tbl"},
 			},
 			wantErr: false,
 		},
 		{
-			name: "map delete operation",
-			val:  "map_col-{key}",
-			column: Column{
-				Name:    "map_col",
-				CQLType: "map<varchar,varchar>",
-			},
-			prependColumns: []string{},
-			want: &ComplexOperation{
-				Delete:           true,
-				ExpectedDatatype: datatype.NewSetType(datatype.Varchar),
-				mapKey:           "",
+			name: "Only table present",
+			fromSpec: &mockFromSpecElementContext{objectNames: []antlr.TerminalNode{
+				&mockTerminalNode{text: "tbl"},
+			}},
+			want: []antlr.TerminalNode{
+				&mockTerminalNode{text: "tbl"},
 			},
 			wantErr: false,
 		},
 		{
-			name: "list prepend operation",
-			val:  "list_col+?",
-			column: Column{
-				Name:    "list_col",
-				CQLType: "list<text>",
-			},
-			prependColumns: []string{"list_col"},
-			want: &ComplexOperation{
-				PrependList: true,
-				mapKey:      "",
-			},
-			wantErr: false,
+			name:     "No object names (empty)",
+			fromSpec: &mockFromSpecElementContext{objectNames: []antlr.TerminalNode{}},
+			want:     nil,
+			wantErr:  true,
 		},
 		{
-			name: "list append operation",
-			val:  "list_col+?",
-			column: Column{
-				Name:    "list_col",
-				CQLType: "list<text>",
+			name:     "Nil object names",
+			fromSpec: &mockFromSpecElementContext{objectNames: nil},
+			want:     nil,
+			wantErr:  true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := getAllObjectNames(tt.fromSpec)
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Nil(t, result)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, len(tt.want), len(result))
+				for i := range tt.want {
+					assert.Equal(t, tt.want[i].GetText(), result[i].GetText())
+				}
+			}
+		})
+	}
+}
+
+// Tests for getTableAndKeyspaceObjects
+func Test_getTableAndKeyspaceObjects(t *testing.T) {
+	tests := []struct {
+		name         string
+		objs         []antlr.TerminalNode
+		wantKeyspace string
+		wantTable    string
+		wantErr      bool
+		wantErrMsg   string
+	}{
+		{
+			name: "Both keyspace and table present",
+			objs: []antlr.TerminalNode{
+				&mockTerminalNode{text: "ks"},
+				&mockTerminalNode{text: "tbl"},
 			},
-			prependColumns: []string{},
-			want: &ComplexOperation{
-				Append: true,
-				mapKey: "",
-			},
-			wantErr: false,
+			wantKeyspace: "ks",
+			wantTable:    "tbl",
+			wantErr:      false,
 		},
 		{
-			name: "list delete operation",
-			val:  "list_col-?",
-			column: Column{
-				Name:    "list_col",
-				CQLType: "list<text>",
+			name: "Only table present",
+			objs: []antlr.TerminalNode{
+				&mockTerminalNode{text: "tbl"},
 			},
-			prependColumns: []string{},
-			want: &ComplexOperation{
-				Delete:     true,
-				ListDelete: true,
-				mapKey:     "",
-			},
-			wantErr: false,
+			wantKeyspace: "",
+			wantTable:    "tbl",
+			wantErr:      false,
 		},
 		{
-			name: "list update by index",
-			val:  "list_col+{1:?}",
-			column: Column{
-				Name:    "list_col",
-				CQLType: "list<text>",
+			name: "Missing table name (empty string)",
+			objs: []antlr.TerminalNode{
+				&mockTerminalNode{text: "ks"},
+				&mockTerminalNode{text: ""},
 			},
-			prependColumns: []string{},
-			want: &ComplexOperation{
-				Append:           false,
-				mapKey:           "",
-				UpdateListIndex:  "1",
-				ExpectedDatatype: datatype.Varchar,
-			},
-			wantErr: false,
+			wantKeyspace: "",
+			wantTable:    "",
+			wantErr:      true,
+			wantErrMsg:   "table is missing",
 		},
 		{
-			name: "invalid format for map update",
-			val:  "map_col+{invalid",
-			column: Column{
-				Name:    "map_col",
-				CQLType: "map<varchar,varchar>",
+			name: "Extra parameters (more than 2 objects)",
+			objs: []antlr.TerminalNode{
+				&mockTerminalNode{text: "ks"},
+				&mockTerminalNode{text: "tbl"},
+				&mockTerminalNode{text: "extra"},
 			},
-			prependColumns: []string{},
-			want:           nil,
-			wantErr:        true,
+			wantKeyspace: "",
+			wantTable:    "",
+			wantErr:      true,
 		},
 		{
-			name: "no operation specified",
-			val:  "col_name",
-			column: Column{
-				Name:    "col_name",
-				CQLType: "varchar",
+			name:         "No objects (empty slice)",
+			objs:         []antlr.TerminalNode{},
+			wantKeyspace: "",
+			wantTable:    "",
+			wantErr:      true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			keyspace, table, err := getTableAndKeyspaceObjects(tt.objs)
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Equal(t, tt.wantKeyspace, keyspace)
+				assert.Equal(t, tt.wantTable, table)
+				if tt.wantErrMsg != "" {
+					assert.Equal(t, tt.wantErrMsg, err.Error())
+				}
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.wantKeyspace, keyspace)
+				assert.Equal(t, tt.wantTable, table)
+			}
+		})
+	}
+}
+
+func TestAddSetElements(t *testing.T) {
+	tests := []struct {
+		name        string
+		setValues   []string
+		colFamily   string
+		column      types.Column
+		input       ProcessRawCollectionsInput
+		output      *ProcessRawCollectionsOutput
+		expectedErr bool
+		validate    func(t *testing.T, output *ProcessRawCollectionsOutput)
+	}{
+		{
+			name:      "Add single string element to set",
+			setValues: []string{"value1"},
+			colFamily: "test_family",
+			column: types.Column{
+				Name:    "test_set",
+				CQLType: datatype.NewSetType(datatype.Varchar),
 			},
-			prependColumns: []string{},
-			want: &ComplexOperation{
-				Append:      false,
-				Delete:      false,
-				ListDelete:  false,
-				PrependList: false,
-				mapKey:      "",
+			input:  ProcessRawCollectionsInput{},
+			output: &ProcessRawCollectionsOutput{},
+			validate: func(t *testing.T, output *ProcessRawCollectionsOutput) {
+				assert.Len(t, output.NewColumns, 1)
+				assert.Len(t, output.NewValues, 1)
+				assert.Equal(t, "value1", output.NewColumns[0].Name)
+				assert.Equal(t, "test_family", output.NewColumns[0].ColumnFamily)
+				assert.Equal(t, datatype.Varchar, output.NewColumns[0].CQLType)
+				assert.Empty(t, output.NewValues[0])
 			},
-			wantErr: false,
 		},
 		{
-			name: "map with non-text key type",
-			val:  "map_col+{42:?}",
-			column: Column{
-				Name:    "map_col",
-				CQLType: "map<int,text>",
+			name:      "Add multiple string elements to set",
+			setValues: []string{"value1", "value2", "value3"},
+			colFamily: "test_family",
+			column: types.Column{
+				Name:    "test_set",
+				CQLType: datatype.NewSetType(datatype.Varchar),
 			},
-			prependColumns: []string{},
-			want: &ComplexOperation{
-				Append:           true,
-				mapKey:           "42",
-				ExpectedDatatype: datatype.Varchar,
+			input:  ProcessRawCollectionsInput{},
+			output: &ProcessRawCollectionsOutput{},
+			validate: func(t *testing.T, output *ProcessRawCollectionsOutput) {
+				assert.Len(t, output.NewColumns, 3)
+				assert.Len(t, output.NewValues, 3)
+				expectedValues := []string{"value1", "value2", "value3"}
+				for i, val := range expectedValues {
+					assert.Equal(t, val, output.NewColumns[i].Name)
+					assert.Equal(t, "test_family", output.NewColumns[i].ColumnFamily)
+					assert.Equal(t, datatype.Varchar, output.NewColumns[i].CQLType)
+					assert.Empty(t, output.NewValues[i])
+				}
 			},
-			wantErr: false,
+		},
+		{
+			name:      "Add boolean elements to set",
+			setValues: []string{"true", "false"},
+			colFamily: "test_family",
+			column: types.Column{
+				Name:    "test_set",
+				CQLType: datatype.NewSetType(datatype.Boolean),
+			},
+			input:  ProcessRawCollectionsInput{},
+			output: &ProcessRawCollectionsOutput{},
+			validate: func(t *testing.T, output *ProcessRawCollectionsOutput) {
+				assert.Len(t, output.NewColumns, 2)
+				assert.Len(t, output.NewValues, 2)
+				expectedValues := []string{"1", "0"}
+				for i, val := range expectedValues {
+					assert.Equal(t, val, output.NewColumns[i].Name)
+					assert.Equal(t, "test_family", output.NewColumns[i].ColumnFamily)
+					assert.Equal(t, datatype.Boolean, output.NewColumns[i].CQLType)
+					assert.Empty(t, output.NewValues[i])
+				}
+			},
+		},
+		{
+			name:      "Add elements to empty set",
+			setValues: []string{},
+			colFamily: "test_family",
+			column: types.Column{
+				Name:    "test_set",
+				CQLType: datatype.NewSetType(datatype.Varchar),
+			},
+			input:  ProcessRawCollectionsInput{},
+			output: &ProcessRawCollectionsOutput{},
+			validate: func(t *testing.T, output *ProcessRawCollectionsOutput) {
+				assert.Empty(t, output.NewColumns)
+				assert.Empty(t, output.NewValues)
+			},
+		},
+		{
+			name:      "Add elements with empty column family",
+			setValues: []string{"value1"},
+			colFamily: "",
+			column: types.Column{
+				Name:    "test_set",
+				CQLType: datatype.NewSetType(datatype.Varchar),
+			},
+			input:  ProcessRawCollectionsInput{},
+			output: &ProcessRawCollectionsOutput{},
+			validate: func(t *testing.T, output *ProcessRawCollectionsOutput) {
+				assert.Len(t, output.NewColumns, 1)
+				assert.Len(t, output.NewValues, 1)
+				assert.Equal(t, "value1", output.NewColumns[0].Name)
+				assert.Empty(t, output.NewColumns[0].ColumnFamily)
+				assert.Equal(t, datatype.Varchar, output.NewColumns[0].CQLType)
+				assert.Empty(t, output.NewValues[0])
+			},
+		},
+		{
+			name:      "Add elements with invalid boolean value",
+			setValues: []string{"invalid"},
+			colFamily: "test_family",
+			column: types.Column{
+				Name:    "test_set",
+				CQLType: datatype.NewSetType(datatype.Boolean),
+			},
+			input:       ProcessRawCollectionsInput{},
+			output:      &ProcessRawCollectionsOutput{},
+			expectedErr: true,
+		},
+		{
+			name:      "Add elements with nil output",
+			setValues: []string{"value1"},
+			colFamily: "test_family",
+			column: types.Column{
+				Name:    "test_set",
+				CQLType: datatype.NewSetType(datatype.Varchar),
+			},
+			input:       ProcessRawCollectionsInput{},
+			output:      nil,
+			expectedErr: true,
+		},
+		{
+			name:      "Add elements with different data types",
+			setValues: []string{"value1", "123", "true"},
+			colFamily: "test_family",
+			column: types.Column{
+				Name:    "test_set",
+				CQLType: datatype.NewSetType(datatype.Int),
+			},
+			input:       ProcessRawCollectionsInput{},
+			output:      &ProcessRawCollectionsOutput{},
+			expectedErr: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := processColumnUpdate(tt.val, tt.column, tt.prependColumns)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("processColumnUpdate() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			err := addSetElements(tt.setValues, tt.colFamily, tt.column, tt.input, tt.output)
+
+			if tt.expectedErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				if tt.validate != nil {
+					tt.validate(t, tt.output)
+				}
 			}
+		})
+	}
+}
+
+func TestHandleListOperation(t *testing.T) {
+	tests := []struct {
+		name      string
+		column    types.Column
+		input     ProcessRawCollectionsInput
+		operation interface{}
+		wantErr   bool
+		validate  func(t *testing.T, output *ProcessRawCollectionsOutput)
+	}{
+		{
+			name: "Add operation with prepend",
+			column: types.Column{
+				Name:    "mylist",
+				CQLType: datatype.NewListType(datatype.Int),
+			},
+			input: ProcessRawCollectionsInput{
+				PrependColumns: []string{"mylist"},
+			},
+			operation: ComplexAssignment{Operation: "+", Left: []string{"1", "2"}, Right: []string{"3", "4"}},
+			validate: func(t *testing.T, output *ProcessRawCollectionsOutput) {
+				assert.Len(t, output.NewValues, 2)
+				assert.Len(t, output.NewColumns, 2)
+				for _, col := range output.NewColumns {
+					assert.Equal(t, "mylist", col.ColumnFamily)
+					assert.Equal(t, datatype.Int, col.CQLType)
+				}
+			},
+		},
+		{
+			name: "Remove operation",
+			column: types.Column{
+				Name:    "mylist",
+				CQLType: datatype.NewListType(datatype.Int),
+			},
+			operation: ComplexAssignment{Operation: "-", Right: []string{"3", "4"}},
+			input:     ProcessRawCollectionsInput{},
+			validate: func(t *testing.T, output *ProcessRawCollectionsOutput) {
+				assert.NotNil(t, output.ComplexMeta["mylist"])
+				assert.True(t, output.ComplexMeta["mylist"].ListDelete)
+				assert.True(t, output.ComplexMeta["mylist"].Delete)
+			},
+		},
+		{
+			name: "Update index operation",
+			column: types.Column{
+				Name:    "mylist",
+				CQLType: datatype.NewListType(datatype.Int),
+			},
+			operation: ComplexAssignment{Operation: "update_index", Left: "1", Right: "123"},
+			input:     ProcessRawCollectionsInput{},
+			validate: func(t *testing.T, output *ProcessRawCollectionsOutput) {
+				assert.NotNil(t, output.ComplexMeta["mylist"])
+				assert.Equal(t, "1", output.ComplexMeta["mylist"].UpdateListIndex)
+			},
+		},
+		{
+			name: "Simple assignment",
+			column: types.Column{
+				Name:    "mylist",
+				CQLType: datatype.NewListType(datatype.Int),
+			},
+			operation: []string{"1", "2"},
+			input:     ProcessRawCollectionsInput{},
+			validate: func(t *testing.T, output *ProcessRawCollectionsOutput) {
+				assert.Len(t, output.NewValues, 2)
+				assert.Len(t, output.NewColumns, 2)
+				assert.Len(t, output.DelColumnFamily, 1)
+				assert.Equal(t, "mylist", output.DelColumnFamily[0])
+			},
+		},
+		{
+			name: "Invalid operation",
+			column: types.Column{
+				Name:    "mylist",
+				CQLType: datatype.NewListType(datatype.Int),
+			},
+			operation: ComplexAssignment{Operation: "invalid"},
+			input:     ProcessRawCollectionsInput{},
+			wantErr:   true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			output := &ProcessRawCollectionsOutput{
+				ComplexMeta: make(map[string]*ComplexOperation),
+			}
+			err := handleListOperation(tt.operation, tt.column, tt.column.Name, tt.input, output)
 			if tt.wantErr {
+				assert.Error(t, err)
 				return
 			}
-			if !compareComplexOperation(got, tt.want) {
-				t.Errorf("processColumnUpdate() = %v, want %v", got, tt.want)
+			assert.NoError(t, err)
+			if tt.validate != nil {
+				tt.validate(t, output)
+			}
+		})
+	}
+}
+
+func TestHandleSetOperation(t *testing.T) {
+	tests := []struct {
+		name      string
+		column    types.Column
+		input     ProcessRawCollectionsInput
+		operation interface{}
+		wantErr   bool
+		validate  func(t *testing.T, output *ProcessRawCollectionsOutput)
+	}{
+		{
+			name: "Add elements to set",
+			column: types.Column{
+				Name:    "myset",
+				CQLType: datatype.NewSetType(datatype.Int),
+			},
+			operation: ComplexAssignment{Operation: "+", Right: []string{"1", "2", "3"}},
+			input:     ProcessRawCollectionsInput{},
+			validate: func(t *testing.T, output *ProcessRawCollectionsOutput) {
+				assert.Len(t, output.NewColumns, 3)
+				assert.Len(t, output.NewValues, 3)
+				for i, col := range output.NewColumns {
+					assert.Equal(t, "myset", col.ColumnFamily)
+					assert.Equal(t, datatype.Int, col.CQLType)
+					assert.Equal(t, fmt.Sprintf("%d", i+1), col.Name)
+				}
+			},
+		},
+		{
+			name: "Remove elements from set",
+			column: types.Column{
+				Name:    "myset",
+				CQLType: datatype.NewSetType(datatype.Int),
+			},
+			operation: ComplexAssignment{Operation: "-", Right: []string{"1", "2"}},
+			input:     ProcessRawCollectionsInput{},
+			validate: func(t *testing.T, output *ProcessRawCollectionsOutput) {
+				assert.Len(t, output.DelColumns, 2)
+				for _, col := range output.DelColumns {
+					assert.Equal(t, "myset", col.ColumnFamily)
+				}
+			},
+		},
+		{
+			name: "Simple assignment to set",
+			column: types.Column{
+				Name:    "myset",
+				CQLType: datatype.NewSetType(datatype.Int),
+			},
+			operation: []string{"1", "2", "3"},
+			input:     ProcessRawCollectionsInput{},
+			validate: func(t *testing.T, output *ProcessRawCollectionsOutput) {
+				assert.Len(t, output.NewColumns, 3)
+				assert.Len(t, output.NewValues, 3)
+				assert.Len(t, output.DelColumnFamily, 1)
+				assert.Equal(t, "myset", output.DelColumnFamily[0])
+			},
+		},
+		{
+			name: "Invalid operation",
+			column: types.Column{
+				Name:    "myset",
+				CQLType: datatype.NewSetType(datatype.Int),
+			},
+			operation: ComplexAssignment{Operation: "invalid"},
+			input:     ProcessRawCollectionsInput{},
+			wantErr:   true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			output := &ProcessRawCollectionsOutput{
+				ComplexMeta: make(map[string]*ComplexOperation),
+			}
+			err := handleSetOperation(tt.operation, tt.column, tt.column.Name, tt.input, output)
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
+			if tt.validate != nil {
+				tt.validate(t, output)
+			}
+		})
+	}
+}
+
+func TestHandleMapOperation(t *testing.T) {
+	tests := []struct {
+		name      string
+		column    types.Column
+		input     ProcessRawCollectionsInput
+		operation interface{}
+		wantErr   bool
+		validate  func(t *testing.T, output *ProcessRawCollectionsOutput)
+	}{
+		{
+			name: "Add entries to map",
+			column: types.Column{
+				Name:    "mymap",
+				CQLType: datatype.NewMapType(datatype.Varchar, datatype.Int),
+			},
+			operation: ComplexAssignment{Operation: "+", Right: map[string]string{"key1": "1", "key2": "2"}},
+			input:     ProcessRawCollectionsInput{},
+			validate: func(t *testing.T, output *ProcessRawCollectionsOutput) {
+				assert.Len(t, output.NewColumns, 2)
+				assert.Len(t, output.NewValues, 2)
+				for _, col := range output.NewColumns {
+					assert.Equal(t, "mymap", col.ColumnFamily)
+					assert.Contains(t, []string{"key1", "key2"}, col.Name)
+				}
+			},
+		},
+		{
+			name: "Remove entries from map",
+			column: types.Column{
+				Name:    "mymap",
+				CQLType: datatype.NewMapType(datatype.Varchar, datatype.Int),
+			},
+			operation: ComplexAssignment{Operation: "-", Right: []string{"key1", "key2"}},
+			input:     ProcessRawCollectionsInput{},
+			validate: func(t *testing.T, output *ProcessRawCollectionsOutput) {
+				assert.Len(t, output.DelColumns, 2)
+				for _, col := range output.DelColumns {
+					assert.Equal(t, "mymap", col.ColumnFamily)
+					assert.Contains(t, []string{"key1", "key2"}, col.Name)
+				}
+			},
+		},
+		{
+			name: "Update map index",
+			column: types.Column{
+				Name:    "mymap",
+				CQLType: datatype.NewMapType(datatype.Varchar, datatype.Int),
+			},
+			operation: ComplexAssignment{Operation: "update_index", Left: "key1", Right: "99"},
+			input:     ProcessRawCollectionsInput{},
+			validate: func(t *testing.T, output *ProcessRawCollectionsOutput) {
+				assert.Len(t, output.NewColumns, 1)
+				assert.Equal(t, "key1", output.NewColumns[0].Name)
+				assert.Equal(t, "mymap", output.NewColumns[0].ColumnFamily)
+			},
+		},
+		{
+			name: "Simple assignment to map",
+			column: types.Column{
+				Name:    "mymap",
+				CQLType: datatype.NewMapType(datatype.Varchar, datatype.Int),
+			},
+			operation: map[string]string{"key1": "1", "key2": "2"},
+			input:     ProcessRawCollectionsInput{},
+			validate: func(t *testing.T, output *ProcessRawCollectionsOutput) {
+				assert.Len(t, output.NewColumns, 2)
+				assert.Len(t, output.NewValues, 2)
+				assert.Len(t, output.DelColumnFamily, 1)
+				assert.Equal(t, "mymap", output.DelColumnFamily[0])
+			},
+		},
+		{
+			name: "Invalid map key type",
+			column: types.Column{
+				Name:    "mymap",
+				CQLType: datatype.NewMapType(datatype.Int, datatype.Int),
+			},
+			operation: ComplexAssignment{Operation: "+", Right: map[string]string{"key1": "1"}},
+			input:     ProcessRawCollectionsInput{},
+			wantErr:   true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			output := &ProcessRawCollectionsOutput{
+				ComplexMeta: make(map[string]*ComplexOperation),
+			}
+			err := handleMapOperation(tt.operation, tt.column, tt.column.Name, tt.input, output)
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
+			if tt.validate != nil {
+				tt.validate(t, output)
+			}
+		})
+	}
+}
+
+func TestProcessCollectionColumnsForRawQueries(t *testing.T) {
+	// Mock key data types for columns
+	colList := types.Column{
+		Name:         "list_text",
+		CQLType:      datatype.NewListType(datatype.Varchar),
+		IsCollection: true,
+	}
+	colSet := types.Column{
+		Name:    "column7",
+		CQLType: datatype.NewSetType(datatype.Varchar),
+	}
+	colMap := types.Column{
+		Name:    "map_text_text",
+		CQLType: datatype.NewMapType(datatype.Varchar, datatype.Varchar),
+	}
+
+	// Mock inputs
+	inputs := ProcessRawCollectionsInput{
+		Columns: []types.Column{colList, colSet, colMap /* add more as needed */},
+		Values: []interface{}{
+			[]string{"hi", "hello"},
+			[]string{"alpha", "beta"},
+			map[string]string{"k1": "v1", "k2": "v2"},
+		},
+		TableName:      "test_table",
+		KeySpace:       "test_keyspace",
+		PrependColumns: []string{"mylist"},
+		Translator: &Translator{
+			Logger:              zap.NewExample(), // or zap.NewNop() for silent logs
+			SchemaMappingConfig: GetSchemaMappingConfig(),
+		},
+	}
+
+	output, err := processCollectionColumnsForRawQueries(inputs)
+	if err != nil {
+		t.Fatalf("Failed: %v", err)
+	}
+
+	// Verify that output updated accordingly
+	if len(output.NewColumns) == 0 || len(output.NewValues) == 0 {
+		t.Errorf("Expected non-empty NewColumns and NewValues")
+	}
+}
+
+func TestConvertAllValuesToRowKeyType(t *testing.T) {
+	pkCols := []types.Column{
+		{
+			ColumnName:   "id_int",
+			CQLType:      datatype.Int,
+			IsPrimaryKey: true,
+		},
+		{
+			ColumnName:   "id_bigint",
+			CQLType:      datatype.Bigint,
+			IsPrimaryKey: true,
+		},
+		{
+			ColumnName:   "name_varchar",
+			CQLType:      datatype.Varchar,
+			IsPrimaryKey: true,
+		},
+		{
+			ColumnName:   "blob_pk",
+			CQLType:      datatype.Blob,
+			IsPrimaryKey: true,
+		},
+	}
+
+	values := map[string]interface{}{
+		"id_int":       "123",
+		"id_bigint":    "987654321",
+		"name_varchar": "validUTF8",
+		"blob_pk":      "blob_data",
+	}
+
+	result, err := convertAllValuesToRowKeyType(pkCols, values)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	// Check results
+	if result["id_int"] != int64(123) {
+		t.Errorf("Expected 123, got %v", result["id_int"])
+	}
+	if result["id_bigint"] != int64(987654321) {
+		t.Errorf("Expected 987654321, got %v", result["id_bigint"])
+	}
+	if result["name_varchar"] != "validUTF8" {
+		t.Errorf("Expected 'validUTF8', got %v", result["name_varchar"])
+	}
+	if result["blob_pk"] != "blob_data" {
+		t.Errorf("Expected 'blob_data', got %v", result["blob_pk"])
+	}
+
+	// Test with non-string unsupported type for varchar
+	valuesInvalid := map[string]interface{}{
+		"name_varchar": 12345,
+	}
+	_, err = convertAllValuesToRowKeyType(pkCols, valuesInvalid)
+	if err == nil {
+		t.Errorf("Expected error for invalid varchar input")
+	}
+
+	// Test missing key
+	incompleteValues := map[string]interface{}{
+		"id_int": "123",
+		// missing "id_bigint"
+	}
+	_, err = convertAllValuesToRowKeyType(pkCols, incompleteValues)
+	if err == nil {
+		t.Errorf("Expected error for missing primary key")
+	}
+}
+
+func TestCqlTypeToEmptyPrimitive(t *testing.T) {
+	tests := []struct {
+		name         string
+		cqlType      datatype.DataType
+		isPrimaryKey bool
+		expected     interface{}
+	}{
+		{
+			name:         "Int type",
+			cqlType:      datatype.Int,
+			isPrimaryKey: false,
+			expected:     int32(0),
+		},
+		{
+			name:         "Bigint type",
+			cqlType:      datatype.Bigint,
+			isPrimaryKey: false,
+			expected:     int64(0),
+		},
+		{
+			name:         "Float type",
+			cqlType:      datatype.Float,
+			isPrimaryKey: false,
+			expected:     float32(0),
+		},
+		{
+			name:         "Double type",
+			cqlType:      datatype.Double,
+			isPrimaryKey: false,
+			expected:     float64(0),
+		},
+		{
+			name:         "Boolean type",
+			cqlType:      datatype.Boolean,
+			isPrimaryKey: false,
+			expected:     false,
+		},
+		{
+			name:         "Timestamp type",
+			cqlType:      datatype.Timestamp,
+			isPrimaryKey: false,
+			expected:     time.Time{},
+		},
+		{
+			name:         "Blob type",
+			cqlType:      datatype.Blob,
+			isPrimaryKey: false,
+			expected:     []byte{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := cqlTypeToEmptyPrimitive(tt.cqlType, tt.isPrimaryKey)
+			if !reflect.DeepEqual(result, tt.expected) {
+				t.Errorf("For cqlType %v and isPrimaryKey %v, expected %v (%T), but got %v (%T)",
+					tt.cqlType, tt.isPrimaryKey, tt.expected, tt.expected, result, result)
+			}
+		})
+	}
+}
+
+func TestRenameLiterals(t *testing.T) {
+	tests := []struct {
+		name     string
+		query    string
+		expected string
+	}{
+		{
+			name:     "No literals",
+			query:    `SELECT * FROM table`,
+			expected: `SELECT * FROM table`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := renameLiterals(tt.query)
+			if result != tt.expected {
+				t.Errorf("Expected: %s, Got: %s", tt.expected, result)
 			}
 		})
 	}

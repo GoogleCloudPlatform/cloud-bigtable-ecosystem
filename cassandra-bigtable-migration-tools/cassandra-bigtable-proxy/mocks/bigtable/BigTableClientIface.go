@@ -4,12 +4,22 @@ package mocks
 
 import (
 	context "context"
+
+	bigtable "cloud.google.com/go/bigtable"
 	bigtableclient "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/bigtable"
+
 	message "github.com/datastax/go-cassandra-native-protocol/message"
+
 	mock "github.com/stretchr/testify/mock"
+
 	responsehandler "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/responsehandler"
+
 	schemaMapping "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/schema-mapping"
+
+	types "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
+
 	time "time"
+
 	translator "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/translator"
 )
 
@@ -135,63 +145,70 @@ func (_m *BigTableClientIface) DropTable(ctx context.Context, data *translator.D
 	return r0
 }
 
-// ExecuteBigtableQuery provides a mock function with given fields: _a0, _a1
-func (_m *BigTableClientIface) ExecuteBigtableQuery(_a0 context.Context, _a1 responsehandler.QueryMetadata) (map[string]map[string]interface{}, error) {
-	ret := _m.Called(_a0, _a1)
+// ExecutePreparedStatement provides a mock function with given fields: ctx, query, preparedStmt
+func (_m *BigTableClientIface) ExecutePreparedStatement(ctx context.Context, query responsehandler.QueryMetadata, preparedStmt *bigtable.PreparedStatement) (*message.RowsResult, time.Time, error) {
+	ret := _m.Called(ctx, query, preparedStmt)
 
 	if len(ret) == 0 {
-		panic("no return value specified for ExecuteBigtableQuery")
+		panic("no return value specified for ExecutePreparedStatement")
 	}
 
-	var r0 map[string]map[string]interface{}
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, responsehandler.QueryMetadata) (map[string]map[string]interface{}, error)); ok {
-		return rf(_a0, _a1)
+	var r0 *message.RowsResult
+	var r1 time.Time
+	var r2 error
+	if rf, ok := ret.Get(0).(func(context.Context, responsehandler.QueryMetadata, *bigtable.PreparedStatement) (*message.RowsResult, time.Time, error)); ok {
+		return rf(ctx, query, preparedStmt)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, responsehandler.QueryMetadata) map[string]map[string]interface{}); ok {
-		r0 = rf(_a0, _a1)
+	if rf, ok := ret.Get(0).(func(context.Context, responsehandler.QueryMetadata, *bigtable.PreparedStatement) *message.RowsResult); ok {
+		r0 = rf(ctx, query, preparedStmt)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(map[string]map[string]interface{})
+			r0 = ret.Get(0).(*message.RowsResult)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, responsehandler.QueryMetadata) error); ok {
-		r1 = rf(_a0, _a1)
+	if rf, ok := ret.Get(1).(func(context.Context, responsehandler.QueryMetadata, *bigtable.PreparedStatement) time.Time); ok {
+		r1 = rf(ctx, query, preparedStmt)
 	} else {
-		r1 = ret.Error(1)
+		r1 = ret.Get(1).(time.Time)
 	}
 
-	return r0, r1
+	if rf, ok := ret.Get(2).(func(context.Context, responsehandler.QueryMetadata, *bigtable.PreparedStatement) error); ok {
+		r2 = rf(ctx, query, preparedStmt)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
 }
 
 // GetSchemaMappingConfigs provides a mock function with given fields: _a0, _a1, _a2
-func (_m *BigTableClientIface) GetSchemaMappingConfigs(_a0 context.Context, _a1 string, _a2 string) (map[string]map[string]*schemaMapping.Column, map[string][]schemaMapping.Column, error) {
+func (_m *BigTableClientIface) GetSchemaMappingConfigs(_a0 context.Context, _a1 string, _a2 string) (map[string]map[string]*types.Column, map[string][]types.Column, error) {
 	ret := _m.Called(_a0, _a1, _a2)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetSchemaMappingConfigs")
 	}
 
-	var r0 map[string]map[string]*schemaMapping.Column
-	var r1 map[string][]schemaMapping.Column
+	var r0 map[string]map[string]*types.Column
+	var r1 map[string][]types.Column
 	var r2 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) (map[string]map[string]*schemaMapping.Column, map[string][]schemaMapping.Column, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) (map[string]map[string]*types.Column, map[string][]types.Column, error)); ok {
 		return rf(_a0, _a1, _a2)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) map[string]map[string]*schemaMapping.Column); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) map[string]map[string]*types.Column); ok {
 		r0 = rf(_a0, _a1, _a2)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(map[string]map[string]*schemaMapping.Column)
+			r0 = ret.Get(0).(map[string]map[string]*types.Column)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string, string) map[string][]schemaMapping.Column); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) map[string][]types.Column); ok {
 		r1 = rf(_a0, _a1, _a2)
 	} else {
 		if ret.Get(1) != nil {
-			r1 = ret.Get(1).(map[string][]schemaMapping.Column)
+			r1 = ret.Get(1).(map[string][]types.Column)
 		}
 	}
 
@@ -237,6 +254,36 @@ func (_m *BigTableClientIface) InsertRow(_a0 context.Context, _a1 *translator.In
 // LoadConfigs provides a mock function with given fields: rh, schemaConfig
 func (_m *BigTableClientIface) LoadConfigs(rh *responsehandler.TypeHandler, schemaConfig *schemaMapping.SchemaMappingConfig) {
 	_m.Called(rh, schemaConfig)
+}
+
+// PrepareStatement provides a mock function with given fields: ctx, query
+func (_m *BigTableClientIface) PrepareStatement(ctx context.Context, query responsehandler.QueryMetadata) (*bigtable.PreparedStatement, error) {
+	ret := _m.Called(ctx, query)
+
+	if len(ret) == 0 {
+		panic("no return value specified for PrepareStatement")
+	}
+
+	var r0 *bigtable.PreparedStatement
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, responsehandler.QueryMetadata) (*bigtable.PreparedStatement, error)); ok {
+		return rf(ctx, query)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, responsehandler.QueryMetadata) *bigtable.PreparedStatement); ok {
+		r0 = rf(ctx, query)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*bigtable.PreparedStatement)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, responsehandler.QueryMetadata) error); ok {
+		r1 = rf(ctx, query)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // SelectStatement provides a mock function with given fields: _a0, _a1

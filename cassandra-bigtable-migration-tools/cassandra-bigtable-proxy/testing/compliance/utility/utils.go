@@ -83,7 +83,7 @@ func ConvertValue(t *testing.T, param map[string]any, fileName, query string) an
 	datatype := param["datatype"].(string)
 
 	switch datatype {
-	case "string", "text":
+	case "string", "text", "varchar":
 		return fmt.Sprintf("%v", value)
 	case "bigint":
 		result, err := toInt64(value)
@@ -318,7 +318,7 @@ func toTimestamp(value interface{}) (time.Time, error) {
 		if ms, err := strconv.ParseInt(v, 10, 64); err == nil {
 			seconds := ms / 1_000_000
 			microseconds := ms % 1_000_000
-			return time.Unix(seconds, microseconds*1_000), nil
+			return time.Unix(seconds, microseconds*1_000).UTC(), nil
 		}
 
 		// Try common datetime formats
@@ -338,7 +338,7 @@ func toTimestamp(value interface{}) (time.Time, error) {
 		var lastErr error
 		for _, format := range formats {
 			if t, err := time.Parse(format, v); err == nil {
-				return t, nil
+				return t.UTC(), nil
 			} else {
 				lastErr = err
 			}
@@ -349,12 +349,13 @@ func toTimestamp(value interface{}) (time.Time, error) {
 		if result, err := toInt64(v); err == nil {
 			seconds := result / 1_000_000
 			microseconds := result % 1_000_000
-			return time.Unix(seconds, microseconds*1_000), nil
+			return time.Unix(seconds, microseconds*1_000).UTC(), nil
 		} else {
 			return time.Time{}, &ConversionError{Value: value, Type: "timestamp", Operation: "convert number", Err: err}
 		}
 	case time.Time:
-		return time.Unix(v.UnixMicro()/1_000_000, (v.UnixMicro()%1_000_000)*1_000), nil
+		// Ensure the time is in UTC
+		return v.UTC(), nil
 	default:
 		return time.Time{}, &ConversionError{Value: value, Type: "timestamp", Operation: "type conversion"}
 	}
@@ -542,10 +543,12 @@ func toMapTimestampString(value interface{}) map[time.Time]string {
 	result := make(map[time.Time]string)
 	if m, ok := value.(map[string]interface{}); ok {
 		for k, v := range m {
-			if unixTimestamp, err := strconv.ParseInt(k, 10, 64); err == nil {
-				parsedTime := time.Unix(unixTimestamp, 0).UTC()
-				result[parsedTime] = fmt.Sprintf("%v", v)
+			timestamp, err := toTimestamp(k)
+			if err != nil {
+				fmt.Println("Error converting timestamp: ", err)
+				continue
 			}
+			result[timestamp.UTC()] = fmt.Sprintf("%v", v)
 		}
 	}
 	return result
@@ -556,11 +559,13 @@ func toMapTimestampBool(value interface{}) map[time.Time]bool {
 	result := make(map[time.Time]bool)
 	if m, ok := value.(map[string]interface{}); ok {
 		for k, v := range m {
-			if unixTimestamp, err := strconv.ParseInt(k, 10, 64); err == nil {
-				parsedTime := time.Unix(unixTimestamp, 0).UTC()
-				if boolVal, err := toBool(v); err == nil {
-					result[parsedTime] = boolVal
-				}
+			timestamp, err := toTimestamp(k)
+			if err != nil {
+				fmt.Println("Error converting timestamp: ", err)
+				continue
+			}
+			if boolVal, err := toBool(v); err == nil {
+				result[timestamp.UTC()] = boolVal
 			}
 		}
 	}
@@ -572,11 +577,13 @@ func toMapTimestampFloat32(value interface{}) map[time.Time]float32 {
 	result := make(map[time.Time]float32)
 	if m, ok := value.(map[string]interface{}); ok {
 		for k, v := range m {
-			if unixTimestamp, err := strconv.ParseInt(k, 10, 64); err == nil {
-				parsedTime := time.Unix(unixTimestamp, 0).UTC()
-				if floatVal, err := toFloat32(v); err == nil {
-					result[parsedTime] = floatVal
-				}
+			timestamp, err := toTimestamp(k)
+			if err != nil {
+				fmt.Println("Error converting timestamp: ", err)
+				continue
+			}
+			if floatVal, err := toFloat32(v); err == nil {
+				result[timestamp.UTC()] = floatVal
 			}
 		}
 	}
@@ -588,11 +595,13 @@ func toMapTimestampFloat64(value interface{}) map[time.Time]float64 {
 	result := make(map[time.Time]float64)
 	if m, ok := value.(map[string]interface{}); ok {
 		for k, v := range m {
-			if unixTimestamp, err := strconv.ParseInt(k, 10, 64); err == nil {
-				parsedTime := time.Unix(unixTimestamp, 0).UTC()
-				if floatVal, err := toFloat64(v); err == nil {
-					result[parsedTime] = floatVal
-				}
+			timestamp, err := toTimestamp(k)
+			if err != nil {
+				fmt.Println("Error converting timestamp: ", err)
+				continue
+			}
+			if floatVal, err := toFloat64(v); err == nil {
+				result[timestamp.UTC()] = floatVal
 			}
 		}
 	}
@@ -604,11 +613,13 @@ func toMapTimestampInt64(value interface{}) map[time.Time]int64 {
 	result := make(map[time.Time]int64)
 	if m, ok := value.(map[string]interface{}); ok {
 		for k, v := range m {
-			if unixTimestamp, err := strconv.ParseInt(k, 10, 64); err == nil {
-				parsedTime := time.Unix(unixTimestamp, 0).UTC()
-				if val, err := toInt64(v); err == nil {
-					result[parsedTime] = val
-				}
+			timestamp, err := toTimestamp(k)
+			if err != nil {
+				fmt.Println("Error converting timestamp: ", err)
+				continue
+			}
+			if val, err := toInt64(v); err == nil {
+				result[timestamp.UTC()] = val
 			}
 		}
 	}
@@ -620,27 +631,36 @@ func toMapTimestampInt(value interface{}) map[time.Time]int {
 	result := make(map[time.Time]int)
 	if m, ok := value.(map[string]interface{}); ok {
 		for k, v := range m {
-			if unixTimestamp, err := strconv.ParseInt(k, 10, 64); err == nil {
-				parsedTime := time.Unix(unixTimestamp, 0).UTC()
-				if val, err := toInt(v); err == nil {
-					result[parsedTime] = val
-				}
+			timestamp, err := toTimestamp(k)
+			if err != nil {
+				fmt.Println("Error converting timestamp: ", err)
+				continue
+			}
+			if val, err := toInt(v); err == nil {
+				result[timestamp.UTC()] = val
 			}
 		}
 	}
 	return result
 }
 
-// toMapTimestampTimestamp() converts map[string]interface{} to map[time.Time]time.Time
+// toMapTimestampTimestamp converts map[string]interface{} to map[time.Time]time.Time
 func toMapTimestampTimestamp(value interface{}) map[time.Time]time.Time {
 	result := make(map[time.Time]time.Time)
 	if m, ok := value.(map[string]interface{}); ok {
 		for k, v := range m {
-			if unixTimestamp, err := strconv.ParseInt(k, 10, 64); err == nil {
-				parsedTime := time.Unix(unixTimestamp, 0).UTC()
-				if val, err := toInt64(v); err == nil {
-					result[parsedTime] = time.Unix(val, 0).UTC()
-				}
+			timestamp, err := toTimestamp(k)
+			if err != nil {
+				fmt.Println("Error converting timestamp: ", err)
+				continue
+			}
+			// Handle empty or zero timestamps
+			if v == nil || v == "" || v == 0 {
+				result[timestamp.UTC()] = time.Time{}
+				continue
+			}
+			if timestampVal, err := toTimestamp(v); err == nil {
+				result[timestamp.UTC()] = timestampVal.UTC()
 			}
 		}
 	}
@@ -768,7 +788,7 @@ func ConvertExpectedResult(input []map[string]interface{}) []map[string]interfac
 				// Perform conversion based on datatype
 				switch datatype {
 				// Primitive Types
-				case "text":
+				case "text", "varchar":
 					convertedResult[0][key] = fmt.Sprintf("%v", value) // Convert to string
 				case "bigint":
 					if val, err := toInt64(value); err == nil {
