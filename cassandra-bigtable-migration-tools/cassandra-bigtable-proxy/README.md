@@ -21,7 +21,7 @@ Cassandra to Cloud Bigtable Proxy Adapter is designed to forward your applicatio
 - [Proxy Configuration: YAML Configuration Explained](#proxy-configuration-yaml-configuration-explained)
 - [Getting started](#getting-started)
   - [Build and Run Proxy Locally](#build-and-run-proxy-locally)
-  - [Run Proxy via Docker](#run-proxy-via-docker)
+  - [Run a Cassandra-to-Bigtable Proxy via Docker](#run-a-cassandra-to-bigtable-proxy-via-docker)
 - [CQLSH support with Proxy](#cqlsh-support-with-proxy)
 - [Limitations for Proxy Application](#limitations-for-proxy-application)
 - [Guidelines for Proxy Application](#guidelines-for-proxy-application)
@@ -42,7 +42,7 @@ Cassandra to Cloud Bigtable Proxy Adapter is designed to forward your applicatio
 
 ## When to use Cassandra to Bigtable Proxy?
 
-`cassandra-to-bigtable-proxy` enables applications that are currently using Apache Cassandra or DataStax Enterprise (DSE) and would like to switch to use Cloud Bigtable. This Proxy Adaper can be used as Plug-N-Play for the Client Application without the need of any code changes in the Client Application.
+`cassandra-to-bigtable-proxy` enables applications that are currently using Apache Cassandra or DataStax Enterprise (DSE) and would like to switch to use Cloud Bigtable. This Proxy Adapter can be used as Plug-N-Play for the Client Application without the need of any code changes in the Client Application.
 
 ## Pre-requisites
 
@@ -178,7 +178,7 @@ The proxy now supports Data Definition Language (DDL) operations, making it easi
      ```sql
      -- Add a new column
      ALTER TABLE keyspace.table ADD email text;
-     
+
      -- Drop a table
      DROP TABLE keyspace.table;
      ```
@@ -210,8 +210,8 @@ If you prefer to manually create your Bigtable infrastructure, follow these step
 
 **b. Create the `schema_mapping` Table:**
 
-* Ensure you are logged in to your Google Cloud account before executing these commands. 
-* Use the `cbt` CLI to create the `schema_mapping` table and its column family. 
+* Ensure you are logged in to your Google Cloud account before executing these commands.
+* Use the `cbt` CLI to create the `schema_mapping` table and its column family.
 
     ```bash
     cbt -project GCP_PROJECT_ID -instance BIGTABLE_INSTANCE createtable schema_mapping
@@ -324,7 +324,7 @@ loggerConfig:
   compress: True
   ```
 
-**Important Note:** 
+**Important Note:**
 * These configurations are essential and must be configured correctly before starting the proxy adapter. Incorrect configurations can lead to connection failures or unexpected behavior.
 * Ensure that you replace the placeholder values (e.g., YOUR_GCP_PROJECT, PORT_NUMBER) with your actual configuration settings.
 * The defaultColumnFamily must be specified.
@@ -355,12 +355,12 @@ Steps to run the adapter locally are as mentioned below:
 
     GOOS=linux GOARCH=amd64 go build -o cassandra-to-bigtable-proxy .
     // Cross-compiles for Linux (x86_64) (for running on a Linux server or VM)
-    
+
     GOOS=darwin GOARCH=arm64 go build -o cassandra-to-bigtable-proxy .
     // Cross-compiles for Mac M1/M2 (ARM64)
-    
+
     CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o cassandra-to-bigtable-proxy .
-    // Builds a static binary for Linux x86_64 (portable, no external C dependencies) 
+    // Builds a static binary for Linux x86_64 (portable, no external C dependencies)
     ```
 
   *Once you create the build then execute the below command to run the application*
@@ -392,7 +392,7 @@ Steps to run the adapter locally are as mentioned below:
 
 - Application will be listening on the specified TCP port (default: 9042).
 
-### Run Proxy via Docker
+### Run a Cassandra-to-Bigtable Proxy via Docker
 
 - Build docker image
   ```sh
@@ -400,7 +400,7 @@ Steps to run the adapter locally are as mentioned below:
   ```
 
 - Start docker container using generated image
-    
+
   ```sh
     docker run -d --name cassandra-bigtable-proxy \
     -p 9042:9042 \
@@ -408,6 +408,9 @@ Steps to run the adapter locally are as mentioned below:
     -v <<path to service account>>/bigtable-adapter-service-account.json:/var/run/secret/cloud.google.com/ \
     cassandra-to-bigtable-proxy:local
   ```
+### Use Kubernetes
+
+- [Deployment via k8](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/tree/main/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/main/deployment/k8/README.md)
 
 ## CQLSH support with Proxy
 
@@ -415,11 +418,11 @@ Steps to run the adapter locally are as mentioned below:
 
 ## Limitations for Proxy Application
 
-Detailed document - [Limitations](/docs/limitations.md)
+Detailed document - [Limitations](./docs/limitations.md)
 
 ## Guidelines for Proxy Application
 
-- The Proxy adapter supports DML operations such as INSERT, DELETE, UPDATE and SELECT.
+- The Proxy Adapter supports DML operations such as INSERT, DELETE, UPDATE and SELECT.
 - To run the Raw DML queries, it is mandatory for all values except numerics to have single quotes added to it. For eg.
 
   ```sh
@@ -466,9 +469,9 @@ Detailed document - [Limitations](/docs/limitations.md)
   print("Delete Successful")
   ```
 
-## Supported data types
+- CQL Data Types compatibility:
 
- 
+
   | CQL Type                 | Supported |                         Cloud Bigtable Mapping                          |
   | ------------------       | :-------: | :---------------------------------------------------------------------: |
   | text                     |     ✓     |                                RAW BYTES                                |
@@ -479,42 +482,60 @@ Detailed document - [Limitations](/docs/limitations.md)
   | float                    |     ✓     |                                RAW BYTES                                |
   | double                   |     ✓     |                                RAW BYTES                                |
   | boolean                  |     ✓     |                                RAW BYTES                                |
-  | map<key, value>          |     ✓     |   Col name as col family, MAP key as column qualifier, value as value   |
-  | set&lt;item&gt;          |     ✓     | Col name as col family, SET item as column qualifier, value remain empty |
-  | list&lt;item&gt;         |     ✓     | Col name as col family, current timestamp as column qualifier, list items as value |
+  | map<text, text>          |     ✓     |   Col name as col family, MAP key as column qualifier, value as value   |
+  | map<text, int>           |     ✓     |   Col name as col family, MAP key as column qualifier, value as value   |
+  | map<text, bigint>        |     ✓     |   Col name as col family, MAP key as column qualifier, value as value   |
+  | map<text, float>         |     ✓     |   Col name as col family, MAP key as column qualifier, value as value   |
+  | map<text, double>        |     ✓     |   Col name as col family, MAP key as column qualifier, value as value   |
+  | map<text, boolean>       |     ✓     |   Col name as col family, MAP key as column qualifier, value as value   |
+  | map<text, timestamp>     |     ✓     |   Col name as col family, MAP key as column qualifier, value as value   |
+  | map<timestamp, text>     |     ✓     |   Col name as col family, MAP key as column qualifier, value as value   |
+  | map<timestamp, int>      |     ✓     |   Col name as col family, MAP key as column qualifier, value as value   |
+  | map<timestamp, bigint>   |     ✓     |   Col name as col family, MAP key as column qualifier, value as value   |
+  | map<timestamp, float>    |     ✓     |   Col name as col family, MAP key as column qualifier, value as value   |
+  | map<timestamp, double>   |     ✓     |   Col name as col family, MAP key as column qualifier, value as value   |
+  | map<timestamp, boolean>  |     ✓     |   Col name as col family, MAP key as column qualifier, value as value   |
+  | map<timestamp, timestamp>|     ✓     |   Col name as col family, MAP key as column qualifier, value as value   |
+  | set<text>                |     ✓     | Col name as col family, SET key as column qualifier, value remain empty |
+  | set<int>                 |     ✓     | Col name as col family, SET key as column qualifier, value remain empty |
+  | set<bigint>              |     ✓     | Col name as col family, SET key as column qualifier, value remain empty |
+  | set<float>               |     ✓     | Col name as col family, SET key as column qualifier, value remain empty |
+  | set<double>              |     ✓     | Col name as col family, SET key as column qualifier, value remain empty |
+  | set<boolean>             |     ✓     | Col name as col family, SET key as column qualifier, value remain empty |
+  | set<timestamp>           |     ✓     | Col name as col family, SET key as column qualifier, value remain empty |
+  | list<text>               |     ✓     | YES                                                                     |
+  | list<int>                |     ✓     | YES                                                                     |
+  | list<bigint>             |     ✓     | YES                                                                     |
+  | list<float>              |     ✓     | YES                                                                     |
+  | list<double>             |     ✓     | YES                                                                     |
+  | list<boolean>            |     ✓     | YES                                                                     |
+  | list<timestamp>          |     ✓     | YES                                                                     |
 
-All list types follow the same storage pattern:  
+All list types follow the same storage pattern:
 **Col name as col family, current timestamp (with nanosecond precision) as column qualifier, list items as column value.**
 
 ## Limitations
-
 ### Non-supported data types
-
 The proxy currently doesn't support the following data types: US-ASCII, counter, date, decimal, duration, inet, smallint, time, timeuuid, tinyint, uuid, varint, frozen and user-defined types (UDT).
-
 ### Limitations with collection types
-
 While we support complex data types such as lists, sets, and maps, our current implementation has limitations regarding complex update operations on these data types. Specifically, we do not support:
-
-- Updating or adding new keys to a map. 
+- Updating or adding new keys to a map.
 - Modifying existing keys in a map.
-```  
-UPDATE example_map 
-SET data_map['new_key'] = 10 
+```
+UPDATE example_map
+SET data_map['new_key'] = 10
 WHERE id = some_uuid;
 ```
 - Adding new values to a set.
-
 ```
-UPDATE example_set 
+UPDATE example_set
 SET data_set = data_set + {'new_value'}
 WHERE id = some_uuid;
 ```
-
 These limitations should be considered when designing and implementing operations involving complex data types in our system.
-
 Review detailed limitations [here](/docs/limitations.md).
 
+- Before running the proxy application, make sure to stop the Cassandra service as both runs on the same port 9042.
 
 ## Run a `cassandra-to-bigtable-proxy` via systemd.
 
@@ -602,7 +623,7 @@ For production environments or when security is a concern, you can enable TLS en
    openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout key.pem -out cert.pem
    ```
  - Note: Check official documentation for generating certificates
- 
+
 2. Start the proxy with TLS enabled:
    ```bash
    ./cassandra-to-bigtable-proxy --proxy-cert-file cert.pem --proxy-key-file key.pem
@@ -627,7 +648,7 @@ UDS provides better performance and security for local connections. This is idea
    ```bash
    # On macOS
    brew install socat
-   
+
    # On Ubuntu/Debian
    sudo apt-get install socat
    ```
@@ -637,7 +658,7 @@ UDS provides better performance and security for local connections. This is idea
    ./cassandra-to-bigtable-proxy --use-unix-socket
    ```
    This will create a Unix socket at `/tmp/cassandra-proxy.sock` by default.
-   
+
    You can specify a custom path:
    ```bash
    ./cassandra-to-bigtable-proxy --use-unix-socket --unix-socket-path "/path/to/custom.sock"

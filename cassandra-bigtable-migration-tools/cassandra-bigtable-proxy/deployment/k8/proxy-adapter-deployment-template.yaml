@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    run: bigtable-adaptor-app
+  name: bigtable-adaptor-app
+  namespace: deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: bigtable-adaptor-app
+  template: # Pod template
+    metadata:
+      labels:
+        run: bigtable-adaptor-app # Labels Pods from this Deployment
+    spec: # Pod specification; each Pod created by this Deployment has this specification
+      containers:
+      - name: bigtable-adaptor-app
+        image: REGION-docker.pkg.dev/GCP_PRO_ID/ARTIFACT_REGISTRY/IMA_NAME:IMG_TAG
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "1"
+          limits:
+            memory: "1Gi"
+            cpu: "1"
+        env:
+          - name: GOOGLE_APPLICATION_CREDENTIALS
+            value: "/var/run/secret/cloud.google.com/bigtable-adaptor-service-account.json"
+          - name: GCP_PROJECT_ID
+            valueFrom:
+              secretKeyRef:
+                name: app-secret-env-variable
+                key: gcp_project_id
+        volumeMounts:
+          - name: "service-account"
+            mountPath: "/var/run/secret/cloud.google.com"
+        command: [ "./cassandra-to-bigtable-proxy" ]
+        ports:
+# Ports will be populated here dynamically
+      volumes:
+        - name: "service-account"
+          secret:
+            secretName: "app-secret-env-variable"
