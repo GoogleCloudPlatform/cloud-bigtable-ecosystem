@@ -30,6 +30,7 @@ Then, add the dependencies below to your Maven `pom.xml` file (replacing `SPECIF
     <groupId>com.google.cloud</groupId>
     <artifactId>cassandra-bigtable-java-client-lib</artifactId>
     <classifier>SPECIFY-CLASSIFIER-HERE</classifier>
+    <version>VERSION-HERE</version>
   </dependency>
   <dependency>
     <groupId>org.apache.cassandra</groupId>
