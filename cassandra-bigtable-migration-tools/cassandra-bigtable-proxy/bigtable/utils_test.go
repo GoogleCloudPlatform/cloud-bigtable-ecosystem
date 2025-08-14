@@ -52,180 +52,114 @@ func TestGetProfileId(t *testing.T) {
 
 func Test_sortPkData(t *testing.T) {
 	type args struct {
-		pkMetadata map[string][]types.Column
+		pkMetadata []*types.Column
 	}
 	tests := []struct {
 		name string
 		args args
-		want map[string][]types.Column
+		want []*types.Column
 	}{
 		{
 			name: "Basic Sorting",
 			args: args{
-				pkMetadata: map[string][]types.Column{
-					"users": {
-						{ColumnName: "id", PkPrecedence: 2},
-						{ColumnName: "email", PkPrecedence: 1},
-					},
+				pkMetadata: []*types.Column{
+					{Name: "id", PkPrecedence: 2},
+					{Name: "email", PkPrecedence: 1},
 				},
 			},
-			want: map[string][]types.Column{
-				"users": {
-					{ColumnName: "email", PkPrecedence: 1},
-					{ColumnName: "id", PkPrecedence: 2},
-				},
+			want: []*types.Column{
+				{Name: "email", PkPrecedence: 1},
+				{Name: "id", PkPrecedence: 2},
 			},
 		},
 		{
 			name: "Already Sorted Data",
 			args: args{
-				pkMetadata: map[string][]types.Column{
-					"orders": {
-						{ColumnName: "order_id", PkPrecedence: 1},
-						{ColumnName: "customer_id", PkPrecedence: 2},
-					},
+				pkMetadata: []*types.Column{
+					{Name: "order_id", PkPrecedence: 1},
+					{Name: "customer_id", PkPrecedence: 2},
 				},
 			},
-			want: map[string][]types.Column{
-				"orders": {
-					{ColumnName: "order_id", PkPrecedence: 1},
-					{ColumnName: "customer_id", PkPrecedence: 2},
-				},
-			},
-		},
-		{
-			name: "Multiple Tables",
-			args: args{
-				pkMetadata: map[string][]types.Column{
-					"users": {
-						{ColumnName: "id", PkPrecedence: 2},
-						{ColumnName: "email", PkPrecedence: 1},
-					},
-					"orders": {
-						{ColumnName: "order_id", PkPrecedence: 1},
-						{ColumnName: "customer_id", PkPrecedence: 3},
-						{ColumnName: "date", PkPrecedence: 2},
-					},
-				},
-			},
-			want: map[string][]types.Column{
-				"users": {
-					{ColumnName: "email", PkPrecedence: 1},
-					{ColumnName: "id", PkPrecedence: 2},
-				},
-				"orders": {
-					{ColumnName: "order_id", PkPrecedence: 1},
-					{ColumnName: "date", PkPrecedence: 2},
-					{ColumnName: "customer_id", PkPrecedence: 3},
-				},
+			want: []*types.Column{
+				{Name: "order_id", PkPrecedence: 1},
+				{Name: "customer_id", PkPrecedence: 2},
 			},
 		},
 		{
 			name: "Same Precedence Values (Unchanged Order)",
 			args: args{
-				pkMetadata: map[string][]types.Column{
-					"products": {
-						{ColumnName: "product_id", PkPrecedence: 1},
-						{ColumnName: "category_id", PkPrecedence: 1},
-					},
+				pkMetadata: []*types.Column{
+					{Name: "product_id", PkPrecedence: 1},
+					{Name: "category_id", PkPrecedence: 1},
 				},
 			},
-			want: map[string][]types.Column{
-				"products": {
-					{ColumnName: "product_id", PkPrecedence: 1},
-					{ColumnName: "category_id", PkPrecedence: 1}, // Order should remain the same
-				},
+			want: []*types.Column{
+				{Name: "product_id", PkPrecedence: 1},
+				{Name: "category_id", PkPrecedence: 1}, // Order should remain the same
 			},
 		},
 		{
 			name: "Single types.Column (No Sorting Needed)",
 			args: args{
-				pkMetadata: map[string][]types.Column{
-					"categories": {
-						{ColumnName: "category_id", PkPrecedence: 1},
-					},
+				pkMetadata: []*types.Column{
+					{Name: "category_id", PkPrecedence: 1},
 				},
 			},
-			want: map[string][]types.Column{
-				"categories": {
-					{ColumnName: "category_id", PkPrecedence: 1},
-				},
+			want: []*types.Column{
+				{Name: "category_id", PkPrecedence: 1},
 			},
 		},
 		{
-			name: "Empty Map (No Operation)",
+			name: "Empty Slice (No Operation)",
 			args: args{
-				pkMetadata: map[string][]types.Column{},
+				pkMetadata: []*types.Column{},
 			},
-			want: map[string][]types.Column{},
-		},
-		{
-			name: "Empty Table Entries (No Sorting Needed)",
-			args: args{
-				pkMetadata: map[string][]types.Column{
-					"empty_table": {},
-				},
-			},
-			want: map[string][]types.Column{
-				"empty_table": {},
-			},
+			want: []*types.Column{},
 		},
 		{
 			name: "Table With Nil Columns (Should Not Panic)",
 			args: args{
-				pkMetadata: map[string][]types.Column{
-					"table_nil": nil,
-				},
+				pkMetadata: nil,
 			},
-			want: map[string][]types.Column{
-				"table_nil": nil,
-			},
+			want: nil,
 		},
 		{
 			name: "Negative Precedence Values (Still Sorted Correctly)",
 			args: args{
-				pkMetadata: map[string][]types.Column{
-					"test_table": {
-						{ColumnName: "col1", PkPrecedence: -1},
-						{ColumnName: "col2", PkPrecedence: -3},
-						{ColumnName: "col3", PkPrecedence: -2},
-					},
+				pkMetadata: []*types.Column{
+					{Name: "col1", PkPrecedence: -1},
+					{Name: "col2", PkPrecedence: -3},
+					{Name: "col3", PkPrecedence: -2},
 				},
 			},
-			want: map[string][]types.Column{
-				"test_table": {
-					{ColumnName: "col2", PkPrecedence: -3},
-					{ColumnName: "col3", PkPrecedence: -2},
-					{ColumnName: "col1", PkPrecedence: -1},
-				},
+			want: []*types.Column{
+				{Name: "col2", PkPrecedence: -3},
+				{Name: "col3", PkPrecedence: -2},
+				{Name: "col1", PkPrecedence: -1},
 			},
 		},
 		{
 			name: "Zero Precedence Values (Sorted Normally)",
 			args: args{
-				pkMetadata: map[string][]types.Column{
-					"zero_precedence": {
-						{ColumnName: "colA", PkPrecedence: 0},
-						{ColumnName: "colB", PkPrecedence: 2},
-						{ColumnName: "colC", PkPrecedence: 1},
-					},
+				pkMetadata: []*types.Column{
+					{Name: "colA", PkPrecedence: 0},
+					{Name: "colB", PkPrecedence: 2},
+					{Name: "colC", PkPrecedence: 1},
 				},
 			},
-			want: map[string][]types.Column{
-				"zero_precedence": {
-					{ColumnName: "colA", PkPrecedence: 0},
-					{ColumnName: "colC", PkPrecedence: 1},
-					{ColumnName: "colB", PkPrecedence: 2},
-				},
+			want: []*types.Column{
+				{Name: "colA", PkPrecedence: 0},
+				{Name: "colC", PkPrecedence: 1},
+				{Name: "colB", PkPrecedence: 2},
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := sortPkData(tt.args.pkMetadata)
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("sortPkData() = %v, want %v", got, tt.want)
+			sortPrimaryKeys(tt.args.pkMetadata)
+			if !reflect.DeepEqual(tt.args.pkMetadata, tt.want) {
+				t.Errorf("sortPrimaryKeys() = %v, want %v", tt.args.pkMetadata, tt.want)
 			}
 		})
 	}

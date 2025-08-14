@@ -1218,33 +1218,33 @@ func TestTypeHandler_BuildResponseRow(t *testing.T) {
 				Logger: zap.NewExample(),
 				SchemaMappingConfig: &schemaMapping.SchemaMappingConfig{
 					Logger: nil,
-					TablesMetaData: map[string]map[string]map[string]*types.Column{
-						"test_keyspace": {"test_table": {
-							"column1": &types.Column{
-								ColumnName:   "column1",
-								CQLType:      datatype.Varchar,
-								IsPrimaryKey: true,
-								PkPrecedence: 1,
+					Tables: map[string]map[string]*schemaMapping.TableConfig{
+						"test_keyspace": {"test_table": &schemaMapping.TableConfig{
+							Keyspace: "test_keyspace",
+							Name:     "user_info",
+							Columns: map[string]*types.Column{
+								"column1": {
+									Name:         "column1",
+									CQLType:      datatype.Varchar,
+									IsPrimaryKey: true,
+									PkPrecedence: 1,
+								},
+								"column7": {
+									Name:         "column7",
+									CQLType:      datatype.NewSetType(datatype.NewCustomType("foo")),
+									IsPrimaryKey: false,
+									PkPrecedence: 1,
+								},
 							},
-							"column7": &types.Column{
-								ColumnName:   "column7",
-								CQLType:      datatype.NewSetType(datatype.NewCustomType("foo")),
-								IsPrimaryKey: false,
-								PkPrecedence: 1,
-							},
-						},
-						},
-					},
-					PkMetadataCache: map[string]map[string][]types.Column{
-						"test_keyspace": {
-							"test_table": {
+							PrimaryKeys: []*types.Column{
 								{
-									ColumnName:   "column1",
+									Name:         "column1",
 									CQLType:      datatype.Varchar,
 									IsPrimaryKey: true,
 									PkPrecedence: 1,
 								},
 							},
+						},
 						},
 					},
 					SystemColumnFamily: "cf1",

@@ -19,6 +19,7 @@ package bigtableclient
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -26,8 +27,6 @@ import (
 	"github.com/datastax/go-cassandra-native-protocol/datatype"
 	"github.com/datastax/go-cassandra-native-protocol/message"
 	"github.com/datastax/go-cassandra-native-protocol/primitive"
-
-	"slices"
 
 	rh "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/responsehandler"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/third_party/datastax/proxycore"
@@ -115,7 +114,11 @@ func (btc *BigtableClient) ExecutePreparedStatement(ctx context.Context, query r
 	}
 
 	if len(allRowMaps) == 0 && len(columnMetadata) == 0 {
-		columnMetadata, err = btc.SchemaMappingConfig.GetMetadataForSelectedColumns(query.TableName, query.SelectedColumns, query.KeyspaceName)
+		tableConfig, err := btc.SchemaMappingConfig.GetTableConfig(query.KeyspaceName, query.TableName)
+		if err != nil {
+			return nil, bigtableEnd, err
+		}
+		columnMetadata, err = tableConfig.GetMetadataForSelectedColumns(query.SelectedColumns)
 		if err != nil {
 			btc.Logger.Error("Error while fetching columnMetadata from config for empty result", zap.Error(err))
 			columnMetadata = []*message.ColumnMetadata{}

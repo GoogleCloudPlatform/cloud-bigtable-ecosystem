@@ -23,111 +23,110 @@ import (
 	"github.com/datastax/go-cassandra-native-protocol/message"
 )
 
-var mockTableConfig = map[string]map[string]map[string]*types.Column{
-	"test_keyspace": {"test_table": {
-		"column1": &types.Column{
-			ColumnName:   "column1",
-			CQLType:      datatype.Varchar,
-			IsPrimaryKey: true,
-			PkPrecedence: 1,
-		},
-		"column2": &types.Column{
-			ColumnName:   "column2",
-			CQLType:      datatype.Blob,
-			IsPrimaryKey: false,
-		},
-		"column3": &types.Column{
-			ColumnName:   "column3",
-			CQLType:      datatype.Boolean,
-			IsPrimaryKey: false,
-		},
-		"column4": &types.Column{
-			ColumnName:   "column4",
-			CQLType:      datatype.NewListType(datatype.Varchar),
-			IsPrimaryKey: false,
-			IsCollection: true,
-		},
-		"column5": &types.Column{
-			ColumnName:   "column5",
-			CQLType:      datatype.Timestamp,
-			IsPrimaryKey: false,
-		},
-		"column6": &types.Column{
-			ColumnName:   "column6",
-			CQLType:      datatype.Int,
-			IsPrimaryKey: false,
-		},
-		"column7": &types.Column{
-			ColumnName:   "column7",
-			CQLType:      datatype.NewSetType(datatype.Varchar),
-			IsPrimaryKey: false,
-			IsCollection: true,
-		},
-		"column8": &types.Column{
-			ColumnName:   "column8",
-			CQLType:      datatype.NewMapType(datatype.Varchar, datatype.Boolean),
-			IsPrimaryKey: false,
-			IsCollection: true,
-		},
-		"column9": &types.Column{
-			ColumnName:   "column9",
-			CQLType:      datatype.Bigint,
-			IsPrimaryKey: false,
-		},
-		"column10": &types.Column{
-			ColumnName:   "column10",
-			CQLType:      datatype.Varchar,
-			IsPrimaryKey: true,
-			PkPrecedence: 2,
-		},
-		"column11": &types.Column{
-			ColumnName:   "column11",
-			CQLType:      datatype.NewSetType(datatype.Varchar),
-			IsPrimaryKey: false,
-			IsCollection: true,
-		},
-	},
-		"user_info": {
-			"name": &types.Column{
-				ColumnName:   "name",
+var mockTableConfig = map[string]map[string]*schemaMapping.TableConfig{
+	"test_keyspace": {"test_table": &schemaMapping.TableConfig{
+		Keyspace: "test_keyspace",
+		Name:     "test_table",
+		Columns: map[string]*types.Column{
+			"column1": &types.Column{
+				Name:         "column1",
 				CQLType:      datatype.Varchar,
 				IsPrimaryKey: true,
-				PkPrecedence: 0,
-				IsCollection: false,
+				PkPrecedence: 1,
 			},
-		}},
-}
-
-var mockPkMetadata = map[string]map[string][]types.Column{
-	"test_keyspace": {"test_table": {
-		{
-			ColumnName:   "column1",
-			CQLType:      datatype.Varchar,
-			IsPrimaryKey: true,
-			PkPrecedence: 1,
+			"column2": &types.Column{
+				Name:         "column2",
+				CQLType:      datatype.Blob,
+				IsPrimaryKey: false,
+			},
+			"column3": &types.Column{
+				Name:         "column3",
+				CQLType:      datatype.Boolean,
+				IsPrimaryKey: false,
+			},
+			"column4": &types.Column{
+				Name:         "column4",
+				CQLType:      datatype.NewListType(datatype.Varchar),
+				IsPrimaryKey: false,
+			},
+			"column5": &types.Column{
+				Name:         "column5",
+				CQLType:      datatype.Timestamp,
+				IsPrimaryKey: false,
+			},
+			"column6": &types.Column{
+				Name:         "column6",
+				CQLType:      datatype.Int,
+				IsPrimaryKey: false,
+			},
+			"column7": &types.Column{
+				Name:         "column7",
+				CQLType:      datatype.NewSetType(datatype.Varchar),
+				IsPrimaryKey: false,
+			},
+			"column8": &types.Column{
+				Name:         "column8",
+				CQLType:      datatype.NewMapType(datatype.Varchar, datatype.Boolean),
+				IsPrimaryKey: false,
+			},
+			"column9": &types.Column{
+				Name:         "column9",
+				CQLType:      datatype.Bigint,
+				IsPrimaryKey: false,
+			},
+			"column10": &types.Column{
+				Name:         "column10",
+				CQLType:      datatype.Varchar,
+				IsPrimaryKey: true,
+				PkPrecedence: 2,
+			},
+			"column11": &types.Column{
+				Name:         "column11",
+				CQLType:      datatype.NewSetType(datatype.Varchar),
+				IsPrimaryKey: false,
+			},
 		},
-		{
-			ColumnName:   "column10",
-			CQLType:      datatype.Varchar,
-			IsPrimaryKey: true,
-			PkPrecedence: 2,
-		},
-	},
-		"user_info": {
+		PrimaryKeys: []*types.Column{
 			{
-				ColumnName:   "name",
+				Name:         "column1",
 				CQLType:      datatype.Varchar,
 				IsPrimaryKey: true,
-				PkPrecedence: 0,
+				PkPrecedence: 1,
 			},
-		}},
+			{
+				Name:         "column10",
+				CQLType:      datatype.Varchar,
+				IsPrimaryKey: true,
+				PkPrecedence: 2,
+			},
+		},
+	},
+		"user_info": &schemaMapping.TableConfig{
+			Keyspace: "test_keyspace",
+			Name:     "user_info",
+			Columns: map[string]*types.Column{
+				"name": &types.Column{
+					Name:         "name",
+					CQLType:      datatype.Varchar,
+					IsPrimaryKey: true,
+					PkPrecedence: 0,
+				},
+			},
+			PrimaryKeys: []*types.Column{
+				{
+					Name:         "name",
+					CQLType:      datatype.Varchar,
+					IsPrimaryKey: true,
+					PkPrecedence: 0,
+				},
+			},
+		},
+	},
 }
 
 func GetSchemaMappingConfig() *schemaMapping.SchemaMappingConfig {
 	return &schemaMapping.SchemaMappingConfig{
-		// Logger:          tt.fields.Logger,
-		TablesMetaData:     mockTableConfig,
-		PkMetadataCache:    mockPkMetadata,
+		Tables:             mockTableConfig,
 		SystemColumnFamily: "cf1",
 	}
 }

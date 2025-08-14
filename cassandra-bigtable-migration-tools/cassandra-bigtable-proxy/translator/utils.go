@@ -400,23 +400,6 @@ func renameLiterals(query string) string {
 	})
 }
 
-// getPrimaryKeys retrieves the primary key columns for a given table.
-// Returns the list of primary key column names from the schema mapping.
-// Returns error if table doesn't exist or schema mapping fails.
-func getPrimaryKeys(schemaMapping *schemaMapping.SchemaMappingConfig, tableName string, keySpace string) ([]string, error) {
-	var primaryKeys []string
-	pks, err := schemaMapping.GetPkByTableName(tableName, keySpace)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, pk := range pks {
-		primaryKeys = append(primaryKeys, pk.ColumnName)
-	}
-
-	return primaryKeys, nil
-}
-
 // processCollectionColumnsForRawQueries() processes collection columns in raw CQL queries.
 // Handles list, set, and map collection types with their respective operations.
 // For each column:
@@ -425,15 +408,15 @@ func getPrimaryKeys(schemaMapping *schemaMapping.SchemaMappingConfig, tableName 
 //   - For non-collection columns: adds to output as-is
 //
 // Returns ProcessRawCollectionsOutput containing processed columns and values, or error if processing fails.
-func processCollectionColumnsForRawQueries(input ProcessRawCollectionsInput) (*ProcessRawCollectionsOutput, error) {
+func processCollectionColumnsForRawQueries(tableConfig *schemaMapping.TableConfig, input ProcessRawCollectionsInput) (*ProcessRawCollectionsOutput, error) {
 	output := &ProcessRawCollectionsOutput{ComplexMeta: make(map[string]*ComplexOperation)}
 	for i, column := range input.Columns {
 		if column.IsPrimaryKey {
 			continue
 		}
 		val := input.Values[i]
-		if input.Translator.IsCollection(input.KeySpace, input.TableName, column.Name) {
-			colFamily := input.Translator.GetColumnFamily(input.KeySpace, input.TableName, column.Name)
+		if utilities.IsCollectionColumn(&column) {
+			colFamily := tableConfig.GetColumnFamily(column.Name)
 			switch column.CQLType.GetDataTypeCode() {
 			case primitive.DataTypeCodeList:
 				if err := handleListOperation(val, column, colFamily, input, output); err != nil {
@@ -797,7 +780,7 @@ func updateMapIndex(key interface{}, value interface{}, dt datatype.DataType, co
 // processCollectionColumnsForPrepareQueries handles collection operations in prepared queries.
 // Processes set, list, and map operations.
 // Returns error if collection type is invalid or value encoding fails.
-func processCollectionColumnsForPrepareQueries(input ProcessPrepareCollectionsInput) (*ProcessPrepareCollectionsOutput, error) {
+func processCollectionColumnsForPrepareQueries(tableConfig *schemaMapping.TableConfig, input ProcessPrepareCollectionsInput) (*ProcessPrepareCollectionsOutput, error) {
 	output := &ProcessPrepareCollectionsOutput{
 		Unencrypted: make(map[string]interface{}),
 	}
@@ -810,9 +793,8 @@ func processCollectionColumnsForPrepareQueries(input ProcessPrepareCollectionsIn
 			continue
 		}
 		// todo validate the column exists again, in case the column was dropped after the query was prepared.
-		if input.Translator.IsCollection(input.KeySpace, input.TableName, column.Name) {
-
-			colFamily := input.Translator.GetColumnFamily(input.KeySpace, input.TableName, column.Name)
+		if utilities.IsCollectionColumn(&column) {
+			colFamily := tableConfig.GetColumnFamily(column.Name)
 			switch column.CQLType.GetDataTypeCode() {
 			case primitive.DataTypeCodeList:
 				if err := handlePrepareListOperation(input.Values[i].Contents, column, colFamily, input, output); err != nil {
@@ -1361,15 +1343,15 @@ func processSet[V any](
 // It iterates over the clauses and constructs the WHERE clause by combining the column name, operator, and value of each clause.
 // If the operator is "IN", the value is wrapped with the UNNEST function.
 // The constructed WHERE clause is returned as a string.
-func buildWhereClause(clauses []types.Clause, t *Translator, tableName string, keySpace string) (string, error) {
+func buildWhereClause(clauses []types.Clause, tableConfig *schemaMapping.TableConfig, tableName string, keySpace string) (string, error) {
 	whereClause := ""
-	columnFamily := t.SchemaMappingConfig.SystemColumnFamily
+	columnFamily := tableConfig.SystemColumnFamily
 	for _, val := range clauses {
 		column := "`" + val.Column + "`"
 		value := val.Value
-		if colMeta, ok := t.SchemaMappingConfig.TablesMetaData[keySpace][tableName][val.Column]; ok {
+		if colMeta, ok := tableConfig.Columns[val.Column]; ok {
 			// Check if the column is a primitive type and prepend the column family
-			if !colMeta.IsCollection {
+			if !utilities.IsCollectionColumn(colMeta) {
 				var castErr error
 				column, castErr = castColumns(colMeta, columnFamily)
 				if castErr != nil {
@@ -1409,31 +1391,31 @@ func castColumns(colMeta *types.Column, columnFamily string) (string, error) {
 	switch colMeta.CQLType {
 	case datatype.Int:
 		if colMeta.IsPrimaryKey {
-			nc = colMeta.ColumnName
+			nc = colMeta.Name
 		} else {
-			nc = fmt.Sprintf("TO_INT64(%s['%s'])", columnFamily, colMeta.ColumnName)
+			nc = fmt.Sprintf("TO_INT64(%s['%s'])", columnFamily, colMeta.Name)
 		}
 	case datatype.Bigint:
 		if colMeta.IsPrimaryKey {
-			nc = colMeta.ColumnName
+			nc = colMeta.Name
 		} else {
-			nc = fmt.Sprintf("TO_INT64(%s['%s'])", columnFamily, colMeta.ColumnName)
+			nc = fmt.Sprintf("TO_INT64(%s['%s'])", columnFamily, colMeta.Name)
 		}
 	case datatype.Float:
-		nc = fmt.Sprintf("TO_FLOAT32(%s['%s'])", columnFamily, colMeta.ColumnName)
+		nc = fmt.Sprintf("TO_FLOAT32(%s['%s'])", columnFamily, colMeta.Name)
 	case datatype.Double:
-		nc = fmt.Sprintf("TO_FLOAT64(%s['%s'])", columnFamily, colMeta.ColumnName)
+		nc = fmt.Sprintf("TO_FLOAT64(%s['%s'])", columnFamily, colMeta.Name)
 	case datatype.Boolean:
-		nc = fmt.Sprintf("TO_INT64(%s['%s'])", columnFamily, colMeta.ColumnName)
+		nc = fmt.Sprintf("TO_INT64(%s['%s'])", columnFamily, colMeta.Name)
 	case datatype.Timestamp:
-		nc = fmt.Sprintf("TO_TIME(%s['%s'])", columnFamily, colMeta.ColumnName)
+		nc = fmt.Sprintf("TO_TIME(%s['%s'])", columnFamily, colMeta.Name)
 	case datatype.Blob:
-		nc = fmt.Sprintf("TO_BLOB(%s['%s'])", columnFamily, colMeta.ColumnName)
+		nc = fmt.Sprintf("TO_BLOB(%s['%s'])", columnFamily, colMeta.Name)
 	case datatype.Varchar:
 		if colMeta.IsPrimaryKey {
-			nc = colMeta.ColumnName
+			nc = colMeta.Name
 		} else {
-			nc = fmt.Sprintf("%s['%s']", columnFamily, colMeta.ColumnName)
+			nc = fmt.Sprintf("%s['%s']", columnFamily, colMeta.Name)
 		}
 	default:
 		return "", fmt.Errorf("unsupported CQL type: %s", colMeta.CQLType)
@@ -1444,7 +1426,7 @@ func castColumns(colMeta *types.Column, columnFamily string) (string, error) {
 // parseWhereByClause parses the WHERE clause from a CQL query.
 // Extracts and processes WHERE conditions with type validation.
 // Returns error if clause parsing fails or invalid conditions are found.
-func parseWhereByClause(input cql.IWhereSpecContext, tableName string, schemaMapping *schemaMapping.SchemaMappingConfig, keyspace string) (*QueryClauses, error) {
+func parseWhereByClause(input cql.IWhereSpecContext, tableConfig *schemaMapping.TableConfig) (*QueryClauses, error) {
 	if input == nil {
 		return nil, errors.New("no input parameters found for clauses")
 	}
@@ -1522,28 +1504,28 @@ func parseWhereByClause(input cql.IWhereSpecContext, tableName string, schemaMap
 			}
 		}
 		colName = strings.ReplaceAll(colName, literalPlaceholder, "")
-		columnType, err := schemaMapping.GetColumnType(keyspace, tableName, colName)
+		column, err := tableConfig.GetColumn(colName)
 		if err != nil {
 			return nil, err
 		}
-		if columnType != nil && columnType.CQLType != nil {
+		if column != nil && column.CQLType != nil {
 			if operator == constants.CONTAINS || operator == constants.CONTAINS_KEY {
 				if value == "" {
 					return nil, errors.New("could not parse value from query for one of the clauses")
 				}
 				value = strings.ReplaceAll(value, "'", "")
-				typecode := columnType.CQLType.GetDataTypeCode()
+				typeCode := column.CQLType.GetDataTypeCode()
 				if value != questionMark {
 					if operator == constants.CONTAINS {
-						if typecode == primitive.DataTypeCodeList { // list
+						if typeCode == primitive.DataTypeCodeList { // list
 							operator = constants.ARRAY_INCLUDES
-						} else if typecode == primitive.DataTypeCodeSet { // set
+						} else if typeCode == primitive.DataTypeCodeSet { // set
 							operator = constants.MAP_CONTAINS_KEY
 						} else {
 							return nil, errors.New("CONTAINS are only supported for set and list")
 						}
 					} else {
-						if typecode == primitive.DataTypeCodeMap { // map
+						if typeCode == primitive.DataTypeCodeMap { // map
 							operator = constants.MAP_CONTAINS_KEY
 						} else {
 							return nil, errors.New("CONTAINS KEY are only supported for map")
@@ -1552,13 +1534,13 @@ func parseWhereByClause(input cql.IWhereSpecContext, tableName string, schemaMap
 					params[placeholder] = []byte(value)
 				} else {
 					if operator == "CONTAINS" {
-						if typecode == primitive.DataTypeCodeSet { // set
-							setType, _ := columnType.CQLType.(datatype.SetType)
+						if typeCode == primitive.DataTypeCodeSet { // set
+							setType, _ := column.CQLType.(datatype.SetType)
 							elementType := setType.GetElementType()
 							params[placeholder] = cqlTypeToEmptyPrimitive(elementType, false)
 							operator = constants.MAP_CONTAINS_KEY
-						} else if typecode == primitive.DataTypeCodeList { // list
-							listType, _ := columnType.CQLType.(datatype.ListType)
+						} else if typeCode == primitive.DataTypeCodeList { // list
+							listType, _ := column.CQLType.(datatype.ListType)
 							elementType := listType.GetElementType()
 							params[placeholder] = cqlTypeToEmptyPrimitive(elementType, false)
 							operator = constants.ARRAY_INCLUDES
@@ -1567,7 +1549,7 @@ func parseWhereByClause(input cql.IWhereSpecContext, tableName string, schemaMap
 						}
 					} else {
 						// If it's not contains, then it's a CONTAINS KEY operator
-						if typecode == primitive.DataTypeCodeMap { // map
+						if typeCode == primitive.DataTypeCodeMap { // map
 							// keyType := mapType.GetKeyType()
 							params[placeholder] = cqlTypeToEmptyPrimitive(datatype.Boolean, false)
 							operator = constants.MAP_CONTAINS_KEY
@@ -1585,18 +1567,18 @@ func parseWhereByClause(input cql.IWhereSpecContext, tableName string, schemaMap
 				value = strings.ReplaceAll(value, "'", "")
 				secondValue = strings.ReplaceAll(secondValue, "'", "")
 				if value != questionMark {
-					val, err := stringToPrimitives(value, columnType.CQLType)
+					val, err := stringToPrimitives(value, column.CQLType)
 					if err != nil {
 						return nil, err
 					}
-					secondVal, err := stringToPrimitives(secondValue, columnType.CQLType)
+					secondVal, err := stringToPrimitives(secondValue, column.CQLType)
 					if err != nil {
 						return nil, err
 					}
 					params[placeholder] = val
 					params[secondPlaceholder] = secondVal
 				} else {
-					params[placeholder] = cqlTypeToEmptyPrimitive(columnType.CQLType, columnType.IsPrimaryKey)
+					params[placeholder] = cqlTypeToEmptyPrimitive(column.CQLType, column.IsPrimaryKey)
 					params[secondPlaceholder] = params[placeholder] // CQLType will be same for both the values in the between clause
 				}
 				placeholderCount++ // we need to increase the placeholder count to get the next placeholder as BETWEEN clause has two values
@@ -1614,14 +1596,14 @@ func parseWhereByClause(input cql.IWhereSpecContext, tableName string, schemaMap
 
 				if value != questionMark {
 
-					val, err := stringToPrimitives(value, columnType.CQLType)
+					val, err := stringToPrimitives(value, column.CQLType)
 					if err != nil {
 						return nil, err
 					}
 
 					params[placeholder] = val
 				} else {
-					params[placeholder] = cqlTypeToEmptyPrimitive(columnType.CQLType, columnType.IsPrimaryKey)
+					params[placeholder] = cqlTypeToEmptyPrimitive(column.CQLType, column.IsPrimaryKey)
 				}
 			} else {
 				lower := strings.ToLower(val.GetText())
@@ -1634,7 +1616,7 @@ func parseWhereByClause(input cql.IWhereSpecContext, tableName string, schemaMap
 					if value == nil {
 						return nil, errors.New("could not parse all values inside IN operator")
 					}
-					switch columnType.CQLType {
+					switch column.CQLType {
 					case datatype.Int:
 						var allValues []int
 						for _, inVal := range value {
@@ -1727,7 +1709,7 @@ func parseWhereByClause(input cql.IWhereSpecContext, tableName string, schemaMap
 					}
 				} else {
 					// Create an empty array placeholder value based on the CQL type
-					switch columnType.CQLType {
+					switch column.CQLType {
 					case datatype.Int:
 						params[placeholder] = make([]int, 0)
 					case datatype.Bigint:
@@ -1743,7 +1725,7 @@ func parseWhereByClause(input cql.IWhereSpecContext, tableName string, schemaMap
 					case datatype.Varchar, datatype.Timestamp:
 						params[placeholder] = make([]string, 0)
 					default:
-						return nil, fmt.Errorf("unsupported array CQL type: %s", columnType.CQLType)
+						return nil, fmt.Errorf("unsupported array CQL type: %s", column.CQLType)
 					}
 				}
 			}
@@ -1751,7 +1733,7 @@ func parseWhereByClause(input cql.IWhereSpecContext, tableName string, schemaMap
 				Column:       colName,
 				Operator:     operator,
 				Value:        "@" + placeholder,
-				IsPrimaryKey: columnType.IsPrimaryKey,
+				IsPrimaryKey: column.IsPrimaryKey,
 			}
 
 			clauses = append(clauses, *clause)
@@ -1760,7 +1742,7 @@ func parseWhereByClause(input cql.IWhereSpecContext, tableName string, schemaMap
 					Column:       colName,
 					Operator:     constants.BETWEEN_AND,
 					Value:        "@" + secondPlaceholder,
-					IsPrimaryKey: columnType.IsPrimaryKey,
+					IsPrimaryKey: column.IsPrimaryKey,
 				}
 				clauses = append(clauses, *clause)
 			}
@@ -1770,18 +1752,6 @@ func parseWhereByClause(input cql.IWhereSpecContext, tableName string, schemaMap
 	response.Params = params
 	response.ParamKeys = paramKeys
 	return &response, nil
-}
-
-// GetColumnFamily retrieves the column family for a given column.
-// Returns the column family name from the schema mapping with validation.
-// Returns default column family for primitive types and column name for collections.
-func (t *Translator) GetColumnFamily(keyspace, tableName, columnName string) string {
-	if colType, err := t.SchemaMappingConfig.GetColumnType(keyspace, tableName, columnName); err == nil {
-		if colType.IsCollection {
-			return columnName
-		}
-	}
-	return t.SchemaMappingConfig.SystemColumnFamily
 }
 
 // getTimestampValue extracts timestamp value from a query.
@@ -1990,23 +1960,6 @@ func ProcessTimestampByDelete(st *DeleteQueryMapping, values []*primitive.Value)
 	return timestampInfo, values, nil
 }
 
-// GetAllColumns retrieves all columns for a given table.
-// Returns the list of column names and their types with validation.
-// Returns error if table doesn't exist or schema mapping fails.
-func (t *Translator) GetAllColumns(tableName string, keySpace string) ([]string, string, error) {
-	tableData := t.SchemaMappingConfig.TablesMetaData[keySpace][tableName]
-	if tableData == nil {
-		return nil, "", errors.New("schema mapping not found")
-	}
-	var columns []string
-	for _, value := range tableData {
-		if !value.IsCollection {
-			columns = append(columns, value.ColumnName)
-		}
-	}
-	return columns, t.SchemaMappingConfig.SystemColumnFamily, nil
-}
-
 // ValidateRequiredPrimaryKeys validates primary key requirements.
 // Checks if all required primary keys are present in the query with validation.
 // Returns false if any required key is missing or invalid.
@@ -2077,73 +2030,73 @@ func ExtractWritetimeValue(s string) (string, bool) {
 // convertAllValuesToRowKeyType converts values to row key types.
 // Handles type conversion for row key values with validation.
 // Returns error if value type is invalid or conversion fails.
-func convertAllValuesToRowKeyType(primaryKeys []types.Column, values map[string]interface{}) (map[string]interface{}, error) {
+func convertAllValuesToRowKeyType(primaryKeys []*types.Column, values map[string]interface{}) (map[string]interface{}, error) {
 	result := make(map[string]interface{})
 	for _, pmk := range primaryKeys {
 		if !pmk.IsPrimaryKey {
 			continue
 		}
 
-		value, exists := values[pmk.ColumnName]
+		value, exists := values[pmk.Name]
 		if !exists {
-			return nil, fmt.Errorf("missing primary key `%s`", pmk.ColumnName)
+			return nil, fmt.Errorf("missing primary key `%s`", pmk.Name)
 		}
 		switch pmk.CQLType {
 		case datatype.Int:
 			switch v := value.(type) {
 			// bigtable row keys don't support int32 so convert all int32 values to int64
 			case int:
-				result[pmk.ColumnName] = int64(v)
+				result[pmk.Name] = int64(v)
 			case int32:
-				result[pmk.ColumnName] = int64(v)
+				result[pmk.Name] = int64(v)
 			case int64:
-				result[pmk.ColumnName] = v
+				result[pmk.Name] = v
 			case string:
 				i, err := strconv.Atoi(v)
 				if err != nil {
-					return nil, fmt.Errorf("failed to convert Int value %s for key %s", value.(string), pmk.ColumnName)
+					return nil, fmt.Errorf("failed to convert Int value %s for key %s", value.(string), pmk.Name)
 				}
-				result[pmk.ColumnName] = int64(i)
+				result[pmk.Name] = int64(i)
 			default:
-				return nil, fmt.Errorf("failed to convert %T to Int for key %s", value, pmk.ColumnName)
+				return nil, fmt.Errorf("failed to convert %T to Int for key %s", value, pmk.Name)
 			}
 		case datatype.Bigint:
 			switch v := value.(type) {
 			case int:
-				result[pmk.ColumnName] = int64(v)
+				result[pmk.Name] = int64(v)
 			case int32:
-				result[pmk.ColumnName] = int64(v)
+				result[pmk.Name] = int64(v)
 			case int64:
-				result[pmk.ColumnName] = value
+				result[pmk.Name] = value
 			case string:
 				i, err := strconv.ParseInt(v, 10, 0)
 				if err != nil {
-					return nil, fmt.Errorf("failed to convert BigInt value %s for key %s", value.(string), pmk.ColumnName)
+					return nil, fmt.Errorf("failed to convert BigInt value %s for key %s", value.(string), pmk.Name)
 				}
-				result[pmk.ColumnName] = i
+				result[pmk.Name] = i
 			default:
-				return nil, fmt.Errorf("failed to convert %T to BigInt for key %s", value, pmk.ColumnName)
+				return nil, fmt.Errorf("failed to convert %T to BigInt for key %s", value, pmk.Name)
 			}
 		case datatype.Varchar:
 			switch v := value.(type) {
 			case string:
 				// todo move this validation to all columns not just keys
 				if !utf8.Valid([]byte(v)) {
-					return nil, fmt.Errorf("invalid utf8 value provided for varchar row key field %s", pmk.ColumnName)
+					return nil, fmt.Errorf("invalid utf8 value provided for varchar row key field %s", pmk.Name)
 				}
-				result[pmk.ColumnName] = v
+				result[pmk.Name] = v
 			default:
-				return nil, fmt.Errorf("failed to convert %T to BigInt for key %s", value, pmk.ColumnName)
+				return nil, fmt.Errorf("failed to convert %T to BigInt for key %s", value, pmk.Name)
 			}
 		case datatype.Blob:
 			switch v := value.(type) {
 			case string:
-				result[pmk.ColumnName] = v
+				result[pmk.Name] = v
 			default:
-				return nil, fmt.Errorf("failed to convert %T to BigInt for key %s", value, pmk.ColumnName)
+				return nil, fmt.Errorf("failed to convert %T to BigInt for key %s", value, pmk.Name)
 			}
 		default:
-			return nil, fmt.Errorf("unsupported primary key type %s for key %s", pmk.CQLType.String(), pmk.ColumnName)
+			return nil, fmt.Errorf("unsupported primary key type %s for key %s", pmk.CQLType.String(), pmk.Name)
 		}
 	}
 	return result, nil
@@ -2155,7 +2108,7 @@ var kOrderedCodeDelimiter = []byte("\x00\x01")
 // createOrderedCodeKey creates an ordered row key.
 // Generates a byte-encoded row key from primary key values with validation.
 // Returns error if key type is invalid or encoding fails.
-func createOrderedCodeKey(primaryKeys []types.Column, values map[string]interface{}, encodeIntValuesWithBigEndian bool) ([]byte, error) {
+func createOrderedCodeKey(primaryKeys []*types.Column, values map[string]interface{}, encodeIntValuesWithBigEndian bool) ([]byte, error) {
 	fixedValues, err := convertAllValuesToRowKeyType(primaryKeys, values)
 	if err != nil {
 		return nil, err
@@ -2167,9 +2120,9 @@ func createOrderedCodeKey(primaryKeys []types.Column, values map[string]interfac
 		if i != pmk.PkPrecedence-1 {
 			return nil, fmt.Errorf("wrong order for primary keys")
 		}
-		value, exists := fixedValues[pmk.ColumnName]
+		value, exists := fixedValues[pmk.Name]
 		if !exists {
-			return nil, fmt.Errorf("missing primary key `%s`", pmk.ColumnName)
+			return nil, fmt.Errorf("missing primary key `%s`", pmk.Name)
 		}
 
 		var orderEncodedField []byte

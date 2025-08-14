@@ -472,15 +472,14 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			schemaMapping := &schemaMapping.SchemaMappingConfig{
-				Logger:          tt.fields.Logger,
-				TablesMetaData:  mockSchemaMappingConfig,
-				PkMetadataCache: mockPkMetadata,
+			schemaMappingConfig := &schemaMapping.SchemaMappingConfig{
+				Logger: tt.fields.Logger,
+				Tables: mockTableConfigs,
 			}
 
 			tr := &Translator{
 				Logger:              tt.fields.Logger,
-				SchemaMappingConfig: schemaMapping,
+				SchemaMappingConfig: schemaMappingConfig,
 			}
 			got, err := tr.TranslateUpdateQuerytoBigtable(tt.args.query, false, "test_keyspace")
 			if (err != nil) != tt.wantErr {

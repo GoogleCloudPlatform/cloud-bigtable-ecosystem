@@ -34,7 +34,6 @@ import (
 	"cloud.google.com/go/bigtable"
 	bigtableModule "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/bigtable"
 	constants "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/constants"
-	types "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	otelgo "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/otel"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/responsehandler"
 	schemaMapping "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/schema-mapping"
@@ -209,23 +208,20 @@ func NewProxy(ctx context.Context, config Config) (*Proxy, error) {
 		return nil, err
 	}
 	logger := proxycore.GetOrCreateNopLogger(config.Logger)
-	tableMetadata := make(map[string]map[string]map[string]*types.Column)
-	pkMetadata := make(map[string]map[string][]types.Column)
+	tableMetadata := make(map[string]map[string]*schemaMapping.TableConfig)
 	bigtableCl := bigtableModule.NewBigtableClient(bigtableClients, adminClients, logger, config.BigtableConfig, &responsehandler.TypeHandler{}, &schemaMapping.SchemaMappingConfig{}, config.BigtableConfig.InstancesMap)
 	for k, _ := range config.BigtableConfig.InstancesMap {
 		instanceID := strings.TrimSpace(k)
 
-		tbdata, pkdata, err := bigtableCl.GetSchemaMappingConfigs(ctx, instanceID, config.BigtableConfig.SchemaMappingTable)
+		tableConfigs, err := bigtableCl.GetSchemaMappingConfigs(ctx, instanceID, config.BigtableConfig.SchemaMappingTable)
 		if err != nil {
 			return nil, err
 		}
-		tableMetadata[instanceID] = tbdata
-		pkMetadata[instanceID] = pkdata
+		tableMetadata[instanceID] = tableConfigs
 	}
 	schemaMappingConfig := &schemaMapping.SchemaMappingConfig{
 		Logger:             config.Logger,
-		TablesMetaData:     tableMetadata,
-		PkMetadataCache:    pkMetadata,
+		Tables:             tableMetadata,
 		SystemColumnFamily: config.BigtableConfig.DefaultColumnFamily,
 	}
 	responseHandler := &responsehandler.TypeHandler{
@@ -792,6 +788,13 @@ func (c *client) prepareDeleteType(raw *frame.RawFrame, msg *message.Prepare, id
 		return nil, nil, err
 	}
 
+	tableConfig, err := c.proxy.schemaMapping.GetTableConfig(deleteQueryMetadata.Keyspace, deleteQueryMetadata.Table)
+	if err != nil {
+		c.proxy.logger.Error(metadataFetchError, zap.String(Query, msg.Query), zap.Error(err))
+		c.sender.Send(raw.Header, &message.ConfigError{ErrorMessage: err.Error()})
+		return nil, nil, err
+	}
+
 	if slices.Contains(deleteQueryMetadata.ParamKeys, ts_column) {
 		variableColumns = append(variableColumns, ts_column)
 	}
@@ -807,12 +810,13 @@ func (c *client) prepareDeleteType(raw *frame.RawFrame, msg *message.Prepare, id
 
 	if len(variableColumns) > 0 {
 		//Get column metadata for variable fields
-		deleteQueryMetadata.VariableMetadata, err = c.proxy.schemaMapping.GetMetadataForColumns(deleteQueryMetadata.Keyspace, deleteQueryMetadata.Table, variableColumns)
+		deleteQueryMetadata.VariableMetadata, err = tableConfig.GetMetadataForColumns(variableColumns)
 		if err != nil {
 			c.proxy.logger.Error(metadataFetchError, zap.String(Query, msg.Query), zap.Error(err))
 			c.sender.Send(raw.Header, &message.ConfigError{ErrorMessage: err.Error()})
 			return nil, nil, err
 		}
+
 		if deleteQueryMetadata.TimestampInfo.HasUsingTimestamp {
 			metadata := message.ColumnMetadata{
 				Keyspace: deleteQueryMetadata.Keyspace,
@@ -832,7 +836,7 @@ func (c *client) prepareDeleteType(raw *frame.RawFrame, msg *message.Prepare, id
 		}
 	}
 
-	deleteQueryMetadata.ReturnMetadata, err = c.proxy.schemaMapping.GetMetadataForColumns(deleteQueryMetadata.Keyspace, deleteQueryMetadata.Table, returnColumns)
+	deleteQueryMetadata.ReturnMetadata, err = tableConfig.GetMetadataForColumns(returnColumns)
 	if err != nil {
 		c.sender.Send(raw.Header, &message.ConfigError{ErrorMessage: err.Error()})
 		return nil, nil, err
@@ -849,13 +853,19 @@ func (c *client) prepareInsertType(raw *frame.RawFrame, msg *message.Prepare, id
 
 	// Get the return columns from the query
 	insertQueryMetadata, err := c.proxy.translator.TranslateInsertQuerytoBigtable(msg.Query, raw.Header.Version, true, c.keyspace)
-
 	if err != nil {
 		c.proxy.logger.Error(translatorErrorMessage, zap.String(Query, msg.Query), zap.Error(err))
 		c.sender.Send(raw.Header, &message.Invalid{ErrorMessage: err.Error()})
 		return nil, nil, err
 	}
-	insertQueryMetadata.VariableMetadata, err = c.proxy.schemaMapping.GetMetadataForColumns(insertQueryMetadata.Keyspace, insertQueryMetadata.Table, insertQueryMetadata.ParamKeys)
+	tableConfig, err := c.proxy.schemaMapping.GetTableConfig(insertQueryMetadata.Keyspace, insertQueryMetadata.Table)
+	if err != nil {
+		c.proxy.logger.Error(metadataFetchError, zap.String(Query, msg.Query), zap.Error(err))
+		c.sender.Send(raw.Header, &message.ConfigError{ErrorMessage: err.Error()})
+		return nil, nil, err
+	}
+
+	insertQueryMetadata.VariableMetadata, err = tableConfig.GetMetadataForColumns(insertQueryMetadata.ParamKeys)
 	insertQueryMetadata.VariableMetadata = getTimestampMetadata(*insertQueryMetadata, insertQueryMetadata.VariableMetadata)
 	if err != nil {
 		c.proxy.logger.Error(metadataFetchError, zap.String(Query, msg.Query), zap.Error(err))
@@ -863,7 +873,7 @@ func (c *client) prepareInsertType(raw *frame.RawFrame, msg *message.Prepare, id
 		return nil, nil, err
 	}
 
-	insertQueryMetadata.ReturnMetadata, err = c.proxy.schemaMapping.GetMetadataForColumns(insertQueryMetadata.Keyspace, insertQueryMetadata.Table, returnColumns)
+	insertQueryMetadata.ReturnMetadata, err = tableConfig.GetMetadataForColumns(returnColumns)
 	if err != nil {
 		c.proxy.logger.Error("error getting column metadata", zap.Error(err))
 		c.sender.Send(raw.Header, &message.ConfigError{ErrorMessage: err.Error()})
@@ -883,9 +893,15 @@ func (c *client) prepareSelectType(raw *frame.RawFrame, msg *message.Prepare, id
 		c.sender.Send(raw.Header, &message.Invalid{ErrorMessage: err.Error()})
 		return nil, nil, err
 	}
+	tableConfig, err := c.proxy.schemaMapping.GetTableConfig(translatedSelectQuery.Keyspace, translatedSelectQuery.Table)
+	if err != nil {
+		c.proxy.logger.Error(metadataFetchError, zap.String(Query, msg.Query), zap.Error(err))
+		c.sender.Send(raw.Header, &message.ConfigError{ErrorMessage: err.Error()})
+		return nil, nil, err
+	}
 
 	// Get Column metadata for the table or selected field
-	translatedSelectQuery.ReturnMetadata, err = c.proxy.schemaMapping.GetMetadataForSelectedColumns(translatedSelectQuery.Table, translatedSelectQuery.ColumnMeta.Column, translatedSelectQuery.Keyspace)
+	translatedSelectQuery.ReturnMetadata, err = tableConfig.GetMetadataForSelectedColumns(translatedSelectQuery.ColumnMeta.Column)
 	if err != nil {
 		c.proxy.logger.Error(metadataFetchError, zap.String(Query, msg.Query), zap.Error(err))
 		c.sender.Send(raw.Header, &message.ConfigError{ErrorMessage: err.Error()})
@@ -908,7 +924,7 @@ func (c *client) prepareSelectType(raw *frame.RawFrame, msg *message.Prepare, id
 
 	if len(variableColumns) > 0 {
 		// Get column metadata for variable fields
-		translatedSelectQuery.VariableMetadata, err = c.proxy.schemaMapping.GetMetadataForColumns(translatedSelectQuery.Keyspace, translatedSelectQuery.Table, variableColumns)
+		translatedSelectQuery.VariableMetadata, err = tableConfig.GetMetadataForColumns(variableColumns)
 		for i, variableColumn := range translatedSelectQuery.VariableMetadata {
 			if i < len(translatedSelectQuery.Clauses) {
 				if variableColumn.Name == translatedSelectQuery.Clauses[i].Column {
@@ -985,6 +1001,13 @@ func (c *client) prepareUpdateType(raw *frame.RawFrame, msg *message.Prepare, id
 		return nil, nil, err
 	}
 
+	tableConfig, err := c.proxy.schemaMapping.GetTableConfig(updateQueryMetadata.Keyspace, updateQueryMetadata.Table)
+	if err != nil {
+		c.proxy.logger.Error(metadataFetchError, zap.String(Query, msg.Query), zap.Error(err))
+		c.sender.Send(raw.Header, &message.ConfigError{ErrorMessage: err.Error()})
+		return nil, nil, err
+	}
+
 	// capturing variable columns name assuming all columns are parameterized
 	for _, sets := range updateQueryMetadata.UpdateSetValues {
 		if sets.Value == commitTsFn {
@@ -1006,7 +1029,7 @@ func (c *client) prepareUpdateType(raw *frame.RawFrame, msg *message.Prepare, id
 
 	if len(variableColumns) > 0 {
 		//Get column metadata for variable fields
-		updateQueryMetadata.VariableMetadata, err = c.proxy.schemaMapping.GetMetadataForColumns(updateQueryMetadata.Keyspace, updateQueryMetadata.Table, variableColumns)
+		updateQueryMetadata.VariableMetadata, err = tableConfig.GetMetadataForColumns(variableColumns)
 		updateQueryMetadata.VariableMetadata = getTimestampMetadataForUpdate(*updateQueryMetadata, updateQueryMetadata.VariableMetadata)
 		if err != nil {
 			c.proxy.logger.Error(metadataFetchError, zap.String(Query, msg.Query), zap.Error(err))
@@ -1029,7 +1052,7 @@ func (c *client) prepareUpdateType(raw *frame.RawFrame, msg *message.Prepare, id
 
 	}
 
-	updateQueryMetadata.ReturnMetadata, err = c.proxy.schemaMapping.GetMetadataForColumns(updateQueryMetadata.Keyspace, updateQueryMetadata.Table, returnColumns)
+	updateQueryMetadata.ReturnMetadata, err = tableConfig.GetMetadataForColumns(returnColumns)
 	if err != nil {
 		c.proxy.logger.Error(metadataFetchError, zap.String(Query, msg.Query), zap.Error(err))
 		c.sender.Send(raw.Header, &message.ConfigError{ErrorMessage: err.Error()})
@@ -1385,6 +1408,11 @@ func (c *client) prepareUpdateQueryMetadata(raw *frame.RawFrame, paramValues []*
 
 // Prepare delete query metadata
 func (c *client) prepareDeleteQueryMetadata(raw *frame.RawFrame, paramValue []*primitive.Value, st *translator.DeleteQueryMapping) (*translator.DeleteQueryMapping, error) {
+	tableConfig, err := c.proxy.schemaMapping.GetTableConfig(st.Keyspace, st.Table)
+	if err != nil {
+		return nil, err
+	}
+
 	var variableColumns []string
 	variableColumnMetadata := make([]*message.ColumnMetadata, 0)
 	for _, clause := range st.Clauses {
@@ -1393,7 +1421,7 @@ func (c *client) prepareDeleteQueryMetadata(raw *frame.RawFrame, paramValue []*p
 
 	if len(variableColumns) != 0 {
 		var err error
-		variableColumnMetadata, err = c.proxy.schemaMapping.GetMetadataForColumns(st.Keyspace, st.Table, variableColumns)
+		variableColumnMetadata, err = tableConfig.GetMetadataForColumns(variableColumns)
 		if err != nil {
 			c.proxy.logger.Error(metadataFetchError, zap.String(Query, st.Query), zap.Error(err))
 			return nil, fmt.Errorf("%s -> %s", metadataFetchError, err.Error())
@@ -2007,10 +2035,10 @@ func detectEmptyPrimaryKey(query *translator.InsertQueryMapping) string {
 // handleDescribeKeyspaces handles the DESCRIBE KEYSPACES command
 func (c *client) handleDescribeKeyspaces(hdr *frame.Header) {
 	// Get all keyspaces from the schema mapping
-	keyspaces := make([]string, 0, len(c.proxy.schemaMapping.TablesMetaData))
+	keyspaces := make([]string, 0, len(c.proxy.schemaMapping.Tables))
 
 	// Add custom keyspaces from schema mapping
-	for keyspace := range c.proxy.schemaMapping.TablesMetaData {
+	for keyspace := range c.proxy.schemaMapping.Tables {
 		keyspaces = append(keyspaces, keyspace)
 	}
 
@@ -2088,8 +2116,14 @@ func (c *client) handleDescribeTableColumns(hdr *frame.Header, fullTableName str
 	}
 	keyspace, table := parts[0], parts[1]
 
+	tableConfig, err := c.proxy.schemaMapping.GetTableConfig(keyspace, table)
+	if err != nil {
+		c.sender.Send(hdr, &message.Invalid{ErrorMessage: fmt.Sprintf("Error getting column metadata: %v", err)})
+		return
+	}
+
 	// Get column metadata for the specified table
-	columns, err := c.proxy.schemaMapping.GetMetadataForColumns(keyspace, table, nil)
+	columns, err := tableConfig.GetMetadataForColumns(nil)
 	if err != nil {
 		c.sender.Send(hdr, &message.Invalid{ErrorMessage: fmt.Sprintf("Error getting column metadata: %v", err)})
 		return
@@ -2120,23 +2154,23 @@ func (c *client) handleDescribeKeyspace(hdr *frame.Header, keyspaceName string) 
 	createStmts := []string{}
 
 	// 2. CREATE TABLE statements for each table in the keyspace
-	tablesMap, ok := c.proxy.schemaMapping.TablesMetaData[keyspaceName]
+	tablesMap, ok := c.proxy.schemaMapping.Tables[keyspaceName]
 	if ok {
-		for tableName, columnsMap := range tablesMap {
+		for tableName, tableConfig := range tablesMap {
 			var colDefs []string
 			var pkCols []string
 			var clusteringCols []string
 
 			// Sort column names for consistent output
 			var colNames []string
-			for colName := range columnsMap {
+			for colName := range tableConfig.Columns {
 				colNames = append(colNames, colName)
 			}
 			sort.Strings(colNames)
 
 			// First collect all column definitions with their data types
 			for _, colName := range colNames {
-				col := columnsMap[colName]
+				col := tableConfig.Columns[colName]
 				colDefs = append(colDefs, fmt.Sprintf("%s %s", colName, col.CQLType))
 				if col.IsPrimaryKey {
 					if col.KeyType == "partition" {
@@ -2204,7 +2238,7 @@ func (c *client) handleEvent(event proxycore.Event) {
 // handlePostDDLEvent handles common operations after DDL statements (CREATE, ALTER, DROP)
 func (c *client) handlePostDDLEvent(hdr *frame.Header, changeType primitive.SchemaChangeType, keyspace, table string) {
 	// Refresh system metadata cache
-	cache, err := ConstructSystemMetadataRows(c.proxy.schemaMapping.TablesMetaData)
+	cache, err := ConstructSystemMetadataRows(c.proxy.schemaMapping.Tables)
 	if err != nil {
 		c.proxy.logger.Error("Failed to refresh system metadata cache", zap.Error(err))
 		_, span := c.proxy.otelInst.StartSpan(c.proxy.ctx, "handlePostDDLEvent", nil)

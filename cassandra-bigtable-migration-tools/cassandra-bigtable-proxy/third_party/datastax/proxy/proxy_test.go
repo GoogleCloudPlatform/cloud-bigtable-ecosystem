@@ -22,6 +22,8 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"reflect"
+	"sort"
 	"strings"
 	"sync"
 	"testing"
@@ -40,9 +42,6 @@ import (
 	"github.com/datastax/go-cassandra-native-protocol/frame"
 	"github.com/datastax/go-cassandra-native-protocol/message"
 	"github.com/datastax/go-cassandra-native-protocol/primitive"
-
-	"reflect"
-	"sort"
 
 	constants "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/constants"
 	types "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
@@ -259,9 +258,8 @@ var mockRawFrame = &frame.RawFrame{
 	Body: []byte{},
 }
 var schemaConfigs = &schemaMapping.SchemaMappingConfig{
-	TablesMetaData:  mockTableSchemaConfig,
-	PkMetadataCache: mockPkMetadata,
-	Logger:          zap.NewNop(),
+	Tables: mockTableSchemaConfig,
+	Logger: zap.NewNop(),
 }
 
 var mockProxy = &Proxy{
@@ -611,96 +609,90 @@ func Test_client_handlePrepare(t *testing.T) {
 	}
 }
 
-func createSchemaConfig() *schemaMapping.SchemaMappingConfig {
-	return &schemaMapping.SchemaMappingConfig{
-		TablesMetaData:     mockTableSchemaConfig,
-		PkMetadataCache:    mockPkMetadata,
-		SystemColumnFamily: "cf1",
-	}
-}
-
-var mockTableSchemaConfig = map[string]map[string]map[string]*types.Column{
-
+var mockTableSchemaConfig = map[string]map[string]*schemaMapping.TableConfig{
 	"keyspace": {
-		"test_table": {
-			"test_id": {
-				ColumnName: "test_id",
-				CQLType:    datatype.Varchar,
-				Metadata: message.ColumnMetadata{
-					Keyspace: "",
-					Table:    "test_table",
-					Name:     "test_id",
-					Type:     datatype.Varchar,
-					Index:    0,
+		"test_table": &schemaMapping.TableConfig{
+			SystemColumnFamily: "cf1",
+			Columns: map[string]*types.Column{
+				"test_id": {
+					Name:    "test_id",
+					CQLType: datatype.Varchar,
+					Metadata: message.ColumnMetadata{
+						Keyspace: "",
+						Table:    "test_table",
+						Name:     "test_id",
+						Type:     datatype.Varchar,
+						Index:    0,
+					},
+					IsPrimaryKey: true,
 				},
-				IsPrimaryKey: true,
-			},
-			"test_hash": {
-				ColumnName: "test_hash",
-				CQLType:    datatype.Varchar,
-				Metadata: message.ColumnMetadata{
-					Keyspace: "",
-					Table:    "test_table",
-					Name:     "test_hash",
-					Type:     datatype.Varchar,
-					Index:    1,
+				"test_hash": {
+					Name:    "test_hash",
+					CQLType: datatype.Varchar,
+					Metadata: message.ColumnMetadata{
+						Keyspace: "",
+						Table:    "test_table",
+						Name:     "test_hash",
+						Type:     datatype.Varchar,
+						Index:    1,
+					},
 				},
-			},
+				"column1": &types.Column{
+					Name:         "column1",
+					CQLType:      datatype.Varchar,
+					IsPrimaryKey: true,
+					PkPrecedence: 1,
+				},
+				"column2": &types.Column{
+					Name:         "column2",
+					CQLType:      datatype.Blob,
+					IsPrimaryKey: false,
+				},
+				"column3": &types.Column{
+					Name:         "column3",
+					CQLType:      datatype.Boolean,
+					IsPrimaryKey: false,
+				},
 
-			"column1": &types.Column{
-				ColumnName:   "column1",
-				CQLType:      datatype.Varchar,
-				IsPrimaryKey: true,
-				PkPrecedence: 1,
-			},
-			"column2": &types.Column{
-				ColumnName:   "column2",
-				CQLType:      datatype.Blob,
-				IsPrimaryKey: false,
-			},
-			"column3": &types.Column{
-				ColumnName:   "column3",
-				CQLType:      datatype.Boolean,
-				IsPrimaryKey: false,
-			},
-
-			"column10": &types.Column{
-				ColumnName:   "column10",
-				CQLType:      datatype.Varchar,
-				IsPrimaryKey: true,
-				PkPrecedence: 2,
+				"column10": &types.Column{
+					Name:         "column10",
+					CQLType:      datatype.Varchar,
+					IsPrimaryKey: true,
+					PkPrecedence: 2,
+				},
 			},
 		},
-		"user_info": {
-			"name": &types.Column{
-				ColumnName:   "name",
-				CQLType:      datatype.Varchar,
-				IsPrimaryKey: true,
-				PkPrecedence: 0,
-				IsCollection: false,
-				Metadata: message.ColumnMetadata{
-					Keyspace: "user_info",
-					Table:    "user_info",
-					Name:     "name",
-					Index:    0,
-					Type:     datatype.Varchar,
+		"user_info": &schemaMapping.TableConfig{
+			Columns: map[string]*types.Column{
+				"name": &types.Column{
+					Name:         "name",
+					CQLType:      datatype.Varchar,
+					IsPrimaryKey: true,
+					PkPrecedence: 0,
+					Metadata: message.ColumnMetadata{
+						Keyspace: "user_info",
+						Table:    "user_info",
+						Name:     "name",
+						Index:    0,
+						Type:     datatype.Varchar,
+					},
+				},
+				"age": &types.Column{
+					Name:         "age",
+					CQLType:      datatype.Varchar,
+					IsPrimaryKey: false,
+					PkPrecedence: 0,
+					Metadata: message.ColumnMetadata{
+						Keyspace: "user_info",
+						Table:    "user_info",
+						Name:     "age",
+						Index:    1,
+						Type:     datatype.Varchar,
+					},
 				},
 			},
-			"age": &types.Column{
-				ColumnName:   "age",
-				CQLType:      datatype.Varchar,
-				IsPrimaryKey: false,
-				PkPrecedence: 0,
-				IsCollection: false,
-				Metadata: message.ColumnMetadata{
-					Keyspace: "user_info",
-					Table:    "user_info",
-					Name:     "age",
-					Index:    1,
-					Type:     datatype.Varchar,
-				},
-			},
-		}},
+		},
+	},
 }
 
 func Test_detectEmptyPrimaryKey(t *testing.T) {
@@ -775,20 +767,18 @@ func Test_detectEmptyPrimaryKey(t *testing.T) {
 }
 
 // Implement the methods from the BigtableClient that you need to mock
-func (m *MockBigtableClient) GetSchemaMappingConfigs(ctx context.Context, instanceID, schemaMappingTable string) (map[string]map[string]*types.Column, map[string][]types.Column, error) {
-	tbData := make(map[string]map[string]*types.Column)
-	pkData := make(map[string][]types.Column)
-	return tbData, pkData, nil
+func (m *MockBigtableClient) GetSchemaMappingConfigs(ctx context.Context, instanceID, schemaMappingTable string) (map[string]map[string]*schemaMapping.TableConfig, error) {
+	tbData := make(map[string]map[string]*schemaMapping.TableConfig)
+	return tbData, nil
 }
 func TestNewProxy(t *testing.T) {
 	ctx := context.Background()
 	var logger *zap.Logger
 	logger = proxycore.GetOrCreateNopLogger(logger)
-	tbData := make(map[string]map[string]*types.Column)
-	pkData := make(map[string][]types.Column)
+	tbData := make(map[string]map[string]*schemaMapping.TableConfig)
 	bgtmockface := new(mockbigtable.BigTableClientIface)
-	bgtmockface.On("GetSchemaMappingConfigs", ctx, mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(tbData, pkData, nil)
-	bgtmockface.On("LoadConfigs", mock.AnythingOfType("*responsehandler.TypeHandler"), mock.AnythingOfType("*schemaMapping.SchemaMappingConfig")).Return(tbData, pkData, nil)
+	bgtmockface.On("GetSchemaMappingConfigs", ctx, mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(tbData, nil)
+	bgtmockface.On("LoadConfigs", mock.AnythingOfType("*responsehandler.TypeHandler"), mock.AnythingOfType("*schemaMapping.SchemaMappingConfig")).Return(tbData, nil)
 
 	// Override the factory function to return the mock
 	originalNewBigTableClient := bt.NewBigtableClient
@@ -2141,7 +2131,7 @@ func TestHandleDescribeKeyspaces(t *testing.T) {
 			logger := zap.NewNop()
 			schemaMappingConfig := &schemaMapping.SchemaMappingConfig{
 				Logger:             logger,
-				TablesMetaData:     tt.mockTableMeta,
+				Tables:             schemaMapping.CreateTableConfig("cf1", tt.mockTableMeta),
 				SystemColumnFamily: "cf",
 			}
 			proxy := &Proxy{
@@ -2235,7 +2225,7 @@ func TestHandleDescribeTables(t *testing.T) {
 			logger := zap.NewNop()
 			schemaMappingConfig := &schemaMapping.SchemaMappingConfig{
 				Logger:             logger,
-				TablesMetaData:     tt.mockTableMeta,
+				Tables:             schemaMapping.CreateTableConfig("cf1", tt.mockTableMeta),
 				SystemColumnFamily: "cf",
 			}
 			proxy := &Proxy{
@@ -2365,7 +2355,7 @@ func TestHandleDescribeTableColumns(t *testing.T) {
 			logger := zap.NewNop()
 			schemaMappingConfig := &schemaMapping.SchemaMappingConfig{
 				Logger:             logger,
-				TablesMetaData:     tt.mockTableMeta,
+				Tables:             schemaMapping.CreateTableConfig("cf1", tt.mockTableMeta),
 				SystemColumnFamily: "cf",
 			}
 			proxy := &Proxy{
@@ -2536,7 +2526,7 @@ func TestHandlePostDDLEvent(t *testing.T) {
 			}
 			schemaMappingConfig := &schemaMapping.SchemaMappingConfig{
 				Logger:             logger,
-				TablesMetaData:     mockTableMetadata,
+				Tables:             schemaMapping.CreateTableConfig("cf1", mockTableMetadata),
 				SystemColumnFamily: "cf",
 			}
 			proxy := &Proxy{

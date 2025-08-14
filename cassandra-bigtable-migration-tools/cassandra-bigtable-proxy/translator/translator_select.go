@@ -26,6 +26,8 @@ import (
 	types "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	schemaMapping "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/schema-mapping"
 	cql "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/third_party/cqlparser"
+	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/utilities"
+	"github.com/datastax/go-cassandra-native-protocol/primitive"
 )
 
 const (
@@ -311,20 +313,20 @@ func parseGroupByColumn(input cql.IGroupSpecContext) []string {
 // Returns:
 //   - []string column containing formatted selected columns for bigtable query
 //   - error if any
-func processSetStrings(t *Translator, selectedColumns []schemaMapping.SelectedColumns, tableName string, keySpace string, isGroupBy bool) ([]string, error) {
+func processSetStrings(t *Translator, tableConfig *schemaMapping.TableConfig, selectedColumns []schemaMapping.SelectedColumns, isGroupBy bool) ([]string, error) {
 	var columns = make([]string, 0)
 	columnFamily := t.SchemaMappingConfig.SystemColumnFamily
 	var err error
 	for _, columnMetadata := range selectedColumns {
 		if columnMetadata.IsFunc {
 			//todo: implement genereralized handling of writetime with rest of the aggregate functions
-			columns, err = processFunctionColumn(t, columnMetadata, tableName, keySpace, columns)
+			columns, err = processFunctionColumn(t, columnMetadata, tableConfig, columns)
 			if err != nil {
 				return nil, err
 			}
 			continue
 		} else {
-			columns, err = processNonFunctionColumn(t, columnMetadata, tableName, keySpace, columnFamily, columns, isGroupBy)
+			columns, err = processNonFunctionColumn(t, tableConfig, columnMetadata, columnFamily, columns, isGroupBy)
 			if err != nil {
 				return nil, err
 			}
@@ -356,7 +358,7 @@ func processSetStrings(t *Translator, selectedColumns []schemaMapping.SelectedCo
 //  4. Validates if the aggregate function is supported
 //  5. Applies any necessary type casting (converting cql select columns to respective bigtable columns)
 //  6. Formats the column expression with function and alias if specified
-func processFunctionColumn(t *Translator, columnMetadata schemaMapping.SelectedColumns, tableName string, keySpace string, columns []string) ([]string, error) {
+func processFunctionColumn(t *Translator, columnMetadata schemaMapping.SelectedColumns, tableConfig *schemaMapping.TableConfig, columns []string) ([]string, error) {
 
 	if columnMetadata.ColumnName == STAR && strings.ToLower(columnMetadata.FuncName) == "count" {
 		if columnMetadata.Alias != "" {
@@ -366,16 +368,16 @@ func processFunctionColumn(t *Translator, columnMetadata schemaMapping.SelectedC
 		return columns, nil
 
 	}
-	colMeta, found := t.SchemaMappingConfig.TablesMetaData[keySpace][tableName][columnMetadata.ColumnName]
+	colMeta, found := tableConfig.Columns[columnMetadata.ColumnName]
 	if !found {
 		// Check if the column is an alias
-		if aliasMeta, aliasFound := t.SchemaMappingConfig.TablesMetaData[keySpace][tableName][columnMetadata.Alias]; aliasFound {
+		if aliasMeta, aliasFound := tableConfig.Columns[columnMetadata.Alias]; aliasFound {
 			colMeta = aliasMeta
 		} else {
-			return nil, fmt.Errorf("column metadata not found for column '%s' in table '%s' and keyspace '%s'", columnMetadata.ColumnName, tableName, keySpace)
+			return nil, fmt.Errorf("column metadata not found for column '%s' in table '%s' and keyspace '%s'", columnMetadata.ColumnName, tableConfig.Name, tableConfig.Keyspace)
 		}
 	}
-	colFamiliy := t.SchemaMappingConfig.SystemColumnFamily
+	colFamily := t.SchemaMappingConfig.SystemColumnFamily
 	column := ""
 
 	if !funcAllowedInAggregate(columnMetadata.FuncName) {
@@ -387,7 +389,7 @@ func processFunctionColumn(t *Translator, columnMetadata schemaMapping.SelectedC
 			return nil, fmt.Errorf("column not supported for aggregate")
 		}
 	}
-	castValue, castErr := castColumns(colMeta, colFamiliy)
+	castValue, castErr := castColumns(colMeta, colFamily)
 	if castErr != nil {
 		return nil, castErr
 	}
@@ -430,9 +432,7 @@ func funcAllowedInAggregate(s string) bool {
 	return allowedFunctions[s]
 }
 
-func processNonFunctionColumn(t *Translator, columnMetadata schemaMapping.SelectedColumns, tableName string, keySpace string, columnFamily string, columns []string, isGroupBy bool) ([]string, error) {
-	var colMeta *types.Column
-	var ok bool
+func processNonFunctionColumn(t *Translator, tableConfig *schemaMapping.TableConfig, columnMetadata schemaMapping.SelectedColumns, columnFamily string, columns []string, isGroupBy bool) ([]string, error) {
 	colName := columnMetadata.Name
 	if columnMetadata.IsWriteTimeColumn || columnMetadata.MapKey != "" {
 		colName = columnMetadata.ColumnName
@@ -440,22 +440,22 @@ func processNonFunctionColumn(t *Translator, columnMetadata schemaMapping.Select
 	if columnMetadata.MapKey != "" {
 		colName = columnMetadata.ColumnName
 	}
-	colMeta, ok = t.SchemaMappingConfig.TablesMetaData[keySpace][tableName][colName]
-	if !ok {
-		return nil, fmt.Errorf("column metadata not found for col %s.%s", tableName, colName)
+	colMeta, err := tableConfig.GetColumn(colName)
+	if err != nil {
+		return nil, err
 	}
 	if columnMetadata.IsWriteTimeColumn {
-		columns = processWriteTimeColumn(t, columnMetadata, tableName, keySpace, columnFamily, columns)
+		columns = processWriteTimeColumn(tableConfig, columnMetadata, columnFamily, columns)
 	} else if columnMetadata.IsAs {
-		columns = processAsColumn(columnMetadata, tableName, columnFamily, colMeta, columns, isGroupBy)
+		columns = processAsColumn(columnMetadata, columnFamily, colMeta, columns, isGroupBy)
 	} else {
-		columns = processRegularColumn(columnMetadata, tableName, columnFamily, colMeta, columns, isGroupBy)
+		columns = processRegularColumn(columnMetadata, tableConfig.Name, columnFamily, colMeta, columns, isGroupBy)
 	}
 	return columns, nil
 }
 
-func processWriteTimeColumn(t *Translator, columnMetadata schemaMapping.SelectedColumns, tableName string, keySpace string, columnFamily string, columns []string) []string {
-	colFamily := t.GetColumnFamily(tableName, columnMetadata.ColumnName, keySpace)
+func processWriteTimeColumn(tableConfig *schemaMapping.TableConfig, columnMetadata schemaMapping.SelectedColumns, columnFamily string, columns []string) []string {
+	colFamily := tableConfig.GetColumnFamily(columnMetadata.ColumnName)
 	aliasColumnName := customWriteTime + columnMetadata.ColumnName + ""
 	wtColumn := ""
 	if columnMetadata.Alias == customWriteTime+columnMetadata.ColumnName {
@@ -469,9 +469,9 @@ func processWriteTimeColumn(t *Translator, columnMetadata schemaMapping.Selected
 	return columns
 }
 
-func processAsColumn(columnMetadata schemaMapping.SelectedColumns, tableName string, columnFamily string, colMeta *types.Column, columns []string, isGroupBy bool) []string {
+func processAsColumn(columnMetadata schemaMapping.SelectedColumns, columnFamily string, colMeta *types.Column, columns []string, isGroupBy bool) []string {
 	var columnSelected string
-	if !colMeta.IsCollection {
+	if !utilities.IsCollection(colMeta.CQLType) {
 		if isGroupBy {
 			castedCol, _ := castColumns(colMeta, columnFamily)
 			columnSelected = castedCol + " as " + columnMetadata.Alias
@@ -481,8 +481,7 @@ func processAsColumn(columnMetadata schemaMapping.SelectedColumns, tableName str
 			columnSelected = fmt.Sprintf("%s['%s'] as %s", columnFamily, columnMetadata.Name, columnMetadata.Alias)
 		}
 	} else {
-		colType, _ := methods.ConvertCQLDataTypeToString(colMeta.CQLType)
-		if strings.Contains(colType, "list") {
+		if colMeta.CQLType.GetDataTypeCode() == primitive.DataTypeCodeList {
 			columnSelected = fmt.Sprintf("MAP_VALUES(%s) as %s", columnMetadata.Name, columnMetadata.Alias)
 		} else {
 			columnSelected = fmt.Sprintf("`%s` as %s", columnMetadata.Name, columnMetadata.Alias)
@@ -516,7 +515,7 @@ Returns:
 	An updated slice of strings with the new formatted column reference appended.
 */
 func processRegularColumn(columnMetadata schemaMapping.SelectedColumns, tableName string, columnFamily string, colMeta *types.Column, columns []string, isGroupBy bool) []string {
-	if !colMeta.IsCollection {
+	if !utilities.IsCollection(colMeta.CQLType) {
 		if isGroupBy {
 			castedCol, _ := castColumns(colMeta, columnFamily)
 			columns = append(columns, castedCol)
@@ -567,6 +566,11 @@ func getBigtableSelectQuery(t *Translator, data *SelectQueryMap) (string, error)
 	var columns []string
 	var err error
 
+	tableConfig, err := t.SchemaMappingConfig.GetTableConfig(data.Keyspace, data.Table)
+	if err != nil {
+		return "", err
+	}
+
 	if data.ColumnMeta.Star {
 		column = STAR
 	} else {
@@ -574,7 +578,7 @@ func getBigtableSelectQuery(t *Translator, data *SelectQueryMap) (string, error)
 		if len(data.GroupByColumns) > 0 {
 			isGroupBy = true
 		}
-		columns, err = processSetStrings(t, data.ColumnMeta.Column, data.Table, data.Keyspace, isGroupBy)
+		columns, err = processSetStrings(t, tableConfig, data.ColumnMeta.Column, isGroupBy)
 		if err != nil {
 			return "nil", err
 		}
@@ -585,7 +589,7 @@ func getBigtableSelectQuery(t *Translator, data *SelectQueryMap) (string, error)
 		return "", errors.New("could not prepare the select query due to incomplete information")
 	}
 	btQuery := fmt.Sprintf("SELECT %s FROM %s", column, data.Table)
-	whereCondition, err := buildWhereClause(data.Clauses, t, data.Table, data.Keyspace)
+	whereCondition, err := buildWhereClause(data.Clauses, tableConfig, data.Table, data.Keyspace)
 	if err != nil {
 		return "nil", err
 	}
@@ -610,8 +614,8 @@ func getBigtableSelectQuery(t *Translator, data *SelectQueryMap) (string, error)
 				//lookupCol = realCol
 				groupBykeys = append(groupBykeys, col)
 			} else {
-				if colMeta, ok := t.SchemaMappingConfig.TablesMetaData[data.Keyspace][data.Table][lookupCol]; ok {
-					if !colMeta.IsCollection {
+				if colMeta, ok := tableConfig.Columns[lookupCol]; ok {
+					if !utilities.IsCollection(colMeta.CQLType) {
 						col, err := castColumns(colMeta, t.SchemaMappingConfig.SystemColumnFamily)
 						if err != nil {
 							return "", err
@@ -633,10 +637,10 @@ func getBigtableSelectQuery(t *Translator, data *SelectQueryMap) (string, error)
 			if _, ok := aliasToColumn[orderByCol.Column]; ok {
 				orderByClauses = append(orderByClauses, orderByCol.Column+" "+string(orderByCol.Operation))
 			} else {
-				if colMeta, ok := t.SchemaMappingConfig.TablesMetaData[data.Keyspace][data.Table][lookupCol]; ok {
+				if colMeta, ok := tableConfig.Columns[lookupCol]; ok {
 					if colMeta.IsPrimaryKey {
 						orderByClauses = append(orderByClauses, orderByCol.Column+" "+string(orderByCol.Operation))
-					} else if !colMeta.IsCollection {
+					} else if !utilities.IsCollection(colMeta.CQLType) {
 						orderByKey, err := castColumns(colMeta, t.SchemaMappingConfig.SystemColumnFamily)
 						if err != nil {
 							return "", err
@@ -710,16 +714,15 @@ func (t *Translator) TranslateSelectQuerytoBigtable(originalQuery, sessionKeyspa
 		}
 	}
 
-	if !t.SchemaMappingConfig.InstanceExists(keyspaceName) {
-		return nil, fmt.Errorf("keyspace %s does not exist", keyspaceName)
+	tableConfig, err := t.SchemaMappingConfig.GetTableConfig(keyspaceName, tableName)
+	if err != nil {
+		return nil, err
 	}
-	if !t.SchemaMappingConfig.TableExist(keyspaceName, tableName) {
-		return nil, fmt.Errorf("table %s does not exist", tableName)
-	}
+
 	var QueryClauses QueryClauses
 
 	if hasWhere(lowerQuery) {
-		resp, err := parseWhereByClause(selectObj.WhereSpec(), tableName, t.SchemaMappingConfig, keyspaceName)
+		resp, err := parseWhereByClause(selectObj.WhereSpec(), tableConfig)
 		if err != nil {
 			return nil, err
 		}
@@ -764,15 +767,7 @@ func (t *Translator) TranslateSelectQuerytoBigtable(originalQuery, sessionKeyspa
 		}
 	}
 
-	pmks, err := t.SchemaMappingConfig.GetPkByTableName(tableName, keyspaceName)
-	if err != nil {
-		return nil, err
-	}
-
-	var pmkNames []string
-	for _, pmk := range pmks {
-		pmkNames = append(pmkNames, pmk.ColumnName)
-	}
+	pmkNames := tableConfig.GetPrimaryKeys()
 
 	selectQueryData := &SelectQueryMap{
 		Query:           query,

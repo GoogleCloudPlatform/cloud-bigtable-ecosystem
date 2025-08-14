@@ -44,7 +44,7 @@ func TestIsCollectionDataType(t *testing.T) {
 
 	for _, tt := range testCases {
 		t.Run(tt.input.String(), func(t *testing.T) {
-			got := IsCollectionDataType(tt.input)
+			got := IsCollection(tt.input)
 			assert.Equal(t, tt.want, got)
 		})
 	}

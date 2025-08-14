@@ -96,7 +96,7 @@ func getNodeValue(node antlr.Tree, parent antlr.ParserRuleContext) interface{} {
 //   - An error if invalid input is detected, such as an empty assignment list or issues with assignment syntax,
 //     or if a column type cannot be retrieved from the schema mapping table, or if an attempt is made to assign
 //     a value to a primary key.
-func parseAssignments(assignments []cql.IAssignmentElementContext, tableName string, schemaMapping *schemaMapping.SchemaMappingConfig, keyspace string, prependColumn *[]string, isPreparedQuery bool) (*UpdateSetResponse, error) {
+func parseAssignments(assignments []cql.IAssignmentElementContext, tableConfig *schemaMapping.TableConfig, prependColumn *[]string, isPreparedQuery bool) (*UpdateSetResponse, error) {
 	if len(assignments) == 0 {
 		return nil, errors.New("invalid input")
 	}
@@ -164,18 +164,18 @@ func parseAssignments(assignments []cql.IAssignmentElementContext, tableName str
 				return nil, err
 			}
 			var val interface{}
-			columnType, err := schemaMapping.GetColumnType(keyspace, tableName, columnName)
+			column, err := tableConfig.GetColumn(columnName)
 			if err != nil {
-				return nil, fmt.Errorf("undefined column name %s in table %s.%s", columnName, keyspace, tableName)
+				return nil, err
 			}
-			if columnType.IsPrimaryKey {
+			if column.IsPrimaryKey {
 				return nil, fmt.Errorf("primary key not allowed to assignments")
 			}
 			if value != questionMark {
-				if columnType.IsCollection {
+				if utilities.IsCollectionColumn(column) {
 					val = value
 				} else {
-					val, err = formatValues(fmt.Sprintf("%v", value), columnType.CQLType, 4)
+					val, err = formatValues(fmt.Sprintf("%v", value), column.CQLType, 4)
 					if err != nil {
 						return nil, err
 					}
@@ -183,7 +183,7 @@ func parseAssignments(assignments []cql.IAssignmentElementContext, tableName str
 				params["set"+strconv.Itoa(i+1)] = val
 			}
 			paramKeys = append(paramKeys, "set"+strconv.Itoa(i+1))
-			cqlTypeStr, err := methods.ConvertCQLDataTypeToString(columnType.CQLType)
+			cqlTypeStr, err := methods.ConvertCQLDataTypeToString(column.CQLType)
 			if err != nil {
 				return nil, err
 			}
@@ -224,18 +224,18 @@ func parseAssignments(assignments []cql.IAssignmentElementContext, tableName str
 		}
 
 		var val interface{} // encrypted val
-		columnType, err := schemaMapping.GetColumnType(keyspace, tableName, columnName)
+		column, err := tableConfig.GetColumn(columnName)
 		if err != nil {
-			return nil, fmt.Errorf("undefined column name %s in table %s.%s", columnName, keyspace, tableName)
+			return nil, err
 		}
-		if columnType.IsPrimaryKey {
+		if column.IsPrimaryKey {
 			return nil, fmt.Errorf("primary key not allowed to assignments")
 		}
 		if !isPreparedQuery {
-			if columnType.IsCollection {
+			if utilities.IsCollectionColumn(column) {
 				val = value
 			} else {
-				val, err = formatValues(fmt.Sprintf("%v", value), columnType.CQLType, 4)
+				val, err = formatValues(fmt.Sprintf("%v", value), column.CQLType, 4)
 				if err != nil {
 					return nil, err
 				}
@@ -245,7 +245,7 @@ func parseAssignments(assignments []cql.IAssignmentElementContext, tableName str
 			val = value
 		}
 		paramKeys = append(paramKeys, "set"+strconv.Itoa(i+1))
-		cqlTypeStr, err := methods.ConvertCQLDataTypeToString(columnType.CQLType)
+		cqlTypeStr, err := methods.ConvertCQLDataTypeToString(column.CQLType)
 		if err != nil {
 			return nil, err
 		}
@@ -302,15 +302,10 @@ func (t *Translator) TranslateUpdateQuerytoBigtable(queryStr string, isPreparedQ
 		return nil, fmt.Errorf("invalid input paramaters found for keyspace")
 	}
 
-	if !t.SchemaMappingConfig.InstanceExists(keyspaceName) {
-		return nil, fmt.Errorf("keyspace %s does not exist", keyspaceName)
+	tableConfig, err := t.SchemaMappingConfig.GetTableConfig(keyspaceName, tableName)
+	if err != nil {
+		return nil, err
 	}
-
-	if !t.SchemaMappingConfig.TableExist(keyspaceName, table.GetText()) {
-		return nil, fmt.Errorf("table %s does not exist", table.GetText())
-	}
-
-	var err error
 
 	timestampInfo, err := GetTimestampInfoByUpdate(queryStr, updateObj)
 	if err != nil {
@@ -326,7 +321,7 @@ func (t *Translator) TranslateUpdateQuerytoBigtable(queryStr string, isPreparedQ
 	if allAssignmentObj == nil {
 		return nil, errors.New("error parsing all the assignment object")
 	}
-	setValues, err := parseAssignments(allAssignmentObj, tableName, t.SchemaMappingConfig, keyspaceName, &PrependColumns, isPreparedQuery)
+	setValues, err := parseAssignments(allAssignmentObj, tableConfig, &PrependColumns, isPreparedQuery)
 	if err != nil {
 		return nil, err
 	}
@@ -334,7 +329,7 @@ func (t *Translator) TranslateUpdateQuerytoBigtable(queryStr string, isPreparedQ
 	var QueryClauses QueryClauses
 
 	if hasWhere(lowerQuery) {
-		resp, err := parseWhereByClause(updateObj.WhereSpec(), tableName, t.SchemaMappingConfig, keyspaceName)
+		resp, err := parseWhereByClause(updateObj.WhereSpec(), tableConfig)
 		if err != nil {
 			return nil, err
 		}
@@ -356,14 +351,14 @@ func (t *Translator) TranslateUpdateQuerytoBigtable(queryStr string, isPreparedQ
 		}
 	}
 
-	primaryKeys, err := getPrimaryKeys(t.SchemaMappingConfig, tableName, keyspaceName)
+	primaryKeys := tableConfig.GetPrimaryKeys()
 	var actualPrimaryKeys []string
 	for _, val := range QueryClauses.Clauses {
 		actualPrimaryKeys = append(actualPrimaryKeys, val.Column)
 	}
 	if !ValidateRequiredPrimaryKeys(primaryKeys, actualPrimaryKeys) {
 		missingPrime := findFirstMissingKey(primaryKeys, actualPrimaryKeys)
-		missingPkColumnType, err := t.SchemaMappingConfig.GetPkKeyType(tableName, keyspaceName, missingPrime)
+		missingPkColumnType, err := tableConfig.GetPkKeyType(missingPrime)
 		if err != nil {
 			return nil, err
 		}
@@ -412,10 +407,7 @@ func (t *Translator) TranslateUpdateQuerytoBigtable(queryStr string, isPreparedQ
 		if len(primkeyvalues) != len(primaryKeys) {
 			return nil, errors.New("missing primary key values in where clause")
 		}
-		pmks, err := t.SchemaMappingConfig.GetPkByTableNameWithFilter(tableName, keyspaceName, primaryKeys)
-		if err != nil {
-			return nil, err
-		}
+		pmks := tableConfig.GetPkByTableNameWithFilter(primaryKeys)
 		rowKeyBytes, err := createOrderedCodeKey(pmks, pkValues, t.EncodeIntValuesWithBigEndian)
 		if err != nil {
 			return nil, err
@@ -431,7 +423,7 @@ func (t *Translator) TranslateUpdateQuerytoBigtable(queryStr string, isPreparedQ
 			KeySpace:       keyspaceName,
 			PrependColumns: PrependColumns,
 		}
-		rawOutput, err = processCollectionColumnsForRawQueries(rawInput)
+		rawOutput, err = processCollectionColumnsForRawQueries(tableConfig, rawInput)
 		if err != nil {
 			return nil, fmt.Errorf("error processing raw collection columns: %w", err)
 		}
@@ -443,8 +435,8 @@ func (t *Translator) TranslateUpdateQuerytoBigtable(queryStr string, isPreparedQ
 
 		for _, val := range QueryClauses.Clauses {
 			var column types.Column
-			if columns, exists := t.SchemaMappingConfig.TablesMetaData[keyspaceName][tableName][val.Column]; exists {
-				column = types.Column{Name: columns.ColumnName, ColumnFamily: t.SchemaMappingConfig.SystemColumnFamily, CQLType: columns.CQLType}
+			if columns, exists := tableConfig.Columns[val.Column]; exists {
+				column = types.Column{Name: columns.Name, ColumnFamily: tableConfig.SystemColumnFamily, CQLType: columns.CQLType}
 			}
 			newColumns = append(newColumns, column)
 
@@ -513,12 +505,13 @@ func (t *Translator) BuildUpdatePrepareQuery(columnsResponse []types.Column, val
 	var delColumns []types.Column                      // Added missing declaration
 	var prepareOutput *ProcessPrepareCollectionsOutput // Declare prepareOutput
 
+	tableConfig, err := t.SchemaMappingConfig.GetTableConfig(st.Keyspace, st.Table)
+	if err != nil {
+		return nil, err
+	}
+
 	if len(primaryKeys) == 0 {
-		primaryKeys, err = getPrimaryKeys(t.SchemaMappingConfig, st.Table, st.Keyspace)
-		if err != nil {
-			fmt.Println("Not able to fetch primary keys:", err)
-			return nil, err
-		}
+		primaryKeys = tableConfig.GetPrimaryKeys()
 	}
 	timestampInfo, values, variableMetadata, err := ProcessTimestampByUpdate(st, values)
 
@@ -537,7 +530,7 @@ func (t *Translator) BuildUpdatePrepareQuery(columnsResponse []types.Column, val
 		ComplexMeta:     st.ComplexOperation,
 	}
 
-	prepareOutput, err = processCollectionColumnsForPrepareQueries(prepareInput)
+	prepareOutput, err = processCollectionColumnsForPrepareQueries(tableConfig, prepareInput)
 	if err != nil {
 		return nil, err
 	}
@@ -550,8 +543,8 @@ func (t *Translator) BuildUpdatePrepareQuery(columnsResponse []types.Column, val
 
 	for i, clause := range st.Clauses {
 		var column types.Column
-		if columns, exists := t.SchemaMappingConfig.TablesMetaData[st.Keyspace][st.Table][clause.Column]; exists {
-			column = types.Column{Name: columns.ColumnName}
+		if columns, exists := tableConfig.Columns[clause.Column]; exists {
+			column = types.Column{Name: columns.Name}
 		}
 
 		if slices.Contains(primaryKeys, column.Name) {
@@ -561,10 +554,7 @@ func (t *Translator) BuildUpdatePrepareQuery(columnsResponse []types.Column, val
 		}
 	}
 
-	pmks, err := t.SchemaMappingConfig.GetPkByTableNameWithFilter(st.Table, st.Keyspace, primaryKeys)
-	if err != nil {
-		return nil, err
-	}
+	pmks := tableConfig.GetPkByTableNameWithFilter(primaryKeys)
 	rowKeyBytes, err := createOrderedCodeKey(pmks, unencrypted, t.EncodeIntValuesWithBigEndian)
 	if err != nil {
 		return nil, err

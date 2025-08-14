@@ -16,8 +16,6 @@ import (
 
 	schemaMapping "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/schema-mapping"
 
-	types "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
-
 	time "time"
 
 	translator "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/translator"
@@ -183,42 +181,32 @@ func (_m *BigTableClientIface) ExecutePreparedStatement(ctx context.Context, que
 }
 
 // GetSchemaMappingConfigs provides a mock function with given fields: _a0, _a1, _a2
-func (_m *BigTableClientIface) GetSchemaMappingConfigs(_a0 context.Context, _a1 string, _a2 string) (map[string]map[string]*types.Column, map[string][]types.Column, error) {
+func (_m *BigTableClientIface) GetSchemaMappingConfigs(_a0 context.Context, _a1 string, _a2 string) (map[string]*schemaMapping.TableConfig, error) {
 	ret := _m.Called(_a0, _a1, _a2)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetSchemaMappingConfigs")
 	}
 
-	var r0 map[string]map[string]*types.Column
-	var r1 map[string][]types.Column
-	var r2 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) (map[string]map[string]*types.Column, map[string][]types.Column, error)); ok {
+	var r0 map[string]*schemaMapping.TableConfig
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) (map[string]*schemaMapping.TableConfig, error)); ok {
 		return rf(_a0, _a1, _a2)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) map[string]map[string]*types.Column); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) map[string]*schemaMapping.TableConfig); ok {
 		r0 = rf(_a0, _a1, _a2)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(map[string]map[string]*types.Column)
+			r0 = ret.Get(0).(map[string]*schemaMapping.TableConfig)
 		}
 	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, string, string) map[string][]types.Column); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
 		r1 = rf(_a0, _a1, _a2)
 	} else {
-		if ret.Get(1) != nil {
-			r1 = ret.Get(1).(map[string][]types.Column)
-		}
+		r1 = ret.Error(1)
 	}
 
-	if rf, ok := ret.Get(2).(func(context.Context, string, string) error); ok {
-		r2 = rf(_a0, _a1, _a2)
-	} else {
-		r2 = ret.Error(2)
-	}
-
-	return r0, r1, r2
+	return r0, r1
 }
 
 // InsertRow provides a mock function with given fields: _a0, _a1
