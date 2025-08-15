@@ -18,14 +18,15 @@ package proxy
 import "fmt"
 
 var (
-	BigtableGrpcChannels = 1
-	BigtableMinSession   = 100
-	BigtableMaxSession   = 400
-	SchemaMappingTable   = "schema_mapping"
-	ErrorAuditTable      = "error_audit"
-	DefaultColumnFamily  = "cf1"
-	DefaultProfileId     = "default"
-	TimestampColumnName  = "ts_column"
+	BigtableGrpcChannels       = 1
+	BigtableMinSession         = 100
+	BigtableMaxSession         = 400
+	SchemaMappingTable         = "schema_mapping"
+	ErrorAuditTable            = "error_audit"
+	DefaultColumnFamily        = "cf1"
+	DefaultCounterColumnFamily = "ctrf"
+	DefaultProfileId           = "default"
+	TimestampColumnName        = "ts_column"
 )
 
 // ApplyDefaults applies default values to the configuration after it is loaded
@@ -39,6 +40,9 @@ func ValidateAndApplyDefaults(cfg *UserConfig) error {
 		}
 		if cfg.Listeners[i].Bigtable.DefaultColumnFamily == "" {
 			cfg.Listeners[i].Bigtable.DefaultColumnFamily = DefaultColumnFamily
+		}
+		if cfg.Listeners[i].Bigtable.CounterColumnFamily == "" {
+			cfg.Listeners[i].Bigtable.CounterColumnFamily = DefaultCounterColumnFamily
 		}
 		if cfg.Listeners[i].Bigtable.AppProfileID == "" {
 			cfg.Listeners[i].Bigtable.AppProfileID = DefaultProfileId
@@ -62,6 +66,9 @@ func ValidateAndApplyDefaults(cfg *UserConfig) error {
 		}
 		if len(cfg.Listeners[i].Bigtable.Instances) != 0 && cfg.Listeners[i].Bigtable.InstanceIDs != "" {
 			return fmt.Errorf("only one of 'instances' or 'instance_ids' should be set for listener %s on port %d", cfg.Listeners[i].Name, cfg.Listeners[i].Port)
+		}
+		if cfg.Listeners[i].Bigtable.DefaultColumnFamily == cfg.Listeners[i].Bigtable.CounterColumnFamily {
+			return fmt.Errorf("default column family is the same as counter column family for listener %s but must be different", cfg.Listeners[i].Name)
 		}
 	}
 	return nil

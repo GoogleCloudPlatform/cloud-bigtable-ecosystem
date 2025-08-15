@@ -1637,7 +1637,7 @@ func TestCastColumns(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := castColumns(tt.colMeta, tt.columnFamily)
+			got, err := castColumns(tt.colMeta, tt.columnFamily, "ctrf")
 			if (err != nil) != tt.wantErr {
 				t.Errorf("castColumns() error = %v, wantErr %v", err, tt.wantErr)
 				return

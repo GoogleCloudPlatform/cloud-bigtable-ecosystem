@@ -554,6 +554,102 @@ func Test_GetPkByTableName(t *testing.T) {
 		})
 	}
 }
+
+func Test_GetAllColumns(t *testing.T) {
+	logger := zap.NewNop()
+
+	schemaMappingConfig := SchemaMappingConfig{
+		Logger: logger,
+		TablesMetaData: map[string]map[string]map[string]*types.Column{
+			"keyspace1": {
+				"table1": {
+					"column1": {
+						CQLType:      datatype.Varchar,
+						ColumnName:   "column1",
+						IsPrimaryKey: true,
+					},
+					"column2": {
+						CQLType:      datatype.Int,
+						ColumnName:   "column2",
+						IsPrimaryKey: false,
+					},
+				},
+			},
+		},
+	}
+
+	tests := []struct {
+		name string
+		args struct {
+			tableName string
+			keySpace  string
+		}
+		wantCols []*types.Column
+		wantOk   bool
+	}{
+		{
+			name: "Successfully get all columns",
+			args: struct {
+				tableName string
+				keySpace  string
+			}{
+				tableName: "table1",
+				keySpace:  "keyspace1",
+			},
+			wantCols: []*types.Column{
+				{
+					CQLType:      datatype.Varchar,
+					ColumnName:   "column1",
+					IsPrimaryKey: true,
+				},
+				{
+					CQLType:      datatype.Int,
+					ColumnName:   "column2",
+					IsPrimaryKey: false,
+				},
+			},
+			wantOk: true,
+		},
+		{
+			name: "Access an unknown keyspace",
+			args: struct {
+				tableName string
+				keySpace  string
+			}{
+				tableName: "table1",
+				keySpace:  "keyspace?",
+			},
+			wantCols: nil,
+			wantOk:   false,
+		},
+		{
+			name: "Access an unknown table",
+			args: struct {
+				tableName string
+				keySpace  string
+			}{
+				tableName: "table?",
+				keySpace:  "keyspace1",
+			},
+			wantCols: nil,
+			wantOk:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, ok := schemaMappingConfig.GetAllColumns(tt.args.keySpace, tt.args.tableName)
+			if ok != tt.wantOk {
+				t.Errorf("GetAllColumns() ok = %v, wantOk %v", ok, tt.wantOk)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.wantCols) {
+				t.Errorf("GetAllColumns() = %v, want %v", got, tt.wantCols)
+			}
+		})
+	}
+}
+
 func Test_GetPkKeyType(t *testing.T) {
 	logger := zap.NewNop()
 

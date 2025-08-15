@@ -114,6 +114,7 @@ func (th *TypeHandler) BuildResponseRow(rowMap map[string]interface{}, query Que
 	for index, metaData := range cmd {
 		key := metaData.Name
 		if rowMap[key] == nil {
+			th.Logger.Warn(fmt.Sprintf("no result in row map found for key `%s`", key), zap.Any("row map", rowMap), zap.Any("column metadata", metaData), zap.String("btql", query.Query))
 			rowMap[key] = []byte{}
 			mr = append(mr, nil)
 			continue
@@ -156,7 +157,7 @@ func (th *TypeHandler) BuildResponseRow(rowMap map[string]interface{}, query Que
 			switch v := value.(type) {
 			case int64:
 				switch cqlType {
-				case datatype.Bigint:
+				case datatype.Bigint, datatype.Counter:
 					val = v
 					dt = datatype.Bigint
 				case datatype.Int:

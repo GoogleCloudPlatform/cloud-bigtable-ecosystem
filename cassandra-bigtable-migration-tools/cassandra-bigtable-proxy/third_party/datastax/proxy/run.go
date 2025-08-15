@@ -98,6 +98,7 @@ type Bigtable struct {
 	SchemaMappingTable  string         `yaml:"schemaMappingTable"`
 	Session             Session        `yaml:"Session"`
 	DefaultColumnFamily string         `yaml:"defaultColumnFamily"`
+	CounterColumnFamily string         `yaml:"counterColumnFamily"`
 	AppProfileID        string         `yaml:"appProfileID"`
 }
 
@@ -299,6 +300,7 @@ func Run(ctx context.Context, args []string) int {
 			InstancesMap:        InstanceMap,
 			GCPProjectID:        listener.Bigtable.ProjectID,
 			DefaultColumnFamily: listener.Bigtable.DefaultColumnFamily,
+			CounterColumnFamily: listener.Bigtable.CounterColumnFamily,
 			// todo remove once we support ordered code ints
 			EncodeIntValuesWithBigEndian: encodeIntValuesWithBigEndian,
 		}

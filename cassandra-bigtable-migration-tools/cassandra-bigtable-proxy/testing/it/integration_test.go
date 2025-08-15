@@ -117,10 +117,11 @@ func TestSelectSingleMapValue(t *testing.T) {
 
 	assert.Equal(t, 1, scanCount)
 	assert.Equal(t, id, gotId)
-	assert.Equal(t, 10011, gotZip)
+	assert.Equal(t, int64(10011), gotZip)
 
 	itr = session.Query("select id, zips['chelsea'] as czip from bigtabledevinstance.map_test where id=?", id).Iter()
 	scanner = itr.Scanner()
+	scanCount = 0
 	for scanner.Next() {
 		scanCount++
 		err = scanner.Scan(&gotId, &gotZip)
@@ -131,7 +132,7 @@ func TestSelectSingleMapValue(t *testing.T) {
 
 	assert.Equal(t, 1, scanCount)
 	assert.Equal(t, id, gotId)
-	assert.Equal(t, 10011, gotZip)
+	assert.Equal(t, int64(10011), gotZip)
 }
 
 func TestDeleteIfExist(t *testing.T) {

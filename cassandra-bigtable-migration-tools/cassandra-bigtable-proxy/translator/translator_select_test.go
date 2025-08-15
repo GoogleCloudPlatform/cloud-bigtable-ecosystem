@@ -2606,14 +2606,15 @@ func TestProcessSetStrings(t *testing.T) {
 
 func Test_processAsColumn(t *testing.T) {
 	tests := []struct {
-		name           string
-		columnMetadata schemaMapping.SelectedColumns
-		tableName      string
-		columnFamily   string
-		colMeta        *types.Column
-		columns        []string
-		isGroupBy      bool
-		want           []string
+		name                string
+		columnMetadata      schemaMapping.SelectedColumns
+		tableName           string
+		columnFamily        string
+		counterColumnFamily string
+		colMeta             *types.Column
+		columns             []string
+		isGroupBy           bool
+		want                []string
 	}{
 		{
 			name: "Non-collection column with GROUP BY",
@@ -2621,8 +2622,9 @@ func Test_processAsColumn(t *testing.T) {
 				Name:  "pk_1_text",
 				Alias: "col1",
 			},
-			tableName:    "test_table",
-			columnFamily: "cf1",
+			tableName:           "test_table",
+			columnFamily:        "cf1",
+			counterColumnFamily: "ctrf",
 			colMeta: &types.Column{
 				IsCollection: false,
 				CQLType:      datatype.Varchar,
@@ -2638,8 +2640,9 @@ func Test_processAsColumn(t *testing.T) {
 				Name:  "pk_1_text",
 				Alias: "col1",
 			},
-			tableName:    "test_table",
-			columnFamily: "cf1",
+			tableName:           "test_table",
+			columnFamily:        "cf1",
+			counterColumnFamily: "ctrf",
 			colMeta: &types.Column{
 				ColumnName:   "pk_1_text",
 				IsCollection: false,
@@ -2649,13 +2652,32 @@ func Test_processAsColumn(t *testing.T) {
 			want:      []string{"cf1['pk_1_text'] as col1"},
 		},
 		{
+			name: "counter column",
+			columnMetadata: schemaMapping.SelectedColumns{
+				Name:  "likes",
+				Alias: "l",
+			},
+			tableName:           "test_table",
+			columnFamily:        "cf1",
+			counterColumnFamily: "ctrf",
+			colMeta: &types.Column{
+				ColumnName:   "likes",
+				CQLType:      datatype.Counter,
+				IsCollection: false,
+			},
+			columns:   []string{},
+			isGroupBy: false,
+			want:      []string{"ctrf['likes'] as l"},
+		},
+		{
 			name: "Collection column without GROUP BY",
 			columnMetadata: schemaMapping.SelectedColumns{
 				Name:  "map_column",
 				Alias: "map1",
 			},
-			tableName:    "test_table",
-			columnFamily: "cf1",
+			tableName:           "test_table",
+			columnFamily:        "cf1",
+			counterColumnFamily: "ctrf",
 			colMeta: &types.Column{
 				IsCollection: true,
 			},
@@ -2669,8 +2691,9 @@ func Test_processAsColumn(t *testing.T) {
 				Name:  "pk_1_text",
 				Alias: "col1",
 			},
-			tableName:    "test_table",
-			columnFamily: "cf1",
+			tableName:           "test_table",
+			columnFamily:        "cf1",
+			counterColumnFamily: "ctrf",
 			colMeta: &types.Column{
 				IsCollection: false,
 			},
@@ -2685,8 +2708,9 @@ func Test_processAsColumn(t *testing.T) {
 				Alias:             "wt",
 				IsWriteTimeColumn: true,
 			},
-			tableName:    "test_table",
-			columnFamily: "cf1",
+			tableName:           "test_table",
+			columnFamily:        "cf1",
+			counterColumnFamily: "ctrf",
 			colMeta: &types.Column{
 				IsCollection: false,
 			},
@@ -2698,7 +2722,7 @@ func Test_processAsColumn(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := processAsColumn(tt.columnMetadata, tt.tableName, tt.columnFamily, tt.colMeta, tt.columns, tt.isGroupBy)
+			got := processAsColumn(tt.columnMetadata, tt.tableName, tt.counterColumnFamily, tt.columnFamily, tt.colMeta, tt.columns, tt.isGroupBy)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("processAsColumn() = %v, want %v", got, tt.want)
 			}

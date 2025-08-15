@@ -52,6 +52,18 @@ CREATE TABLE IF NOT EXISTS bigtabledevinstance.aggregation_grouping_test (
     PRIMARY KEY (category, item_id)
 );
 
+CREATE TABLE IF NOT EXISTS bigtabledevinstance.social_posts (
+    user_id varchar,
+    id int,
+    likes counter,
+    views counter,
+    PRIMARY KEY (user_id, id)
+);
+
+TRUNCATE TABLE bigtabledevinstance.user_info;
+TRUNCATE TABLE bigtabledevinstance.orders;
+TRUNCATE TABLE bigtabledevinstance.aggregation_grouping_test;
+TRUNCATE TABLE bigtabledevinstance.social_posts;
 
 CREATE TABLE IF NOT EXISTS cassandrakeyspace.user_info (
   name text,
@@ -106,3 +118,7 @@ CREATE TABLE IF NOT EXISTS cassandrakeyspace.aggregation_grouping_test (
     revenue_bigint bigint,
     PRIMARY KEY (category, item_id)
 );
+
+TRUNCATE TABLE cassandrakeyspace.user_info;
+TRUNCATE TABLE cassandrakeyspace.orders;
+TRUNCATE TABLE cassandrakeyspace.aggregation_grouping_test;

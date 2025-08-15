@@ -126,9 +126,10 @@ var mockPkMetadata = map[string]map[string][]types.Column{
 func GetSchemaMappingConfig() *schemaMapping.SchemaMappingConfig {
 	return &schemaMapping.SchemaMappingConfig{
 		// Logger:          tt.fields.Logger,
-		TablesMetaData:     mockTableConfig,
-		PkMetadataCache:    mockPkMetadata,
-		SystemColumnFamily: "cf1",
+		TablesMetaData:      mockTableConfig,
+		PkMetadataCache:     mockPkMetadata,
+		SystemColumnFamily:  "cf1",
+		CounterColumnFamily: "ctrf",
 	}
 }
 

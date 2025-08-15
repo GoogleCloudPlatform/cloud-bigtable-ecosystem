@@ -69,6 +69,7 @@ const updateType = "update"
 const insertType = "insert"
 const deleteType = "delete"
 const createType = "create"
+const truncateType = "truncate"
 const dropType = "drop"
 
 const ts_column = "last_commit_ts"
@@ -223,10 +224,11 @@ func NewProxy(ctx context.Context, config Config) (*Proxy, error) {
 		pkMetadata[instanceID] = pkdata
 	}
 	schemaMappingConfig := &schemaMapping.SchemaMappingConfig{
-		Logger:             config.Logger,
-		TablesMetaData:     tableMetadata,
-		PkMetadataCache:    pkMetadata,
-		SystemColumnFamily: config.BigtableConfig.DefaultColumnFamily,
+		Logger:              config.Logger,
+		TablesMetaData:      tableMetadata,
+		PkMetadataCache:     pkMetadata,
+		SystemColumnFamily:  config.BigtableConfig.DefaultColumnFamily,
+		CounterColumnFamily: config.BigtableConfig.CounterColumnFamily,
 	}
 	responseHandler := &responsehandler.TypeHandler{
 		Logger:              config.Logger,
@@ -1670,6 +1672,29 @@ func (c *client) handleQuery(raw *frame.RawFrame, msg *partialQuery) {
 				return
 			} else {
 				c.handlePostDDLEvent(raw.Header, primitive.SchemaChangeTypeCreated, queryMetadata.Keyspace, queryMetadata.Table)
+				c.sender.Send(raw.Header, &message.VoidResult{})
+				return
+			}
+
+		case truncateType:
+			queryMetadata, err := c.proxy.translator.TranslateTruncateTableToBigtable(msg.query, c.keyspace)
+			if err != nil {
+				c.proxy.logger.Error(translatorErrorMessage, zap.String(Query, msg.query), zap.Error(err))
+				otelErr = err
+				c.proxy.otelInst.RecordError(span, otelErr)
+				c.sender.Send(raw.Header, &message.Invalid{ErrorMessage: err.Error()})
+				return
+			}
+
+			otelgo.AddAnnotation(otelCtx, bigtableExecutionDoneEvent)
+			err = c.proxy.bClient.DropAllRows(c.proxy.ctx, queryMetadata)
+			if err != nil {
+				c.proxy.logger.Error(errorAtBigtable, zap.String(Query, msg.query), zap.Error(err))
+				otelErr = err
+				c.proxy.otelInst.RecordError(span, otelErr)
+				c.sender.Send(raw.Header, &message.Invalid{ErrorMessage: err.Error()})
+				return
+			} else {
 				c.sender.Send(raw.Header, &message.VoidResult{})
 				return
 			}

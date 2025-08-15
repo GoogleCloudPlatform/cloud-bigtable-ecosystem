@@ -33,10 +33,11 @@ const (
 )
 
 type SchemaMappingConfig struct {
-	Logger             *zap.Logger
-	TablesMetaData     map[string]map[string]map[string]*types.Column
-	PkMetadataCache    map[string]map[string][]types.Column
-	SystemColumnFamily string
+	Logger              *zap.Logger
+	TablesMetaData      map[string]map[string]map[string]*types.Column
+	PkMetadataCache     map[string]map[string][]types.Column
+	SystemColumnFamily  string
+	CounterColumnFamily string
 }
 
 type SelectedColumns struct {
@@ -69,6 +70,19 @@ func (c *SchemaMappingConfig) GetPkByTableName(tableName string, keySpace string
 		return nil, fmt.Errorf("could not find metadata for the table: %s", tableName)
 	}
 	return pkMeta, nil
+}
+
+func (c *SchemaMappingConfig) GetAllColumns(keySpace, tableName string) ([]*types.Column, bool) {
+	metadata, ok := c.TablesMetaData[keySpace][tableName]
+	if !ok {
+		return nil, false
+	}
+
+	var result []*types.Column
+	for _, column := range metadata {
+		result = append(result, column)
+	}
+	return result, true
 }
 
 func (c *SchemaMappingConfig) GetPkByTableNameWithFilter(tableName string, keySpace string, filterPrimaryKeys []string) ([]types.Column, error) {

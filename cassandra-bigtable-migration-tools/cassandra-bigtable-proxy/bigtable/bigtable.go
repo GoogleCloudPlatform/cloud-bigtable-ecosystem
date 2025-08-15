@@ -63,6 +63,9 @@ const (
 	mutationTypeDeleteColumnFamily = "DeleteColumnFamilies"
 	mutationTypeUpdate             = "Update"
 	schemaMappingTableColumnFamily = "cf"
+	// Cassandra doesn't have a time dimension to their counters, so we need to
+	// use the same time for all counters
+	counterTimestamp = 0
 )
 
 type BigTableClientIface interface {
@@ -74,6 +77,7 @@ type BigTableClientIface interface {
 	SelectStatement(context.Context, rh.QueryMetadata) (*message.RowsResult, time.Time, error)
 	AlterTable(ctx context.Context, data *translator.AlterTableStatementMap, schemaMappingTableName string) error
 	CreateTable(ctx context.Context, data *translator.CreateTableStatementMap, schemaMappingTableName string) error
+	DropAllRows(ctx context.Context, data *translator.TruncateTableStatementMap) error
 	DropTable(ctx context.Context, data *translator.DropTableStatementMap, schemaMappingTableName string) error
 	UpdateRow(context.Context, *translator.UpdateQueryMapping) (*message.RowsResult, error)
 	PrepareStatement(ctx context.Context, query rh.QueryMetadata) (*bigtable.PreparedStatement, error)
@@ -185,20 +189,28 @@ func (btc *BigtableClient) mutateRow(ctx context.Context, tableName, rowKey stri
 	}
 
 	// Handle complex updates
-	for cf, meta := range ComplexOperation {
+	for col, meta := range ComplexOperation {
+		if meta.IncrementType != translator.None {
+			var incrementValue = meta.IncrementValue
+			if meta.IncrementType == translator.Decrement {
+				incrementValue *= -1
+			}
+			// note: all counters are stored in a single column family dedicated to counter columns
+			mut.AddIntToCell(btc.BigtableConfig.CounterColumnFamily, col, counterTimestamp, incrementValue)
+		}
 		if meta.UpdateListIndex != "" {
 			index, err := strconv.Atoi(meta.UpdateListIndex)
 			if err != nil {
 				return nil, err
 			}
-			reqTimestamp, err := btc.getIndexOpTimestamp(ctx, tableName, rowKey, cf, keyspace, index)
+			reqTimestamp, err := btc.getIndexOpTimestamp(ctx, tableName, rowKey, col, keyspace, index)
 			if err != nil {
 				return nil, err
 			}
-			mut.Set(cf, reqTimestamp, timestamp, meta.Value)
+			mut.Set(col, reqTimestamp, timestamp, meta.Value)
 		}
 		if meta.ListDelete {
-			if err := btc.setMutationforListDelete(ctx, tableName, rowKey, cf, keyspace, meta.ListDeleteValues, mut); err != nil {
+			if err := btc.setMutationforListDelete(ctx, tableName, rowKey, col, keyspace, meta.ListDeleteValues, mut); err != nil {
 				return nil, err
 			}
 		}
@@ -248,6 +260,51 @@ func (btc *BigtableClient) mutateRow(ctx context.Context, tableName, rowKey stri
 			LastContinuousPage: true,
 		},
 	}, nil
+}
+
+// validateCounterColumn - ensures that the counter column family, if it exists, is correctly configured.
+func (btc *BigtableClient) validateCounterColumn(ctx context.Context, keyspace, tableName string) error {
+	adminClient, err := btc.getAdminClient(keyspace)
+	if err != nil {
+		return err
+	}
+
+	tableInfo, err := adminClient.TableInfo(ctx, tableName)
+	if err != nil {
+		return err
+	}
+
+	for _, info := range tableInfo.FamilyInfos {
+		if info.Name == btc.SchemaMappingConfig.CounterColumnFamily && !isCounterColumnFamilyType(info) {
+			return fmt.Errorf("counter column family `%s` in table `%s.%s` is not configured with required sum aggregate", btc.SchemaMappingConfig.CounterColumnFamily, keyspace, tableName)
+		}
+	}
+	return nil
+}
+
+func isCounterColumnFamilyType(info bigtable.FamilyInfo) bool {
+	switch vt := info.ValueType.(type) {
+	case bigtable.AggregateType:
+		return vt.Aggregator == bigtable.SumAggregator{} && vt.Input == bigtable.Int64Type{}
+	default:
+		return false
+	}
+}
+
+func (btc *BigtableClient) DropAllRows(ctx context.Context, data *translator.TruncateTableStatementMap) error {
+	adminClient, err := btc.getAdminClient(data.Keyspace)
+	if err != nil {
+		return err
+	}
+
+	btc.Logger.Info("truncate table: dropping all bigtable rows")
+	err = adminClient.DropAllRows(ctx, data.Table)
+	if err != nil {
+		btc.Logger.Error("truncate table: failed", zap.Error(err))
+		return err
+	}
+	btc.Logger.Info("truncate table: complete")
+	return nil
 }
 
 func (btc *BigtableClient) DropTable(ctx context.Context, data *translator.DropTableStatementMap, schemaMappingTableName string) error {
@@ -310,7 +367,7 @@ func (btc *BigtableClient) DropTable(ctx context.Context, data *translator.DropT
 }
 
 func (btc *BigtableClient) createSchemaMappingTableMaybe(ctx context.Context, keyspace, schemaMappingTableName string) error {
-	btc.Logger.Info("ensuring schema mapping table exists")
+	btc.Logger.Info(fmt.Sprintf("ensuring schema mapping table, `%s`, exists for keyspace %s", schemaMappingTableName, keyspace))
 	adminClient, err := btc.getAdminClient(keyspace)
 	if err != nil {
 		return err
@@ -322,11 +379,13 @@ func (btc *BigtableClient) createSchemaMappingTableMaybe(ctx context.Context, ke
 		return err
 	}
 	if !exists {
+		btc.Logger.Info("schema mapping table not found. Automatically creating it...")
 		err = adminClient.CreateTable(ctx, schemaMappingTableName)
 		if err != nil {
 			btc.Logger.Error("failed to create schema mapping table", zap.Error(err))
 			return err
 		}
+		btc.Logger.Info("schema mapping table created.")
 	}
 
 	err = adminClient.CreateColumnFamily(ctx, schemaMappingTableName, schemaMappingTableColumnFamily)
@@ -355,12 +414,17 @@ func (btc *BigtableClient) CreateTable(ctx context.Context, data *translator.Cre
 		return err
 	}
 
-	if !exists {
-		btc.Logger.Info("updating table schema")
-		err = btc.updateTableSchema(ctx, data.Keyspace, schemaMappingTableName, data.Table, data.PrimaryKeys, data.Columns, nil)
-		if err != nil {
-			return err
-		}
+	if exists && data.IfNotExists {
+		// already exists - nothing to do.
+		return nil
+	} else if exists && !data.IfNotExists {
+		return fmt.Errorf("cannot create table %s becauase it already exists", data.Table)
+	}
+
+	btc.Logger.Info("updating table schema")
+	err = btc.updateTableSchema(ctx, data.Keyspace, schemaMappingTableName, data.Table, data.PrimaryKeys, data.Columns, nil)
+	if err != nil {
+		return err
 	}
 
 	var rowKeySchemaFields []bigtable.StructField
@@ -372,14 +436,9 @@ func (btc *BigtableClient) CreateTable(ctx context.Context, data *translator.Cre
 		rowKeySchemaFields = append(rowKeySchemaFields, part)
 	}
 
-	columnFamilies := make(map[string]bigtable.Family)
-	for _, col := range data.Columns {
-		if utilities.IsCollectionDataType(col.Type) {
-			columnFamilies[col.Name] = bigtable.Family{
-				GCPolicy: bigtable.MaxVersionsPolicy(1),
-			}
-		}
-	}
+	columnFamilies, err := btc.addColumnFamilies(data.Columns)
+
+	// add default column family
 	columnFamilies[btc.BigtableConfig.DefaultColumnFamily] = bigtable.Family{
 		GCPolicy: bigtable.MaxVersionsPolicy(1),
 	}
@@ -402,8 +461,9 @@ func (btc *BigtableClient) CreateTable(ctx context.Context, data *translator.Cre
 		return err
 	}
 
-	if exists && !data.IfNotExists {
-		return fmt.Errorf("cannot create table %s becauase it already exists", data.Table)
+	err = btc.maybeAddCounterColumnFamily(ctx, adminClient, data.Keyspace, data.Table, data.Columns)
+	if err != nil {
+		return err
 	}
 
 	btc.Logger.Info("reloading schema mappings")
@@ -450,13 +510,21 @@ func (btc *BigtableClient) AlterTable(ctx context.Context, data *translator.Alte
 		return err
 	}
 
-	for _, col := range data.AddColumns {
-		if utilities.IsCollectionDataType(col.Type) {
-			err = adminClient.CreateColumnFamily(ctx, data.Table, col.Name)
-			if err != nil {
-				return err
-			}
+	columnFamilies, err := btc.addColumnFamilies(data.AddColumns)
+	if err != nil {
+		return err
+	}
+
+	for family, config := range columnFamilies {
+		err = adminClient.CreateColumnFamilyWithConfig(ctx, data.Table, family, config)
+		if err != nil {
+			return err
 		}
+	}
+
+	err = btc.maybeAddCounterColumnFamily(ctx, adminClient, data.Keyspace, data.Table, data.AddColumns)
+	if err != nil {
+		return err
 	}
 
 	btc.Logger.Info("reloading schema mappings")
@@ -468,10 +536,70 @@ func (btc *BigtableClient) AlterTable(ctx context.Context, data *translator.Alte
 	return nil
 }
 
+// maybeAddCounterColumnFamily - adds the counter column family if: any or the provided columns are of the counter type and the schema mapping table doesn't show
+func (btc *BigtableClient) maybeAddCounterColumnFamily(ctx context.Context, adminClient *bigtable.AdminClient, keyspace string, tableName string, addColumns []message.ColumnMetadata) error {
+	addsCounterColumn := slices.ContainsFunc(addColumns, func(c message.ColumnMetadata) bool {
+		return c.Type == datatype.Counter
+	})
+	// apparently no counter column is being added, so we don't need to add the column family
+	if !addsCounterColumn {
+		return nil
+	}
+
+	existingColumns, foundExistingColumns := btc.SchemaMappingConfig.GetAllColumns(keyspace, tableName)
+	// foundExistingColumns will be false if the we're just creating the table now because metadata hasn't been refreshed yet.
+	if foundExistingColumns {
+		alreadyHasCounterColumn := slices.ContainsFunc(existingColumns, func(c *types.Column) bool {
+			return c.CQLType == datatype.Counter
+		})
+		// the table already has a counter column, so it's safe to assume the column family exists
+		if alreadyHasCounterColumn {
+			return nil
+		}
+	}
+
+	btc.Logger.Info(fmt.Sprintf("adding a counter column family `%s` to table `%s.%s`", btc.SchemaMappingConfig.CounterColumnFamily, keyspace, tableName))
+	err := adminClient.CreateColumnFamilyWithConfig(ctx, tableName, btc.SchemaMappingConfig.CounterColumnFamily, bigtable.Family{
+		GCPolicy: bigtable.NoGcPolicy(),
+		ValueType: bigtable.AggregateType{
+			Input:      bigtable.Int64Type{},
+			Aggregator: bigtable.SumAggregator{},
+		},
+	})
+	// already exists errors are probably ok - the table already has a counter column family. This could happen if all previous counter columns were dropped since we don't clean up the column family.
+	if status.Code(err) == codes.AlreadyExists {
+		// we didn't expect the column family to exist - verify that it's correctly configured
+		err = btc.validateCounterColumn(ctx, keyspace, tableName)
+		if err != nil {
+			return err
+		}
+	} else if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (btc *BigtableClient) addColumnFamilies(columns []message.ColumnMetadata) (map[string]bigtable.Family, error) {
+	columnFamilies := make(map[string]bigtable.Family)
+	for _, col := range columns {
+		if utilities.IsCollectionDataType(col.Type) {
+			if col.Name == btc.BigtableConfig.DefaultColumnFamily {
+				return nil, fmt.Errorf("collection type columns cannot be named '%s' because it's reserved as the default column family", btc.BigtableConfig.DefaultColumnFamily)
+			} else if col.Name == btc.BigtableConfig.CounterColumnFamily {
+				return nil, fmt.Errorf("collection type columns cannot be named '%s' because it's reserved as the counter column family", btc.BigtableConfig.CounterColumnFamily)
+			}
+			columnFamilies[col.Name] = bigtable.Family{
+				GCPolicy: bigtable.MaxVersionsPolicy(1),
+			}
+		}
+	}
+	return columnFamilies, nil
+}
+
 func (btc *BigtableClient) updateTableSchema(ctx context.Context, keyspace string, schemaMappingTableName string, tableName string, pmks []translator.CreateTablePrimaryKeyConfig, addCols []message.ColumnMetadata, dropCols []string) error {
-	client, exists := btc.Clients[btc.InstancesMap[keyspace].BigtableInstance]
-	if !exists {
-		return fmt.Errorf("invalid keyspace `%s`", keyspace)
+	client, err := btc.getClient(keyspace)
+	if err != nil {
+		return err
 	}
 
 	ts := bigtable.Now()
@@ -512,7 +640,7 @@ func (btc *BigtableClient) updateTableSchema(ctx context.Context, keyspace strin
 
 	btc.Logger.Info("updating schema mapping table")
 	table := client.Open(schemaMappingTableName)
-	_, err := table.ApplyBulk(ctx, rowKeys, muts)
+	_, err = table.ApplyBulk(ctx, rowKeys, muts)
 
 	if err != nil {
 		btc.Logger.Error("update schema mapping table failed")

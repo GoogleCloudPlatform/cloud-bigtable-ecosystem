@@ -230,6 +230,7 @@ func TestLoadConfig(t *testing.T) {
 							Instances:           []InstancesMap{{BigtableInstance: "prod-instance-001", Keyspace: "prodinstance001"}},
 							SchemaMappingTable:  "prod_table_config",
 							DefaultColumnFamily: "cf_default",
+							CounterColumnFamily: "ctrf",
 							AppProfileID:        "prod-profile-123",
 							Session: Session{
 								GrpcChannels: 3,
