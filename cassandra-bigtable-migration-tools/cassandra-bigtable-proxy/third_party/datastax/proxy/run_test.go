@@ -27,7 +27,6 @@ import (
 
 	"cloud.google.com/go/bigtable"
 	bt "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/bigtable"
-	types "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	mockbigtable "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/mocks/bigtable"
 	rh "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/responsehandler"
 	schemaMapping "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/schema-mapping"
@@ -230,6 +229,7 @@ func TestLoadConfig(t *testing.T) {
 							Instances:           []InstancesMap{{BigtableInstance: "prod-instance-001", Keyspace: "prodinstance001"}},
 							SchemaMappingTable:  "prod_table_config",
 							DefaultColumnFamily: "cf_default",
+							CounterColumnFamily: "ctrf",
 							AppProfileID:        "prod-profile-123",
 							Session: Session{
 								GrpcChannels: 3,
@@ -284,11 +284,10 @@ func TestRun(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel() // Ensure resources are released
 	t.Setenv("CONFIG_FILE", "../fakedata/testConfigFile.yaml")
-	tbData := make(map[string]map[string]*types.Column)
-	pkData := make(map[string][]types.Column)
+	var tbData []*schemaMapping.TableConfig = nil
 	bgtmockface := new(mockbigtable.BigTableClientIface)
-	bgtmockface.On("GetSchemaMappingConfigs", ctx, "bigtabledevinstancetest", "schema_mapping_test").Return(tbData, pkData, nil)
-	bgtmockface.On("LoadConfigs", mock.AnythingOfType("*responsehandler.TypeHandler"), mock.AnythingOfType("*schemaMapping.SchemaMappingConfig")).Return(tbData, pkData, nil)
+	bgtmockface.On("ReadTableConfigs", ctx, "bigtabledevinstancetest", "schema_mapping_test").Return(tbData, nil)
+	bgtmockface.On("LoadConfigs", mock.AnythingOfType("*responsehandler.TypeHandler"), mock.AnythingOfType("*schemaMapping.SchemaMappingConfig")).Return(tbData, nil)
 
 	bgtmockface.On("Close").Return()
 

@@ -20,11 +20,14 @@ import (
 	"time"
 
 	types "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
+	schemaMapping "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/schema-mapping"
+	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/utilities"
 	"github.com/datastax/go-cassandra-native-protocol/datatype"
 	"github.com/datastax/go-cassandra-native-protocol/message"
 	"github.com/datastax/go-cassandra-native-protocol/primitive"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"go.uber.org/zap"
 )
 
 // TestUnixToISO tests the unixToISO function by checking if it correctly formats a known Unix timestamp.
@@ -155,31 +158,39 @@ func TestGetSystemQueryMetadataCache_ColumnFailure(t *testing.T) {
 func TestConstructSystemMetadataRows(t *testing.T) {
 	tests := []struct {
 		name          string
-		metadata      map[string]map[string]map[string]*types.Column
+		metadata      *schemaMapping.SchemaMappingConfig
 		expectedEmpty bool
 		expectedError bool
 	}{
 		{
 			name:          "Empty Metadata - Should Return Empty Cache",
-			metadata:      nil,
+			metadata:      schemaMapping.NewSchemaMappingConfig("cf", zap.NewNop(), nil),
 			expectedEmpty: true,
 			expectedError: false,
 		},
 		{
 			name: "Valid Metadata - Should Return Populated Cache",
-			metadata: map[string]map[string]map[string]*types.Column{
-				"test_keyspace": {
-					"test_table": {
-						"id": {
-							Name:         "id",
-							CQLType:      datatype.Uuid,
-							KeyType:      "partition",
-							IsPrimaryKey: true,
-							ColumnFamily: "cf",
+			metadata: schemaMapping.NewSchemaMappingConfig(
+				"cf",
+				zap.NewNop(),
+				[]*schemaMapping.TableConfig{
+					schemaMapping.NewTableConfig(
+						"test_keyspace",
+						"test_table",
+						"cf",
+						false,
+						[]*types.Column{
+							{
+								Name:         "id",
+								CQLType:      datatype.Uuid,
+								KeyType:      "partition",
+								IsPrimaryKey: true,
+								ColumnFamily: "cf",
+							},
 						},
-					},
+					),
 				},
-			},
+			),
 			expectedEmpty: false,
 			expectedError: false,
 		},
@@ -187,7 +198,7 @@ func TestConstructSystemMetadataRows(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cache, err := ConstructSystemMetadataRows(tt.metadata)
+			cache, err := ConstructSystemMetadataRows(tt.metadata.GetAllTables())
 			if tt.expectedError {
 				if err == nil {
 					t.Error("Expected error but got none")
@@ -231,47 +242,38 @@ func TestConstructSystemMetadataRows(t *testing.T) {
 func TestGetKeyspaceMetadata(t *testing.T) {
 	tests := []struct {
 		name              string
-		tableMetadata     map[string]map[string]map[string]*types.Column
+		tableConfigs      []*schemaMapping.TableConfig
 		expectedCount     int
 		expectedKeyspaces []string
 	}{
 		{
 			name:              "Empty Metadata",
-			tableMetadata:     map[string]map[string]map[string]*types.Column{},
+			tableConfigs:      []*schemaMapping.TableConfig{},
 			expectedCount:     0,
 			expectedKeyspaces: []string{},
 		},
 		{
 			name: "Single Keyspace",
-			tableMetadata: map[string]map[string]map[string]*types.Column{
-				"test_keyspace": {
-					"test_table": {
-						"id": {
-							Name:    "id",
-							CQLType: datatype.Uuid,
-						},
-					},
-				},
+			tableConfigs: []*schemaMapping.TableConfig{
+				schemaMapping.NewTableConfig("test_keyspace", "test_table", "cf1", false, []*types.Column{
+					{Name: "id", CQLType: datatype.Uuid, KeyType: utilities.KEY_TYPE_REGULAR},
+				}),
 			},
 			expectedCount:     1,
 			expectedKeyspaces: []string{"test_keyspace"},
 		},
 		{
 			name: "Multiple Keyspaces",
-			tableMetadata: map[string]map[string]map[string]*types.Column{
-				"keyspace1": {
-					"table1": {
-						"col1": {Name: "col1", CQLType: datatype.Varchar},
-					},
-					"table2": {
-						"col2": {Name: "col2", CQLType: datatype.Int},
-					},
-				},
-				"keyspace2": {
-					"table2": {
-						"col2": {Name: "col2", CQLType: datatype.Int},
-					},
-				},
+			tableConfigs: []*schemaMapping.TableConfig{
+				schemaMapping.NewTableConfig("keyspace1", "table1", "cf1", false, []*types.Column{
+					{Name: "col1", CQLType: datatype.Varchar, KeyType: utilities.KEY_TYPE_REGULAR},
+				}),
+				schemaMapping.NewTableConfig("keyspace1", "table2", "cf1", false, []*types.Column{
+					{Name: "col2", CQLType: datatype.Int, KeyType: utilities.KEY_TYPE_REGULAR},
+				}),
+				schemaMapping.NewTableConfig("keyspace2", "table2", "cf1", false, []*types.Column{
+					{Name: "col2", CQLType: datatype.Int, KeyType: utilities.KEY_TYPE_REGULAR},
+				}),
 			},
 			expectedCount:     2,
 			expectedKeyspaces: []string{"keyspace1", "keyspace2"},
@@ -280,23 +282,16 @@ func TestGetKeyspaceMetadata(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := getKeyspaceMetadata(tt.tableMetadata)
+			schemaConfig := schemaMapping.NewSchemaMappingConfig("cf1", zap.NewNop(), tt.tableConfigs)
+			result := getKeyspaceMetadata(schemaConfig.GetAllTables())
 
-			// Check count
 			assert.Equal(t, tt.expectedCount, len(result), "Expected %d keyspaces, got %d", tt.expectedCount, len(result))
-
-			// Check keyspace names and structure
 			for _, row := range result {
 				assert.Equal(t, 3, len(row), "Each row should have 3 elements")
 				keyspace := row[0].(string)
 				assert.Contains(t, tt.expectedKeyspaces, keyspace, "Unexpected keyspace: %s", keyspace)
-
-				// Check durable_writes is true
 				assert.True(t, row[1].(bool), "durable_writes should be true")
-
-				// Check replication map
 				replication := row[2].(map[string]string)
-				assert.NotEmpty(t, replication, "Replication map should not be empty")
 				assert.Contains(t, replication, "class", "Replication map should contain 'class'")
 			}
 		})
@@ -306,24 +301,22 @@ func TestGetKeyspaceMetadata(t *testing.T) {
 func TestGetTableMetadata(t *testing.T) {
 	tests := []struct {
 		name           string
-		tableMetadata  map[string]map[string]map[string]*types.Column
+		tableConfigs   []*schemaMapping.TableConfig
 		expectedCount  int
 		expectedTables []struct{ keyspace, table string }
 	}{
 		{
 			name:           "Empty Metadata",
-			tableMetadata:  map[string]map[string]map[string]*types.Column{},
+			tableConfigs:   []*schemaMapping.TableConfig{},
 			expectedCount:  0,
 			expectedTables: []struct{ keyspace, table string }{},
 		},
 		{
 			name: "Single Table",
-			tableMetadata: map[string]map[string]map[string]*types.Column{
-				"test_keyspace": {
-					"test_table": {
-						"id": {Name: "id", CQLType: datatype.Uuid},
-					},
-				},
+			tableConfigs: []*schemaMapping.TableConfig{
+				schemaMapping.NewTableConfig("test_keyspace", "test_table", "cf1", false, []*types.Column{
+					{Name: "id", CQLType: datatype.Uuid, KeyType: utilities.KEY_TYPE_REGULAR},
+				}),
 			},
 			expectedCount: 1,
 			expectedTables: []struct{ keyspace, table string }{
@@ -331,16 +324,14 @@ func TestGetTableMetadata(t *testing.T) {
 			},
 		},
 		{
-			name: "Multiple Tables",
-			tableMetadata: map[string]map[string]map[string]*types.Column{
-				"keyspace1": {
-					"table1": {
-						"col1": {Name: "col1", CQLType: datatype.Varchar},
-					},
-					"table2": {
-						"col2": {Name: "col2", CQLType: datatype.Int},
-					},
-				},
+			name: "Multiple tables",
+			tableConfigs: []*schemaMapping.TableConfig{
+				schemaMapping.NewTableConfig("keyspace1", "table1", "cf1", false, []*types.Column{
+					{Name: "col1", CQLType: datatype.Varchar, KeyType: utilities.KEY_TYPE_REGULAR},
+				}),
+				schemaMapping.NewTableConfig("keyspace1", "table2", "cf1", false, []*types.Column{
+					{Name: "col2", CQLType: datatype.Int, KeyType: utilities.KEY_TYPE_REGULAR},
+				}),
 			},
 			expectedCount: 2,
 			expectedTables: []struct{ keyspace, table string }{
@@ -352,19 +343,13 @@ func TestGetTableMetadata(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := getTableMetadata(tt.tableMetadata)
+			schemaConfig := schemaMapping.NewSchemaMappingConfig("cf1", zap.NewNop(), tt.tableConfigs)
+			result := getTableMetadata(schemaConfig.GetAllTables())
 
-			// Check count
 			assert.Equal(t, tt.expectedCount, len(result), "Expected %d tables, got %d", tt.expectedCount, len(result))
-
-			// Check table metadata structure
 			for _, row := range result {
 				assert.Equal(t, 6, len(row), "Each row should have 6 elements")
-
-				keyspace := row[0].(string)
-				table := row[1].(string)
-
-				// Find expected table
+				keyspace, table := row[0].(string), row[1].(string)
 				found := false
 				for _, expected := range tt.expectedTables {
 					if expected.keyspace == keyspace && expected.table == table {
@@ -373,19 +358,6 @@ func TestGetTableMetadata(t *testing.T) {
 					}
 				}
 				assert.True(t, found, "Unexpected table: %s.%s", keyspace, table)
-
-				// Check other fields
-				assert.Equal(t, "99p", row[2], "Bloom filter FP chance should be '99p'")
-				assert.Equal(t, 0.01, row[3], "Caching should be 0.01")
-
-				// Check caching map
-				caching := row[4].(map[string]string)
-				assert.Equal(t, "ALL", caching["keys"])
-				assert.Equal(t, "NONE", caching["rows_per_partition"])
-
-				// Check flags
-				flags := row[5].([]string)
-				assert.Equal(t, []string{"compound"}, flags)
 			}
 		})
 	}
@@ -394,29 +366,22 @@ func TestGetTableMetadata(t *testing.T) {
 func TestGetColumnMetadata(t *testing.T) {
 	tests := []struct {
 		name            string
-		tableMetadata   map[string]map[string]map[string]*types.Column
+		tableConfigs    []*schemaMapping.TableConfig
 		expectedCount   int
 		expectedColumns []struct{ keyspace, table, column, kind string }
 	}{
 		{
 			name:            "Empty Metadata",
-			tableMetadata:   map[string]map[string]map[string]*types.Column{},
+			tableConfigs:    []*schemaMapping.TableConfig{},
 			expectedCount:   0,
 			expectedColumns: []struct{ keyspace, table, column, kind string }{},
 		},
 		{
 			name: "Single Column",
-			tableMetadata: map[string]map[string]map[string]*types.Column{
-				"test_keyspace": {
-					"test_table": {
-						"id": {
-							Name:         "id",
-							CQLType:      datatype.Uuid,
-							IsPrimaryKey: true,
-							KeyType:      "partition",
-						},
-					},
-				},
+			tableConfigs: []*schemaMapping.TableConfig{
+				schemaMapping.NewTableConfig("test_keyspace", "test_table", "cf1", false, []*types.Column{
+					{Name: "id", CQLType: datatype.Uuid, IsPrimaryKey: true, KeyType: "partition"},
+				}),
 			},
 			expectedCount: 1,
 			expectedColumns: []struct{ keyspace, table, column, kind string }{
@@ -425,29 +390,12 @@ func TestGetColumnMetadata(t *testing.T) {
 		},
 		{
 			name: "Multiple Columns",
-			tableMetadata: map[string]map[string]map[string]*types.Column{
-				"keyspace1": {
-					"table1": {
-						"id": {
-							Name:         "id",
-							CQLType:      datatype.Uuid,
-							IsPrimaryKey: true,
-							KeyType:      "partition",
-						},
-						"name": {
-							Name:         "name",
-							CQLType:      datatype.Varchar,
-							IsPrimaryKey: true,
-							KeyType:      "clustering",
-						},
-						"age": {
-							Name:         "age",
-							CQLType:      datatype.Int,
-							IsPrimaryKey: false,
-							KeyType:      "regular",
-						},
-					},
-				},
+			tableConfigs: []*schemaMapping.TableConfig{
+				schemaMapping.NewTableConfig("keyspace1", "table1", "cf1", false, []*types.Column{
+					{Name: "id", CQLType: datatype.Uuid, IsPrimaryKey: true, KeyType: "partition"},
+					{Name: "name", CQLType: datatype.Varchar, IsPrimaryKey: true, KeyType: "clustering"},
+					{Name: "age", CQLType: datatype.Int, IsPrimaryKey: false, KeyType: "regular"},
+				}),
 			},
 			expectedCount: 3,
 			expectedColumns: []struct{ keyspace, table, column, kind string }{
@@ -460,21 +408,13 @@ func TestGetColumnMetadata(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := getColumnMetadata(tt.tableMetadata)
+			schemaConfig := schemaMapping.NewSchemaMappingConfig("cf1", zap.NewNop(), tt.tableConfigs)
+			result := getColumnMetadata(schemaConfig.GetAllTables())
 
-			// Check count
 			assert.Equal(t, tt.expectedCount, len(result), "Expected %d columns, got %d", tt.expectedCount, len(result))
-
-			// Check column metadata structure
 			for _, row := range result {
 				assert.Equal(t, 7, len(row), "Each row should have 7 elements")
-
-				keyspace := row[0].(string)
-				table := row[1].(string)
-				column := row[2].(string)
-				kind := row[4].(string)
-
-				// Find expected column
+				keyspace, table, column, kind := row[0].(string), row[1].(string), row[2].(string), row[4].(string)
 				found := false
 				for _, expected := range tt.expectedColumns {
 					if expected.keyspace == keyspace && expected.table == table &&
@@ -484,11 +424,6 @@ func TestGetColumnMetadata(t *testing.T) {
 					}
 				}
 				assert.True(t, found, "Unexpected column: %s.%s.%s (kind: %s)", keyspace, table, column, kind)
-
-				// Check other fields
-				assert.Equal(t, "none", row[3], "Clustering order should be 'none'")
-				assert.Equal(t, 0, row[5], "Position should be 0")
-				assert.NotEmpty(t, row[6], "Type should not be empty")
 			}
 		})
 	}

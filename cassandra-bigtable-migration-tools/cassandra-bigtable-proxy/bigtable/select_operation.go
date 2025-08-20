@@ -19,6 +19,7 @@ package bigtableclient
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -26,8 +27,6 @@ import (
 	"github.com/datastax/go-cassandra-native-protocol/datatype"
 	"github.com/datastax/go-cassandra-native-protocol/message"
 	"github.com/datastax/go-cassandra-native-protocol/primitive"
-
-	"slices"
 
 	rh "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/responsehandler"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/third_party/datastax/proxycore"
@@ -81,7 +80,7 @@ func (btc *BigtableClient) ExecutePreparedStatement(ctx context.Context, query r
 		rowMap, convertErr := btc.convertResultRowToMap(resultRow, query) // Call the implemented helper
 		if convertErr != nil {
 			// Log the error and stop processing
-			btc.Logger.Error("Failed to convert result row", zap.Error(convertErr))
+			btc.Logger.Error("Failed to convert result row", zap.Error(convertErr), zap.String("btql", query.Query))
 			processingErr = convertErr // Capture the error
 			return false               // Stop execution
 		}
@@ -115,7 +114,11 @@ func (btc *BigtableClient) ExecutePreparedStatement(ctx context.Context, query r
 	}
 
 	if len(allRowMaps) == 0 && len(columnMetadata) == 0 {
-		columnMetadata, err = btc.SchemaMappingConfig.GetMetadataForSelectedColumns(query.TableName, query.SelectedColumns, query.KeyspaceName)
+		tableConfig, err := btc.SchemaMappingConfig.GetTableConfig(query.KeyspaceName, query.TableName)
+		if err != nil {
+			return nil, bigtableEnd, err
+		}
+		columnMetadata, err = tableConfig.GetMetadataForSelectedColumns(query.SelectedColumns)
 		if err != nil {
 			btc.Logger.Error("Error while fetching columnMetadata from config for empty result", zap.Error(err))
 			columnMetadata = []*message.ColumnMetadata{}
@@ -157,6 +160,17 @@ func (btc *BigtableClient) convertResultRowToMap(resultRow bigtable.ResultRow, q
 			rowMap[colName] = []byte(v)
 		case []byte:
 			rowMap[colName] = v
+		case map[string]*int64:
+			// flatten out the counter column family - we only get here when 'select *' is used
+			if colName == btc.SchemaMappingConfig.CounterColumnFamily {
+				for key, value := range v {
+					decodedKey, err := decodeBase64(key)
+					if err != nil {
+						return nil, err
+					}
+					rowMap[decodedKey] = *value
+				}
+			}
 		case map[string][]uint8: //specific case of select * column in select
 			if colName == query.DefaultColumnFamily { // default column family e.g cf1
 				for k, val := range v {
@@ -205,7 +219,7 @@ func (btc *BigtableClient) convertResultRowToMap(resultRow bigtable.ResultRow, q
 		case nil:
 			rowMap[colName] = nil
 		default:
-			convertErr = fmt.Errorf("unsupported Bigtable SQL type  %v for column %s", v, colName)
+			convertErr = fmt.Errorf("unsupported Bigtable SQL type  %T for column %s", v, colName)
 		}
 		if convertErr != nil {
 			return nil, convertErr // Return error if conversion failed

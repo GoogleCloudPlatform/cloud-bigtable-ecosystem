@@ -95,6 +95,7 @@ const (
 	CassandraTypeUuid      = "uuid"
 	CassandraTypeFloat     = "float"
 	CassandraTypeDouble    = "double"
+	CassandraTypeCounter   = "counter"
 )
 const (
 	Info  = "info"
@@ -103,8 +104,12 @@ const (
 	Warn  = "warn"
 )
 
-// IsCollectionDataType() checks if the provided data type is a collection type (list, set, or map).
-func IsCollectionDataType(dt datatype.DataType) bool {
+func IsCollectionColumn(c *types.Column) bool {
+	return IsCollection(c.CQLType)
+}
+
+// IsCollection() checks if the provided data type is a collection type (list, set, or map).
+func IsCollection(dt datatype.DataType) bool {
 	switch dt.GetDataTypeCode() {
 	case primitive.DataTypeCodeList, primitive.DataTypeCodeSet, primitive.DataTypeCodeMap:
 		return true
@@ -130,7 +135,7 @@ func DecodeBytesToCassandraColumnType(b []byte, choice datatype.PrimitiveType, p
 		return proxycore.DecodeType(datatype.Double, protocolVersion, b)
 	case primitive.DataTypeCodeFloat:
 		return proxycore.DecodeType(datatype.Float, protocolVersion, b)
-	case primitive.DataTypeCodeBigint:
+	case primitive.DataTypeCodeBigint, primitive.DataTypeCodeCounter:
 		return proxycore.DecodeType(datatype.Bigint, protocolVersion, b)
 	case primitive.DataTypeCodeTimestamp:
 		return proxycore.DecodeType(datatype.Timestamp, protocolVersion, b)

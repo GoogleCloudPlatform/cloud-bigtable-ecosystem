@@ -22,14 +22,13 @@ import (
 
 type Column struct {
 	Name         string
+	ColumnFamily string
 	CQLType      datatype.DataType
-	ColumnName   string
+	// todo remove this field because it's redundant - you can use PkPrecedence or KeyType to infer this
 	IsPrimaryKey bool
 	PkPrecedence int
-	IsCollection bool
 	KeyType      string
 	Metadata     message.ColumnMetadata
-	ColumnFamily string
 }
 
 type Clause struct {
@@ -37,4 +36,17 @@ type Clause struct {
 	Operator     string
 	Value        string
 	IsPrimaryKey bool
+}
+
+type SelectedColumns struct {
+	Name              string
+	IsFunc            bool
+	IsAs              bool
+	FuncName          string
+	Alias             string
+	MapKey            string
+	ListIndex         string
+	ColumnName        string //this will be the column name for writetime function,aggregate function and Map key access
+	KeyType           string
+	IsWriteTimeColumn bool
 }

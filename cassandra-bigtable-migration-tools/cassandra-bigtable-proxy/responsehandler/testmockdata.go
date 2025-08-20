@@ -19,117 +19,56 @@ import (
 	btpb "cloud.google.com/go/bigtable/apiv2/bigtablepb"
 	types "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	schemaMapping "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/schema-mapping"
+	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/utilities"
 	"github.com/datastax/go-cassandra-native-protocol/datatype"
 	"github.com/datastax/go-cassandra-native-protocol/message"
+	"go.uber.org/zap"
 )
 
-var mockTableConfig = map[string]map[string]map[string]*types.Column{
-	"test_keyspace": {"test_table": {
-		"column1": &types.Column{
-			ColumnName:   "column1",
-			CQLType:      datatype.Varchar,
-			IsPrimaryKey: true,
-			PkPrecedence: 1,
-		},
-		"column2": &types.Column{
-			ColumnName:   "column2",
-			CQLType:      datatype.Blob,
-			IsPrimaryKey: false,
-		},
-		"column3": &types.Column{
-			ColumnName:   "column3",
-			CQLType:      datatype.Boolean,
-			IsPrimaryKey: false,
-		},
-		"column4": &types.Column{
-			ColumnName:   "column4",
-			CQLType:      datatype.NewListType(datatype.Varchar),
-			IsPrimaryKey: false,
-			IsCollection: true,
-		},
-		"column5": &types.Column{
-			ColumnName:   "column5",
-			CQLType:      datatype.Timestamp,
-			IsPrimaryKey: false,
-		},
-		"column6": &types.Column{
-			ColumnName:   "column6",
-			CQLType:      datatype.Int,
-			IsPrimaryKey: false,
-		},
-		"column7": &types.Column{
-			ColumnName:   "column7",
-			CQLType:      datatype.NewSetType(datatype.Varchar),
-			IsPrimaryKey: false,
-			IsCollection: true,
-		},
-		"column8": &types.Column{
-			ColumnName:   "column8",
-			CQLType:      datatype.NewMapType(datatype.Varchar, datatype.Boolean),
-			IsPrimaryKey: false,
-			IsCollection: true,
-		},
-		"column9": &types.Column{
-			ColumnName:   "column9",
-			CQLType:      datatype.Bigint,
-			IsPrimaryKey: false,
-		},
-		"column10": &types.Column{
-			ColumnName:   "column10",
-			CQLType:      datatype.Varchar,
-			IsPrimaryKey: true,
-			PkPrecedence: 2,
-		},
-		"column11": &types.Column{
-			ColumnName:   "column11",
-			CQLType:      datatype.NewSetType(datatype.Varchar),
-			IsPrimaryKey: false,
-			IsCollection: true,
-		},
-	},
-		"user_info": {
-			"name": &types.Column{
-				ColumnName:   "name",
-				CQLType:      datatype.Varchar,
-				IsPrimaryKey: true,
-				PkPrecedence: 0,
-				IsCollection: false,
-			},
-		}},
-}
-
-var mockPkMetadata = map[string]map[string][]types.Column{
-	"test_keyspace": {"test_table": {
-		{
-			ColumnName:   "column1",
-			CQLType:      datatype.Varchar,
-			IsPrimaryKey: true,
-			PkPrecedence: 1,
-		},
-		{
-			ColumnName:   "column10",
-			CQLType:      datatype.Varchar,
-			IsPrimaryKey: true,
-			PkPrecedence: 2,
-		},
-	},
-		"user_info": {
-			{
-				ColumnName:   "name",
-				CQLType:      datatype.Varchar,
-				IsPrimaryKey: true,
-				PkPrecedence: 0,
-			},
-		}},
-}
-
 func GetSchemaMappingConfig() *schemaMapping.SchemaMappingConfig {
-	return &schemaMapping.SchemaMappingConfig{
-		// Logger:          tt.fields.Logger,
-		TablesMetaData:     mockTableConfig,
-		PkMetadataCache:    mockPkMetadata,
-		SystemColumnFamily: "cf1",
+	var (
+		testTableColumns = []*types.Column{
+			{Name: "column1", CQLType: datatype.Varchar, KeyType: utilities.KEY_TYPE_PARTITION, IsPrimaryKey: true, PkPrecedence: 1},
+			{Name: "column10", CQLType: datatype.Varchar, KeyType: utilities.KEY_TYPE_CLUSTERING, IsPrimaryKey: true, PkPrecedence: 2},
+			// Regular columns
+			{Name: "column2", CQLType: datatype.Blob, KeyType: utilities.KEY_TYPE_REGULAR},
+			{Name: "column3", CQLType: datatype.Boolean, KeyType: utilities.KEY_TYPE_REGULAR},
+			{Name: "column4", CQLType: datatype.NewListType(datatype.Varchar), KeyType: utilities.KEY_TYPE_REGULAR},
+			{Name: "column5", CQLType: datatype.Timestamp, KeyType: utilities.KEY_TYPE_REGULAR},
+			{Name: "column6", CQLType: datatype.Int, KeyType: utilities.KEY_TYPE_REGULAR},
+			{Name: "column7", CQLType: datatype.NewSetType(datatype.Varchar), KeyType: utilities.KEY_TYPE_REGULAR},
+			{Name: "column8", CQLType: datatype.NewMapType(datatype.Varchar, datatype.Boolean), KeyType: utilities.KEY_TYPE_REGULAR},
+			{Name: "column9", CQLType: datatype.Bigint, KeyType: utilities.KEY_TYPE_REGULAR},
+			{Name: "column11", CQLType: datatype.NewSetType(datatype.Varchar), KeyType: utilities.KEY_TYPE_REGULAR},
+		}
+
+		userInfoColumns = []*types.Column{
+			{Name: "name", CQLType: datatype.Varchar, KeyType: utilities.KEY_TYPE_PARTITION, IsPrimaryKey: true, PkPrecedence: 0},
+		}
+	)
+
+	var allTableConfigs = []*schemaMapping.TableConfig{
+		schemaMapping.NewTableConfig(
+			"test_keyspace",
+			"test_table",
+			"cf1",
+			false,
+			testTableColumns,
+		),
+		schemaMapping.NewTableConfig(
+			"test_keyspace",
+			"user_info",
+			"cf1",
+			false,
+			userInfoColumns,
+		),
 	}
+	return schemaMapping.NewSchemaMappingConfig(
+		"cf1",
+		"ctrf",
+		zap.NewNop(),
+		allTableConfigs,
+	)
 }
 
 // Response Handler
@@ -176,7 +115,7 @@ var ResponseHandler_Input_Query_Selected_Select = QueryMetadata{
 	KeyspaceName:        "xobni_derived",
 	IsStar:              false,
 	DefaultColumnFamily: "cf1",
-	SelectedColumns: []schemaMapping.SelectedColumns{
+	SelectedColumns: []types.SelectedColumns{
 		{
 			Name: "name",
 		},
@@ -189,7 +128,7 @@ var ResponseHandler_Input_Query_Selected_Select_Map = QueryMetadata{
 	KeyspaceName:        "xobni_derived",
 	IsStar:              false,
 	DefaultColumnFamily: "cf1",
-	SelectedColumns: []schemaMapping.SelectedColumns{
+	SelectedColumns: []types.SelectedColumns{
 		{
 			Name: "extra_info",
 		},

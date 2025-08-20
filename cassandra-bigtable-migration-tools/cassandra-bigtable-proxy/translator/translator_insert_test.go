@@ -83,7 +83,7 @@ func Test_setParamsFromValues(t *testing.T) {
 						CQLType:      datatype.Varchar,
 					},
 				},
-				schemaMapping:   GetSchemaMappingConfig(),
+				schemaMapping:   GetSchemaMappingConfig(false),
 				protocolV:       protocalV,
 				isPreparedQuery: false,
 			},
@@ -103,7 +103,7 @@ func Test_setParamsFromValues(t *testing.T) {
 						CQLType:      datatype.Varchar,
 					},
 				},
-				schemaMapping:   GetSchemaMappingConfig(),
+				schemaMapping:   GetSchemaMappingConfig(false),
 				protocolV:       protocalV,
 				isPreparedQuery: false,
 			},
@@ -123,7 +123,7 @@ func Test_setParamsFromValues(t *testing.T) {
 						CQLType:      datatype.Varchar,
 					},
 				},
-				schemaMapping:   GetSchemaMappingConfig(),
+				schemaMapping:   GetSchemaMappingConfig(false),
 				protocolV:       protocalV,
 				isPreparedQuery: true,
 			},
@@ -143,7 +143,7 @@ func Test_setParamsFromValues(t *testing.T) {
 						CQLType:      datatype.Varchar,
 					},
 				},
-				schemaMapping:   GetSchemaMappingConfig(),
+				schemaMapping:   GetSchemaMappingConfig(false),
 				protocolV:       protocalV,
 				isPreparedQuery: false,
 			},
@@ -163,7 +163,7 @@ func Test_setParamsFromValues(t *testing.T) {
 						CQLType:      datatype.Varchar,
 					},
 				},
-				schemaMapping:   GetSchemaMappingConfig(),
+				schemaMapping:   GetSchemaMappingConfig(false),
 				protocolV:       protocalV,
 				isPreparedQuery: false,
 			},
@@ -177,7 +177,7 @@ func Test_setParamsFromValues(t *testing.T) {
 			args: args{
 				input:           parseInsertQuery("INSERT INTO xobani_derived.user_info ( name ) VALUES").InsertValuesSpec(),
 				columns:         nil,
-				schemaMapping:   GetSchemaMappingConfig(),
+				schemaMapping:   GetSchemaMappingConfig(false),
 				protocolV:       protocalV,
 				isPreparedQuery: false,
 			},
@@ -189,7 +189,8 @@ func Test_setParamsFromValues(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, got1, got2, err := setParamsFromValues(tt.args.input, tt.args.columns, tt.args.schemaMapping, tt.args.protocolV, "user_info", "test_keyspace", tt.args.isPreparedQuery)
+			tc, _ := tt.args.schemaMapping.GetTableConfig("test_keyspace", "user_info")
+			got, got1, got2, err := setParamsFromValues(tt.args.input, tt.args.columns, tc, tt.args.protocolV, tt.args.isPreparedQuery)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("setParamsFromValues() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -275,7 +276,7 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 			isPreparedQuery: true,
 		},
 		fields: fields{
-			SchemaMappingConfig: GetSchemaMappingConfig(),
+			SchemaMappingConfig: GetSchemaMappingConfig(false),
 		},
 		want: &InsertQueryMapping{
 			Query:     preparedQueryWithTimestamp,
@@ -311,7 +312,7 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 				isPreparedQuery: true,
 			},
 			fields: fields{
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			want: &InsertQueryMapping{
 				Query:     preparedQuery,
@@ -343,7 +344,7 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 				isPreparedQuery: false,
 			},
 			fields: fields{
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			want: &InsertQueryMapping{
 				Query:     query,
@@ -373,7 +374,7 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 				isPreparedQuery: false,
 			},
 			fields: fields{
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			want: &InsertQueryMapping{
 				Query:     "INSERT INTO test_keyspace.test_table (column1, column10) VALUES ('abc', 'pkval')",
@@ -397,7 +398,7 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 				isPreparedQuery: false,
 			},
 			fields: fields{
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			want: &InsertQueryMapping{
 				Query:     "INSERT INTO test_keyspace.test_table (column1, column10) VALUES ('abc', 'pkval')",
@@ -421,7 +422,7 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 				isPreparedQuery: false,
 			},
 			fields: fields{
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			want: &InsertQueryMapping{
 				Query:     "INSERT INTO test_table (column1, column10) VALUES ('abc', 'pkval')",
@@ -445,7 +446,7 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 				isPreparedQuery: false,
 			},
 			fields: fields{
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			want:    nil,
 			wantErr: true,
@@ -458,7 +459,7 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 				isPreparedQuery: false,
 			},
 			fields: fields{
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			want:    nil,
 			wantErr: true,
@@ -471,7 +472,7 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 				isPreparedQuery: false,
 			},
 			fields: fields{
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			want:    nil,
 			wantErr: true,
@@ -484,7 +485,7 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 				isPreparedQuery: false,
 			},
 			fields: fields{
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			want:    nil,
 			wantErr: true,
@@ -497,7 +498,7 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 				isPreparedQuery: false,
 			},
 			fields: fields{
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			want:    nil,
 			wantErr: true,
@@ -510,7 +511,7 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 				isPreparedQuery: false,
 			},
 			fields: fields{
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			want:    nil,
 			wantErr: true,
@@ -523,7 +524,7 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 				isPreparedQuery: false,
 			},
 			fields: fields{
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			want:    nil,
 			wantErr: true,
@@ -533,9 +534,8 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tr := &Translator{
-				Logger:                       zap.NewNop(),
-				EncodeIntValuesWithBigEndian: false,
-				SchemaMappingConfig:          tt.fields.SchemaMappingConfig,
+				Logger:              zap.NewNop(),
+				SchemaMappingConfig: tt.fields.SchemaMappingConfig,
 			}
 			got, err := tr.TranslateInsertQuerytoBigtable(tt.args.queryStr, tt.args.protocolV, tt.args.isPreparedQuery, "test_keyspace")
 			if (err != nil) != tt.wantErr {
@@ -588,7 +588,7 @@ func TestTranslator_BuildInsertPrepareQuery(t *testing.T) {
 			name: "Valid Input",
 			fields: fields{
 				Logger:              zap.NewNop(),
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			args: args{
 				columnsResponse: []types.Column{
@@ -603,9 +603,9 @@ func TestTranslator_BuildInsertPrepareQuery(t *testing.T) {
 					{Contents: []byte("")},
 				},
 				st: &InsertQueryMapping{
-					Query:       "INSERT INTO test_keyspace.test_table(pk_1_text) VALUES (?)",
+					Query:       "INSERT INTO test_keyspace.non_primitive_table(pk_1_text) VALUES (?)",
 					QueryType:   "Insert",
-					Table:       "test_table",
+					Table:       "non_primitive_table",
 					Keyspace:    "test_keyspace",
 					PrimaryKeys: []string{"pk_1_text"},
 					RowKey:      "",

@@ -1,0 +1,792 @@
+[
+  {
+    "title": "Basic Counter and Validation Test",
+    "description": "",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "UPDATE bigtabledevinstance.social_posts set likes = likes + ? WHERE user_id = ? AND id = ?",
+        "query_type": "UPDATE",
+        "params": [
+          {
+            "value": 0,
+            "datatype": "int"
+          },
+          {
+            "value": "user123",
+            "datatype": "text"
+          },
+          {
+            "value": 30,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT user_id, id, likes, views FROM bigtabledevinstance.social_posts WHERE user_id = ? AND id = ?",
+        "query_type": "SELECT",
+        "query_desc": "Confirm likes is set correctly and that views, not initialized, defaults to 0",
+        "params": [
+          {
+            "value": "user123",
+            "datatype": "text"
+          },
+          {
+            "value": 30,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": [
+          {
+            "user_id": "user123",
+            "datatype": "text"
+          },
+          {
+            "id": 30,
+            "datatype": "int"
+          },
+          {
+            "likes": 0,
+            "datatype": "bigint"
+          },
+          {
+            "views": 0,
+            "datatype": "bigint"
+          }
+        ]
+      },
+      {
+        "query": "UPDATE bigtabledevinstance.social_posts set likes = likes + ? WHERE user_id = ? AND id = ?",
+        "query_type": "UPDATE",
+        "params": [
+          {
+            "value": 2,
+            "datatype": "bigint"
+          },
+          {
+            "value": "user123",
+            "datatype": "text"
+          },
+          {
+            "value": 30,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT user_id, id, likes FROM bigtabledevinstance.social_posts WHERE user_id = ? AND id = ?",
+        "query_type": "SELECT",
+        "query_desc": "likes should be updated to 2",
+        "params": [
+          {
+            "value": "user123",
+            "datatype": "text"
+          },
+          {
+            "value": 30,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": [
+          {
+            "user_id": "user123",
+            "datatype": "text"
+          },
+          {
+            "id": 30,
+            "datatype": "int"
+          },
+          {
+            "likes": 2,
+            "datatype": "bigint"
+          }
+        ]
+      },
+      {
+        "query": "SELECT * FROM bigtabledevinstance.social_posts WHERE user_id = ? AND id = ?",
+        "query_type": "SELECT",
+        "query_desc": "same query but select *",
+        "params": [
+          {
+            "value": "user123",
+            "datatype": "text"
+          },
+          {
+            "value": 30,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": [
+          {
+            "user_id": "user123",
+            "datatype": "text"
+          },
+          {
+            "id": 30,
+            "datatype": "int"
+          },
+          {
+            "likes": 2,
+            "datatype": "bigint"
+          },
+          {
+            "views": 0,
+            "datatype": "bigint"
+          }
+        ]
+      }
+    ],
+    "success_message": "",
+    "failure_message": ""
+  },
+  {
+    "title": "Increment a counter with 0",
+    "description": "increment counter",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "UPDATE bigtabledevinstance.social_posts set likes = likes + ? WHERE user_id = ? AND id = ?",
+        "query_type": "UPDATE",
+        "params": [
+          {
+            "value": 0,
+            "datatype": "bigint"
+          },
+          {
+            "value": "userABC",
+            "datatype": "text"
+          },
+          {
+            "value": 1,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT likes FROM bigtabledevinstance.social_posts WHERE user_id = ? AND id = ?",
+        "query_type": "SELECT",
+        "query_desc": "",
+        "params": [
+          {
+            "value": "userABC",
+            "datatype": "text"
+          },
+          {
+            "value": 1,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": [
+          {
+            "likes": 0,
+            "datatype": "bigint"
+          }
+        ]
+      }
+    ],
+    "success_message": "",
+    "failure_message": ""
+  },
+  {
+    "title": "Increment a counter",
+    "description": "increment counter",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "UPDATE bigtabledevinstance.social_posts set likes = likes + ? WHERE user_id = ? AND id = ?",
+        "query_type": "UPDATE",
+        "params": [
+          {
+            "value": 2,
+            "datatype": "bigint"
+          },
+          {
+            "value": "userABC",
+            "datatype": "text"
+          },
+          {
+            "value": 1,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "UPDATE bigtabledevinstance.social_posts set likes = likes + ? WHERE user_id = ? AND id = ?",
+        "query_type": "UPDATE",
+        "params": [
+          {
+            "value": 3,
+            "datatype": "bigint"
+          },
+          {
+            "value": "userABC",
+            "datatype": "text"
+          },
+          {
+            "value": 1,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "UPDATE bigtabledevinstance.social_posts set likes = likes - ? WHERE user_id = ? AND id = ?",
+        "query_type": "UPDATE",
+        "params": [
+          {
+            "value": 1,
+            "datatype": "bigint"
+          },
+          {
+            "value": "userABC",
+            "datatype": "text"
+          },
+          {
+            "value": 1,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "UPDATE bigtabledevinstance.social_posts set views = views - ? WHERE user_id = ? AND id = ?",
+        "query_type": "UPDATE",
+        "params": [
+          {
+            "value": 10,
+            "datatype": "bigint"
+          },
+          {
+            "value": "userABC",
+            "datatype": "text"
+          },
+          {
+            "value": 1,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT likes, views FROM bigtabledevinstance.social_posts WHERE user_id = ? AND id = ?",
+        "query_desc": "verify all counter updates are as applied as expected",
+        "query_type": "SELECT",
+        "params": [
+          {
+            "value": "userABC",
+            "datatype": "text"
+          },
+          {
+            "value": 1,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": [
+          {
+            "likes": 4,
+            "datatype": "bigint"
+          },
+          {
+            "views": -10,
+            "datatype": "bigint"
+          }
+        ]
+      },
+      {
+        "query": "SELECT likes as l, views as v FROM bigtabledevinstance.social_posts WHERE user_id = ? AND id = ?",
+        "query_type": "SELECT",
+        "query_desc": "run the same select again, but with an alias",
+        "params": [
+          {
+            "value": "userABC",
+            "datatype": "text"
+          },
+          {
+            "value": 1,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": [
+          {
+            "l": 4,
+            "datatype": "bigint"
+          },
+          {
+            "v": -10,
+            "datatype": "bigint"
+          }
+        ]
+      },
+      {
+        "query": "UPDATE bigtabledevinstance.social_posts set likes = likes + ? WHERE user_id = ? AND id = ?",
+        "query_desc": "add a negative counter value",
+        "query_type": "UPDATE",
+        "params": [
+          {
+            "value": -1,
+            "datatype": "bigint"
+          },
+          {
+            "value": "userABC",
+            "datatype": "text"
+          },
+          {
+            "value": 1,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT likes, views FROM bigtabledevinstance.social_posts WHERE user_id = ? AND id = ?",
+        "query_type": "SELECT",
+        "query_desc": "",
+        "params": [
+          {
+            "value": "userABC",
+            "datatype": "text"
+          },
+          {
+            "value": 1,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": [
+          {
+            "likes": 3,
+            "datatype": "bigint"
+          },
+          {
+            "views": -10,
+            "datatype": "bigint"
+          }
+        ]
+      },
+      {
+        "query": "UPDATE bigtabledevinstance.social_posts set likes = likes - ? WHERE user_id = ? AND id = ?",
+        "query_desc": "subtract a negative counter value",
+        "query_type": "UPDATE",
+        "params": [
+          {
+            "value": -1,
+            "datatype": "bigint"
+          },
+          {
+            "value": "userABC",
+            "datatype": "text"
+          },
+          {
+            "value": 1,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT likes FROM bigtabledevinstance.social_posts WHERE user_id = ? AND id = ?",
+        "query_type": "SELECT",
+        "params": [
+          {
+            "value": "userABC",
+            "datatype": "text"
+          },
+          {
+            "value": 1,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": [
+          {
+            "likes": 4,
+            "datatype": "bigint"
+          }
+        ]
+      },
+      {
+        "query": "UPDATE bigtabledevinstance.social_posts set likes = likes - ? WHERE user_id = ? AND id = ?",
+        "query_desc": "subtract enough to turn the counter value negative",
+        "query_type": "UPDATE",
+        "params": [
+          {
+            "value": 99,
+            "datatype": "bigint"
+          },
+          {
+            "value": "userABC",
+            "datatype": "text"
+          },
+          {
+            "value": 1,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT * FROM bigtabledevinstance.social_posts WHERE user_id = ? AND id = ?",
+        "query_type": "SELECT",
+        "params": [
+          {
+            "value": "userABC",
+            "datatype": "text"
+          },
+          {
+            "value": 1,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": [
+          {
+            "user_id": "userABC",
+            "datatype": "text"
+          },
+          {
+            "id": 1,
+            "datatype": "int"
+          },
+          {
+            "likes": -95,
+            "datatype": "bigint"
+          },
+          {
+            "views": -10,
+            "datatype": "bigint"
+          }
+        ]
+      }
+    ],
+    "success_message": "",
+    "failure_message": ""
+  },
+  {
+    "title": "Aggregate queries on counters",
+    "description": "run aggregate queries (sum, max, etc.) on counters",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "UPDATE bigtabledevinstance.social_posts set likes = likes + ? WHERE user_id = ? AND id = ?",
+        "query_type": "UPDATE",
+        "params": [
+          {
+            "value": 2,
+            "datatype": "bigint"
+          },
+          {
+            "value": "user_aggregate_test",
+            "datatype": "text"
+          },
+          {
+            "value": 1,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "UPDATE bigtabledevinstance.social_posts set likes = likes + ? WHERE user_id = ? AND id = ?",
+        "query_type": "UPDATE",
+        "params": [
+          {
+            "value": 50,
+            "datatype": "bigint"
+          },
+          {
+            "value": "user_aggregate_test",
+            "datatype": "text"
+          },
+          {
+            "value": 2,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "UPDATE bigtabledevinstance.social_posts set likes = likes + ? WHERE user_id = ? AND id = ?",
+        "query_type": "UPDATE",
+        "params": [
+          {
+            "value": 1,
+            "datatype": "bigint"
+          },
+          {
+            "value": "user_aggregate_test",
+            "datatype": "text"
+          },
+          {
+            "value": 3,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "UPDATE bigtabledevinstance.social_posts set likes = likes + ? WHERE user_id = ? AND id = ?",
+        "query_type": "UPDATE",
+        "params": [
+          {
+            "value": 10,
+            "datatype": "bigint"
+          },
+          {
+            "value": "user_aggregate_test",
+            "datatype": "text"
+          },
+          {
+            "value": 3,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT max(likes), min(likes), sum(likes) FROM bigtabledevinstance.social_posts WHERE user_id = ?",
+        "query_type": "SELECT",
+        "query_desc": "",
+        "params": [
+          {
+            "value": "user_aggregate_test",
+            "datatype": "text"
+          }
+        ],
+        "expected_result": [
+          {
+            "system.max(likes)": 50,
+            "datatype": "bigint"
+          },
+          {
+            "system.min(likes)": 2,
+            "datatype": "bigint"
+          },
+          {
+            "system.sum(likes)": 63,
+            "datatype": "bigint"
+          }
+        ]
+      },
+      {
+        "query": "SELECT max(likes) as mxl, min(likes), sum(likes) as sml FROM bigtabledevinstance.social_posts WHERE user_id = ?",
+        "query_type": "SELECT",
+        "query_desc": "aggregates of counters with aliases",
+        "params": [
+          {
+            "value": "user_aggregate_test",
+            "datatype": "text"
+          }
+        ],
+        "expected_result": [
+          {
+            "mxl": 50,
+            "datatype": "bigint"
+          },
+          {
+            "system.min(likes)": 2,
+            "datatype": "bigint"
+          },
+          {
+            "sml": 63,
+            "datatype": "bigint"
+          }
+        ]
+      }
+    ],
+    "success_message": "",
+    "failure_message": ""
+  },
+  {
+    "title": "Group by and order by counters",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "UPDATE bigtabledevinstance.social_posts set likes = likes + ? WHERE user_id = ? AND id = ?",
+        "query_type": "UPDATE",
+        "params": [
+          {
+            "value": 2,
+            "datatype": "bigint"
+          },
+          {
+            "value": "gbob",
+            "datatype": "text"
+          },
+          {
+            "value": 1,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "UPDATE bigtabledevinstance.social_posts set likes = likes + ? WHERE user_id = ? AND id = ?",
+        "query_type": "UPDATE",
+        "params": [
+          {
+            "value": 3,
+            "datatype": "bigint"
+          },
+          {
+            "value": "gbob",
+            "datatype": "text"
+          },
+          {
+            "value": 2,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "UPDATE bigtabledevinstance.social_posts set likes = likes + ? WHERE user_id = ? AND id = ?",
+        "query_type": "UPDATE",
+        "params": [
+          {
+            "value": 2,
+            "datatype": "bigint"
+          },
+          {
+            "value": "gbob",
+            "datatype": "text"
+          },
+          {
+            "value": 3,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "UPDATE bigtabledevinstance.social_posts set likes = likes + ? WHERE user_id = ? AND id = ?",
+        "query_type": "UPDATE",
+        "params": [
+          {
+            "value": 5,
+            "datatype": "bigint"
+          },
+          {
+            "value": "gbob",
+            "datatype": "text"
+          },
+          {
+            "value": 4,
+            "datatype": "int"
+          }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT likes FROM bigtabledevinstance.social_posts WHERE user_id = ? order by likes",
+        "query_type": "SELECT",
+        "query_desc": "",
+        "params": [
+          {
+            "value": "gbob",
+            "datatype": "text"
+          }
+        ],
+        "expect_cassandra_specific_error": "Order by is currently only supported on the clustered columns of the PRIMARY KEY, got likes",
+        "expected_multi_row_result": [
+          [
+            {
+              "likes": 2,
+              "datatype": "bigint"
+            }
+          ],
+          [
+            {
+              "likes": 2,
+              "datatype": "bigint"
+            }
+          ],
+          [
+            {
+              "likes": 3,
+              "datatype": "bigint"
+            }
+          ],
+          [
+            {
+              "likes": 5,
+              "datatype": "bigint"
+            }
+          ]
+        ]
+      },
+      {
+        "query": "SELECT likes as l FROM bigtabledevinstance.social_posts WHERE user_id = ? order by l desc",
+        "query_type": "SELECT",
+        "query_desc": "",
+        "params": [
+          {
+            "value": "gbob",
+            "datatype": "text"
+          }
+        ],
+        "expect_cassandra_specific_error": "Undefined column name l in table bigtabledevinstance.social_posts",
+        "expected_multi_row_result": [
+          [
+            {
+              "l": 5,
+              "datatype": "bigint"
+            }
+          ],
+          [
+            {
+              "l": 3,
+              "datatype": "bigint"
+            }
+          ],
+          [
+            {
+              "l": 2,
+              "datatype": "bigint"
+            }
+          ],
+          [
+            {
+              "l": 2,
+              "datatype": "bigint"
+            }
+          ]
+        ]
+      },
+      {
+        "query": "SELECT likes FROM bigtabledevinstance.social_posts WHERE user_id = ? group by likes",
+        "query_type": "SELECT",
+        "query_desc": "",
+        "params": [
+          {
+            "value": "gbob",
+            "datatype": "text"
+          }
+        ],
+        "expect_cassandra_specific_error": "Group by is currently only supported on the columns of the PRIMARY KEY, got likes",
+        "expected_multi_row_result": [
+          [
+            {
+              "likes": 2,
+              "datatype": "bigint"
+            }
+          ],
+          [
+            {
+              "likes": 3,
+              "datatype": "bigint"
+            }
+          ],
+          [
+            {
+              "likes": 5,
+              "datatype": "bigint"
+            }
+          ]
+        ]
+      }
+    ],
+    "success_message": "",
+    "failure_message": ""
+  }
+]

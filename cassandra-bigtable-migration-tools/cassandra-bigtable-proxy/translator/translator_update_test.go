@@ -472,15 +472,11 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			schemaMapping := &schemaMapping.SchemaMappingConfig{
-				Logger:          tt.fields.Logger,
-				TablesMetaData:  mockSchemaMappingConfig,
-				PkMetadataCache: mockPkMetadata,
-			}
+			schemaMappingConfig := GetSchemaMappingConfig(false)
 
 			tr := &Translator{
 				Logger:              tt.fields.Logger,
-				SchemaMappingConfig: schemaMapping,
+				SchemaMappingConfig: schemaMappingConfig,
 			}
 			got, err := tr.TranslateUpdateQuerytoBigtable(tt.args.query, false, "test_keyspace")
 			if (err != nil) != tt.wantErr {
@@ -521,7 +517,7 @@ func TestTranslator_BuildUpdatePrepareQuery(t *testing.T) {
 			name: "Valid Input",
 			fields: fields{
 				Logger:              zap.NewNop(),
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			args: args{
 				values: []*primitive.Value{
@@ -536,9 +532,9 @@ func TestTranslator_BuildUpdatePrepareQuery(t *testing.T) {
 					},
 				},
 				st: &UpdateQueryMapping{
-					Query:       "Update blob_col=? FROM test_table where pk_1_text=?",
+					Query:       "Update blob_col=? FROM non_primitive_table where pk_1_text=?",
 					QueryType:   "Update",
-					Table:       "test_table",
+					Table:       "non_primitive_table",
 					Keyspace:    "test_keyspace",
 					PrimaryKeys: []string{"pk_1_text"},
 					RowKey:      "pk_1_text_value", // Example RowKey based on pk_1_text
@@ -563,12 +559,12 @@ func TestTranslator_BuildUpdatePrepareQuery(t *testing.T) {
 				},
 			},
 			want: &UpdateQueryMapping{
-				Query:       "Update blob_col=? FROM test_table where pk_1_text=?",
+				Query:       "Update blob_col=? FROM non_primitive_table where pk_1_text=?",
 				QueryType:   "Update",
 				Keyspace:    "test_keyspace",
 				PrimaryKeys: []string{"pk_1_text"},
 				RowKey:      "",
-				Table:       "test_table",
+				Table:       "non_primitive_table",
 				Clauses: []types.Clause{
 					{
 						Column:       "pk_1_text",

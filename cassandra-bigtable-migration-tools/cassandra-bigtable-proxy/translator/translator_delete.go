@@ -75,7 +75,7 @@ func parseTableFromDelete(input cql.IFromSpecContext) (*TableObj, error) {
 //   - schemaMapping - JSON Config which maintains column and its datatypes info.
 //
 // Returns: QueryClauses and an error if any.
-func parseClauseFromDelete(input cql.IWhereSpecContext, tableName string, schemaMapping *schemaMapping.SchemaMappingConfig, keyspace string) (*QueryClauses, error) {
+func parseClauseFromDelete(input cql.IWhereSpecContext, tableConfig *schemaMapping.TableConfig) (*QueryClauses, error) {
 	if input == nil {
 		return nil, errors.New("no input parameters found for clauses")
 	}
@@ -89,7 +89,7 @@ func parseClauseFromDelete(input cql.IWhereSpecContext, tableName string, schema
 		return &QueryClauses{}, nil
 	}
 
-	clauses, params, paramKeys, err := processElements(elements, tableName, schemaMapping, keyspace)
+	clauses, params, paramKeys, err := processElements(tableConfig, elements)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +131,7 @@ func getRelationElements(input cql.IWhereSpecContext) ([]cql.IRelationElementCon
 //   - A map of parameters to use for prepared statements.
 //   - A slice of strings representing parameter keys.
 //   - An error if parsing column names, values, or column types fails.
-func processElements(elements []cql.IRelationElementContext, tableName string, schemaMapping *schemaMapping.SchemaMappingConfig, keyspace string) ([]types.Clause, map[string]interface{}, []string, error) {
+func processElements(tableConfig *schemaMapping.TableConfig, elements []cql.IRelationElementContext) ([]types.Clause, map[string]interface{}, []string, error) {
 	var clauses []types.Clause
 	params := make(map[string]interface{})
 	var paramKeys []string
@@ -149,12 +149,12 @@ func processElements(elements []cql.IRelationElementContext, tableName string, s
 			return nil, nil, nil, err
 		}
 
-		columnType, err := schemaMapping.GetColumnType(keyspace, tableName, colName)
+		column, err := tableConfig.GetColumn(colName)
 		if err != nil {
 			return nil, nil, nil, err
 		}
 
-		acctualVal, err := handleColumnType(val, columnType, placeholder, params)
+		actualVal, err := handleColumnType(val, column, placeholder, params)
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -162,8 +162,8 @@ func processElements(elements []cql.IRelationElementContext, tableName string, s
 		clause := types.Clause{
 			Column:       colName,
 			Operator:     operator,
-			Value:        acctualVal,
-			IsPrimaryKey: columnType.IsPrimaryKey,
+			Value:        actualVal,
+			IsPrimaryKey: column.IsPrimaryKey,
 		}
 		clauses = append(clauses, clause)
 	}
@@ -288,13 +288,13 @@ func (t *Translator) TranslateDeleteQuerytoBigtable(queryStr string, isPreparedQ
 			return nil, fmt.Errorf("invalid input paramaters found for keyspace")
 		}
 	}
-	if !t.SchemaMappingConfig.InstanceExists(keyspaceName) {
-		return nil, fmt.Errorf("keyspace %s does not exist", keyspaceName)
+
+	tableConfig, err := t.SchemaMappingConfig.GetTableConfig(keyspaceName, tableName)
+	if err != nil {
+		return nil, err
 	}
-	if !t.SchemaMappingConfig.TableExist(keyspaceName, tableName) {
-		return nil, fmt.Errorf("table %s does not exist", tableName)
-	}
-	selectedColumns, err := parseDeleteColumns(deleteObj.DeleteColumnList(), tableName, t.SchemaMappingConfig, keyspaceName)
+
+	selectedColumns, err := parseDeleteColumns(deleteObj.DeleteColumnList(), tableConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -314,17 +314,14 @@ func (t *Translator) TranslateDeleteQuerytoBigtable(queryStr string, isPreparedQ
 	var QueryClauses QueryClauses
 
 	if hasWhere(lowerQuery) {
-		resp, err := parseClauseFromDelete(deleteObj.WhereSpec(), tableName, t.SchemaMappingConfig, keyspaceName)
+		resp, err := parseClauseFromDelete(deleteObj.WhereSpec(), tableConfig)
 		if err != nil {
 			return nil, errors.New("TranslateDeletetQuerytoBigtable: Invalid Where clause condition")
 		}
 		QueryClauses = *resp
 	}
 
-	primaryKeys, err := getPrimaryKeys(t.SchemaMappingConfig, tableName, keyspaceName)
-	if err != nil {
-		return nil, err
-	}
+	primaryKeys := tableConfig.GetPrimaryKeys()
 	var primaryKeysFound []string
 	pkValues := make(map[string]interface{})
 
@@ -339,10 +336,10 @@ func (t *Translator) TranslateDeleteQuerytoBigtable(queryStr string, isPreparedQ
 			}
 		}
 	}
-	// The below code checking the reuired primary keys and actual primary keys when we are having clause statements
+	// The below code checking the required primary keys and actual primary keys when we are having clause statements
 	if len(primaryKeysFound) != len(primaryKeys) && len(QueryClauses.Clauses) > 0 {
 		missingPrime := findFirstMissingKey(primaryKeys, primaryKeysFound)
-		missingPkColumnType, err := t.SchemaMappingConfig.GetPkKeyType(tableName, keyspaceName, missingPrime)
+		missingPkColumnType, err := tableConfig.GetPkKeyType(missingPrime)
 		if err != nil {
 			return nil, err
 		}
@@ -351,11 +348,7 @@ func (t *Translator) TranslateDeleteQuerytoBigtable(queryStr string, isPreparedQ
 
 	var rowKey string
 	if !isPreparedQuery {
-		pmks, err := t.SchemaMappingConfig.GetPkByTableNameWithFilter(tableName, keyspaceName, primaryKeys)
-		if err != nil {
-			return nil, err
-		}
-		rowKeyBytes, err := createOrderedCodeKey(pmks, pkValues, t.EncodeIntValuesWithBigEndian)
+		rowKeyBytes, err := createOrderedCodeKey(tableConfig, pkValues)
 		if err != nil {
 			return nil, fmt.Errorf("key encoding failed. %w", err)
 		}
@@ -393,11 +386,11 @@ func (t *Translator) BuildDeletePrepareQuery(values []*primitive.Value, st *Dele
 		valueMap[col.Name] = val
 	}
 
-	pmks, err := t.SchemaMappingConfig.GetPkByTableName(st.Table, st.Keyspace)
+	tableConfig, err := t.SchemaMappingConfig.GetTableConfig(st.Keyspace, st.Table)
 	if err != nil {
 		return "", TimestampInfo{}, err
 	}
-	rowKeyBytes, err := createOrderedCodeKey(pmks, valueMap, t.EncodeIntValuesWithBigEndian)
+	rowKeyBytes, err := createOrderedCodeKey(tableConfig, valueMap)
 	if err != nil {
 		return "", timestamp, fmt.Errorf("key encoding failed. %w", err)
 	}
@@ -406,15 +399,15 @@ func (t *Translator) BuildDeletePrepareQuery(values []*primitive.Value, st *Dele
 }
 
 // Parses the delete columns from a CQL DELETE statement and returns the selected columns with their associated map keys or list indices.
-func parseDeleteColumns(deleteColumns cql.IDeleteColumnListContext, tableName string, tableConf *schemaMapping.SchemaMappingConfig, keySpace string) ([]schemaMapping.SelectedColumns, error) {
+func parseDeleteColumns(deleteColumns cql.IDeleteColumnListContext, tableConfig *schemaMapping.TableConfig) ([]types.SelectedColumns, error) {
 	if deleteColumns == nil {
 		return nil, nil
 	}
 	cols := deleteColumns.AllDeleteColumnItem()
-	var Columns []schemaMapping.SelectedColumns
+	var Columns []types.SelectedColumns
 	var decimalLiteral, stringLiteral string
 	for _, v := range cols {
-		var Column schemaMapping.SelectedColumns
+		var Column types.SelectedColumns
 		Column.Name = v.OBJECT_NAME().GetText()
 		if v.LS_BRACKET() != nil {
 			if v.DecimalLiteral() != nil { // for list index
@@ -427,9 +420,9 @@ func parseDeleteColumns(deleteColumns cql.IDeleteColumnListContext, tableName st
 				Column.MapKey = stringLiteral
 			}
 		}
-		_, err := tableConf.GetColumnType(keySpace, tableName, Column.Name)
+		_, err := tableConfig.GetColumnType(Column.Name)
 		if err != nil {
-			return nil, fmt.Errorf("undefined column name %s in table %s.%s", Column.Name, keySpace, tableName)
+			return nil, err
 		}
 		Columns = append(Columns, Column)
 	}

@@ -67,8 +67,9 @@ type BigtableConfig struct {
 	InstancesMap        map[string]InstanceConfig //map of key[cassandra keyspace] to Instance Configuration[bigtable instance]
 	GCPProjectID        string
 	DefaultColumnFamily string
-	// todo remove once we support ordered code ints
-	EncodeIntValuesWithBigEndian bool
+	CounterColumnFamily string
+	// all new tables should set this to false
+	EncodeIntRowKeysWithBigEndian bool
 }
 type ConnConfig struct {
 	InstancesMap  map[string]InstanceConfig //map of key[cassandra keyspace] toInstance Configuration[bigtable instance]

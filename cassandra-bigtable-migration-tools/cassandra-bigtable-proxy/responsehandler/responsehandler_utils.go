@@ -308,7 +308,7 @@ func HandlePrimitiveEncoding(dt datatype.DataType, value interface{}, protocalVe
 		decodedValue, err = decodeAndReturnBool(value, protocalVersion)
 	} else if dt == datatype.Int {
 		decodedValue, err = decodeAndReturnInt(value, protocalVersion)
-	} else if dt == datatype.Bigint || dt == datatype.Timestamp {
+	} else if dt == datatype.Bigint || dt == datatype.Timestamp || dt == datatype.Counter {
 		decodedValue, err = decodeAndReturnBigInt(value, protocalVersion)
 	} else if dt == datatype.Float {
 		decodedValue, err = decodeAndReturnFloat(value, protocalVersion)

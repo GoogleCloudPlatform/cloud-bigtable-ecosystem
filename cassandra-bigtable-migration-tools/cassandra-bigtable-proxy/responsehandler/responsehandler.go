@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"sort"
 
-	schemaMapping "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/schema-mapping"
+	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/third_party/datastax/proxycore"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/utilities"
 	"github.com/datastax/go-cassandra-native-protocol/datatype"
@@ -56,8 +56,12 @@ type ResponseHandlerIface interface {
 //
 // This function uses helper functions to extract unique keys, handle aliases, and determine column types
 func (th *TypeHandler) BuildMetadata(rowMap []map[string]interface{}, query QueryMetadata) (cmd []*message.ColumnMetadata, err error) {
+	tableConfig, err := th.SchemaMappingConfig.GetTableConfig(query.KeyspaceName, query.TableName)
+	if err != nil {
+		return nil, err
+	}
 	if query.IsStar {
-		return th.SchemaMappingConfig.GetMetadataForSelectedColumns(query.TableName, query.SelectedColumns, query.KeyspaceName)
+		return tableConfig.GetMetadataForSelectedColumns(query.SelectedColumns)
 	}
 	uniqueColumns := ExtractUniqueKeys(rowMap, query)
 	i := 0
@@ -66,7 +70,6 @@ func (th *TypeHandler) BuildMetadata(rowMap []map[string]interface{}, query Quer
 			continue
 		}
 		var cqlType datatype.DataType
-		var err error
 		columnObj := GetQueryColumn(query, i, column)
 		if columnObj.FuncName == FUNC_NAME_COUNT {
 			cqlType = datatype.Bigint
@@ -77,7 +80,7 @@ func (th *TypeHandler) BuildMetadata(rowMap []map[string]interface{}, query Quer
 			if columnObj.Alias != "" || columnObj.IsFunc || columnObj.MapKey != "" {
 				lookupColumn = columnObj.ColumnName
 			}
-			cqlType, _, err = th.GetColumnMeta(query.KeyspaceName, query.TableName, lookupColumn)
+			cqlType, err = tableConfig.GetColumnType(lookupColumn)
 			if err != nil {
 				return nil, err
 			}
@@ -110,10 +113,15 @@ func (th *TypeHandler) BuildMetadata(rowMap []map[string]interface{}, query Quer
 //   - mr: A message.Row containing the serialized row data.
 //   - err: An error if any occurs during the construction of the row, especially in data retrieval or encoding.
 func (th *TypeHandler) BuildResponseRow(rowMap map[string]interface{}, query QueryMetadata, cmd []*message.ColumnMetadata) (message.Row, error) {
+	tableConfig, err := th.SchemaMappingConfig.GetTableConfig(query.KeyspaceName, query.TableName)
+	if err != nil {
+		return nil, err
+	}
 	var mr message.Row
 	for index, metaData := range cmd {
 		key := metaData.Name
 		if rowMap[key] == nil {
+			th.Logger.Warn(fmt.Sprintf("no result in row map found for key `%s`", key), zap.Any("row map", rowMap), zap.Any("column metadata", metaData), zap.String("btql", query.Query))
 			rowMap[key] = []byte{}
 			mr = append(mr, nil)
 			continue
@@ -122,23 +130,20 @@ func (th *TypeHandler) BuildResponseRow(rowMap map[string]interface{}, query Que
 
 		var cqlType datatype.DataType
 		var err error
-		var isCollection bool
 		col := GetQueryColumn(query, index, key)
 		if col.FuncName == FUNC_NAME_COUNT {
 			cqlType = datatype.Bigint
 		} else if col.IsWriteTimeColumn {
 			cqlType = datatype.Timestamp
 		} else if col.IsFunc || col.MapKey != "" || col.IsAs {
-			cqlType, isCollection, err = th.GetColumnMeta(query.KeyspaceName, query.TableName, col.ColumnName)
+			cqlType, err = tableConfig.GetColumnType(col.ColumnName)
 		} else {
-			cqlType, isCollection, err = th.GetColumnMeta(query.KeyspaceName, query.TableName, key)
+			cqlType, err = tableConfig.GetColumnType(key)
 		}
 		if err != nil {
 			return nil, err
 		}
-		if err != nil {
-			return nil, err
-		}
+		isCollection := utilities.IsCollection(cqlType)
 		if col.IsFunc || query.IsGroupBy {
 			if col.FuncName == FUNC_NAME_COUNT {
 				cqlType = datatype.Bigint
@@ -156,7 +161,7 @@ func (th *TypeHandler) BuildResponseRow(rowMap map[string]interface{}, query Que
 			switch v := value.(type) {
 			case int64:
 				switch cqlType {
-				case datatype.Bigint:
+				case datatype.Bigint, datatype.Counter:
 					val = v
 					dt = datatype.Bigint
 				case datatype.Int:
@@ -274,25 +279,6 @@ func (th *TypeHandler) BuildResponseRow(rowMap map[string]interface{}, query Que
 		}
 	}
 	return mr, nil
-}
-
-// GetColumnMeta retrieves the metadata for a specified column within a given keyspace and table.
-//
-// Parameters:
-//   - keyspace: The name of the keyspace where the table resides.
-//   - tableName: The name of the table containing the column.
-//   - columnName: The name of the column for which metadata is retrieved.
-//
-// Returns:
-//   - A string representing the CQL type of the column.
-//   - A boolean indicating whether the column is a collection type.
-//   - An error if the metadata retrieval fails.
-func (th *TypeHandler) GetColumnMeta(keyspace, tableName, columnName string) (datatype.DataType, bool, error) {
-	column, err := th.SchemaMappingConfig.GetColumnType(keyspace, tableName, columnName)
-	if err != nil {
-		return nil, false, err
-	}
-	return column.CQLType, column.IsCollection, nil
 }
 
 // HandleSetType converts a array or set type to a Cassandra  set type.
@@ -413,8 +399,8 @@ func ExtractUniqueKeys(rowMap []map[string]interface{}, query QueryMetadata) []s
 // - key (string): The key to match against the column's Alias or Name.
 //
 // Returns:
-// - schemaMapping.SelectedColumns: The column object that matches the key, or an empty object if no match is found.
-func GetQueryColumn(query QueryMetadata, index int, key string) schemaMapping.SelectedColumns {
+// - types: The column object that matches the key, or an empty object if no match is found.
+func GetQueryColumn(query QueryMetadata, index int, key string) types.SelectedColumns {
 
 	if len(query.SelectedColumns) > 0 {
 		selectedColumn := query.SelectedColumns[index]
@@ -429,10 +415,10 @@ func GetQueryColumn(query QueryMetadata, index int, key string) schemaMapping.Se
 		}
 	}
 
-	return schemaMapping.SelectedColumns{}
+	return types.SelectedColumns{}
 }
 
-// function to encode rows - [][]interface{} to cassandra supported response formate [][][]bytes
+// BuildResponseForSystemQueries function to encode rows - [][]interface{} to cassandra supported response formate [][][]bytes
 func BuildResponseForSystemQueries(rows [][]interface{}, protocalV primitive.ProtocolVersion) ([]message.Row, error) {
 	var allRows []message.Row
 	for _, row := range rows {

@@ -27,10 +27,8 @@ import (
 )
 
 type Translator struct {
-	Logger *zap.Logger
-	// todo remove once we support ordered code ints
-	EncodeIntValuesWithBigEndian bool
-	SchemaMappingConfig          *schemaMapping.SchemaMappingConfig
+	Logger              *zap.Logger
+	SchemaMappingConfig *schemaMapping.SchemaMappingConfig
 }
 
 // SelectQueryMap represents the mapping of a select query along with its translation details.
@@ -89,7 +87,7 @@ type Limit struct {
 
 type ColumnMeta struct {
 	Star   bool
-	Column []schemaMapping.SelectedColumns
+	Column []types.SelectedColumns
 }
 
 type IfSpec struct {
@@ -109,16 +107,27 @@ type TimestampInfo struct {
 	HasUsingTimestamp bool
 	Index             int32
 }
+
+type IncrementOperationType int
+
+const (
+	None IncrementOperationType = iota
+	Increment
+	Decrement
+)
+
 type ComplexOperation struct {
-	Append           bool              // this is for map/set/list
-	PrependList      bool              // this is for list
-	Delete           bool              // this is for map/set/list
-	UpdateListIndex  string            // this is for List index
-	ExpectedDatatype datatype.DataType // this datatype has to be provided in case of change in want datatype.
-	mapKey           interface{}       // this key is for map key
-	Value            []byte            // this is value for setting at index for list
-	ListDelete       bool              // this is for list = list - {value1, value2}
-	ListDeleteValues [][]byte          // this stores the values to be deleted from list
+	Append           bool                   // this is for map/set/list
+	PrependList      bool                   // this is for list
+	Delete           bool                   // this is for map/set/list
+	IncrementType    IncrementOperationType // for incrementing a counter
+	IncrementValue   int64                  // how much to increment a counter by
+	UpdateListIndex  string                 // this is for List index
+	ExpectedDatatype datatype.DataType      // this datatype has to be provided in case of change in want datatype.
+	mapKey           interface{}            // this key is for map key
+	Value            []byte                 // this is value for setting at index for list
+	ListDelete       bool                   // this is for list = list - {value1, value2}
+	ListDeleteValues [][]byte               // this stores the values to be deleted from list
 }
 
 // InsertQueryMapping represents the mapping of an insert query along with its translation details.
@@ -162,7 +171,7 @@ type DeleteQueryMapping struct {
 	ReturnMetadata    []*message.ColumnMetadata // Metadata of all columns of that table in Cassandra format
 	TimestampInfo     TimestampInfo
 	IfExists          bool
-	SelectedColumns   []schemaMapping.SelectedColumns
+	SelectedColumns   []types.SelectedColumns
 }
 
 type CreateTableStatementMap struct {
@@ -195,6 +204,12 @@ type DropTableStatementMap struct {
 	IfExists  bool
 }
 
+type TruncateTableStatementMap struct {
+	QueryType string
+	Keyspace  string
+	Table     string
+}
+
 // UpdateQueryMapping represents the mapping of an update query along with its translation details.
 type UpdateQueryMapping struct {
 	Query                 string // Original query string
@@ -215,7 +230,7 @@ type UpdateQueryMapping struct {
 	ReturnMetadata        []*message.ColumnMetadata // Metadata of all columns of that table in Cassandra format
 	VariableMetadata      []*message.ColumnMetadata // Metadata of variable columns for prepared queries in Cassandra format
 	TimestampInfo         TimestampInfo
-	IfExists              bool //
+	IfExists              bool
 	ComplexOperation      map[string]*ComplexOperation
 }
 

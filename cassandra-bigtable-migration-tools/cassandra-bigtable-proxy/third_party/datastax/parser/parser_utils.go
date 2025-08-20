@@ -236,6 +236,8 @@ func IsQueryHandledWithQueryType(keyspace Identifier, query string) (handled boo
 		if l.identifier().equal("describe") || l.identifier().equal("desc") {
 			stmt, err := isHandledDescribeStmt(&l)
 			return false, stmt, "describe", err
+		} else if l.identifier().equal("truncate") {
+			return false, nil, "truncate", nil
 		}
 	case tkSelect:
 		handled, stmt, err := isHandledSelectStmt(&l, keyspace)

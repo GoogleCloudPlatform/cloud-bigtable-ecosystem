@@ -42,7 +42,7 @@ type QueryMetadata struct {
 	KeyspaceName             string
 	ProtocalV                primitive.ProtocolVersion
 	Params                   map[string]interface{}
-	SelectedColumns          []schemaMapping.SelectedColumns
+	SelectedColumns          []types.SelectedColumns
 	Paramkeys                []string
 	ParamValues              []interface{}
 	UsingTSCheck             string

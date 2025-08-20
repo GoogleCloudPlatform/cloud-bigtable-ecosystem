@@ -351,6 +351,17 @@ func TestHandlePrimitiveEncoding(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "Counter value as string input",
+			args: args{
+				cqlType:         datatype.Counter,
+				value:           "24",
+				protocalVersion: primitive.ProtocolVersion(4),
+				encode:          true,
+			},
+			want:    []byte{0, 0, 0, 0, 0, 0, 0, 24},
+			wantErr: false,
+		},
+		{
 			name: "Float value as string input",
 			args: args{
 				cqlType:         datatype.Float,
@@ -376,6 +387,17 @@ func TestHandlePrimitiveEncoding(t *testing.T) {
 			name: "Invalid value for Bigint value",
 			args: args{
 				cqlType:         datatype.Bigint,
+				value:           true,
+				protocalVersion: primitive.ProtocolVersion(4),
+				encode:          true,
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "Invalid value for Counter value",
+			args: args{
+				cqlType:         datatype.Counter,
 				value:           true,
 				protocalVersion: primitive.ProtocolVersion(4),
 				encode:          true,

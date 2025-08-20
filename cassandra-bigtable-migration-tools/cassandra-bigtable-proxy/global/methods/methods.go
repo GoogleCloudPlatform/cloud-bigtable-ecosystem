@@ -113,6 +113,8 @@ func GetCassandraColumnType(c string) (datatype.DataType, error) {
 		return datatype.Float, nil
 	case CassandraTypeDouble:
 		return datatype.Double, nil
+	case "counter":
+		return datatype.Counter, nil
 	default:
 		return nil, fmt.Errorf("unsupported column type: %s", choice)
 	}
@@ -142,6 +144,8 @@ func ConvertCQLDataTypeToString(cqlType datatype.DataType) (string, error) {
 		return "float", nil
 	case datatype.Double:
 		return "double", nil
+	case datatype.Counter:
+		return "counter", nil
 	default:
 		typeCode := cqlType.GetDataTypeCode()
 

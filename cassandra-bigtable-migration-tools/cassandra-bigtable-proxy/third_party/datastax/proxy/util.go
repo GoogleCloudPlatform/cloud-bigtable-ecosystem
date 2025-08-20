@@ -25,6 +25,7 @@ import (
 
 	types "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/responsehandler"
+	schemaMapping "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/schema-mapping"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/third_party/datastax/parser"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/translator"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/utilities"
@@ -133,7 +134,7 @@ func getSystemQueryMetadataCache(keyspaceMetadataRows, tableMetadataRows, column
 }
 
 // getKeyspaceMetadata converts table metadata into keyspace metadata rows
-func getKeyspaceMetadata(tableMetadata map[string]map[string]map[string]*types.Column) [][]interface{} {
+func getKeyspaceMetadata(tableMetadata map[string]map[string]*schemaMapping.TableConfig) [][]interface{} {
 	// Replication settings for system and example keyspaces, matching Cassandra output
 	replicationMap := map[string]map[string]string{
 		"system":                {"class": "org.apache.cassandra.locator.LocalStrategy"},
@@ -160,7 +161,7 @@ func getKeyspaceMetadata(tableMetadata map[string]map[string]map[string]*types.C
 }
 
 // getTableMetadata converts table metadata into table metadata rows
-func getTableMetadata(tableMetadata map[string]map[string]map[string]*types.Column) [][]interface{} {
+func getTableMetadata(tableMetadata map[string]map[string]*schemaMapping.TableConfig) [][]interface{} {
 	tableMetadataRows := [][]interface{}{}
 	for keyspace, tables := range tableMetadata {
 		for tableName := range tables {
@@ -178,11 +179,11 @@ func getTableMetadata(tableMetadata map[string]map[string]map[string]*types.Colu
 }
 
 // getColumnMetadata converts table metadata into column metadata rows
-func getColumnMetadata(tableMetadata map[string]map[string]map[string]*types.Column) [][]interface{} {
+func getColumnMetadata(tableMetadata map[string]map[string]*schemaMapping.TableConfig) [][]interface{} {
 	columnsMetadataRows := [][]interface{}{}
 	for keyspace, tables := range tableMetadata {
-		for tableName, columns := range tables {
-			for columnName, column := range columns {
+		for tableName, table := range tables {
+			for columnName, column := range table.Columns {
 				kind := utilities.KEY_TYPE_REGULAR
 				if column.IsPrimaryKey {
 					kind = utilities.KEY_TYPE_PARTITION
@@ -211,10 +212,10 @@ func getColumnMetadata(tableMetadata map[string]map[string]map[string]*types.Col
 // Returns:
 // - A pointer to a SystemQueryMetadataCache, which contains structured metadata for keyspaces, tables, and columns.
 // - An error if any issue occurs while building the metadata cache.
-func ConstructSystemMetadataRows(tableMetadata map[string]map[string]map[string]*types.Column) (*SystemQueryMetadataCache, error) {
+func ConstructSystemMetadataRows(tableMetadata map[string]map[string]*schemaMapping.TableConfig) (*SystemQueryMetadataCache, error) {
 	// Initialize the metadata map if it's nil
 	if tableMetadata == nil {
-		tableMetadata = make(map[string]map[string]map[string]*types.Column)
+		tableMetadata = make(map[string]map[string]*schemaMapping.TableConfig)
 	}
 
 	// Add system keyspaces to metadata
@@ -254,7 +255,7 @@ func ConstructSystemMetadataRows(tableMetadata map[string]map[string]map[string]
 }
 
 // Add system keyspaces, tables, and columns to the schema mapping before system cache construction
-func addSystemKeyspacesToMetadata(tableMetadata map[string]map[string]map[string]*types.Column) {
+func addSystemKeyspacesToMetadata(tableMetadata map[string]map[string]*schemaMapping.TableConfig) {
 	// Replication settings for system and example keyspaces, matching Cassandra output
 	replicationMap := map[string]map[string]string{
 		"system":                {"class": "org.apache.cassandra.locator.LocalStrategy"},
@@ -268,17 +269,21 @@ func addSystemKeyspacesToMetadata(tableMetadata map[string]map[string]map[string
 
 	for ks := range replicationMap {
 		if _, exists := tableMetadata[ks]; !exists {
-			tableMetadata[ks] = make(map[string]map[string]*types.Column)
+			tableMetadata[ks] = make(map[string]*schemaMapping.TableConfig)
 		}
 		// Add system_schema tables
 		if ks == "system_schema" {
 			// Add tables table
 			if _, exists := tableMetadata[ks]["tables"]; !exists {
-				tableMetadata[ks]["tables"] = make(map[string]*types.Column)
+				tableMetadata[ks]["tables"] = &schemaMapping.TableConfig{
+					Keyspace: ks,
+					Name:     "tables",
+					Columns:  make(map[string]*types.Column),
+				}
 			}
 			for _, col := range parser.SystemSchemaTablesColumns {
-				tableMetadata[ks]["tables"][col.Name] = &types.Column{
-					ColumnName:   col.Name,
+				tableMetadata[ks]["tables"].Columns[col.Name] = &types.Column{
+					Name:         col.Name,
 					CQLType:      col.Type,
 					IsPrimaryKey: col.Name == "keyspace_name" || col.Name == "table_name",
 					KeyType: func() string {
@@ -292,11 +297,15 @@ func addSystemKeyspacesToMetadata(tableMetadata map[string]map[string]map[string
 
 			// Add columns table
 			if _, exists := tableMetadata[ks]["columns"]; !exists {
-				tableMetadata[ks]["columns"] = make(map[string]*types.Column)
+				tableMetadata[ks]["columns"] = &schemaMapping.TableConfig{
+					Keyspace: ks,
+					Name:     "columns",
+					Columns:  make(map[string]*types.Column),
+				}
 			}
 			for _, col := range parser.SystemSchemaColumnsColumns {
-				tableMetadata[ks]["columns"][col.Name] = &types.Column{
-					ColumnName:   col.Name,
+				tableMetadata[ks]["columns"].Columns[col.Name] = &types.Column{
+					Name:         col.Name,
 					CQLType:      col.Type,
 					IsPrimaryKey: col.Name == "keyspace_name" || col.Name == "table_name" || col.Name == "column_name",
 					KeyType: func() string {
@@ -310,11 +319,15 @@ func addSystemKeyspacesToMetadata(tableMetadata map[string]map[string]map[string
 
 			// Add keyspaces table
 			if _, exists := tableMetadata[ks]["keyspaces"]; !exists {
-				tableMetadata[ks]["keyspaces"] = make(map[string]*types.Column)
+				tableMetadata[ks]["keyspaces"] = &schemaMapping.TableConfig{
+					Keyspace: ks,
+					Name:     "keyspaces",
+					Columns:  make(map[string]*types.Column),
+				}
 			}
 			for _, col := range parser.SystemSchemaKeyspacesColumns {
-				tableMetadata[ks]["keyspaces"][col.Name] = &types.Column{
-					ColumnName:   col.Name,
+				tableMetadata[ks]["keyspaces"].Columns[col.Name] = &types.Column{
+					Name:         col.Name,
 					CQLType:      col.Type,
 					IsPrimaryKey: col.Name == "keyspace_name",
 					KeyType: func() string {
@@ -330,7 +343,11 @@ func addSystemKeyspacesToMetadata(tableMetadata map[string]map[string]map[string
 		if ks == "system" {
 			// Add local table
 			if _, exists := tableMetadata[ks]["local"]; !exists {
-				tableMetadata[ks]["local"] = make(map[string]*types.Column)
+				tableMetadata[ks]["local"] = &schemaMapping.TableConfig{
+					Keyspace: ks,
+					Name:     "local",
+					Columns:  make(map[string]*types.Column),
+				}
 			}
 			// Add columns for system.local
 			columns := []struct {
@@ -356,8 +373,8 @@ func addSystemKeyspacesToMetadata(tableMetadata map[string]map[string]map[string
 				{"tokens", datatype.NewSetType(datatype.Varchar)},
 			}
 			for _, col := range columns {
-				tableMetadata[ks]["local"][col.Name] = &types.Column{
-					ColumnName:   col.Name,
+				tableMetadata[ks]["local"].Columns[col.Name] = &types.Column{
+					Name:         col.Name,
 					CQLType:      col.Type,
 					IsPrimaryKey: col.Name == "key",
 					KeyType: func() string {
@@ -371,7 +388,11 @@ func addSystemKeyspacesToMetadata(tableMetadata map[string]map[string]map[string
 
 			// Add peers table
 			if _, exists := tableMetadata[ks]["peers"]; !exists {
-				tableMetadata[ks]["peers"] = make(map[string]*types.Column)
+				tableMetadata[ks]["peers"] = &schemaMapping.TableConfig{
+					Keyspace: ks,
+					Name:     "peers",
+					Columns:  make(map[string]*types.Column),
+				}
 			}
 			// Add columns for system.peers
 			peerColumns := []struct {
@@ -389,8 +410,8 @@ func addSystemKeyspacesToMetadata(tableMetadata map[string]map[string]map[string
 				{"tokens", datatype.NewSetType(datatype.Varchar)},
 			}
 			for _, col := range peerColumns {
-				tableMetadata[ks]["peers"][col.Name] = &types.Column{
-					ColumnName:   col.Name,
+				tableMetadata[ks]["peers"].Columns[col.Name] = &types.Column{
+					Name:         col.Name,
 					CQLType:      col.Type,
 					IsPrimaryKey: col.Name == "peer",
 					KeyType: func() string {
@@ -404,7 +425,11 @@ func addSystemKeyspacesToMetadata(tableMetadata map[string]map[string]map[string
 
 			// Add peers_v2 table
 			if _, exists := tableMetadata[ks]["peers_v2"]; !exists {
-				tableMetadata[ks]["peers_v2"] = make(map[string]*types.Column)
+				tableMetadata[ks]["peers_v2"] = &schemaMapping.TableConfig{
+					Keyspace: ks,
+					Name:     "peers_v2",
+					Columns:  make(map[string]*types.Column),
+				}
 			}
 			// Add columns for system.peers_v2
 			peerV2Columns := []struct {
@@ -424,8 +449,8 @@ func addSystemKeyspacesToMetadata(tableMetadata map[string]map[string]map[string
 				{"tokens", datatype.NewSetType(datatype.Varchar)},
 			}
 			for _, col := range peerV2Columns {
-				tableMetadata[ks]["peers_v2"][col.Name] = &types.Column{
-					ColumnName:   col.Name,
+				tableMetadata[ks]["peers_v2"].Columns[col.Name] = &types.Column{
+					Name:         col.Name,
 					CQLType:      col.Type,
 					IsPrimaryKey: col.Name == "peer",
 					KeyType: func() string {
@@ -441,33 +466,45 @@ func addSystemKeyspacesToMetadata(tableMetadata map[string]map[string]map[string
 
 	// Add system_virtual_schema tables and columns
 	if _, exists := tableMetadata["system_virtual_schema"]; !exists {
-		tableMetadata["system_virtual_schema"] = make(map[string]map[string]*types.Column)
+		tableMetadata["system_virtual_schema"] = make(map[string]*schemaMapping.TableConfig)
 	}
 	// keyspaces
-	tableMetadata["system_virtual_schema"]["keyspaces"] = make(map[string]*types.Column)
+	tableMetadata["system_virtual_schema"]["keyspaces"] = &schemaMapping.TableConfig{
+		Keyspace: "system_virtual_schema",
+		Name:     "keyspaces",
+		Columns:  make(map[string]*types.Column),
+	}
 	for _, col := range parser.SystemVirtualSchemaKeyspaces {
-		tableMetadata["system_virtual_schema"]["keyspaces"][col.Name] = &types.Column{
-			ColumnName:   col.Name,
+		tableMetadata["system_virtual_schema"]["keyspaces"].Columns[col.Name] = &types.Column{
+			Name:         col.Name,
 			CQLType:      col.Type,
 			IsPrimaryKey: false,
 			KeyType:      utilities.KEY_TYPE_REGULAR,
 		}
 	}
 	// tables
-	tableMetadata["system_virtual_schema"]["tables"] = make(map[string]*types.Column)
+	tableMetadata["system_virtual_schema"]["tables"] = &schemaMapping.TableConfig{
+		Keyspace: "system_virtual_schema",
+		Name:     "tables",
+		Columns:  make(map[string]*types.Column),
+	}
 	for _, col := range parser.SystemVirtualSchemaTables {
-		tableMetadata["system_virtual_schema"]["tables"][col.Name] = &types.Column{
-			ColumnName:   col.Name,
+		tableMetadata["system_virtual_schema"]["tables"].Columns[col.Name] = &types.Column{
+			Name:         col.Name,
 			CQLType:      col.Type,
 			IsPrimaryKey: false,
 			KeyType:      utilities.KEY_TYPE_REGULAR,
 		}
 	}
 	// columns
-	tableMetadata["system_virtual_schema"]["columns"] = make(map[string]*types.Column)
+	tableMetadata["system_virtual_schema"]["columns"] = &schemaMapping.TableConfig{
+		Keyspace: "system_virtual_schema",
+		Name:     "columns",
+		Columns:  make(map[string]*types.Column),
+	}
 	for _, col := range parser.SystemVirtualSchemaColumns {
-		tableMetadata["system_virtual_schema"]["columns"][col.Name] = &types.Column{
-			ColumnName:   col.Name,
+		tableMetadata["system_virtual_schema"]["columns"].Columns[col.Name] = &types.Column{
+			Name:         col.Name,
 			CQLType:      col.Type,
 			IsPrimaryKey: false,
 			KeyType:      utilities.KEY_TYPE_REGULAR,

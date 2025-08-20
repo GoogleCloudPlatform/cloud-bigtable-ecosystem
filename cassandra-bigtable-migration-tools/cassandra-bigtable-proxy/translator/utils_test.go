@@ -29,6 +29,7 @@ import (
 	schemaMapping "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/schema-mapping"
 	cql "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/third_party/cqlparser"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/third_party/datastax/proxycore"
+	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/utilities"
 	"github.com/antlr4-go/antlr/v4"
 	"github.com/datastax/go-cassandra-native-protocol/datatype"
 	"github.com/datastax/go-cassandra-native-protocol/message"
@@ -155,72 +156,6 @@ func TestPrimitivesToString(t *testing.T) {
 		if output != test.expected {
 			t.Errorf("primitivesToString(%v) = %v; want %v", test.input, output, test.expected)
 		}
-	}
-}
-
-func TestTranslator_GetAllColumns(t *testing.T) {
-	type fields struct {
-		Logger              *zap.Logger
-		SchemaMappingConfig *schemaMapping.SchemaMappingConfig
-	}
-	type args struct {
-		tableName string
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    []string
-		want1   string
-		wantErr bool
-	}{
-		{
-			name: "Valid Input",
-			fields: fields{
-				Logger:              zap.NewNop(),
-				SchemaMappingConfig: GetSchemaMappingConfig(),
-			},
-			args: args{
-				tableName: "test_table",
-			},
-			want:    []string{"bigint_col", "blob_col", "bool_col", "column1", "column10", "column2", "column3", "column5", "column6", "column9", "double_col", "float_col", "int_col", "timestamp_col"},
-			want1:   "cf1",
-			wantErr: false,
-		},
-		{
-			name: "Valid Input",
-			fields: fields{
-				Logger:              zap.NewNop(),
-				SchemaMappingConfig: GetSchemaMappingConfig(),
-			},
-			args: args{
-				tableName: "test_table123",
-			},
-			want:    nil,
-			want1:   "",
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tr := &Translator{
-				Logger:              tt.fields.Logger,
-				SchemaMappingConfig: tt.fields.SchemaMappingConfig,
-			}
-			got, got1, err := tr.GetAllColumns(tt.args.tableName, "test_keyspace")
-			sort.Strings(got)
-			sort.Strings(tt.want)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Translator.GetAllColumns() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Translator.GetAllColumns() got = %v, want %v", got, tt.want)
-			}
-			if got1 != tt.want1 {
-				t.Errorf("Translator.GetAllColumns() got1 = %v, want %v", got1, tt.want1)
-			}
-		})
 	}
 }
 
@@ -503,7 +438,7 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 			primaryKeys: []string{},
 			translator: &Translator{
 				Logger:              zap.NewNop(),
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			want: []types.Column{
 				{Name: "1633046400000", ColumnFamily: "map_timestamp_float", CQLType: datatype.Float},
@@ -528,7 +463,7 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 			primaryKeys: []string{},
 			translator: &Translator{
 				Logger:              zap.NewNop(),
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			want: []types.Column{
 				{Name: "test", ColumnFamily: "map_text_timestamp", CQLType: datatype.Timestamp},
@@ -553,7 +488,7 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 			primaryKeys: []string{},
 			translator: &Translator{
 				Logger:              zap.NewNop(),
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			want: []types.Column{
 				{Name: "1633046400000", ColumnFamily: "map_timestamp_text", CQLType: datatype.Varchar},
@@ -578,7 +513,7 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 			primaryKeys: []string{},
 			translator: &Translator{
 				Logger:              zap.NewNop(),
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			want: []types.Column{
 				{Name: "1633046400", ColumnFamily: "set_timestamp", CQLType: datatype.Bigint},
@@ -603,7 +538,7 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 			primaryKeys: []string{},
 			translator: &Translator{
 				Logger:              zap.NewNop(),
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			want: []types.Column{
 				{Name: "6.283", ColumnFamily: "set_double", CQLType: datatype.Double},
@@ -628,7 +563,7 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 			primaryKeys: []string{},
 			translator: &Translator{
 				Logger:              zap.NewNop(),
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			want: []types.Column{
 				{Name: "6.283", ColumnFamily: "set_float", CQLType: datatype.Float},
@@ -653,7 +588,7 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 			primaryKeys: []string{},
 			translator: &Translator{
 				Logger:              zap.NewNop(),
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			want: []types.Column{
 				{Name: "test", ColumnFamily: "set_text", CQLType: datatype.Varchar},
@@ -678,7 +613,7 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 			primaryKeys: []string{},
 			translator: &Translator{
 				Logger:              zap.NewNop(),
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			want: []types.Column{
 				{Name: "12372432764", ColumnFamily: "set_bigint", CQLType: datatype.Bigint},
@@ -703,7 +638,7 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 			primaryKeys: []string{},
 			translator: &Translator{
 				Logger:              zap.NewNop(),
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			want: []types.Column{
 				{Name: "12", ColumnFamily: "set_int", CQLType: datatype.Int},
@@ -728,7 +663,7 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 			primaryKeys: []string{},
 			translator: &Translator{
 				Logger:              zap.NewNop(),
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			want: []types.Column{
 				{Name: "1633046400000", ColumnFamily: "map_timestamp_timestamp", CQLType: datatype.Timestamp},
@@ -753,7 +688,7 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 			primaryKeys: []string{},
 			translator: &Translator{
 				Logger:              zap.NewNop(),
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			want: []types.Column{
 				{Name: "test", ColumnFamily: "map_text_bigint", CQLType: datatype.Bigint},
@@ -778,7 +713,7 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 			primaryKeys: []string{},
 			translator: &Translator{
 				Logger:              zap.NewNop(),
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			want: []types.Column{
 				{Name: "1633046400000", ColumnFamily: "map_timestamp_int", CQLType: datatype.Int},
@@ -803,7 +738,7 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 			primaryKeys: []string{},
 			translator: &Translator{
 				Logger:              zap.NewNop(),
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			want: []types.Column{
 				{Name: "1", ColumnFamily: "set_boolean", CQLType: datatype.Boolean},
@@ -828,7 +763,7 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 			primaryKeys: []string{},
 			translator: &Translator{
 				Logger:              zap.NewNop(),
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			want: []types.Column{
 				{Name: "test", ColumnFamily: "map_text_boolean", CQLType: datatype.Boolean},
@@ -853,7 +788,7 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 			primaryKeys: []string{},
 			translator: &Translator{
 				Logger:              zap.NewNop(),
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			want: []types.Column{
 				{Name: "test", ColumnFamily: "map_text_text", CQLType: datatype.Varchar},
@@ -878,7 +813,7 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 			primaryKeys: []string{},
 			translator: &Translator{
 				Logger:              zap.NewNop(),
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			want: []types.Column{
 				{Name: "test", ColumnFamily: "map_text_int", CQLType: datatype.Int},
@@ -903,7 +838,7 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 			primaryKeys: []string{},
 			translator: &Translator{
 				Logger:              zap.NewNop(),
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			want: []types.Column{
 				{Name: "test", ColumnFamily: "map_text_float", CQLType: datatype.Float},
@@ -928,7 +863,7 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 			primaryKeys: []string{},
 			translator: &Translator{
 				Logger:              zap.NewNop(),
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			want: []types.Column{
 				{Name: "test", ColumnFamily: "map_text_double", CQLType: datatype.Double},
@@ -953,7 +888,7 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 			primaryKeys: []string{},
 			translator: &Translator{
 				Logger:              zap.NewNop(),
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			want: []types.Column{
 				{Name: "1633046400000", ColumnFamily: "map_timestamp_boolean", CQLType: datatype.Boolean},
@@ -978,7 +913,7 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 			primaryKeys: []string{},
 			translator: &Translator{
 				Logger:              zap.NewNop(),
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			want: []types.Column{
 				{Name: "1633046400000", ColumnFamily: "map_timestamp_double", CQLType: datatype.Double},
@@ -1003,7 +938,7 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 			primaryKeys: []string{},
 			translator: &Translator{
 				Logger:              zap.NewNop(),
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			want: []types.Column{
 				{Name: "1633046400000", ColumnFamily: "map_timestamp_bigint", CQLType: datatype.Bigint},
@@ -1027,7 +962,7 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 			primaryKeys: []string{},
 			translator: &Translator{
 				Logger:              zap.NewNop(),
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			want: []types.Column{
 				{Name: time.Now().Format("20060102150405.000"), ColumnFamily: "list_text", CQLType: datatype.Varchar},
@@ -1051,7 +986,7 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 			primaryKeys: []string{},
 			translator: &Translator{
 				Logger:              zap.NewNop(),
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			want: []types.Column{
 				{Name: time.Now().Format("20060102150405.000"), ColumnFamily: "list_int", CQLType: datatype.Int},
@@ -1075,7 +1010,7 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 			primaryKeys: []string{},
 			translator: &Translator{
 				Logger:              zap.NewNop(),
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			want: []types.Column{
 				{Name: time.Now().Format("20060102150405.000"), ColumnFamily: "list_bigint", CQLType: datatype.Bigint},
@@ -1099,7 +1034,7 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 			primaryKeys: []string{},
 			translator: &Translator{
 				Logger:              zap.NewNop(),
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			want: []types.Column{
 				{Name: time.Now().Format("20060102150405.000"), ColumnFamily: "list_boolean", CQLType: datatype.Boolean},
@@ -1123,7 +1058,7 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 			primaryKeys: []string{},
 			translator: &Translator{
 				Logger:              zap.NewNop(),
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			want: []types.Column{
 				{Name: time.Now().Format("20060102150405.000"), ColumnFamily: "list_float", CQLType: datatype.Float},
@@ -1147,7 +1082,7 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 			primaryKeys: []string{},
 			translator: &Translator{
 				Logger:              zap.NewNop(),
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			want: []types.Column{
 				{Name: time.Now().Format("20060102150405.000"), ColumnFamily: "list_double", CQLType: datatype.Double},
@@ -1171,7 +1106,7 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 			primaryKeys: []string{},
 			translator: &Translator{
 				Logger:              zap.NewNop(),
-				SchemaMappingConfig: GetSchemaMappingConfig(),
+				SchemaMappingConfig: GetSchemaMappingConfig(false),
 			},
 			want: []types.Column{
 				{Name: time.Now().Format("20060102150405.000"), ColumnFamily: "list_timestamp", CQLType: datatype.Bigint},
@@ -1196,7 +1131,12 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 				KeySpace:        "test_keyspace",
 				ComplexMeta:     nil, // Assuming nil for these tests, adjust if needed
 			}
-			output, err := processCollectionColumnsForPrepareQueries(input)
+			tc, err := GetSchemaMappingConfig(false).GetTableConfig(input.KeySpace, input.TableName)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			output, err := processCollectionColumnsForPrepareQueries(tc, input)
 
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
@@ -1384,7 +1324,7 @@ func Test_validateRequiredPrimaryKeys(t *testing.T) {
 
 func TestProcessComplexUpdate(t *testing.T) {
 	translator := &Translator{
-		SchemaMappingConfig: GetSchemaMappingConfig(),
+		SchemaMappingConfig: GetSchemaMappingConfig(false),
 	}
 
 	tests := []struct {
@@ -1536,8 +1476,8 @@ func TestCastColumns(t *testing.T) {
 		{
 			name: "integer type",
 			colMeta: &types.Column{
-				ColumnName: "age",
-				CQLType:    datatype.Int,
+				Name:    "age",
+				CQLType: datatype.Int,
 			},
 			columnFamily: "cf1",
 			want:         "TO_INT64(cf1['age'])",
@@ -1546,8 +1486,8 @@ func TestCastColumns(t *testing.T) {
 		{
 			name: "bigint type",
 			colMeta: &types.Column{
-				ColumnName: "timestamp",
-				CQLType:    datatype.Bigint,
+				Name:    "timestamp",
+				CQLType: datatype.Bigint,
 			},
 			columnFamily: "cf1",
 			want:         "TO_INT64(cf1['timestamp'])",
@@ -1556,8 +1496,8 @@ func TestCastColumns(t *testing.T) {
 		{
 			name: "float type",
 			colMeta: &types.Column{
-				ColumnName: "price",
-				CQLType:    datatype.Float,
+				Name:    "price",
+				CQLType: datatype.Float,
 			},
 			columnFamily: "cf1",
 			want:         "TO_FLOAT32(cf1['price'])",
@@ -1566,8 +1506,8 @@ func TestCastColumns(t *testing.T) {
 		{
 			name: "double type",
 			colMeta: &types.Column{
-				ColumnName: "value",
-				CQLType:    datatype.Double,
+				Name:    "value",
+				CQLType: datatype.Double,
 			},
 			columnFamily: "cf1",
 			want:         "TO_FLOAT64(cf1['value'])",
@@ -1576,8 +1516,8 @@ func TestCastColumns(t *testing.T) {
 		{
 			name: "boolean type",
 			colMeta: &types.Column{
-				ColumnName: "active",
-				CQLType:    datatype.Boolean,
+				Name:    "active",
+				CQLType: datatype.Boolean,
 			},
 			columnFamily: "cf1",
 			want:         "TO_INT64(cf1['active'])",
@@ -1586,8 +1526,8 @@ func TestCastColumns(t *testing.T) {
 		{
 			name: "timestamp type",
 			colMeta: &types.Column{
-				ColumnName: "created_at",
-				CQLType:    datatype.Timestamp,
+				Name:    "created_at",
+				CQLType: datatype.Timestamp,
 			},
 			columnFamily: "cf1",
 			want:         "TO_TIME(cf1['created_at'])",
@@ -1596,8 +1536,8 @@ func TestCastColumns(t *testing.T) {
 		{
 			name: "blob type",
 			colMeta: &types.Column{
-				ColumnName: "data",
-				CQLType:    datatype.Blob,
+				Name:    "data",
+				CQLType: datatype.Blob,
 			},
 			columnFamily: "cf1",
 			want:         "TO_BLOB(cf1['data'])",
@@ -1606,8 +1546,8 @@ func TestCastColumns(t *testing.T) {
 		{
 			name: "text type",
 			colMeta: &types.Column{
-				ColumnName: "name",
-				CQLType:    datatype.Varchar,
+				Name:    "name",
+				CQLType: datatype.Varchar,
 			},
 			columnFamily: "cf1",
 			want:         "cf1['name']",
@@ -1616,8 +1556,8 @@ func TestCastColumns(t *testing.T) {
 		{
 			name: "unsupported type",
 			colMeta: &types.Column{
-				ColumnName: "unsupported",
-				CQLType:    nil,
+				Name:    "unsupported",
+				CQLType: nil,
 			},
 			columnFamily: "cf1",
 			want:         "",
@@ -1626,8 +1566,8 @@ func TestCastColumns(t *testing.T) {
 		{
 			name: "handle special characters in column name",
 			colMeta: &types.Column{
-				ColumnName: "special-name",
-				CQLType:    datatype.Varchar,
+				Name:    "special-name",
+				CQLType: datatype.Varchar,
 			},
 			columnFamily: "cf1",
 			want:         "cf1['special-name']",
@@ -1637,7 +1577,7 @@ func TestCastColumns(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := castColumns(tt.colMeta, tt.columnFamily)
+			got, err := castColumns(tt.colMeta, tt.columnFamily, "ctrf")
 			if (err != nil) != tt.wantErr {
 				t.Errorf("castColumns() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -1660,557 +1600,120 @@ func compareComplexOperation(expected, actual *ComplexOperation) bool {
 		reflect.DeepEqual(expected.ExpectedDatatype, actual.ExpectedDatatype)
 }
 
-func TestTranslator_CreateOrderedCodeKey(t *testing.T) {
+func TestCreateOrderedCodeKey(t *testing.T) {
 	tests := []struct {
-		name                         string
-		pmks                         []types.Column
-		values                       map[string]interface{}
-		want                         []byte
-		encodeIntValuesWithBigEndian bool
-		wantErr                      bool
+		name        string
+		tableConfig *schemaMapping.TableConfig
+		values      map[string]interface{}
+		want        []byte
+		wantErr     bool
 	}{
 		{
 			name: "simple string",
-			pmks: []types.Column{
-				{
-					CQLType:      datatype.Varchar,
-					ColumnName:   "user_id",
-					IsPrimaryKey: true,
-					PkPrecedence: 1,
-				},
-			},
-			values: map[string]interface{}{
-				"user_id": "user1",
-			},
-			want:                         []byte("user1"),
-			encodeIntValuesWithBigEndian: false,
-			wantErr:                      false,
+			tableConfig: schemaMapping.NewTableConfig("keyspace", "table", "cf1", false, []*types.Column{
+				{Name: "user_id", CQLType: datatype.Varchar, KeyType: utilities.KEY_TYPE_PARTITION, PkPrecedence: 1},
+			}),
+			values:  map[string]interface{}{"user_id": "user1"},
+			want:    []byte("user1"),
+			wantErr: false,
 		},
 		{
 			name: "int nonzero",
-			pmks: []types.Column{
-				{
-					CQLType:      datatype.Bigint,
-					ColumnName:   "user_id",
-					IsPrimaryKey: true,
-					PkPrecedence: 1,
-				},
-			},
-			values: map[string]interface{}{
-				"user_id": int64(1),
-			},
-			want:                         []byte("\x81"),
-			encodeIntValuesWithBigEndian: false,
-			wantErr:                      false,
+			tableConfig: schemaMapping.NewTableConfig("keyspace", "table", "cf1", false, []*types.Column{
+				{Name: "user_id", CQLType: datatype.Bigint, KeyType: utilities.KEY_TYPE_PARTITION, PkPrecedence: 1},
+			}),
+			values:  map[string]interface{}{"user_id": int64(1)},
+			want:    []byte("\x81"),
+			wantErr: false,
 		},
 		{
 			name: "int32 nonzero",
-			pmks: []types.Column{
-				{
-					CQLType:      datatype.Int,
-					ColumnName:   "user_id",
-					IsPrimaryKey: true,
-					PkPrecedence: 1,
-				},
-			},
-			values: map[string]interface{}{
-				"user_id": int32(1),
-			},
-			want:                         []byte("\x81"),
-			encodeIntValuesWithBigEndian: false,
-			wantErr:                      false,
+			tableConfig: schemaMapping.NewTableConfig("keyspace", "table", "cf1", false, []*types.Column{
+				{Name: "user_id", CQLType: datatype.Int, KeyType: utilities.KEY_TYPE_PARTITION, PkPrecedence: 1},
+			}),
+			values:  map[string]interface{}{"user_id": int32(1)},
+			want:    []byte("\x81"),
+			wantErr: false,
 		},
 		{
 			name: "int32 nonzero big endian",
-			pmks: []types.Column{
-				{
-					CQLType:      datatype.Int,
-					ColumnName:   "user_id",
-					IsPrimaryKey: true,
-					PkPrecedence: 1,
-				},
-			},
-			values: map[string]interface{}{
-				"user_id": int32(1),
-			},
-			want:                         []byte("\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x01"),
-			encodeIntValuesWithBigEndian: true,
-			wantErr:                      false,
+			tableConfig: schemaMapping.NewTableConfig("keyspace", "table", "cf1", true, []*types.Column{
+				{Name: "user_id", CQLType: datatype.Int, KeyType: utilities.KEY_TYPE_PARTITION, PkPrecedence: 1},
+			}),
+			values:  map[string]interface{}{"user_id": int32(1)},
+			want:    []byte("\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x01"),
+			wantErr: false,
 		},
 		{
 			name: "int32 max",
-			pmks: []types.Column{
-				{
-					CQLType:      datatype.Int,
-					ColumnName:   "user_id",
-					IsPrimaryKey: true,
-					PkPrecedence: 1,
-				},
-			},
-			values: map[string]interface{}{
-				"user_id": int32(2147483647),
-			},
-			want:                         []byte("\x00\xff\x00\xff\x00\xff\x00\xff\x7f\xff\xff\xff"),
-			encodeIntValuesWithBigEndian: true,
-			wantErr:                      false,
+			tableConfig: schemaMapping.NewTableConfig("keyspace", "table", "cf1", true, []*types.Column{
+				{Name: "user_id", CQLType: datatype.Int, KeyType: utilities.KEY_TYPE_PARTITION, PkPrecedence: 1},
+			}),
+			values:  map[string]interface{}{"user_id": int32(2147483647)},
+			want:    []byte("\x00\xff\x00\xff\x00\xff\x00\xff\x7f\xff\xff\xff"),
+			wantErr: false,
 		},
 		{
 			name: "int64 max",
-			pmks: []types.Column{
-				{
-					CQLType:      datatype.Bigint,
-					ColumnName:   "user_id",
-					IsPrimaryKey: true,
-					PkPrecedence: 1,
-				},
-			},
-			values: map[string]interface{}{
-				"user_id": int64(9223372036854775807),
-			},
-			want:                         []byte("\x7f\xff\xff\xff\xff\xff\xff\xff"),
-			encodeIntValuesWithBigEndian: true,
-			wantErr:                      false,
+			tableConfig: schemaMapping.NewTableConfig("keyspace", "table", "cf1", true, []*types.Column{
+				{Name: "user_id", CQLType: datatype.Bigint, KeyType: utilities.KEY_TYPE_PARTITION, PkPrecedence: 1},
+			}),
+			values:  map[string]interface{}{"user_id": int64(9223372036854775807)},
+			want:    []byte("\x7f\xff\xff\xff\xff\xff\xff\xff"),
+			wantErr: false,
 		},
 		{
 			name: "negative int",
-			pmks: []types.Column{
-				{
-					CQLType:      datatype.Bigint,
-					ColumnName:   "user_id",
-					IsPrimaryKey: true,
-					PkPrecedence: 1,
-				},
-			},
-			values: map[string]interface{}{
-				"user_id": int64(-1),
-			},
-			want:                         []byte("\x7f"),
-			encodeIntValuesWithBigEndian: false,
-			wantErr:                      false,
+			tableConfig: schemaMapping.NewTableConfig("keyspace", "table", "cf1", false, []*types.Column{
+				{Name: "user_id", CQLType: datatype.Bigint, KeyType: utilities.KEY_TYPE_PARTITION, PkPrecedence: 1},
+			}),
+			values:  map[string]interface{}{"user_id": int64(-1)},
+			want:    []byte("\x7f"),
+			wantErr: false,
 		},
 		{
 			name: "negative int big endian fails",
-			pmks: []types.Column{
-				{
-					CQLType:      datatype.Bigint,
-					ColumnName:   "user_id",
-					IsPrimaryKey: true,
-					PkPrecedence: 1,
-				},
-			},
-			values: map[string]interface{}{
-				"user_id": int64(-1),
-			},
-			want:                         nil,
-			encodeIntValuesWithBigEndian: true,
-			wantErr:                      true,
-		},
-		{
-			name: "int zero",
-			pmks: []types.Column{
-				{
-					CQLType:      datatype.Bigint,
-					ColumnName:   "user_id",
-					IsPrimaryKey: true,
-					PkPrecedence: 1,
-				},
-			},
-			values: map[string]interface{}{
-				"user_id": int64(0),
-			},
-			want:                         []byte("\x80"),
-			encodeIntValuesWithBigEndian: false,
-			wantErr:                      false,
-		},
-		{
-			name: "int zero big endian",
-			pmks: []types.Column{
-				{
-					CQLType:      datatype.Bigint,
-					ColumnName:   "user_id",
-					IsPrimaryKey: true,
-					PkPrecedence: 1,
-				},
-			},
-			values: map[string]interface{}{
-				"user_id": int64(0),
-			},
-			want:                         []byte("\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff"),
-			encodeIntValuesWithBigEndian: true,
-			wantErr:                      false,
+			tableConfig: schemaMapping.NewTableConfig("keyspace", "table", "cf1", true, []*types.Column{
+				{Name: "user_id", CQLType: datatype.Bigint, KeyType: utilities.KEY_TYPE_PARTITION, PkPrecedence: 1},
+			}),
+			values:  map[string]interface{}{"user_id": int64(-1)},
+			want:    nil,
+			wantErr: true,
 		},
 		{
 			name: "compound key",
-			pmks: []types.Column{
-				{
-					CQLType:      datatype.Varchar,
-					ColumnName:   "user_id",
-					IsPrimaryKey: true,
-					PkPrecedence: 1,
-				},
-				{
-					CQLType:      datatype.Bigint,
-					ColumnName:   "team_num",
-					IsPrimaryKey: true,
-					PkPrecedence: 2,
-				},
-				{
-					CQLType:      datatype.Varchar,
-					ColumnName:   "city",
-					IsPrimaryKey: true,
-					PkPrecedence: 3,
-				},
-			},
+			tableConfig: schemaMapping.NewTableConfig("keyspace", "table", "cf1", false, []*types.Column{
+				{Name: "user_id", CQLType: datatype.Varchar, KeyType: utilities.KEY_TYPE_PARTITION, PkPrecedence: 1},
+				{Name: "team_num", CQLType: datatype.Bigint, KeyType: utilities.KEY_TYPE_CLUSTERING, PkPrecedence: 2},
+				{Name: "city", CQLType: datatype.Varchar, KeyType: utilities.KEY_TYPE_CLUSTERING, PkPrecedence: 3},
+			}),
 			values: map[string]interface{}{
 				"user_id":  "user1",
 				"team_num": int64(1),
 				"city":     "new york",
 			},
-			want:                         []byte("user1\x00\x01\x81\x00\x01new york"),
-			encodeIntValuesWithBigEndian: false,
-			wantErr:                      false,
+			want:    []byte("user1\x00\x01\x81\x00\x01new york"),
+			wantErr: false,
 		},
 		{
 			name: "compound key big endian",
-			pmks: []types.Column{
-				{
-					CQLType:      datatype.Varchar,
-					ColumnName:   "user_id",
-					IsPrimaryKey: true,
-					PkPrecedence: 1,
-				},
-				{
-					CQLType:      datatype.Bigint,
-					ColumnName:   "team_num",
-					IsPrimaryKey: true,
-					PkPrecedence: 2,
-				},
-				{
-					CQLType:      datatype.Varchar,
-					ColumnName:   "city",
-					IsPrimaryKey: true,
-					PkPrecedence: 3,
-				},
-			},
+			tableConfig: schemaMapping.NewTableConfig("keyspace", "table", "cf1", true, []*types.Column{
+				{Name: "user_id", CQLType: datatype.Varchar, KeyType: utilities.KEY_TYPE_PARTITION, PkPrecedence: 1},
+				{Name: "team_num", CQLType: datatype.Bigint, KeyType: utilities.KEY_TYPE_CLUSTERING, PkPrecedence: 2},
+				{Name: "city", CQLType: datatype.Varchar, KeyType: utilities.KEY_TYPE_CLUSTERING, PkPrecedence: 3},
+			}),
 			values: map[string]interface{}{
 				"user_id":  "user1",
 				"team_num": int64(1),
 				"city":     "new york",
 			},
-			want:                         []byte("user1\x00\x01\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x01\x00\x01new york"),
-			encodeIntValuesWithBigEndian: true,
-			wantErr:                      false,
-		},
-		{
-			name: "compound key with trailing empty",
-			pmks: []types.Column{
-				{
-					CQLType:      datatype.Varchar,
-					ColumnName:   "user_id",
-					IsPrimaryKey: true,
-					PkPrecedence: 1,
-				},
-				{
-					CQLType:      datatype.Bigint,
-					ColumnName:   "team_num",
-					IsPrimaryKey: true,
-					PkPrecedence: 2,
-				},
-				{
-					CQLType:      datatype.Varchar,
-					ColumnName:   "city",
-					IsPrimaryKey: true,
-					PkPrecedence: 3,
-				},
-				{
-					CQLType:      datatype.Varchar,
-					ColumnName:   "borough",
-					IsPrimaryKey: true,
-					PkPrecedence: 4,
-				},
-			},
-			values: map[string]interface{}{
-				"user_id":  "user3",
-				"team_num": int64(3),
-				"city":     "",
-				"borough":  "",
-			},
-			want:                         []byte("user3\x00\x01\x83"),
-			encodeIntValuesWithBigEndian: false,
-			wantErr:                      false,
-		},
-		{
-			name: "compound key with trailing empty big endian",
-			pmks: []types.Column{
-				{
-					CQLType:      datatype.Varchar,
-					ColumnName:   "user_id",
-					IsPrimaryKey: true,
-					PkPrecedence: 1,
-				},
-				{
-					CQLType:      datatype.Bigint,
-					ColumnName:   "team_num",
-					IsPrimaryKey: true,
-					PkPrecedence: 2,
-				},
-				{
-					CQLType:      datatype.Varchar,
-					ColumnName:   "city",
-					IsPrimaryKey: true,
-					PkPrecedence: 3,
-				},
-				{
-					CQLType:      datatype.Varchar,
-					ColumnName:   "borough",
-					IsPrimaryKey: true,
-					PkPrecedence: 4,
-				},
-			},
-			values: map[string]interface{}{
-				"user_id":  "user3",
-				"team_num": int64(3),
-				"city":     "",
-				"borough":  "",
-			},
-			want:                         []byte("user3\x00\x01\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x03"),
-			encodeIntValuesWithBigEndian: true,
-			wantErr:                      false,
-		},
-		{
-			name: "compound key with empty middle",
-			pmks: []types.Column{
-				{
-					CQLType:      datatype.Blob,
-					ColumnName:   "user_id",
-					IsPrimaryKey: true,
-					PkPrecedence: 1,
-				},
-				{
-					CQLType:      datatype.Blob,
-					ColumnName:   "team_id",
-					IsPrimaryKey: true,
-					PkPrecedence: 2,
-				},
-				{
-					CQLType:      datatype.Blob,
-					ColumnName:   "city",
-					IsPrimaryKey: true,
-					PkPrecedence: 3,
-				},
-			},
-			values: map[string]interface{}{
-				"user_id": "\xa2",
-				"team_id": "",
-				"city":    "\xb7",
-			},
-			want:                         []byte("\xa2\x00\x01\x00\x00\x00\x01\xb7"),
-			encodeIntValuesWithBigEndian: false,
-			wantErr:                      false,
-		},
-		{
-			name: "bytes with delimiter",
-			pmks: []types.Column{
-				{
-					CQLType:      datatype.Blob,
-					ColumnName:   "user_id",
-					IsPrimaryKey: true,
-					PkPrecedence: 1,
-				},
-			},
-			values: map[string]interface{}{
-				"user_id": "\x80\x00\x01\x81",
-			},
-			want:                         []byte("\x80\x00\xff\x01\x81"),
-			encodeIntValuesWithBigEndian: false,
-			wantErr:                      false,
-		},
-		{
-			name: "compound key with 2 empty middle fields",
-			pmks: []types.Column{
-				{
-					CQLType:      datatype.Blob,
-					ColumnName:   "user_id",
-					IsPrimaryKey: true,
-					PkPrecedence: 1,
-				},
-				{
-					CQLType:      datatype.Blob,
-					ColumnName:   "team_num",
-					IsPrimaryKey: true,
-					PkPrecedence: 2,
-				},
-				{
-					CQLType:      datatype.Blob,
-					ColumnName:   "city",
-					IsPrimaryKey: true,
-					PkPrecedence: 3,
-				},
-				{
-					CQLType:      datatype.Blob,
-					ColumnName:   "borough",
-					IsPrimaryKey: true,
-					PkPrecedence: 4,
-				},
-			},
-			values: map[string]interface{}{
-				"user_id":  "\xa2",
-				"team_num": "",
-				"city":     "",
-				"borough":  "\xb7",
-			},
-			want:                         []byte("\xa2\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\xb7"),
-			encodeIntValuesWithBigEndian: false,
-			wantErr:                      false,
-		},
-		{
-			name: "byte strings",
-			pmks: []types.Column{
-				{
-					CQLType:      datatype.Blob,
-					ColumnName:   "user_id",
-					IsPrimaryKey: true,
-					PkPrecedence: 1,
-				},
-				{
-					CQLType:      datatype.Blob,
-					ColumnName:   "city",
-					IsPrimaryKey: true,
-					PkPrecedence: 2,
-				},
-			},
-			values: map[string]interface{}{
-				"user_id": "\xa5",
-				"city":    "\x90",
-			},
-			want:                         []byte("\xa5\x00\x01\x90"),
-			encodeIntValuesWithBigEndian: false,
-			wantErr:                      false,
-		},
-		{
-			name: "empty first value",
-			pmks: []types.Column{
-				{
-					CQLType:      datatype.Varchar,
-					ColumnName:   "user_id",
-					IsPrimaryKey: true,
-					PkPrecedence: 1,
-				},
-				{
-					CQLType:      datatype.Blob,
-					ColumnName:   "city",
-					IsPrimaryKey: true,
-					PkPrecedence: 2,
-				},
-			},
-			values: map[string]interface{}{
-				"user_id": "",
-				"city":    "\xaa",
-			},
-			want:                         []byte("\x00\x00\x00\x01\xaa"),
-			encodeIntValuesWithBigEndian: false,
-			wantErr:                      false,
-		},
-		{
-			name: "null escaped",
-			pmks: []types.Column{
-				{
-					CQLType:      datatype.Varchar,
-					ColumnName:   "user_id",
-					IsPrimaryKey: true,
-					PkPrecedence: 1,
-				},
-				{
-					CQLType:      datatype.Varchar,
-					ColumnName:   "city",
-					IsPrimaryKey: true,
-					PkPrecedence: 2,
-				},
-				{
-					CQLType:      datatype.Varchar,
-					ColumnName:   "borough",
-					IsPrimaryKey: true,
-					PkPrecedence: 3,
-				},
-			},
-			values: map[string]interface{}{
-				"user_id": "nn",
-				"city":    "t\x00t",
-				"borough": "end",
-			},
-			want:                         []byte("nn\x00\x01t\x00\xfft\x00\x01end"),
-			encodeIntValuesWithBigEndian: false,
-			wantErr:                      false,
-		},
-		{
-			name: "null escaped",
-			pmks: []types.Column{
-				{
-					CQLType:      datatype.Varchar,
-					ColumnName:   "user_id",
-					IsPrimaryKey: true,
-					PkPrecedence: 1,
-				},
-				{
-					CQLType:      datatype.Bigint,
-					ColumnName:   "team_num",
-					IsPrimaryKey: true,
-					PkPrecedence: 2,
-				},
-				{
-					CQLType:      datatype.Varchar,
-					ColumnName:   "city",
-					IsPrimaryKey: true,
-					PkPrecedence: 3,
-				},
-			},
-			values: map[string]interface{}{
-				"user_id":  "abcd",
-				"team_num": int64(45),
-				"city":     "name",
-			},
-			want:                         []byte("abcd\x00\x01\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x2d\x00\x01name"),
-			encodeIntValuesWithBigEndian: true,
-			wantErr:                      false,
-		},
-		{
-			name: "invalid utf8 varchar returns error",
-			pmks: []types.Column{
-				{
-					CQLType:      datatype.Varchar,
-					ColumnName:   "user_id",
-					IsPrimaryKey: true,
-					PkPrecedence: 1,
-				},
-			},
-			values: map[string]interface{}{
-				"user_id": string([]uint8{182}),
-			},
-			want:                         nil,
-			encodeIntValuesWithBigEndian: true,
-			wantErr:                      true,
-		},
-		{
-			name: "null char",
-			pmks: []types.Column{
-				{
-					CQLType:      datatype.Varchar,
-					ColumnName:   "user_id",
-					IsPrimaryKey: true,
-					PkPrecedence: 1,
-				},
-			},
-			values: map[string]interface{}{
-				"user_id": "\x00\x01",
-			},
-			want:                         []byte("\x00\xff\x01"),
-			encodeIntValuesWithBigEndian: false,
-			wantErr:                      false,
+			want:    []byte("user1\x00\x01\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x01\x00\x01new york"),
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := createOrderedCodeKey(tt.pmks, tt.values, tt.encodeIntValuesWithBigEndian)
+			got, err := createOrderedCodeKey(tt.tableConfig, tt.values)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("createOrderedCodeKey() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -2431,7 +1934,7 @@ func TestEncodeInt(t *testing.T) {
 func TestProcessCollectionColumnsForPrepareQueries_ComplexMetaAndNonCollection(t *testing.T) {
 	translator := &Translator{
 		Logger:              zap.NewNop(),
-		SchemaMappingConfig: GetSchemaMappingConfig(),
+		SchemaMappingConfig: GetSchemaMappingConfig(false),
 	}
 	protocolV := primitive.ProtocolVersion4
 	tableName := "non_primitive_table"
@@ -2628,7 +2131,8 @@ func TestProcessCollectionColumnsForPrepareQueries_ComplexMetaAndNonCollection(t
 				KeySpace:        keySpace,
 				ComplexMeta:     currentComplexMeta,
 			}
-			output, err := processCollectionColumnsForPrepareQueries(input)
+			tc, _ := translator.SchemaMappingConfig.GetTableConfig(input.KeySpace, input.TableName)
+			output, err := processCollectionColumnsForPrepareQueries(tc, input)
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("processCollectionColumnsForPrepareQueries() error = %v, wantErr %v", err, tt.wantErr)
@@ -2718,24 +2222,7 @@ func TestProcessCollectionColumnsForPrepareQueries_ComplexMetaAndNonCollection(t
 
 func TestProcessComplexUpdate_SuccessfulCases(t *testing.T) {
 	translator := &Translator{
-		SchemaMappingConfig: &schemaMapping.SchemaMappingConfig{
-			TablesMetaData: map[string]map[string]map[string]*types.Column{
-				"keyspace1": {
-					"table1": {
-						"map_col": {
-							ColumnName:   "map_col",
-							CQLType:      datatype.NewMapType(datatype.Varchar, datatype.Varchar),
-							IsCollection: true,
-						},
-						"list_col": {
-							ColumnName:   "list_col",
-							CQLType:      datatype.NewListType(datatype.Varchar),
-							IsCollection: true,
-						},
-					},
-				},
-			},
-		},
+		SchemaMappingConfig: GetSchemaMappingConfig(false),
 	}
 
 	tests := []struct {
@@ -2751,12 +2238,11 @@ func TestProcessComplexUpdate_SuccessfulCases(t *testing.T) {
 		{
 			name: "map append operation",
 			columns: []types.Column{
-				{Name: "map_col", CQLType: datatype.NewMapType(datatype.Varchar, datatype.Varchar)},
+				{Name: "map_text_text", CQLType: datatype.NewMapType(datatype.Varchar, datatype.Varchar)},
 			},
-			// values:         []interface{}{"map_col+{key:?}"},
 			values: []interface{}{
 				ComplexAssignment{
-					Column:    "map_col",
+					Column:    "map_text_text",
 					Operation: "+",
 					Left:      "key",
 				},
@@ -2765,7 +2251,7 @@ func TestProcessComplexUpdate_SuccessfulCases(t *testing.T) {
 			keyspaceName:   "keyspace1",
 			prependColumns: []string{},
 			wantMeta: map[string]*ComplexOperation{
-				"map_col": {
+				"map_text_text": {
 					Append: true,
 				},
 			},
@@ -2774,21 +2260,21 @@ func TestProcessComplexUpdate_SuccessfulCases(t *testing.T) {
 		{
 			name: "list prepend operation",
 			columns: []types.Column{
-				{Name: "list_col", CQLType: datatype.NewListType(datatype.Varchar)},
+				{Name: "list_text", CQLType: datatype.NewListType(datatype.Varchar)},
 			},
 			values: []interface{}{
 				ComplexAssignment{
-					Column:    "list_col",
+					Column:    "list_text",
 					Operation: "+",
 					Left:      "key",
-					Right:     "list_col",
+					Right:     "list_text",
 				},
 			},
 			tableName:      "table1",
 			keyspaceName:   "keyspace1",
-			prependColumns: []string{"list_col"},
+			prependColumns: []string{"list_text"},
 			wantMeta: map[string]*ComplexOperation{
-				"list_col": {
+				"list_text": {
 					PrependList: true,
 					mapKey:      nil,
 				},
@@ -2798,36 +2284,36 @@ func TestProcessComplexUpdate_SuccessfulCases(t *testing.T) {
 		{
 			name: "multiple operations",
 			columns: []types.Column{
-				{Name: "map_col", CQLType: datatype.NewMapType(datatype.Varchar, datatype.Varchar)},
-				{Name: "list_col", CQLType: datatype.NewListType(datatype.Varchar)},
+				{Name: "map_text_text", CQLType: datatype.NewMapType(datatype.Varchar, datatype.Varchar)},
+				{Name: "list_text", CQLType: datatype.NewListType(datatype.Varchar)},
 			},
 			// values: []interface{}{
-			// 	"map_col+{key:?}",
-			// 	"list_col+?",
+			// 	"map_text_text+{key:?}",
+			// 	"list_text+?",
 			// },
 			values: []interface{}{
 				ComplexAssignment{
-					Column:    "map_col",
+					Column:    "map_text_text",
 					Operation: "+",
 					Left:      "key",
-					Right:     "map_col",
+					Right:     "map_text_text",
 				},
 				ComplexAssignment{
-					Column:    "list_col",
+					Column:    "list_text",
 					Operation: "+",
 					Left:      "key",
-					Right:     "list_col",
+					Right:     "list_text",
 				},
 			},
 			tableName:      "table1",
 			keyspaceName:   "keyspace1",
-			prependColumns: []string{"list_col"},
+			prependColumns: []string{"list_text"},
 			wantMeta: map[string]*ComplexOperation{
-				"map_col": {
+				"map_text_text": {
 					Append: true,
 					mapKey: nil,
 				},
-				"list_col": {
+				"list_text": {
 					PrependList: true,
 					mapKey:      nil,
 				},
@@ -2849,7 +2335,7 @@ func TestProcessComplexUpdate_SuccessfulCases(t *testing.T) {
 		{
 			name: "skip invalid value type",
 			columns: []types.Column{
-				{Name: "map_col", CQLType: datatype.NewMapType(datatype.Varchar, datatype.Varchar)},
+				{Name: "map_text_text", CQLType: datatype.NewMapType(datatype.Varchar, datatype.Varchar)},
 			},
 			values:         []interface{}{123}, // Not a string
 			tableName:      "table1",
@@ -3558,9 +3044,8 @@ func TestHandleMapOperation(t *testing.T) {
 func TestProcessCollectionColumnsForRawQueries(t *testing.T) {
 	// Mock key data types for columns
 	colList := types.Column{
-		Name:         "list_text",
-		CQLType:      datatype.NewListType(datatype.Varchar),
-		IsCollection: true,
+		Name:    "list_text",
+		CQLType: datatype.NewListType(datatype.Varchar),
 	}
 	colSet := types.Column{
 		Name:    "column7",
@@ -3584,11 +3069,15 @@ func TestProcessCollectionColumnsForRawQueries(t *testing.T) {
 		PrependColumns: []string{"mylist"},
 		Translator: &Translator{
 			Logger:              zap.NewExample(), // or zap.NewNop() for silent logs
-			SchemaMappingConfig: GetSchemaMappingConfig(),
+			SchemaMappingConfig: GetSchemaMappingConfig(false),
 		},
 	}
 
-	output, err := processCollectionColumnsForRawQueries(inputs)
+	tc, err := inputs.Translator.SchemaMappingConfig.GetTableConfig(inputs.KeySpace, inputs.TableName)
+	if err != nil {
+		t.Fatalf("Failed: %v", err)
+	}
+	output, err := processCollectionColumnsForRawQueries(tc, inputs)
 	if err != nil {
 		t.Fatalf("Failed: %v", err)
 	}
@@ -3600,24 +3089,24 @@ func TestProcessCollectionColumnsForRawQueries(t *testing.T) {
 }
 
 func TestConvertAllValuesToRowKeyType(t *testing.T) {
-	pkCols := []types.Column{
+	pkCols := []*types.Column{
 		{
-			ColumnName:   "id_int",
+			Name:         "id_int",
 			CQLType:      datatype.Int,
 			IsPrimaryKey: true,
 		},
 		{
-			ColumnName:   "id_bigint",
+			Name:         "id_bigint",
 			CQLType:      datatype.Bigint,
 			IsPrimaryKey: true,
 		},
 		{
-			ColumnName:   "name_varchar",
+			Name:         "name_varchar",
 			CQLType:      datatype.Varchar,
 			IsPrimaryKey: true,
 		},
 		{
-			ColumnName:   "blob_pk",
+			Name:         "blob_pk",
 			CQLType:      datatype.Blob,
 			IsPrimaryKey: true,
 		},
