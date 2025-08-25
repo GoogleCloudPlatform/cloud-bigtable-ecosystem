@@ -255,8 +255,7 @@ func (t *Translator) TranslateInsertQuerytoBigtable(queryStr string, protocolV p
 	}
 
 	if !isPreparedQuery {
-		pmks := tableConfig.GetPkByTableNameWithFilter(primaryKeys)
-		rowKeyBytes, err := createOrderedCodeKey(pmks, unencrypted, t.EncodeIntValuesWithBigEndian)
+		rowKeyBytes, err := createOrderedCodeKey(tableConfig, unencrypted)
 		if err != nil {
 			return nil, err
 		}
@@ -350,9 +349,7 @@ func (t *Translator) BuildInsertPrepareQuery(columnsResponse []types.Column, val
 	unencrypted = prepareOutput.Unencrypted
 	delColumnFamily = prepareOutput.DelColumnFamily
 
-	pmks := tableConfig.GetPkByTableNameWithFilter(primaryKeys)
-
-	rowKeyBytes, err := createOrderedCodeKey(pmks, unencrypted, t.EncodeIntValuesWithBigEndian)
+	rowKeyBytes, err := createOrderedCodeKey(tableConfig, unencrypted)
 	if err != nil {
 		return nil, err
 	}

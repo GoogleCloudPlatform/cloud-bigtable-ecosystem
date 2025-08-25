@@ -263,8 +263,6 @@ var mockProxy = &Proxy{
 	schemaMapping: mockTableSchemaConfig,
 	translator: &translator.Translator{
 		SchemaMappingConfig: mockTableSchemaConfig,
-		// todo remove once we support ordered code ints
-		EncodeIntValuesWithBigEndian: false,
 	},
 	logger: zap.NewNop(),
 }
@@ -335,8 +333,7 @@ func Test_handleExecutionForDeletePreparedQuery(t *testing.T) {
 	mockProxy := &Proxy{
 		schemaMapping: mockTableSchemaConfig,
 		translator: &translator.Translator{
-			SchemaMappingConfig:          mockTableSchemaConfig,
-			EncodeIntValuesWithBigEndian: false,
+			SchemaMappingConfig: mockTableSchemaConfig,
 		},
 		logger:  zap.NewNop(),
 		ctx:     context.Background(),
@@ -614,6 +611,7 @@ var mockTableSchemaConfig = schemaMapping.NewSchemaMappingConfig(
 			"keyspace",
 			"test_table",
 			"cf1", // SystemColumnFamily from the original struct
+			types.OrderedCodeEncoding,
 			[]*types.Column{
 				{Name: "test_id", CQLType: datatype.Varchar, KeyType: utilities.KEY_TYPE_PARTITION, IsPrimaryKey: true},
 				{Name: "column1", CQLType: datatype.Varchar, KeyType: utilities.KEY_TYPE_CLUSTERING, IsPrimaryKey: true, PkPrecedence: 1},
@@ -627,6 +625,7 @@ var mockTableSchemaConfig = schemaMapping.NewSchemaMappingConfig(
 			"keyspace",
 			"user_info",
 			"cf1", // Assuming a default column family
+			types.OrderedCodeEncoding,
 			[]*types.Column{
 				{Name: "name", CQLType: datatype.Varchar, KeyType: utilities.KEY_TYPE_PARTITION, IsPrimaryKey: true, PkPrecedence: 0},
 				{Name: "age", CQLType: datatype.Varchar, KeyType: utilities.KEY_TYPE_REGULAR},
@@ -2046,6 +2045,7 @@ func TestHandleDescribeKeyspaces(t *testing.T) {
 					"custom_keyspace1",
 					"table1",
 					"cf1", // Assuming a default column family
+					types.OrderedCodeEncoding,
 					[]*types.Column{
 						{
 							Name:         "column1",
@@ -2059,6 +2059,7 @@ func TestHandleDescribeKeyspaces(t *testing.T) {
 					"custom_keyspace2",
 					"table2",
 					"cf1", // Assuming a default column family
+					types.OrderedCodeEncoding,
 					[]*types.Column{
 						{
 							Name:         "column2",
@@ -2212,6 +2213,7 @@ func TestHandleDescribeTableColumns(t *testing.T) {
 				"test_keyspace",
 				"test_table",
 				"cf", // Column family derived from the column definitions
+				types.OrderedCodeEncoding,
 				[]*types.Column{
 					{
 						Name:         "id",
@@ -2220,13 +2222,6 @@ func TestHandleDescribeTableColumns(t *testing.T) {
 						IsPrimaryKey: true,
 						ColumnFamily: "cf",
 						PkPrecedence: 0,
-						Metadata: message.ColumnMetadata{
-							Keyspace: "test_keyspace",
-							Table:    "test_table",
-							Name:     "id",
-							Type:     datatype.Uuid,
-							Index:    0,
-						},
 					},
 					{
 						Name:         "name",
@@ -2235,13 +2230,6 @@ func TestHandleDescribeTableColumns(t *testing.T) {
 						IsPrimaryKey: true,
 						ColumnFamily: "cf",
 						PkPrecedence: 1,
-						Metadata: message.ColumnMetadata{
-							Keyspace: "test_keyspace",
-							Table:    "test_table",
-							Name:     "name",
-							Type:     datatype.Varchar,
-							Index:    1,
-						},
 					},
 					{
 						Name:         "age",
@@ -2250,13 +2238,6 @@ func TestHandleDescribeTableColumns(t *testing.T) {
 						IsPrimaryKey: false,
 						ColumnFamily: "cf",
 						PkPrecedence: 0,
-						Metadata: message.ColumnMetadata{
-							Keyspace: "test_keyspace",
-							Table:    "test_table",
-							Name:     "age",
-							Type:     datatype.Int,
-							Index:    2,
-						},
 					},
 				},
 			),
@@ -2421,6 +2402,7 @@ func TestHandlePostDDLEvent(t *testing.T) {
 				"test_keyspace",
 				"test_table",
 				"cf",
+				types.OrderedCodeEncoding,
 				[]*types.Column{
 					{
 						Name:         "id",

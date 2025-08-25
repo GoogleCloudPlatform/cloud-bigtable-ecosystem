@@ -28,6 +28,7 @@ import (
 	"sync"
 
 	bigtableModule "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/bigtable"
+	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/utilities"
 	"github.com/alecthomas/kong"
 	"github.com/datastax/go-cassandra-native-protocol/primitive"
@@ -92,13 +93,14 @@ type InstancesMap struct {
 	AppProfileID     string `yaml:"appProfileID"`
 }
 type Bigtable struct {
-	ProjectID           string         `yaml:"projectId"`
-	Instances           []InstancesMap `yaml:"instances"`
-	InstanceIDs         string         `yaml:"instanceIds"`
-	SchemaMappingTable  string         `yaml:"schemaMappingTable"`
-	Session             Session        `yaml:"Session"`
-	DefaultColumnFamily string         `yaml:"defaultColumnFamily"`
-	AppProfileID        string         `yaml:"appProfileID"`
+	ProjectID                     string         `yaml:"projectId"`
+	Instances                     []InstancesMap `yaml:"instances"`
+	InstanceIDs                   string         `yaml:"instanceIds"`
+	SchemaMappingTable            string         `yaml:"schemaMappingTable"`
+	Session                       Session        `yaml:"Session"`
+	DefaultColumnFamily           string         `yaml:"defaultColumnFamily"`
+	AppProfileID                  string         `yaml:"appProfileID"`
+	EncodeIntRowKeysWithBigEndian bool           `yaml:"encodeIntRowKeysWithBigEndian"`
 }
 
 // Session describes the settings for Bigtable sessions
@@ -286,21 +288,25 @@ func Run(ctx context.Context, args []string) int {
 				if v.AppProfileID != "" {
 					AppProfileId = v.AppProfileID
 				}
-				InstanceMap[v.Keyspace] = bigtableModule.InstanceConfig{
+				InstanceMap[strings.TrimSpace(v.Keyspace)] = bigtableModule.InstanceConfig{
 					BigtableInstance: v.BigtableInstance,
 					AppProfileId:     AppProfileId,
 				}
 			}
 		}
 
+		intRowKeyEncoding := types.OrderedCodeEncoding
+		if listener.Bigtable.EncodeIntRowKeysWithBigEndian {
+			intRowKeyEncoding = types.BigEndianEncoding
+		}
+
 		bigtableConfig := bigtableModule.BigtableConfig{
-			NumOfChannels:       listener.Bigtable.Session.GrpcChannels,
-			SchemaMappingTable:  listener.Bigtable.SchemaMappingTable,
-			InstancesMap:        InstanceMap,
-			GCPProjectID:        listener.Bigtable.ProjectID,
-			DefaultColumnFamily: listener.Bigtable.DefaultColumnFamily,
-			// todo remove once we support ordered code ints
-			EncodeIntValuesWithBigEndian: encodeIntValuesWithBigEndian,
+			NumOfChannels:            listener.Bigtable.Session.GrpcChannels,
+			SchemaMappingTable:       listener.Bigtable.SchemaMappingTable,
+			InstancesMap:             InstanceMap,
+			GCPProjectID:             listener.Bigtable.ProjectID,
+			DefaultColumnFamily:      listener.Bigtable.DefaultColumnFamily,
+			DefaultIntRowKeyEncoding: intRowKeyEncoding,
 		}
 
 		p, err1 := NewProxy(ctx, Config{

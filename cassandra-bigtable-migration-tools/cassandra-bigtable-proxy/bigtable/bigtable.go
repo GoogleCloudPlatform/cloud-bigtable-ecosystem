@@ -21,7 +21,6 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"reflect"
 	"slices"
 	"sort"
 	"strconv"
@@ -29,7 +28,6 @@ import (
 	"time"
 
 	"cloud.google.com/go/bigtable"
-	"github.com/datastax/go-cassandra-native-protocol/datatype"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -368,14 +366,7 @@ func (btc *BigtableClient) CreateTable(ctx context.Context, data *translator.Cre
 		}
 	}
 
-	var rowKeySchemaFields []bigtable.StructField
-	for _, key := range data.PrimaryKeys {
-		part, err := createBigtableRowKeyField(key.Name, data.Columns, btc.BigtableConfig.EncodeIntValuesWithBigEndian)
-		if err != nil {
-			return err
-		}
-		rowKeySchemaFields = append(rowKeySchemaFields, part)
-	}
+	rowKeySchema, err := createBigtableRowKeySchema(data.PrimaryKeys, data.Columns, data.IntRowKeyEncoding)
 
 	columnFamilies := make(map[string]bigtable.Family)
 	for _, col := range data.Columns {
@@ -393,10 +384,7 @@ func (btc *BigtableClient) CreateTable(ctx context.Context, data *translator.Cre
 	err = adminClient.CreateTableFromConf(ctx, &bigtable.TableConf{
 		TableID:        data.Table,
 		ColumnFamilies: columnFamilies,
-		RowKeySchema: &bigtable.StructType{
-			Fields:   rowKeySchemaFields,
-			Encoding: bigtable.StructOrderedCodeBytesEncoding{},
-		},
+		RowKeySchema:   rowKeySchema,
 	})
 	// ignore already exists errors - the schema mapping table is the SoT
 	if status.Code(err) == codes.AlreadyExists {
@@ -418,30 +406,6 @@ func (btc *BigtableClient) CreateTable(ctx context.Context, data *translator.Cre
 	}
 
 	return nil
-}
-
-func createBigtableRowKeyField(key string, cols []message.ColumnMetadata, encodeIntValuesWithBigEndian bool) (bigtable.StructField, error) {
-	for _, column := range cols {
-		if column.Name != key {
-			continue
-		}
-
-		switch column.Type {
-		case datatype.Varchar:
-			return bigtable.StructField{FieldName: key, FieldType: bigtable.StringType{Encoding: bigtable.StringUtf8BytesEncoding{}}}, nil
-		case datatype.Int, datatype.Bigint, datatype.Timestamp:
-			// todo remove once ordered byte encoding is supported for ints
-			if encodeIntValuesWithBigEndian {
-				return bigtable.StructField{FieldName: key, FieldType: bigtable.Int64Type{Encoding: bigtable.BigEndianBytesEncoding{}}}, nil
-			}
-			return bigtable.StructField{FieldName: key, FieldType: bigtable.Int64Type{Encoding: bigtable.Int64OrderedCodeBytesEncoding{}}}, nil
-		default:
-			return bigtable.StructField{}, fmt.Errorf("unhandled row key type %s", column.Type)
-		}
-	}
-
-	// this should never happen given where this is called
-	return bigtable.StructField{}, fmt.Errorf("missing primary key `%s` from columns definition", key)
 }
 
 func (btc *BigtableClient) AlterTable(ctx context.Context, data *translator.AlterTableStatementMap, schemaMappingTableName string) error {
@@ -701,9 +665,29 @@ func (btc *BigtableClient) ReadTableConfigs(ctx context.Context, keyspace, schem
 		return nil, err
 	}
 
+	adminClient, err := btc.getAdminClient(keyspace)
+	if err != nil {
+		errorMessage := fmt.Sprintf("failed to get admin client for keyspace '%s'", keyspace)
+		btc.Logger.Error(errorMessage, zap.Error(err))
+		return nil, fmt.Errorf("%s: %w", errorMessage, err)
+	}
+
 	tableConfigs := make([]*schemaMapping.TableConfig, 0, len(allColumns))
 	for tableName, tableColumns := range allColumns {
-		tableConfig := schemaMapping.NewTableConfig(keyspace, tableName, btc.BigtableConfig.DefaultColumnFamily, tableColumns)
+		var intRowKeyEncoding types.IntRowKeyEncodingType
+		// if we already know what encoding the table has, just use that, so we don't have to do the extra network request
+		if existingTable, err := btc.SchemaMappingConfig.GetTableConfig(keyspace, tableName); err == nil {
+			intRowKeyEncoding = existingTable.IntRowKeyEncoding
+		} else {
+			btc.Logger.Info(fmt.Sprintf("loading table info for table %s.%s", keyspace, tableName))
+			tableInfo, err := adminClient.TableInfo(ctx, tableName)
+			if err != nil {
+				return nil, err
+			}
+			intRowKeyEncoding = detectTableEncoding(tableInfo, types.OrderedCodeEncoding)
+		}
+
+		tableConfig := schemaMapping.NewTableConfig(keyspace, tableName, btc.BigtableConfig.DefaultColumnFamily, intRowKeyEncoding, tableColumns)
 		tableConfigs = append(tableConfigs, tableConfig)
 	}
 
@@ -945,43 +929,6 @@ func (btc *BigtableClient) PrepareStatement(ctx context.Context, query rh.QueryM
 	}
 
 	return preparedStatement, nil
-}
-
-// inferSQLType attempts to infer the Bigtable SQLType from a Go interface{} value.
-// This is a basic implementation and might need enhancement based on actual data types and schema.
-func inferSQLType(value interface{}) (bigtable.SQLType, error) {
-	switch value.(type) {
-	case string:
-		return bigtable.StringSQLType{}, nil
-	case []byte:
-		return bigtable.BytesSQLType{}, nil
-	case int, int8, int16, int32, int64:
-		return bigtable.Int64SQLType{}, nil
-	case float32:
-		return bigtable.Float32SQLType{}, nil
-	case float64:
-		return bigtable.Float64SQLType{}, nil
-	case bool:
-		return bigtable.Int64SQLType{}, nil
-	case []interface{}:
-		return bigtable.ArraySQLType{}, nil
-	default:
-		v := reflect.ValueOf(value)
-		if v.Kind() != reflect.Slice && v.Kind() != reflect.Array {
-			return nil, fmt.Errorf("unsupported type for SQL parameter inference: %T", value)
-		}
-		elemType := v.Type().Elem()
-		if elemType.Kind() == reflect.Interface {
-			return nil, fmt.Errorf("cannot infer element type for empty interface slice")
-		}
-		zeroValue := reflect.Zero(elemType).Interface()
-		elemSQLType, err := inferSQLType(zeroValue)
-		if err != nil {
-			return nil, fmt.Errorf("cannot infer type for array element: %w", err)
-		}
-		return bigtable.ArraySQLType{ElemType: elemSQLType}, nil
-
-	}
 }
 
 // getClient retrieves a Bigtable client for a given keyspace.

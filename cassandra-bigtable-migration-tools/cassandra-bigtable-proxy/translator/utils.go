@@ -2108,15 +2108,15 @@ var kOrderedCodeDelimiter = []byte("\x00\x01")
 // createOrderedCodeKey creates an ordered row key.
 // Generates a byte-encoded row key from primary key values with validation.
 // Returns error if key type is invalid or encoding fails.
-func createOrderedCodeKey(primaryKeys []*types.Column, values map[string]interface{}, encodeIntValuesWithBigEndian bool) ([]byte, error) {
-	fixedValues, err := convertAllValuesToRowKeyType(primaryKeys, values)
+func createOrderedCodeKey(tableConfig *schemaMapping.TableConfig, values map[string]interface{}) ([]byte, error) {
+	fixedValues, err := convertAllValuesToRowKeyType(tableConfig.PrimaryKeys, values)
 	if err != nil {
 		return nil, err
 	}
 
 	var result []byte
 	var trailingEmptyFields []byte
-	for i, pmk := range primaryKeys {
+	for i, pmk := range tableConfig.PrimaryKeys {
 		if i != pmk.PkPrecedence-1 {
 			return nil, fmt.Errorf("wrong order for primary keys")
 		}
@@ -2129,7 +2129,7 @@ func createOrderedCodeKey(primaryKeys []*types.Column, values map[string]interfa
 		var err error
 		switch v := value.(type) {
 		case int64:
-			orderEncodedField, err = encodeInt64Key(v, encodeIntValuesWithBigEndian)
+			orderEncodedField, err = encodeInt64Key(v, tableConfig.IntRowKeyEncoding)
 			if err != nil {
 				return nil, err
 			}
@@ -2172,29 +2172,33 @@ func createOrderedCodeKey(primaryKeys []*types.Column, values map[string]interfa
 // encodeInt64Key encodes an int64 value for row keys.
 // Converts int64 values to byte representation with validation.
 // Returns error if value is invalid or encoding fails.
-func encodeInt64Key(value int64, encodeIntValuesWithBigEndian bool) ([]byte, error) {
-	// todo remove once ordered byte encoding is supported for ints
-	// override ordered code value with BigEndian
-	if encodeIntValuesWithBigEndian {
-		if value < 0 {
-			return nil, errors.New("row keys cannot contain negative integer values until ordered byte encoding is supported")
-		}
+func encodeInt64Key(value int64, intRowKeyEncoding types.IntRowKeyEncodingType) ([]byte, error) {
+	switch intRowKeyEncoding {
+	case types.BigEndianEncoding:
+		return encodeIntRowKeysWithBigEndian(value)
+	case types.OrderedCodeEncoding:
+		return Append(nil, value)
+	}
+	return nil, fmt.Errorf("unhandled int encoding type: %v", intRowKeyEncoding)
+}
 
-		var b bytes.Buffer
-		err := binary.Write(&b, binary.BigEndian, value)
-		if err != nil {
-			return nil, err
-		}
-
-		result, err := Append(nil, b.String())
-		if err != nil {
-			return nil, err
-		}
-
-		return result[:len(result)-2], nil
+func encodeIntRowKeysWithBigEndian(value int64) ([]byte, error) {
+	if value < 0 {
+		return nil, errors.New("row keys with big endian encoding cannot contain negative integer values")
 	}
 
-	return Append(nil, value)
+	var b bytes.Buffer
+	err := binary.Write(&b, binary.BigEndian, value)
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := Append(nil, b.String())
+	if err != nil {
+		return nil, err
+	}
+
+	return result[:len(result)-2], nil
 }
 
 // DataConversionInInsertionIfRequired performs data type conversion for insertions.

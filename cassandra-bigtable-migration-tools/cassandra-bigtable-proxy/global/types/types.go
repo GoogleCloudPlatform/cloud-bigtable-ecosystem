@@ -57,3 +57,11 @@ type SelectedColumn struct {
 	KeyType           string
 	IsWriteTimeColumn bool
 }
+
+type IntRowKeyEncodingType int
+
+const (
+	// BigEndianEncoding should not be used for new tables - this is only included for backwards compatability
+	BigEndianEncoding IntRowKeyEncodingType = iota
+	OrderedCodeEncoding
+)

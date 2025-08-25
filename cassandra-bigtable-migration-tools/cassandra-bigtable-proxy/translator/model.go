@@ -27,10 +27,10 @@ import (
 )
 
 type Translator struct {
-	Logger *zap.Logger
-	// todo remove once we support ordered code ints
-	EncodeIntValuesWithBigEndian bool
-	SchemaMappingConfig          *schemaMapping.SchemaMappingConfig
+	Logger              *zap.Logger
+	SchemaMappingConfig *schemaMapping.SchemaMappingConfig
+	// determines the encoding for int row keys in all new tables
+	DefaultIntRowKeyEncoding types.IntRowKeyEncodingType
 }
 
 // SelectQueryMap represents the mapping of a select query along with its translation details.
@@ -166,12 +166,13 @@ type DeleteQueryMapping struct {
 }
 
 type CreateTableStatementMap struct {
-	QueryType   string
-	Keyspace    string
-	Table       string
-	IfNotExists bool
-	Columns     []message.ColumnMetadata
-	PrimaryKeys []CreateTablePrimaryKeyConfig
+	QueryType         string
+	Keyspace          string
+	Table             string
+	IfNotExists       bool
+	Columns           []message.ColumnMetadata
+	PrimaryKeys       []CreateTablePrimaryKeyConfig
+	IntRowKeyEncoding types.IntRowKeyEncodingType
 }
 
 type CreateTablePrimaryKeyConfig struct {

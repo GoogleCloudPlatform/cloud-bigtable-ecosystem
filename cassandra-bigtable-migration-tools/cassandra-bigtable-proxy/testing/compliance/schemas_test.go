@@ -3,7 +3,7 @@ package compliance
 // add test tables that are used by multiple tests here
 // note: some tests, typically those that test DDL commands, create and manage their own tables, separately, at runtime
 func getSchemas() []string {
-	return []string{
+	schemas := []string{
 		`
 CREATE TABLE IF NOT EXISTS bigtabledevinstance.user_info (
 	name text,
@@ -78,4 +78,20 @@ CREATE TABLE IF NOT EXISTS bigtabledevinstance.multiple_int_keys (
 );
 `,
 	}
+
+	if testTarget == TestTargetProxy {
+		schemas = append(schemas,
+			// this table is only for testing bigtable big endian support so no need to test with cassandra - the custom 'int_row_key_encoding' will likely be rejected by cassandra
+			`
+CREATE TABLE IF NOT EXISTS bigtabledevinstance.orders_big_endian_encoded (
+	user_id varchar,
+	order_num int,
+	name varchar,
+	PRIMARY KEY (user_id, order_num)
+) WITH int_row_key_encoding='big_endian';
+`,
+		)
+	}
+
+	return schemas
 }

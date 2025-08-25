@@ -25,7 +25,7 @@ import (
 )
 
 // GetSchemaMappingConfig builds and returns the mock schema configuration using constructors.
-func GetSchemaMappingConfig() *schemaMapping.SchemaMappingConfig {
+func GetSchemaMappingConfig(intRowKeyEncoding types.IntRowKeyEncodingType) *schemaMapping.SchemaMappingConfig {
 	const systemColumnFamily = "cf1"
 
 	testTableColumns := []*types.Column{
@@ -95,10 +95,10 @@ func GetSchemaMappingConfig() *schemaMapping.SchemaMappingConfig {
 	}
 
 	allTableConfigs := []*schemaMapping.TableConfig{
-		schemaMapping.NewTableConfig("test_keyspace", "test_table", systemColumnFamily, testTableColumns),
-		schemaMapping.NewTableConfig("test_keyspace", "int_table", systemColumnFamily, intTableColumns),
-		schemaMapping.NewTableConfig("test_keyspace", "user_info", systemColumnFamily, userInfoColumns),
-		schemaMapping.NewTableConfig("test_keyspace", "non_primitive_table", systemColumnFamily, nonPrimitiveTableColumns),
+		schemaMapping.NewTableConfig("test_keyspace", "test_table", systemColumnFamily, intRowKeyEncoding, testTableColumns),
+		schemaMapping.NewTableConfig("test_keyspace", "int_table", systemColumnFamily, intRowKeyEncoding, intTableColumns),
+		schemaMapping.NewTableConfig("test_keyspace", "user_info", systemColumnFamily, intRowKeyEncoding, userInfoColumns),
+		schemaMapping.NewTableConfig("test_keyspace", "non_primitive_table", systemColumnFamily, intRowKeyEncoding, nonPrimitiveTableColumns),
 	}
 
 	return schemaMapping.NewSchemaMappingConfig(systemColumnFamily, zap.NewNop(), allTableConfigs)

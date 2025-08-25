@@ -59,6 +59,11 @@ listeners:
     #[Required] Default column family for primitive data types is "cf1"
     defaultColumnFamily: DEFAULT_COLUMN_FAMILY
 
+    # [Optional] Nearly all users should keep this set to false. When undefined
+    # or false, Ordered Code Bytes Encoding is used for int keys on all new
+    # tables. Existing table encoding is respected.
+    encodeIntRowKeysWithBigEndian: false
+
     # Number of grpc channels to be used for Bigtable session.
     Session:
       grpcChannels: 4

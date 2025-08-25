@@ -407,8 +407,7 @@ func (t *Translator) TranslateUpdateQuerytoBigtable(queryStr string, isPreparedQ
 		if len(primkeyvalues) != len(primaryKeys) {
 			return nil, errors.New("missing primary key values in where clause")
 		}
-		pmks := tableConfig.GetPkByTableNameWithFilter(primaryKeys)
-		rowKeyBytes, err := createOrderedCodeKey(pmks, pkValues, t.EncodeIntValuesWithBigEndian)
+		rowKeyBytes, err := createOrderedCodeKey(tableConfig, pkValues)
 		if err != nil {
 			return nil, err
 		}
@@ -554,8 +553,7 @@ func (t *Translator) BuildUpdatePrepareQuery(columnsResponse []types.Column, val
 		}
 	}
 
-	pmks := tableConfig.GetPkByTableNameWithFilter(primaryKeys)
-	rowKeyBytes, err := createOrderedCodeKey(pmks, unencrypted, t.EncodeIntValuesWithBigEndian)
+	rowKeyBytes, err := createOrderedCodeKey(tableConfig, unencrypted)
 	if err != nil {
 		return nil, err
 	}

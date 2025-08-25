@@ -20,12 +20,20 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 
 	methods "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/methods"
+	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	cql "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/third_party/cqlparser"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/utilities"
 	"github.com/antlr4-go/antlr/v4"
 	"github.com/datastax/go-cassandra-native-protocol/message"
+)
+
+const (
+	intRowKeyEncodingOptionName             = "int_row_key_encoding"
+	intRowKeyEncodingOptionValueBigEndian   = "big_endian"
+	intRowKeyEncodingOptionValueOrderedCode = "ordered_code"
 )
 
 func (t *Translator) TranslateCreateTableToBigtable(query, sessionKeyspace string) (*CreateTableStatementMap, error) {
@@ -47,7 +55,7 @@ func (t *Translator) TranslateCreateTableToBigtable(query, sessionKeyspace strin
 			return nil, errors.New("invalid table name parsed from query")
 		}
 	} else {
-return nil, errors.New("invalid input parameters found for table")
+		return nil, errors.New("invalid input parameters found for table")
 	}
 
 	if createTableObj != nil && createTableObj.Keyspace() != nil && createTableObj.Keyspace().GetText() != "" {
@@ -98,6 +106,24 @@ return nil, errors.New("invalid input parameters found for table")
 
 	if len(columns) == 0 {
 		return nil, errors.New("no columns found in create table statement")
+	}
+
+	rowKeyEncoding := t.DefaultIntRowKeyEncoding
+	for optionName, optionValue := range createOptionsMap(createTableObj.WithElement()) {
+		switch optionName {
+		case intRowKeyEncodingOptionName:
+			optionValue = trimQuotes(optionValue)
+			switch optionValue {
+			case intRowKeyEncodingOptionValueBigEndian:
+				rowKeyEncoding = types.BigEndianEncoding
+			case intRowKeyEncodingOptionValueOrderedCode:
+				rowKeyEncoding = types.OrderedCodeEncoding
+			default:
+				return nil, fmt.Errorf("unsupported encoding '%s' for option '%s'", optionValue, optionName)
+			}
+		default:
+			return nil, fmt.Errorf("unsupported table option: '%s'", optionName)
+		}
 	}
 
 	// nil if inline primary key definition used
@@ -160,13 +186,36 @@ return nil, errors.New("invalid input parameters found for table")
 	}
 
 	var stmt = CreateTableStatementMap{
-		Table:       tableName,
-		IfNotExists: createTableObj.IfNotExist() != nil,
-		Keyspace:    keyspaceName,
-		QueryType:   "create",
-		Columns:     columns,
-		PrimaryKeys: pmks,
+		Table:             tableName,
+		IfNotExists:       createTableObj.IfNotExist() != nil,
+		Keyspace:          keyspaceName,
+		QueryType:         "create",
+		Columns:           columns,
+		PrimaryKeys:       pmks,
+		IntRowKeyEncoding: rowKeyEncoding,
 	}
 
 	return &stmt, nil
+}
+
+func createOptionsMap(withElement cql.IWithElementContext) map[string]string {
+	results := make(map[string]string)
+	// it's ok if the input is null since options are optional
+	if withElement == nil || withElement.TableOptions() == nil {
+		return results
+	}
+
+	for _, option := range withElement.TableOptions().AllTableOptionItem() {
+		optionName := option.TableOptionName().GetText()
+		optionValue := option.TableOptionValue().GetText()
+		// note: this technically allows options to overwrite each other but that's probably ok
+		results[optionName] = optionValue
+	}
+	return results
+}
+
+func trimQuotes(s string) string {
+	s, _ = strings.CutSuffix(s, "'")
+	s, _ = strings.CutPrefix(s, "'")
+	return s
 }

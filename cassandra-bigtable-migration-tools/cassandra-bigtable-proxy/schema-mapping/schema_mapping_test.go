@@ -37,6 +37,7 @@ func getSchemaMappingConfig() *SchemaMappingConfig {
 				"keyspace",
 				"table1",
 				"cf1",
+				types.OrderedCodeEncoding,
 				[]*types.Column{
 					{
 						Name:         "column1",
@@ -56,6 +57,7 @@ func getSchemaMappingConfig() *SchemaMappingConfig {
 				"keyspace",
 				"table2",
 				"cf1",
+				types.OrderedCodeEncoding,
 				[]*types.Column{
 					{
 						Name:         "id",

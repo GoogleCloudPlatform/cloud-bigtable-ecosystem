@@ -1,0 +1,52 @@
+[
+  {
+    "title": "Test Big Endian support",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "INSERT INTO bigtabledevinstance.orders_big_endian_encoded (user_id, order_num, name) VALUES (?, ?, ?)",
+        "query_type": "INSERT",
+        "params": [
+          { "value": "cql-fan@gmail.com", "datatype": "text" },
+          { "value": 44, "datatype": "int" },
+          { "value": "cassandra_action_figure", "datatype": "text" }
+        ],
+        "expected_result": null
+      },
+      {
+        "query": "SELECT user_id, order_num, name FROM bigtabledevinstance.orders_big_endian_encoded WHERE user_id = ? AND order_num = ?",
+        "query_type": "SELECT",
+        "params": [
+          { "value": "cql-fan@gmail.com", "datatype": "text" },
+          { "value": 44, "datatype": "int" }
+        ],
+        "expected_result": [
+          { "user_id": "cql-fan@gmail.com", "datatype": "text" },
+          { "order_num": 44, "datatype": "int" },
+          { "name": "cassandra_action_figure", "datatype": "text" }
+        ]
+      }
+    ]
+  },
+  {
+    "title": "Test Big Endian encoded table rejects negative integer keys",
+    "kind": "dml",
+    "operations": [
+      {
+        "query": "INSERT INTO bigtabledevinstance.orders_big_endian_encoded (user_id, order_num, name) VALUES (?, ?, ?)",
+        "query_type": "INSERT",
+        "params": [
+          { "value": "cql-fan@gmail.com", "datatype": "text" },
+          { "value": -1, "datatype": "int" },
+          { "value": "cassandra_action_figure", "datatype": "text" }
+        ],
+        "expected_result": [
+          {
+            "expect_error": true,
+            "error_message": "invalid input paramaters found for table or keyspace",
+          }
+        ]
+      }
+    ]
+  }
+]

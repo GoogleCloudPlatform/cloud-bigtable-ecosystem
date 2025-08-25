@@ -34,6 +34,7 @@ type TableConfig struct {
 	Columns            map[string]*types.Column
 	PrimaryKeys        []*types.Column
 	SystemColumnFamily string
+	IntRowKeyEncoding  types.IntRowKeyEncodingType
 }
 
 // NewTableConfig is a constructor for TableConfig. Please use this instead of direct initialization.
@@ -41,6 +42,7 @@ func NewTableConfig(
 	keyspace string,
 	name string,
 	systemColumnFamily string,
+	intRowKeyEncoding types.IntRowKeyEncodingType,
 	columns []*types.Column,
 ) *TableConfig {
 	columnMap := make(map[string]*types.Column)
@@ -69,6 +71,7 @@ func NewTableConfig(
 		Columns:            columnMap,
 		PrimaryKeys:        pmks,
 		SystemColumnFamily: systemColumnFamily,
+		IntRowKeyEncoding:  intRowKeyEncoding,
 	}
 }
 
