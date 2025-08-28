@@ -281,8 +281,8 @@ public abstract class BaseKafkaConnectIT extends BaseIT {
                   h ->
                       h.key().equals(DeadLetterQueueReporter.ERROR_HEADER_EXCEPTION)
                           && Arrays.equals(
-                          h.value(),
-                          exceptionClass.getName().getBytes(StandardCharsets.UTF_8))));
+                              h.value(),
+                              exceptionClass.getName().getBytes(StandardCharsets.UTF_8))));
     }
   }
 }
