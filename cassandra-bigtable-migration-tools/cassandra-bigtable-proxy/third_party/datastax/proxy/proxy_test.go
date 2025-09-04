@@ -33,6 +33,7 @@ import (
 	bigtableModule "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/bigtable"
 	rh "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/responsehandler"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/third_party/datastax/parser"
+	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/third_party/datastax/proxy/config"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/utilities"
 	lru "github.com/hashicorp/golang-lru"
 
@@ -61,7 +62,21 @@ func TestConnect(t *testing.T) {
 	mp := make(map[*client]struct{})
 	prox := &Proxy{
 		clients: mp,
-		logger:  logger,
+		config: &types.ProxyInstanceConfig{
+			Port: 0,
+			Options: &types.CliArgs{
+				ProtocolVersion:    primitive.ProtocolVersion4,
+				MaxProtocolVersion: primitive.ProtocolVersion4,
+			},
+			Bind:           "",
+			NumConns:       0,
+			RPCAddr:        "",
+			DC:             "",
+			Tokens:         nil,
+			BigtableConfig: nil,
+			OtelConfig:     nil,
+		},
+		logger: logger,
 	}
 	err := prox.Connect()
 	assert.NoError(t, err, "function should return no error")
@@ -723,17 +738,19 @@ func TestNewProxy(t *testing.T) {
 
 	// Override the factory function to return the mock
 	originalNewBigTableClient := bt.NewBigtableClient
-	bt.NewBigtableClient = func(client map[string]*bigtable.Client, adminClients map[string]*bigtable.AdminClient, logger *zap.Logger, config bt.BigtableConfig, responseHandler rh.ResponseHandlerIface, schemaMapping *schemaMapping.SchemaMappingConfig, instancesMap map[string]bt.InstanceConfig) bt.BigTableClientIface {
+	bt.NewBigtableClient = func(client map[string]*bigtable.Client, adminClients map[string]*bigtable.AdminClient, logger *zap.Logger, config *types.BigtableConfig, responseHandler rh.ResponseHandlerIface, schemaMapping *schemaMapping.SchemaMappingConfig) bt.BigTableClientIface {
 		return bgtmockface
 	}
 	defer func() { bt.NewBigtableClient = originalNewBigTableClient }()
-	prox, err := NewProxy(ctx, Config{
-		Version: primitive.ProtocolVersion4,
-		Logger:  logger,
-		OtelConfig: &OtelConfig{
+	prox, err := NewProxy(ctx, logger, &types.ProxyInstanceConfig{
+		Options: &types.CliArgs{
+			ProtocolVersion:    primitive.ProtocolVersion4,
+			MaxProtocolVersion: primitive.ProtocolVersion4,
+		},
+		OtelConfig: &types.OtelConfig{
 			Enabled: false,
 		},
-		BigtableConfig: bt.BigtableConfig{},
+		BigtableConfig: &types.BigtableConfig{},
 	})
 	assert.NotNilf(t, prox, "should not be nil")
 	assert.NoErrorf(t, err, "should not through an error")
@@ -1979,7 +1996,7 @@ func TestGetTimestampMetadataForUpdate(t *testing.T) {
 	assert.Len(t, result, 2, "Expected two columns in the result")
 	assert.Equal(t, "test_keyspace", result[0].Keyspace)
 	assert.Equal(t, "test_table", result[0].Table)
-	assert.Equal(t, TimestampColumnName, result[0].Name)
+	assert.Equal(t, config.TimestampColumnName, result[0].Name)
 	assert.Equal(t, int32(0), result[0].Index)         // Assuming Index is of type uint32
 	assert.Equal(t, datatype.Bigint, result[0].Type)   // Assuming Bigint is a valid type
 	assert.Equal(t, "existing_column", result[1].Name) // Check the existing column is still present
@@ -2242,7 +2259,16 @@ func TestHandleEvent(t *testing.T) {
 			logger := zap.NewNop()
 			proxy := &Proxy{
 				logger: logger,
-				config: Config{Version: primitive.ProtocolVersion4},
+				config: &types.ProxyInstanceConfig{
+					Options: &types.CliArgs{
+						ProtocolVersion:    primitive.ProtocolVersion4,
+						MaxProtocolVersion: primitive.ProtocolVersion4,
+					},
+					OtelConfig: &types.OtelConfig{
+						Enabled: false,
+					},
+					BigtableConfig: &types.BigtableConfig{},
+				},
 			}
 			client := &client{
 				proxy:  proxy,
@@ -2330,7 +2356,21 @@ func TestHandlePostDDLEvent(t *testing.T) {
 				},
 			)
 			proxy := &Proxy{
-				logger:        logger,
+				logger: logger,
+				config: &types.ProxyInstanceConfig{
+					Port: 0,
+					Options: &types.CliArgs{
+						ProtocolVersion:    primitive.ProtocolVersion4,
+						MaxProtocolVersion: primitive.ProtocolVersion4,
+					},
+					Bind:           "",
+					NumConns:       0,
+					RPCAddr:        "",
+					DC:             "",
+					Tokens:         nil,
+					BigtableConfig: nil,
+					OtelConfig:     nil,
+				},
 				schemaMapping: schemaMappingConfig,
 			}
 			mockSender := &mockSender{}

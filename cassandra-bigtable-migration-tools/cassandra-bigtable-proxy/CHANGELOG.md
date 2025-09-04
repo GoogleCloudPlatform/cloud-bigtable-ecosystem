@@ -1,15 +1,24 @@
 # Changelog
 All notable changes to the Cassandra to Google Bigtable Proxy project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## v0.2.1
 
+Improves set up experience for the Proxy.
 
-## [Unreleased] - Version 1.1.0
-### Enhancements
- - TBD
+- Adds the ability to "quick start" the proxy using only command line arguments (no yaml file needed)
+- Improves setup documentation
 
+## v0.2.0
 
+Significantly expands Cassandra Proxy capabilities and improves reliability.
 
-## [1.0.0] - 2025-03-03
- - TBD
+- Adds support for Truncate table
+- Adds counter type support
+- Adds multiple column ORDER BY support
+- Adds support for WHERE Clause Operator(>,<,>=, <=, BETWEEN...AND..., Contains, Contains Key, LIKE)
+- Fixes Describe table commands
+- Fixes various bugs
+
+## v0.1.0
+
+Initial release of the Cassandra migration tools.

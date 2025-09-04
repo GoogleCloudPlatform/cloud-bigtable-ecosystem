@@ -16,19 +16,19 @@ package parser
 
 import "errors"
 
-//  Determines if a batch statement is idempotent.
+//	Determines if a batch statement is idempotent.
 //
 // A batch statement is not idempotent if:
 // * it updates counters
 // * contains DML statements that are not idempotent
 //
 // batchStatement: 'BEGIN' ( 'UNLOGGED' | 'COUNTER' )? 'BATCH'
-//      usingClause?
-//      ( batchChildStatement ';'? )*
-//      'APPLY' 'BATCH'
+//
+//	usingClause?
+//	( batchChildStatement ';'? )*
+//	'APPLY' 'BATCH'
 //
 // batchChildStatement: insertStatement | updateStatement | deleteStatement
-//
 func isIdempotentBatchStmt(l *lexer) (idempotent bool, err error) {
 	t := l.next()
 

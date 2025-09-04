@@ -1,0 +1,14 @@
+listeners:
+- name: clusterA
+  port: 9092
+  bigtable:
+    projectId: cassandra-prod-789
+    instances:
+    - bigtableInstance: prod-instance-001
+      keyspace: prodinstance001
+    databaseId: prod-db-001
+    schemaMappingTable: prod_table_config
+    defaultColumnFamily: cf_default
+    appProfileID: prod-profile-123
+    Session:
+      grpcChannels: 3

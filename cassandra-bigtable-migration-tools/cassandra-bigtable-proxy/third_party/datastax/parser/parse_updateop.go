@@ -29,12 +29,12 @@ import "errors"
 // * Function calls
 //
 // updateOperation
-//    : identifier '=' term ( '+' identifier )?
-//    | identifier '=' identifier ( '+' | '-' ) term
-//    | identifier ( '+=' | '-=' ) term
-//    | identifier '[' term ']' '=' term
-//    | identifier '.' identifier '=' term
 //
+//	: identifier '=' term ( '+' identifier )?
+//	| identifier '=' identifier ( '+' | '-' ) term
+//	| identifier ( '+=' | '-=' ) term
+//	| identifier '[' term ']' '=' term
+//	| identifier '.' identifier '=' term
 func parseUpdateOp(l *lexer, t token) (idempotent bool, err error) {
 	if tkIdentifier != t {
 		return false, errors.New("expected identifier after 'SET' in update statement")

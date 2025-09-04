@@ -29,3 +29,7 @@ const (
 	CONTAINS_KEY     = "CONTAINS KEY"
 	CONTAINS         = "CONTAINS"
 )
+
+const (
+	ProxyReleaseVersion = "v0.2.1"
+)

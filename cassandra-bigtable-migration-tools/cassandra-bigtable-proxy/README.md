@@ -2,13 +2,19 @@
 
 ## Current Released Version
 
-Version `1.1.0` - Released on `April 10, 2025`
+Version `0.2.1` - Released on `September, 5 2025`
 
-For more details on this release, please refer to the [CHANGELOG.md](./CHANGELOG.md).
+For more details on this release, please refer to
+the [CHANGELOG.md](./CHANGELOG.md).
 
 ## Introduction
 
-Cassandra to Cloud Bigtable Proxy Adapter is designed to forward your application's CQL traffic to Bigtable database service. It listens on a local address and securely forwards that traffic.
+Cassandra to Cloud Bigtable Proxy Adapter is designed to forward your
+application's CQL traffic to Bigtable database service. It listens on a local
+address and securely forwards that traffic.
+
+If you'd just like to try it out,
+see the [quick start](#quick-start).
 
 ## Table of Contents
 
@@ -16,12 +22,11 @@ Cassandra to Cloud Bigtable Proxy Adapter is designed to forward your applicatio
 - [Pre-requisites](#pre-requisites)
 - [Authenticate and Authorize with Google Cloud](#authenticate-and-authorize-with-google-cloud)
 - [Setting Up Bigtable Instance and Schema Configuration](#setting-up-bigtable-instance-and-schema-configuration)
-  - [DDL Support for Schema Creation](#ddl-support-for-schema-creation-recommended-method)
-  - [Manual Setup](#manual-setup-legacy-method)
+    - [DDL Support for Schema Creation](#ddl-support-for-schema-creation)
 - [Proxy Configuration: YAML Configuration Explained](#proxy-configuration-yaml-configuration-explained)
 - [Getting started](#getting-started)
-  - [Build and Run Proxy Locally](#build-and-run-proxy-locally)
-  - [Run Proxy via Docker](#run-proxy-via-docker)
+    - [Build and Run Proxy Locally](#build-and-run-proxy-locally)
+    - [Run Proxy via Docker](#run-proxy-via-docker)
 - [CQLSH support with Proxy](#cqlsh-support-with-proxy)
 - [Limitations for Proxy Application](#limitations-for-proxy-application)
 - [Guidelines for Proxy Application](#guidelines-for-proxy-application)
@@ -29,20 +34,22 @@ Cassandra to Cloud Bigtable Proxy Adapter is designed to forward your applicatio
 - [Instrument with OpenTelemetry](#instrument-with-openTelemetry)
 - [Differences from Cassandra](./docs/differences_from_cassandra.md)
 - [Testing](#testing)
-  - [Unit Tests](#unit-tests)
-  - [Compliance Tests](#compliance-tests)
-  - [Integration Tests](#integration-tests)
-  - [Fuzzing Tests](#fuzzing-tests)
+    - [Unit Tests](#unit-tests)
+    - [Compliance Tests](#compliance-tests)
+    - [Fuzzing Tests](#fuzzing-tests)
 - [Generating Mock Files Using Mockery](./mocks/README.md)
 - [Connection Methods](#connection-methods)
-  - [Plain TCP Connection](#plain-tcp-connection)
-  - [Secured TCP Connection (TLS)](#secured-tcp-connection-tls)
-  - [Unix Domain Socket (UDS) Connection](#unix-domain-socket-uds-connection)
+    - [Plain TCP Connection](#plain-tcp-connection)
+    - [Secured TCP Connection (TLS)](#secured-tcp-connection-tls)
+    - [Unix Domain Socket (UDS) Connection](#unix-domain-socket-uds-connection)
 - [Supported Cassandra Versions](#supported-cassandra-versions)
 
 ## When to use Cassandra to Bigtable Proxy?
 
-`cassandra-to-bigtable-proxy` enables applications that are currently using Apache Cassandra or DataStax Enterprise (DSE) and would like to switch to use Cloud Bigtable. This Proxy Adapter can be used as Plug-N-Play for the Client Application without the need of any code changes in the Client Application.
+`cassandra-to-bigtable-proxy` enables applications that are currently using
+Apache Cassandra or DataStax Enterprise (DSE) and would like to switch to use
+Cloud Bigtable. This Proxy Adapter can be used as Plug-N-Play for the Client
+Application without the need of any code changes in the Client Application.
 
 ## Pre-requisites
 
@@ -53,46 +60,59 @@ Cassandra to Cloud Bigtable Proxy Adapter is designed to forward your applicatio
 
 Additionally,
 
-You will need a [Google Cloud Platform Console][developer-console] project with the Cloud Bigtable [API enabled][enable-api].
+You will need a [Google Cloud Platform Console][developer-console] project with
+the Cloud Bigtable [API enabled][enable-api].
 You will need to [enable billing][enable-billing] to use Google Cloud Bigtable.
 [Follow these instructions][create-project] to get your project set up.
 
 ## Authenticate and Authorize with Google Cloud
-To run the **Cassandra-to-Bigtable Proxy**, you must be **authenticated and authorized** to make API calls to Google Cloud Bigtable.
-There are **two primary ways** to authenticate, each suited for different environments:
 
-1.  **Using `gcloud auth login` and a Service Account Key** *(Recommended for servers/production)*
-2.  **Using `gcloud auth application-default login`** *(Recommended for local development)*
+To run the **Cassandra-to-Bigtable Proxy**, you must be **authenticated and
+authorized** to make API calls to Google Cloud Bigtable.
+There are **two primary ways** to authenticate, each suited for different
+environments:
+
+1. **Using `gcloud auth login` and a Service Account Key** *(Recommended for
+   servers/production)*
+2. **Using `gcloud auth application-default login`** *(Recommended for local
+   development)*
 
 ---
 
 ### Option 1: Authenticate Using `gcloud auth login` and a Service Account Key
 
-**Use this method when running the proxy on a VM, server, or in a production environment.**
+**Use this method when running the proxy on a VM, server, or in a production
+environment.**
 
-This method involves downloading a Service Account JSON key file and setting the `GOOGLE_APPLICATION_CREDENTIALS` environment variable to point to its location.
+This method involves downloading a Service Account JSON key file and setting
+the `GOOGLE_APPLICATION_CREDENTIALS` environment variable to point to its
+location.
 
 **Steps:**
 
-1.  **Create a Service Account:**
+1. **Create a Service Account:**
     * In the Google Cloud Console, navigate to IAM & Admin > Service Accounts.
-    * Create a new service account with the necessary Cloud Bigtable Read/Write permissions.
-2.  **Download the Service Account Key:**
-    * After creating the service account, generate a JSON key file and download it to your local machine or server.
-3.  **Authenticate with `gcloud auth login`:**
-    ```bash
-    gcloud auth login
-    ```
-4.  **Set the `GOOGLE_APPLICATION_CREDENTIALS` environment variable:**
-    * Replace `/path/to/your/service-account.json` with the actual path to your downloaded JSON key file.
-    ```bash
-    export GOOGLE_APPLICATION_CREDENTIALS="/path/to/your/service-account.json"
-    ```
-    * **Important:** For persistent environment variable settings, add this line to your shell's configuration file (e.g., `~/.bashrc`, `~/.zshrc`).
-5.  **Set the `GCLOUD_PROJECT` environment variable:**
-    ```bash
-    gcloud config set project [YOUR_PROJECT_ID]
-    ```
+    * Create a new service account with the necessary Cloud Bigtable Read/Write
+      permissions.
+2. **Download the Service Account Key:**
+    * After creating the service account, generate a JSON key file and download
+      it to your local machine or server.
+3. **Authenticate with `gcloud auth login`:**
+   ```bash
+   gcloud auth login
+   ```
+4. **Set the `GOOGLE_APPLICATION_CREDENTIALS` environment variable:**
+    * Replace `/path/to/your/service-account.json` with the actual path to your
+      downloaded JSON key file.
+   ```bash
+   export GOOGLE_APPLICATION_CREDENTIALS="/path/to/your/service-account.json"
+   ```
+    * **Important:** For persistent environment variable settings, add this line
+      to your shell's configuration file (e.g., `~/.bashrc`, `~/.zshrc`).
+5. **Set the `GCLOUD_PROJECT` environment variable:**
+   ```bash
+   gcloud config set project [YOUR_PROJECT_ID]
+   ```
 
 ---
 
@@ -100,136 +120,111 @@ This method involves downloading a Service Account JSON key file and setting the
 
 **Use this method for local development and testing.**
 
-This method uses your Google Cloud user account credentials, which are typically obtained via the `gcloud` CLI.
+This method uses your Google Cloud user account credentials, which are typically
+obtained via the `gcloud` CLI.
 
 **Steps:**
 
-1.  **Authenticate with `gcloud auth application-default login`:**
-    ```bash
-    gcloud auth application-default login
-    ```
-    * This command will open a browser window, prompting you to log in to your Google Cloud account.
-    * After successful login, your credentials will be stored in the Application Default Credentials (ADC) location.
-2.  **Set the `GCLOUD_PROJECT` environment variable:**
-    ```bash
-    gcloud config set project [YOUR_PROJECT_ID]
-    ```
-    * **Note:** When using this method, you **do not** need to set the `GOOGLE_APPLICATION_CREDENTIALS` environment variable. The ADC automatically handles authentication.
+1. **Authenticate with `gcloud auth application-default login`:**
+   ```bash
+   gcloud auth application-default login
+   ```
+    * This command will open a browser window, prompting you to log in to your
+      Google Cloud account.
+    * After successful login, your credentials will be stored in the Application
+      Default Credentials (ADC) location.
+2. **Set the `GCLOUD_PROJECT` environment variable:**
+   ```bash
+   gcloud config set project [YOUR_PROJECT_ID]
+   ```
+    * **Note:** When using this method, you **do not** need to set
+      the `GOOGLE_APPLICATION_CREDENTIALS` environment variable. The ADC
+      automatically handles authentication.
 
 ---
-## Setting Up Bigtable Instance and Schema Configuration
-Before starting the `cassandra-to-bigtable-proxy` Adapter, it's essential to set up the necessary infrastructure within Cloud Bigtable. This involves creating a Bigtable instance and configuring the schema using DDL commands.
 
-The `schema_mapping` table acts as a metadata repository, holding the schema configuration for your Cassandra-like tables in Bigtable. It stores details such as column names, data types, and primary key information.
+## Setting Up Bigtable Instance and Schema Configuration
+
+Before starting the `cassandra-to-bigtable-proxy` Adapter, it's essential to set
+up the necessary infrastructure within Cloud Bigtable. This involves creating a
+Bigtable instance and configuring the schema using DDL commands.
+
+The `schema_mapping` table acts as a metadata repository, holding the schema
+configuration for your Cassandra-like tables in Bigtable. It stores details such
+as column names, data types, and primary key information.
 
 **Setup Process:**
 
 There are two primary methods for setting up your Bigtable infrastructure:
 
-### **DDL Support for Schema Creation** (Recommended Method)
+### DDL Support for Schema Creation
 
-The proxy now supports Data Definition Language (DDL) operations, making it easier to create and manage tables directly through CQL commands. This is the recommended approach for setting up your schema.
+The proxy now supports Data Definition Language (DDL) operations, making it
+easier to create and manage tables directly through CQL commands. This is the
+recommended approach for setting up your schema.
 
 **Setup Steps:**
 
 1. **Create Bigtable Instance:**
-   - Create a Bigtable instance manually through the Google Cloud Console or using `gcloud` commands.
-   - [Creating a Cloud Bigtable instance](https://cloud.google.com/bigtable/docs/creating-instance)
-   - Make sure to create an app profile in the bigtable instance if needed.
+    - Create a Bigtable instance manually through the Google Cloud Console or
+      using `gcloud` commands.
+    - [Creating a Cloud Bigtable instance](https://cloud.google.com/bigtable/docs/creating-instance)
+    - Make sure to create an app profile in the bigtable instance if needed.
 
 2. **Configure Proxy:**
-   - Update `config.yaml` with your Bigtable instance details and other configuration parameters.
-   - The proxy will automatically create the `schema_mapping` table if it doesn't exist.
+    - Update `config.yaml` with your Bigtable instance details and other
+      configuration parameters.
+    - The proxy will automatically create the `schema_mapping` table if it
+      doesn't exist.
 
 3. **Start the Proxy:**
    ```bash
    ./cassandra-to-bigtable-proxy
    ```
-   - The proxy will start with an empty cache since no tables exist yet.
+    - The proxy will start with an empty cache since no tables exist yet.
 
 4. **Create Tables Using CQLSH:**
-   - Connect to the proxy using CQLSH:
-     ```bash
-     cqlsh localhost 9042
-     ```
-   - Create tables using standard Cassandra CQL syntax:
-     ```sql
-     CREATE TABLE keyspace.table (
-         id bigint,
-         name text,
-         age int,
-         PRIMARY KEY ((id), name)
-     );
-     ```
-   - The proxy will automatically:
-     - Create the table in Bigtable
-     - Set up necessary column families
-     - Populate the schema_mapping table with the configuration
+    - Connect to the proxy using CQLSH:
+      ```bash
+      cqlsh localhost 9042
+      ```
+    - Create tables using standard Cassandra CQL syntax:
+      ```sql
+      CREATE TABLE keyspace.table (
+          id bigint,
+          name text,
+          age int,
+          PRIMARY KEY ((id), name)
+      );
+      ```
+    - The proxy will automatically:
+        - Create the table in Bigtable
+        - Set up necessary column families
+        - Populate the schema_mapping table with the configuration
 
 5. **Batch Table Creation:**
-   - You can create multiple tables at once using a SQL file:
-     ```bash
-     cqlsh localhost 9042 -f schema.sql
-     ```
-   - The `schema.sql` file can contain multiple CREATE TABLE statements.
+    - You can create multiple tables at once using a SQL file:
+      ```bash
+      cqlsh localhost 9042 -f schema.sql
+      ```
+    - The `schema.sql` file can contain multiple CREATE TABLE statements.
 
 6. **Table Modifications:**
-   - The proxy supports ALTER TABLE and DROP TABLE operations:
-     ```sql
-     -- Add a new column
-     ALTER TABLE keyspace.table ADD email text;
-     
-     -- Drop a table
-     DROP TABLE keyspace.table;
-     ```
+    - The proxy supports ALTER TABLE and DROP TABLE operations:
+      ```sql
+      -- Add a new column
+      ALTER TABLE keyspace.table ADD email text;
+      
+      -- Drop a table
+      DROP TABLE keyspace.table;
+      ```
 
-**Benefits of DDL Support:**
-- Simplified schema management using familiar CQL syntax
-- Automatic schema_mapping table population
-- Support for table modifications
-- Batch table creation through SQL files
-- No need for manual schema_mapping table management
+## Proxy Configuration YAML Configuration Explained
 
-### **Manual Setup** (Legacy Method)
-
-If you prefer to manually create your Bigtable infrastructure, follow these steps:
-
-**Prerequisites for Manual Setup:**
-
-* You must have a Google Cloud project with the Cloud Bigtable API enabled.
-* You must have the `gcloud` CLI installed and configured with appropriate credentials.
-* You must have the `cbt` CLI tool installed and configured.
-
-**Steps for Manual Setup:**
-
-**a. Create a Bigtable Instance:**
-
-* Create a new Bigtable instance with your desired configuration. Refer to the official Google Cloud documentation for detailed instructions:
-    * [Creating a Cloud Bigtable instance](https://cloud.google.com/bigtable/docs/creating-instance)
-* Make sure to create an app profile in the bigtable instance if needed.
-
-**b. Create the `schema_mapping` Table:**
-
-* Ensure you are logged in to your Google Cloud account before executing these commands. 
-* Use the `cbt` CLI to create the `schema_mapping` table and its column family. 
-
-    ```bash
-    cbt -project GCP_PROJECT_ID -instance BIGTABLE_INSTANCE createtable schema_mapping
-    cbt -project GCP_PROJECT_ID -instance BIGTABLE_INSTANCE createfamily schema_mapping cf
-    ```
-
-    * Replace `GCP_PROJECT_ID` with your Google Cloud project ID and `BIGTABLE_INSTANCE` with the name of your Bigtable instance.
-
-**c. Create Other Tables and Populate `schema_mapping`:**
-
-* Create all other tables that your application will use, along with their respective column families and columns.
-* For each table and its columns, insert corresponding entries into the `schema_mapping` table. This step is crucial for the proxy to correctly map Cassandra-like queries to Bigtable.
-* For more information on managing tables please refer to the official documentation:
-    * [Creating and Managing Tables](https://cloud.google.com/bigtable/docs/managing-tables)
-
-## Proxy Configuration: YAML Configuration Explained
-
-The `cassandra-to-bigtable-proxy` Adapter is configured using the `config.yaml` file located in the root directory of the application. This file allows you to specify various settings, including listener configurations, Bigtable connection details, open telemetry configurations and logging options.
+The `cassandra-to-bigtable-proxy` Adapter is configured using the `config.yaml`
+file located in the root directory of the application. This file allows you to
+specify various settings, including listener configurations, Bigtable connection
+details, open telemetry configurations and logging options.
 
 Below is a detailed breakdown of the configuration variables:
 
@@ -336,18 +331,28 @@ loggerConfig:
   compress: True
   ```
 
-**Important Note:** 
-* These configurations are essential and must be configured correctly before starting the proxy Adapter. Incorrect configurations can lead to connection failures or unexpected behavior.
-* Ensure that you replace the placeholder values (e.g., YOUR_GCP_PROJECT, PORT_NUMBER) with your actual configuration settings.
+**Important Note:**
+
+* These configurations are essential and must be configured correctly before
+  starting the proxy Adapter. Incorrect configurations can lead to connection
+  failures or unexpected behavior.
+* Ensure that you replace the placeholder values (e.g., YOUR_GCP_PROJECT,
+  PORT_NUMBER) with your actual configuration settings.
 * The defaultColumnFamily must be specified.
-* If you have created application profile then you can specify otherwise comment out it in `config.yaml` so that it will pick `default` column family automatically
-* When using multiple bigtable instances, ensure that the schema mapping table is available in all the bigtable instances.
-* When using OTEL, ensure that the OTEL collector service is configured correctly.
-* If you modify any value in the config.yaml file, you must restart the proxy Adapter for the changes to take effect.
+* If you have created application profile then you can specify otherwise comment
+  out it in `config.yaml` so that it will pick `default` column family
+  automatically
+* When using multiple bigtable instances, ensure that the schema mapping table
+  is available in all the bigtable instances.
+* When using OTEL, ensure that the OTEL collector service is configured
+  correctly.
+* If you modify any value in the config.yaml file, you must restart the proxy
+  Adapter for the changes to take effect.
 
 ## Getting started
 
-We can setup the `cassandra-to-bigtable-proxy` Adapter via 3 different methods as mentioned below
+We can set up the `cassandra-to-bigtable-proxy` Adapter via 3 different methods
+as mentioned below
 
 - Locally build and run `cassandra-to-bigtable-proxy`
 - Run a docker image that has `cassandra-to-bigtable-proxy` installed
@@ -357,7 +362,8 @@ We can setup the `cassandra-to-bigtable-proxy` Adapter via 3 different methods a
 
 Steps to run the Adapter locally are as mentioned below:
 
-- Clone the repository (https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem.git)
+- Clone the
+  repository (https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem.git)
 - Update `config.yaml`
   #### There are several ways to run/start proxy(Using Build and without Build):
   **1. Using Build**
@@ -375,28 +381,36 @@ Steps to run the Adapter locally are as mentioned below:
     // Builds a static binary for Linux x86_64 (portable, no external C dependencies) 
     ```
 
-  *Once you create the build then execute the below command to run the application*
+  *Once you create the build then execute the below command to run the
+  application*
   ```sh
   ./cassandra-to-bigtable-proxy
   ```
 
   **2. Without Build**
-  - You can start proxy directly without creating build, execute the below command to start the proxy.
+    - You can start proxy directly without creating build, execute the below
+      command to start the proxy.
   ```sh
   go run proxy.go
   ```
 
 - Optional Arguments with the default values.
-  - **cql-version**: CQL version, **default value: "3.4.5"**
-  - **partitioner**: Partitioner, **default value: "org.apache.cassandra.dht.Murmur3Partitioner"**
-  - **release-version**: Release Version, **default value: "4.0.0.6816"**
-  - **data-center**: Data center, **default value: "datacenter1"**
-  - **protocol-version**: Initial protocol version to use when connecting to the backend cluster, **default value: v4**
-  - **log-level**: , set log level - [info/debug/error/warn] **default value: info**
-  - **tcp-bind-port** or **-t**: TCP port to bind to, **default value: 9042**
-  - **rpc-address**: RPC address to bind to(This is specifically useful when connecting to zdm-proxy), **default value: 0.0.0.0**
-  - **use-unix-socket** or **-u**: Enable Unix Domain Socket (UDS) connection. See [UDS Connection](#unix-domain-socket-uds-connection) for details.
-  - **unix-socket-path**: Path for the Unix Domain Socket file, **default value: "/tmp/cassandra-proxy.sock"**
+    - **cql-version**: CQL version, **default value: "3.4.5"**
+    - **partitioner**: Partitioner, **default value: "
+      org.apache.cassandra.dht.Murmur3Partitioner"**
+    - **release-version**: Release Version, **default value: "4.0.0.6816"**
+    - **data-center**: Data center, **default value: "datacenter1"**
+    - **protocol-version**: Initial protocol version to use when connecting to
+      the backend cluster, **default value: v4**
+    - **log-level**: , set log level - [info/debug/error/warn] **default value:
+      info**
+    - **tcp-bind-port** or **-t**: TCP port to bind to, **default value: 9042**
+    - **rpc-address**: RPC address to bind to(This is specifically useful when
+      connecting to zdm-proxy), **default value: 0.0.0.0**
+    - **use-unix-socket** or **-u**: Enable Unix Domain Socket (UDS) connection.
+      See [UDS Connection](#unix-domain-socket--uds--connection) for details.
+    - **unix-socket-path**: Path for the Unix Domain Socket file, **default
+      value: "/tmp/cassandra-proxy.sock"**
 
 - Run the Application with the arguments example
   ```sh
@@ -404,6 +418,33 @@ Steps to run the Adapter locally are as mentioned below:
   ```
 
 - Application will be listening on the specified TCP port (default: 9042).
+
+#### Quick Start
+
+This is the fastest and simplest way to get started with the Proxy, once you've
+built the proxy and created your Bigtable instance. With this setup, you don't need
+to use a config.yaml file. More complicated setups, like supporting multiple
+keyspaces, can be achieved with a config.yaml file. You may use quick start
+setups alongside a config file, but we recommend keeping all of your config in
+one place.
+
+```
+./cassandra-to-bigtable-proxy --project-id='YOUR_GOOGLE_CLOUD_PROJECT_ID' --instance-id='YOUR_BIGTABLE_INSTANCE_ID' --keyspace-id='YOUR_CASSANDRA_KEYSPACE'
+```
+
+- **project-id** the Google Cloud project id to use
+- **instance-id** the Bigtable instance id to use
+- **keyspace-id** (Optional) the Cassandra keyspace that will be mapped to the
+  Bigtable instance. If undefined, the instance-id will double as the keyspace.
+- **port** (Optional) the port for the Proxy to listen on. The default
+  is `9042`.
+- **app-profile** (Optional, but recommended) the Bigtable app profile that will
+  be used to connect to Bigtable.
+- **default-column-family** (Optional) the Bigtable column family that all
+  scalar values will be written to. The default is `cf1`.
+- **schema-mapping-table** (Optional) the name of the Bigtable table that will
+  be used to store schema information. The default is `schema_mapping`. The
+  table will be automatically created.
 
 ### Run Proxy via Docker
 
@@ -413,7 +454,7 @@ Steps to run the Adapter locally are as mentioned below:
   ```
 
 - Start docker container using generated image
-    
+
   ```sh
     docker run -d --name cassandra-bigtable-proxy \
     -p 9042:9042 \
@@ -424,7 +465,8 @@ Steps to run the Adapter locally are as mentioned below:
 
 ## CQLSH support with Proxy
 
-- User can connect and use cqlsh with proxy. Detailed document - [cqlsh.md](./docs/cqlsh.md)
+- User can connect and use cqlsh with proxy. Detailed
+  document - [cqlsh.md](./docs/cqlsh.md)
 
 ## Limitations for Proxy Application
 
@@ -432,8 +474,10 @@ Detailed document - [Limitations](./docs/limitations.md)
 
 ## Guidelines for Proxy Application
 
-- The Proxy Adapter supports DML operations such as INSERT, DELETE, UPDATE and SELECT.
-- To run the Raw DML queries, it is mandatory for all values except numerics to have single quotes added to it. For eg.
+- The Proxy Adapter supports DML operations such as INSERT, DELETE, UPDATE and
+  SELECT.
+- To run the Raw DML queries, it is mandatory for all values except numerics to
+  have single quotes added to it. For eg.
 
   ```sh
   SELECT * FROM keyspace.table WHERE name='john doe';
@@ -441,13 +485,19 @@ Detailed document - [Limitations](./docs/limitations.md)
   INSERT INTO keyspace.table (id, name) VALUES (1, 'john doe');
   ```
 
-- Before running the proxy application, stop the Cassandra service as both run on the same port 9042.
+- Before running the proxy application, stop the Cassandra service as both run
+  on the same port 9042.
 
-- All the required tables should be created on Cloud Bigtable and its schema should be updated in schema_mapping table before running the Proxy Adapter.
+- All the required tables should be created on Cloud Bigtable and its schema
+  should be updated in schema_mapping table before running the Proxy Adapter.
 
-- Bigtable does not allow conditional WRITES operations. Currently, for UPDATE and DELETE operations, we accept columns that are part of the primary key and help us construct the rowkey that is required for these operations.
+- Bigtable does not allow conditional WRITES operations. Currently, for UPDATE
+  and DELETE operations, we accept columns that are part of the primary key and
+  help us construct the rowkey that is required for these operations.
 
-- For select operation, we can apply the conditions on the columns which are the type of string and INT64, the support for other datatypes has not been added to bigtable yet.
+- For select operation, we can apply the conditions on the columns which are the
+  type of string and INT64, the support for other datatypes has not been added
+  to bigtable yet.
 
   ```python
   import time
@@ -481,86 +531,99 @@ Detailed document - [Limitations](./docs/limitations.md)
 
 ## Supported data types
 
- 
-  | CQL Type                 | Supported |                         Cloud Bigtable Mapping                          |
-  | ------------------       | :-------: | :---------------------------------------------------------------------: |
-  | text                     |     ✓     |                                RAW BYTES                                |
-  | blob                     |     ✓     |                                RAW BYTES                                |
-  | timestamp                |     ✓     |                                RAW BYTES                                |
-  | int                      |     ✓     |                                RAW BYTES                                |
-  | bigint                   |     ✓     |                                RAW BYTES                                |
-  | float                    |     ✓     |                                RAW BYTES                                |
-  | double                   |     ✓     |                                RAW BYTES                                |
-  | boolean                  |     ✓     |                                RAW BYTES                                |
-  | map<key, value>          |     ✓     |   Col name as col family, MAP key as column qualifier, value as value   |
-  | set&lt;item&gt;          |     ✓     | Col name as col family, SET item as column qualifier, value remain empty |
-  | list&lt;item&gt;         |     ✓     | Col name as col family, current timestamp as column qualifier, list items as value |
-
+| CQL Type         | Supported | Cloud Bigtable Mapping                                                             |
+|------------------|-----------|------------------------------------------------------------------------------------|
+| text             | ✓         | RAW BYTES                                                                          |
+| blob             | ✓         | RAW BYTES                                                                          |
+| timestamp        | ✓         | RAW BYTES                                                                          |
+| int              | ✓         | RAW BYTES                                                                          |
+| bigint           | ✓         | RAW BYTES                                                                          |
+| float            | ✓         | RAW BYTES                                                                          |
+| double           | ✓         | RAW BYTES                                                                          |
+| boolean          | ✓         | RAW BYTES                                                                          |
+| counter          | ✓         | Col name as col family, empty bytes used as column qualifier                       |
+| map<key, value>  | ✓         | Col name as col family, MAP key as column qualifier, value as value                |
+| set&lt;item&gt;  | ✓         | Col name as col family, SET item as column qualifier, value remain empty           |
+| list&lt;item&gt; | ✓         | Col name as col family, current timestamp as column qualifier, list items as value |
 
 All list types follow the same storage pattern:  
-**Col name as col family, current timestamp (with nanosecond precision) as column qualifier, list items as column value.**
+**Col name as col family, current timestamp (with nanosecond precision) as
+column qualifier, list items as column value.**
 
-
-- Before running the proxy application, make sure to stop the Cassandra service as both runs on the same port 9042.
+- Before running the proxy application, make sure to stop the Cassandra service
+  as both runs on the same port 9042.
 
 ## Run a `cassandra-to-bigtable-proxy` via systemd.
 
-Why systemd? - It can automatically restart crashed services, which is crucial for maintaining the availability of applications and system functions. systemd also provides mechanisms for service sandboxing and security.
+Why systemd? - It can automatically restart crashed services, which is crucial
+for maintaining the availability of applications and system functions. systemd
+also provides mechanisms for service sandboxing and security.
 
-Go through this document for setting up systemd for this project in your linux system - [Setting Up systemd](./systemd/Readme.md)
+Go through this document for setting up systemd for this project in your linux
+system - [Setting Up systemd](./systemd/Readme.md)
 
 ## Instrument with OpenTelemetry
 
-The Proxy Adapter supports OpenTelemetry metrics and traces, which gives insight into the adapter internals and aids in debugging/troubleshooting production issues.
+The Proxy Adapter supports OpenTelemetry metrics and traces, which gives insight
+into the adapter internals and aids in debugging/troubleshooting production
+issues.
 
-See [OpenTelemetry](otel/README.md) for integrating OpenTelemetry (OTEL) with Your Application
+See [OpenTelemetry](otel/README.md) for integrating OpenTelemetry (OTEL) with
+Your Application
 
 [developer-console]: https://console.developers.google.com/
+
 [enable-api]: https://console.cloud.google.com/flows/enableapi?apiid=spanner.googleapis.com
+
 [enable-billing]: https://cloud.google.com/apis/docs/getting-started#enabling_billing
+
 [create-project]: https://cloud.google.com/resource-manager/docs/creating-managing-projects
+
 [cloud-cli]: https://cloud.google.com/cli
 [Apache License 2.0](LICENSE)
 
 ## Testing
 
-The project includes several types of tests to ensure code quality and functionality. Each test type has its own specific purpose and execution method.
+The project includes several types of tests to ensure code quality and
+functionality. Each test type has its own specific purpose and execution method.
 
 ### Unit Tests
 
 Unit tests verify individual components of the codebase in isolation.
 
 ```sh
-go test -count=1 ./{/proxycore,/proxy,/responsehandler,/schema-mapping,/translator,/collectiondecoder,/bigtable,/utilities,/otel}  -coverprofile=coverage.out
+go test $(go list ./... | grep -v /testing/)
 ```
 
 ### Compliance Tests
 
-Compliance tests ensure that the proxy behaves correctly according to expected standards and specifications.
+Compliance tests ensure that the proxy behaves correctly according to expected
+standards and specifications. These tests also serve as integration tests.
 
-For detailed instructions on running compliance tests, refer to the [Compliance Test Cases](./testing/compliance/compliance_readme.md) documentation.
-
-### Integration Tests
-
-Integration tests verify that different components of the system work together correctly.
-
-For detailed instructions on running integration tests, refer to the [Integration Tests](./testing/it/README.md) documentation.
+For detailed instructions on running compliance tests, refer to
+the [Compliance Test Cases](./testing/compliance/README.md)
+documentation.
 
 ### Fuzzing Tests
 
-Fuzzing tests use automated techniques to find edge cases and potential issues in the codebase.
+Fuzzing tests use automated techniques to find edge cases and potential issues
+in the codebase.
 
-For detailed instructions on running fuzzing tests, refer to the [Fuzzing Tests](./testing/fuzzing/README.md) documentation.
+For detailed instructions on running fuzzing tests, refer to
+the [Fuzzing Tests](./testing/fuzzing/README.md) documentation.
 
 ## Connection Methods
 
-The proxy supports three different connection methods to accommodate various deployment scenarios and security requirements.
+The proxy supports three different connection methods to accommodate various
+deployment scenarios and security requirements.
 
 ### Plain TCP Connection
 
-The simplest way to connect to the proxy is using plain TCP. This is suitable for local development or secure internal networks.
+The simplest way to connect to the proxy is using plain TCP. This is suitable
+for local development or secure internal networks.
 
 **Setup Instructions:**
+
 1. Start the proxy with default TCP settings:
    ```bash
    ./cassandra-to-bigtable-proxy
@@ -578,18 +641,22 @@ The simplest way to connect to the proxy is using plain TCP. This is suitable fo
 
 ### Secured TCP Connection (TLS)
 
-For production environments or when security is a concern, you can enable TLS encryption.
+For production environments or when security is a concern, you can enable TLS
+encryption.
 
 **Setup Instructions:**
-1. If you don't have TLS certificates, generate them:
-   - key.pem and cert.pem
 
-  Example:
+1. If you don't have TLS certificates, generate them:
+    - key.pem and cert.pem
+
+Example:
+
    ```bash
    openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout key.pem -out cert.pem
    ```
- - Note: Check official documentation for generating certificates
- 
+
+- Note: Check official documentation for generating certificates
+
 2. Start the proxy with TLS enabled:
    ```bash
    ./cassandra-to-bigtable-proxy --proxy-cert-file cert.pem --proxy-key-file key.pem
@@ -607,9 +674,11 @@ For production environments or when security is a concern, you can enable TLS en
 
 ### Unix Domain Socket (UDS) Connection
 
-UDS provides better performance and security for local connections. This is ideal for applications running on the same machine as the proxy.
+UDS provides better performance and security for local connections. This is
+ideal for applications running on the same machine as the proxy.
 
 **Setup Instructions:**
+
 1. Install socat (required for bridging TCP to UDS):
    ```bash
    # On macOS
@@ -624,7 +693,7 @@ UDS provides better performance and security for local connections. This is idea
    ./cassandra-to-bigtable-proxy --use-unix-socket
    ```
    This will create a Unix socket at `/tmp/cassandra-proxy.sock` by default.
-   
+
    You can specify a custom path:
    ```bash
    ./cassandra-to-bigtable-proxy --use-unix-socket --unix-socket-path "/path/to/custom.sock"
@@ -635,7 +704,8 @@ UDS provides better performance and security for local connections. This is idea
    socat TCP-LISTEN:9042,reuseaddr,fork UNIX-CONNECT:/tmp/cassandra-proxy.sock
    ```
 
-4. Connect using a Cassandra client (it will connect via TCP, which socat bridges to UDS):
+4. Connect using a Cassandra client (it will connect via TCP, which socat
+   bridges to UDS):
    ```java
    Cluster cluster = Cluster.builder()
        .addContactPoint("localhost")
@@ -644,18 +714,24 @@ UDS provides better performance and security for local connections. This is idea
    Session session = cluster.connect();
    ```
 
-**Note:** The socat bridge is necessary because the standard Cassandra Java driver doesn't support UDS directly. The bridge allows you to use UDS for better performance while maintaining compatibility with existing clients.
+**Note:** The socat bridge is necessary because the standard Cassandra Java
+driver doesn't support UDS directly. The bridge allows you to use UDS for better
+performance while maintaining compatibility with existing clients.
 
 ## Supported Cassandra Versions
 
-The Cassandra to Bigtable Proxy has been tested and verified to work with the following Cassandra versions:
+The Cassandra to Bigtable Proxy has been tested and verified to work with the
+following Cassandra versions:
 
 - **Cassandra 4.x**: Fully tested and supported
 - **Cassandra 3.x**: Should be compatible but not extensively tested
 
-The proxy is configured to use Cassandra 4.0 protocol by default, but it should be able to handle connections from Cassandra 3.x clients. If you're using Cassandra 3.x, please test thoroughly in your environment and report any issues.
+The proxy is configured to use Cassandra 4.0 protocol by default, but it should
+be able to handle connections from Cassandra 3.x clients. If you're using
+Cassandra 3.x, please test thoroughly in your environment and report any issues.
 
-To specify a different protocol version when starting the proxy, use the `--protocol-version` flag:
+To specify a different protocol version when starting the proxy, use
+the `--protocol-version` flag:
 
 ```bash
 ./cassandra-to-bigtable-proxy --protocol-version v3

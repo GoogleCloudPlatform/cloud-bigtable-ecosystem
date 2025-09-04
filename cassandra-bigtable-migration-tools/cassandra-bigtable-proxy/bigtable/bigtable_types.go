@@ -42,36 +42,13 @@ type MutationData struct {
 type BulkOperationResponse struct {
 	FailedRows string
 }
-type InstanceConfig struct {
-	BigtableInstance string
-	AppProfileId     string
-}
 
 type BigtableClient struct {
 	Clients             map[string]*bigtable.Client
 	AdminClients        map[string]*bigtable.AdminClient
 	Logger              *zap.Logger
 	SqlClient           btpb.BigtableClient
-	BigtableConfig      BigtableConfig
+	BigtableConfig      *types.BigtableConfig
 	ResponseHandler     rh.ResponseHandlerIface
 	SchemaMappingConfig *schemaMapping.SchemaMappingConfig
-	InstancesMap        map[string]InstanceConfig
-}
-
-type BigtableConfig struct {
-	SchemaMappingTable  string
-	NumOfChannels       int
-	InstancesMap        map[string]InstanceConfig //map of key[cassandra keyspace] to Instance Configuration[bigtable instance]
-	GCPProjectID        string
-	DefaultColumnFamily string
-	// all new tables should set this to false
-	DefaultIntRowKeyEncoding types.IntRowKeyEncodingType
-}
-
-type ConnConfig struct {
-	InstancesMap  map[string]InstanceConfig //map of key[cassandra keyspace] toInstance Configuration[bigtable instance]
-	NumOfChannels int
-	GCPProjectID  string
-	AppProfileID  string
-	UserAgent     string
 }

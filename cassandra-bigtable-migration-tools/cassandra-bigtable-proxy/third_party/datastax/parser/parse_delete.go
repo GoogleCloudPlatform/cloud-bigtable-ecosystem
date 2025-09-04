@@ -27,7 +27,6 @@ import "errors"
 // deleteOperations: deleteOperation ( ',' deleteOperation )*
 // deleteOperation: identifier | identifier '[' term ']'| identifier '.' identifier
 // tableName: ( identifier '.' )? identifier
-//
 func isIdempotentDeleteStmt(l *lexer) (idempotent bool, t token, err error) {
 	t = l.next()
 	for ; tkFrom != t && tkEOF != t; t = skipToken(l, l.next(), tkComma) {

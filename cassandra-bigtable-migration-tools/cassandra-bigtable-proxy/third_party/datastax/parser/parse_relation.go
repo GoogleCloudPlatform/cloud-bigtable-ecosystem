@@ -19,7 +19,6 @@ import "errors"
 // Determine if where clause is idempotent for an UPDATE or DELETE mutation.
 //
 // whereClause: 'WHERE' relation ( 'AND' relation )*
-//
 func parseWhereClause(l *lexer) (idempotent bool, t token, err error) {
 	for t = l.next(); tkIf != t && !isDMLTerminator(t); t = skipToken(l, l.next(), tkAnd) {
 		idempotent, err = parseRelation(l, t)
@@ -43,7 +42,6 @@ func parseWhereClause(l *lexer) (idempotent bool, t token, err error) {
 // | '(' identifiers ')' 'IN' ( '(' terms? ')' | bindMarker )
 // | '(' identifiers ')' operator ( '(' terms? ')' | bindMarker )
 // | '(' relation ')'
-//
 func parseRelation(l *lexer, t token) (idempotent bool, err error) {
 	switch t {
 	case tkIdentifier:
@@ -152,9 +150,8 @@ func parseRelation(l *lexer, t token) (idempotent bool, err error) {
 
 // Determines if identifiers relation is idempotent.
 //
-//  ... 'IN' ( '(' terms? ')' | bindMarker )
-//  ... operator ( '(' terms? ')' | bindMarker )
-//
+//	... 'IN' ( '(' terms? ')' | bindMarker )
+//	... operator ( '(' terms? ')' | bindMarker )
 func parseIdentifiersRelation(l *lexer) (idempotent bool, err error) {
 	switch t := l.next(); t {
 	case tkIn, tkEqual, tkLt, tkLtEqual, tkGt, tkGtEqual, tkNotEqual:

@@ -56,7 +56,6 @@ const (
 //
 // typeCast: '(' type ')' term
 // type: identifier | identifier '<' type '>'
-//
 func parseTerm(l *lexer, t token) (idempotent bool, typ termType, err error) {
 	switch t {
 	case tkInteger: // Integer lister

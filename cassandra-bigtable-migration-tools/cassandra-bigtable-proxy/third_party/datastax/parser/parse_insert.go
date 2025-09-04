@@ -25,7 +25,6 @@ import "errors"
 // tableName: ( identifier '.' )? identifier
 // namedValues: '(' identifiers ')' 'VALUES' '(' terms ')'
 // jsonClause: 'JSON' stringLiteral ( 'DEFAULT' ( 'NULL' | 'UNSET' ) )?
-//
 func isIdempotentInsertStmt(l *lexer) (idempotent bool, t token, err error) {
 	t = l.next()
 	if tkInto != t {

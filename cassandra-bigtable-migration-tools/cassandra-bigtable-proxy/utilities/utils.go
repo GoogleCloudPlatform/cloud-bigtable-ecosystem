@@ -26,9 +26,6 @@ import (
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/third_party/datastax/proxycore"
 	"github.com/datastax/go-cassandra-native-protocol/datatype"
 	"github.com/datastax/go-cassandra-native-protocol/primitive"
-	"github.com/natefinch/lumberjack"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
 const (
@@ -36,15 +33,6 @@ const (
 	KEY_TYPE_CLUSTERING = "clustering"
 	KEY_TYPE_REGULAR    = "regular"
 )
-
-type LoggerConfig struct {
-	OutputType string `yaml:"outputType"`
-	Filename   string `yaml:"fileName"`
-	MaxSize    int    `yaml:"maxSize"`    // megabytes
-	MaxBackups int    `yaml:"maxBackups"` // The value of MaxBackups determines how many previous log files are kept after a new log file is created due to the MaxSize or MaxAge limits.
-	MaxAge     int    `yaml:"maxAge"`     // days
-	Compress   bool   `yaml:"compress"`   // the rotated log files to be compressed to save disk space.
-}
 
 var (
 	MapOfStrToStr     = datatype.NewMapType(datatype.Varchar, datatype.Varchar)
@@ -210,88 +198,6 @@ func decodeNonPrimitive(choice datatype.PrimitiveType, b []byte) (any, error) {
 
 	err = fmt.Errorf("unsupported Datatype to decode - %v", choice.GetDataTypeCode())
 	return nil, err
-}
-
-// SetupLogger() initializes a zap.Logger instance based on the provided log level and logger configuration.
-// If loggerConfig specifies file output, it sets up a file-based logger. Otherwise, it defaults to console output.
-// Returns the configured zap.Logger or an error if setup fails.
-func SetupLogger(logLevel string, loggerConfig *LoggerConfig) (*zap.Logger, error) {
-	level := getLogLevel(logLevel)
-
-	if loggerConfig != nil && loggerConfig.OutputType == "file" {
-		return setupFileLogger(level, loggerConfig)
-	}
-
-	return setupConsoleLogger(level)
-}
-
-// getLogLevel() translates a string log level to a zap.AtomicLevel.
-// Supports "info", "debug", "error", and "warn" levels, defaulting to "info" if an unrecognized level is provided.
-func getLogLevel(logLevel string) zap.AtomicLevel {
-	level := zap.NewAtomicLevel()
-
-	switch logLevel {
-	case Info:
-		level.SetLevel(zap.InfoLevel)
-	case Debug:
-		level.SetLevel(zap.DebugLevel)
-	case Error:
-		level.SetLevel(zap.ErrorLevel)
-	case Warn:
-		level.SetLevel(zap.WarnLevel)
-	default:
-		level.SetLevel(zap.InfoLevel)
-	}
-
-	return level
-}
-
-// setupFileLogger() configures a zap.Logger for file output using a lumberjack.Logger for log rotation.
-// Accepts a zap.AtomicLevel and a LoggerConfig struct to customize log output and rotation settings.
-// Returns the configured zap.Logger or an error if setup fails.
-func setupFileLogger(level zap.AtomicLevel, loggerConfig *LoggerConfig) (*zap.Logger, error) {
-	rotationalLogger := &lumberjack.Logger{
-		Filename:   defaultIfEmpty(loggerConfig.Filename, "/var/log/cassandra-to-spanner-proxy/output.log"),
-		MaxSize:    loggerConfig.MaxSize,                       // megabytes, default 100MB
-		MaxAge:     defaultIfZero(loggerConfig.MaxAge, 3),      // setting default value to 3 days
-		MaxBackups: defaultIfZero(loggerConfig.MaxBackups, 10), // setting default max backups to 10 files
-		Compress:   loggerConfig.Compress,
-	}
-
-	core := zapcore.NewCore(
-		zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()),
-		zapcore.AddSync(rotationalLogger),
-		level,
-	)
-
-	return zap.New(core), nil
-}
-
-// setupConsoleLogger() configures a zap.Logger for console output.
-// Accepts a zap.AtomicLevel to set the logging level.
-// Returns the configured zap.Logger or an error if setup fails.
-func setupConsoleLogger(level zap.AtomicLevel) (*zap.Logger, error) {
-	config := zap.Config{
-		Encoding:         "json", // or "console"
-		Level:            level,  // default log level
-		OutputPaths:      []string{"stdout"},
-		ErrorOutputPaths: []string{"stderr"},
-		EncoderConfig: zapcore.EncoderConfig{
-			TimeKey:        "time",
-			CallerKey:      "caller",
-			LevelKey:       "level",
-			NameKey:        "logger",
-			MessageKey:     "msg",
-			StacktraceKey:  "stacktrace",
-			LineEnding:     zapcore.DefaultLineEnding,
-			EncodeLevel:    zapcore.LowercaseLevelEncoder, // or zapcore.LowercaseColorLevelEncoder for console
-			EncodeTime:     zapcore.ISO8601TimeEncoder,
-			EncodeDuration: zapcore.StringDurationEncoder,
-			EncodeCaller:   zapcore.ShortCallerEncoder,
-		},
-	}
-
-	return config.Build()
 }
 
 // defaultIfEmpty() returns a default string value if the provided value is empty.
