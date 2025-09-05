@@ -839,13 +839,13 @@ func TestTranslator_TranslateSelectQuerytoBigtable(t *testing.T) {
 		{
 			name: "test with BETWEEN operator raw query",
 			args: args{
-				query: `select column1, column2 from test_keyspace.test_table where column1 between 'test' and 'test2';`,
+				query: `select column1, column2 from test_keyspace.test_table where column1 between 'te''st' and 'test2';`,
 			},
 			wantErr: false,
 			want: &SelectQueryMap{
 				TranslatedQuery: "SELECT column1,cf1['column2'] FROM test_table WHERE column1 BETWEEN @value1 AND @value2;",
 				Keyspace:        "test_keyspace",
-				Params:          map[string]interface{}{"value1": "test", "value2": "test2"},
+				Params:          map[string]interface{}{"value1": "te'st", "value2": "test2"},
 				ParamKeys:       []string{"value1", "value2"},
 				Clauses: []types.Clause{
 					{
@@ -2124,6 +2124,7 @@ func Test_parseColumnsFromSelectWithParser(t *testing.T) {
 		query   string
 		want    ColumnMeta
 		wantErr bool
+		err     string
 	}{
 		{
 			name:    "star query",

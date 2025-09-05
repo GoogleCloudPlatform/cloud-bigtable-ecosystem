@@ -126,7 +126,6 @@ func parseAssignments(assignments []cql.IAssignmentElementContext, tableConfig *
 		if columnName == "" {
 			return nil, errors.New("no columnName found for assignments")
 		}
-		columnName = strings.ReplaceAll(columnName, literalPlaceholder, "")
 
 		var value interface{}
 		var err error
@@ -282,9 +281,7 @@ func parseAssignments(assignments []cql.IAssignmentElementContext, tableConfig *
 //   - query: CQL Update query
 //
 // Returns: UpdateQueryMapping struct and error if any
-func (t *Translator) TranslateUpdateQuerytoBigtable(queryStr string, isPreparedQuery bool, sessionKeyspace string) (*UpdateQueryMapping, error) {
-	lowerQuery := strings.ToLower(queryStr)
-	query := renameLiterals(queryStr)
+func (t *Translator) TranslateUpdateQuerytoBigtable(query string, isPreparedQuery bool, sessionKeyspace string) (*UpdateQueryMapping, error) {
 	lexer := cql.NewCqlLexer(antlr.NewInputStream(query))
 	stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
 	p := cql.NewCqlParser(stream)
@@ -320,7 +317,7 @@ func (t *Translator) TranslateUpdateQuerytoBigtable(queryStr string, isPreparedQ
 		return nil, err
 	}
 
-	timestampInfo, err := GetTimestampInfoByUpdate(queryStr, updateObj)
+	timestampInfo, err := GetTimestampInfoByUpdate(updateObj)
 	if err != nil {
 		return nil, err
 	}
@@ -341,7 +338,7 @@ func (t *Translator) TranslateUpdateQuerytoBigtable(queryStr string, isPreparedQ
 
 	var QueryClauses QueryClauses
 
-	if hasWhere(lowerQuery) {
+	if updateObj.WhereSpec() != nil {
 		resp, err := parseWhereByClause(updateObj.WhereSpec(), tableConfig)
 		if err != nil {
 			return nil, err

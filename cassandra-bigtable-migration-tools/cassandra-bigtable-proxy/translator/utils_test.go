@@ -39,39 +39,6 @@ import (
 	"go.uber.org/zap"
 )
 
-func Test_hasWhere(t *testing.T) {
-	type args struct {
-		query string
-	}
-	tests := []struct {
-		name string
-		args args
-		want bool
-	}{
-		{
-			name: "success",
-			args: args{
-				query: "select * from table where id = 1;",
-			},
-			want: true,
-		},
-		{
-			name: "no where clause",
-			args: args{
-				query: "select * from table;",
-			},
-			want: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := hasWhere(tt.args.query); got != tt.want {
-				t.Errorf("hasWhere() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 // TestParseTimestamp tests the parseTimestamp function with various timestamp formats.
 func TestParseTimestamp(t *testing.T) {
 	cases := []struct {
@@ -3457,25 +3424,59 @@ func TestCqlTypeToEmptyPrimitive(t *testing.T) {
 	}
 }
 
-func TestRenameLiterals(t *testing.T) {
+func TestTrimQuotes(t *testing.T) {
 	tests := []struct {
-		name     string
-		query    string
-		expected string
+		value string
+		want  string
 	}{
 		{
-			name:     "No literals",
-			query:    `SELECT * FROM table`,
-			expected: `SELECT * FROM table`,
+			value: `foo`,
+			want:  `foo`,
+		},
+		{
+			value: `f`,
+			want:  `f`,
+		},
+		{
+			value: `fo`,
+			want:  `fo`,
+		},
+		{
+			value: ``,
+			want:  ``,
+		},
+		{
+			value: `''`,
+			want:  ``,
+		},
+		{
+			value: `'foo'`,
+			want:  `foo`,
+		},
+		{
+			value: `'''foo'`,
+			want:  `'foo`,
+		},
+		{
+			value: `'foo'''`,
+			want:  `foo'`,
+		},
+		// only trim the outermost quotes
+		{
+			value: `'sister''s'`,
+			want:  `sister's`,
+		},
+		// should keep inner quotes
+		{
+			value: `'"foo"'`,
+			want:  `"foo"`,
 		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := renameLiterals(tt.query)
-			if result != tt.expected {
-				t.Errorf("Expected: %s, Got: %s", tt.expected, result)
-			}
+		t.Run(tt.value, func(t *testing.T) {
+			got := trimQuotes(tt.value)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }

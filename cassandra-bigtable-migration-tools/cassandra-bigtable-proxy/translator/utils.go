@@ -45,27 +45,17 @@ import (
 )
 
 const (
-	literalPlaceholder = "_a1b2c3"
-	tsValuePlaceholder = "tsValue"
-	bigtableTSColumn   = "last_commit_ts"
-	limitPlaceholder   = "limitValue"
-	writetime          = "writetime"
-	commitTsFn         = "PENDING_COMMIT_TIMESTAMP()"
-	missingUndefined   = "<missing undefined>"
-	missing            = "<missing"
-	questionMark       = "?"
-	STAR               = "*"
-	maxNanos           = int32(9999)
-	referenceTime      = int64(1262304000000)
-	ifExists           = "ifexists"
+	limitPlaceholder = "limitValue"
+	missingUndefined = "<missing undefined>"
+	missing          = "<missing"
+	questionMark     = "?"
+	STAR             = "*"
+	maxNanos         = int32(9999)
+	referenceTime    = int64(1262304000000)
+	ifExists         = "ifexists"
 )
 
 var (
-	whereRegex     = regexp.MustCompile(`(?i)\bwhere\b`)
-	orderByRegex   = regexp.MustCompile(`(?i)\border\s+by\b`)
-	groupByRegex   = regexp.MustCompile(`(?i)\bgroup\s+by\b`)
-	limitRegex     = regexp.MustCompile(`(?i)\blimit\b`)
-	combinedRegex  = createCombinedRegex()
 	validTableName = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
 )
 
@@ -84,12 +74,6 @@ type ComplexAssignment struct {
 	Operation string
 	Left      interface{}
 	Right     interface{}
-}
-
-// hasUsingTimestamp checks if the query contains a USING TIMESTAMP clause.
-// Returns true if the query includes timestamp specification.
-func hasUsingTimestamp(query string) bool {
-	return strings.Contains(strings.ToUpper(query), "USING TIMESTAMP")
 }
 
 // parseTimestamp(): Parse a timestamp string in various formats.
@@ -153,30 +137,6 @@ func parseTimestamp(timestampStr string) (time.Time, error) {
 
 	// If all formats fail, return the last error
 	return time.Time{}, err
-}
-
-// hasWhere checks if the query contains a WHERE clause.
-// Returns true if the query includes a WHERE condition.
-func hasWhere(query string) bool {
-	return whereRegex.MatchString(query)
-}
-
-// hasOrderBy checks if the query contains an ORDER BY clause.
-// Returns true if the query includes sorting specifications.
-func hasOrderBy(query string) bool {
-	return orderByRegex.MatchString(query)
-}
-
-// hasGroupBy checks if the query contains a GROUP BY clause.
-// Returns true if the query includes grouping specifications.
-func hasGroupBy(query string) bool {
-	return groupByRegex.MatchString(query)
-}
-
-// hasLimit checks if the query contains a LIMIT clause.
-// Returns true if the query includes a row limit specification.
-func hasLimit(query string) bool {
-	return limitRegex.MatchString(query)
 }
 
 // formatValues converts a value to its byte representation based on CQL type.
@@ -377,26 +337,6 @@ func cqlTypeToEmptyPrimitive(cqlType datatype.DataType, isPrimaryKey bool) inter
 		return string("")
 	}
 	return nil
-}
-
-// createCombinedRegex creates a compiled regex pattern for query parsing.
-// Combines multiple patterns for efficient query analysis.
-func createCombinedRegex() *regexp.Regexp {
-	keywords := []string{"time", "key", "type", "json"}
-	combinedPattern := fmt.Sprintf("\\b(%s)\\b", regexp.QuoteMeta(keywords[0]))
-
-	for _, keyword := range keywords[1:] {
-		combinedPattern += fmt.Sprintf("|\\b%s\\b", regexp.QuoteMeta(keyword))
-	}
-	return regexp.MustCompile(combinedPattern)
-}
-
-// renameLiterals processes and renames literals in the query.
-// Standardizes literal values for consistent processing.
-func renameLiterals(query string) string {
-	return combinedRegex.ReplaceAllStringFunc(query, func(match string) string {
-		return match + literalPlaceholder
-	})
 }
 
 // processCollectionColumnsForRawQueries() processes collection columns in raw CQL queries.
@@ -1560,7 +1500,6 @@ func parseWhereByClause(input cql.IWhereSpecContext, tableConfig *schemaMapping.
 				return nil, errors.New("could not parse column name")
 			}
 		}
-		colName = strings.ReplaceAll(colName, literalPlaceholder, "")
 		column, err := tableConfig.GetColumn(colName)
 		if err != nil {
 			return nil, err
@@ -1570,7 +1509,7 @@ func parseWhereByClause(input cql.IWhereSpecContext, tableConfig *schemaMapping.
 				if value == "" {
 					return nil, errors.New("could not parse value from query for one of the clauses")
 				}
-				value = strings.ReplaceAll(value, "'", "")
+				value = trimQuotes(value)
 				typeCode := column.CQLType.GetDataTypeCode()
 				if value != questionMark {
 					if operator == constants.CONTAINS {
@@ -1621,8 +1560,8 @@ func parseWhereByClause(input cql.IWhereSpecContext, tableConfig *schemaMapping.
 				if value == "" || secondValue == "" || value == "<EOF>" || secondValue == "<EOF>" {
 					return nil, errors.New("could not parse value from query for one of the clauses")
 				}
-				value = strings.ReplaceAll(value, "'", "")
-				secondValue = strings.ReplaceAll(secondValue, "'", "")
+				value = trimQuotes(value)
+				secondValue = trimQuotes(secondValue)
 				if value != questionMark {
 					val, err := stringToPrimitives(value, column.CQLType)
 					if err != nil {
@@ -1649,7 +1588,7 @@ func parseWhereByClause(input cql.IWhereSpecContext, tableConfig *schemaMapping.
 				if value == "" {
 					return nil, errors.New("could not parse value from query for one of the clauses")
 				}
-				value = strings.ReplaceAll(value, "'", "")
+				value = trimQuotes(value)
 
 				if value != questionMark {
 
@@ -1681,7 +1620,6 @@ func parseWhereByClause(input cql.IWhereSpecContext, tableConfig *schemaMapping.
 								return nil, errors.New("could not parse value")
 							}
 							valueTxt := inVal.GetText()
-							valueTxt = strings.ReplaceAll(valueTxt, "'", "")
 							i, err := strconv.Atoi(valueTxt)
 							if err != nil {
 								return nil, err
@@ -1696,7 +1634,6 @@ func parseWhereByClause(input cql.IWhereSpecContext, tableConfig *schemaMapping.
 								return nil, errors.New("could not parse value")
 							}
 							valueTxt := inVal.GetText()
-							valueTxt = strings.ReplaceAll(valueTxt, "'", "")
 							i, err := strconv.ParseInt(valueTxt, 10, 64)
 							if err != nil {
 								return nil, err
@@ -1711,7 +1648,6 @@ func parseWhereByClause(input cql.IWhereSpecContext, tableConfig *schemaMapping.
 								return nil, errors.New("could not parse value")
 							}
 							valueTxt := inVal.GetText()
-							valueTxt = strings.ReplaceAll(valueTxt, "'", "")
 							i, err := strconv.ParseFloat(valueTxt, 32)
 
 							if err != nil {
@@ -1727,7 +1663,6 @@ func parseWhereByClause(input cql.IWhereSpecContext, tableConfig *schemaMapping.
 								return nil, errors.New("could not parse value")
 							}
 							valueTxt := inVal.GetText()
-							valueTxt = strings.ReplaceAll(valueTxt, "'", "")
 							i, err := strconv.ParseFloat(valueTxt, 64)
 							if err != nil {
 								return nil, err
@@ -1741,9 +1676,8 @@ func parseWhereByClause(input cql.IWhereSpecContext, tableConfig *schemaMapping.
 							if inVal == nil {
 								return nil, errors.New("could not parse value")
 							}
-							valueTxt := inVal.GetText()
-							valueTxt = strings.ReplaceAll(valueTxt, "'", "")
-							val := (valueTxt == "true")
+							valueTxt := trimQuotes(inVal.GetText())
+							val := strings.ToLower(valueTxt) == "true"
 							allValues = append(allValues, val)
 						}
 						params[placeholder] = allValues
@@ -1754,8 +1688,7 @@ func parseWhereByClause(input cql.IWhereSpecContext, tableConfig *schemaMapping.
 							if inVal == nil {
 								return nil, errors.New("could not parse value")
 							}
-							valueTxt := inVal.GetText()
-							valueTxt = strings.ReplaceAll(valueTxt, "'", "")
+							valueTxt := trimQuotes(inVal.GetText())
 							allValues = append(allValues, valueTxt)
 						}
 						params[placeholder] = allValues
@@ -1827,15 +1760,25 @@ func getTimestampValue(spec cql.IUsingTtlTimestampContext) (string, error) {
 	}
 	tsSpec.KwTimestamp()
 	valLiteral := tsSpec.DecimalLiteral()
-	var resp string
 
 	if valLiteral == nil {
 		return "", errors.New("no value found for Timestamp")
 	}
 
-	resp = valLiteral.GetText()
-	resp = strings.ReplaceAll(resp, "'", "")
+	resp := trimQuotes(valLiteral.GetText())
 	return resp, nil
+}
+
+func trimQuotes(s string) string {
+	if len(s) < 2 {
+		return s
+	}
+	if s[0] == '\'' && s[len(s)-1] == '\'' {
+		// string literals must be single quoted
+		return strings.ReplaceAll(s[1:len(s)-1], `''`, `'`)
+	} else {
+		return s
+	}
 }
 
 // GetTimestampInfo retrieves timestamp information from an insert query.
@@ -1843,9 +1786,7 @@ func getTimestampValue(spec cql.IUsingTtlTimestampContext) (string, error) {
 // Returns error if timestamp format is invalid or conversion fails.
 func GetTimestampInfo(queryStr string, insertObj cql.IInsertContext, index int32) (TimestampInfo, error) {
 	var timestampInfo TimestampInfo
-	lowerQuery := strings.ToLower(queryStr)
-	hasUsingTimestamp := hasUsingTimestamp(lowerQuery)
-	if hasUsingTimestamp {
+	if insertObj.UsingTtlTimestamp() != nil {
 		tsSpec := insertObj.UsingTtlTimestamp()
 		if tsSpec == nil {
 			return timestampInfo, errors.New("error parsing timestamp spec")
@@ -1889,10 +1830,9 @@ func convertToBigtableTimestamp(tsValue string, index int32) (TimestampInfo, err
 // GetTimestampInfoForRawDelete retrieves timestamp information for delete operations.
 // Extracts timestamp values from raw delete queries with validation.
 // Returns error if timestamp format is invalid or extraction fails.
-func GetTimestampInfoForRawDelete(queryStr string, deleteObj cql.IDelete_Context) (TimestampInfo, error) {
+func GetTimestampInfoForRawDelete(deleteObj cql.IDelete_Context) (TimestampInfo, error) {
 	var timestampInfo TimestampInfo
-	lowerQuery := strings.ToLower(queryStr)
-	hasUsingTimestamp := hasUsingTimestamp(lowerQuery)
+	hasUsingTimestamp := deleteObj.UsingTimestampSpec() != nil
 	timestampInfo.HasUsingTimestamp = false
 	if hasUsingTimestamp {
 		tsSpec := deleteObj.UsingTimestampSpec()
@@ -1921,12 +1861,10 @@ func GetTimestampInfoForRawDelete(queryStr string, deleteObj cql.IDelete_Context
 // GetTimestampInfoByUpdate retrieves timestamp information for update operations.
 // Extracts timestamp values from update queries with validation.
 // Returns error if timestamp format is invalid or extraction fails.
-func GetTimestampInfoByUpdate(queryStr string, updateObj cql.IUpdateContext) (TimestampInfo, error) {
+func GetTimestampInfoByUpdate(updateObj cql.IUpdateContext) (TimestampInfo, error) {
 	var timestampInfo TimestampInfo
 	ttlTimestampObj := updateObj.UsingTtlTimestamp()
-	lowerQuery := strings.ToLower(queryStr)
-	hasUsingTimestamp := hasUsingTimestamp(lowerQuery)
-	if ttlTimestampObj != nil && hasUsingTimestamp {
+	if ttlTimestampObj != nil {
 		tsValue, err := getTimestampValue(updateObj.UsingTtlTimestamp())
 		if err != nil {
 			return TimestampInfo{}, err
@@ -2686,7 +2624,7 @@ func parseCqlValue(expr antlr.ParserRuleContext) (interface{}, error) {
 func parseCqlConstant(c cql.IConstantContext) (interface{}, error) {
 
 	if c.StringLiteral() != nil {
-		return strings.Trim(c.StringLiteral().GetText(), "'"), nil
+		return trimQuotes(c.StringLiteral().GetText()), nil
 	}
 
 	if c.DecimalLiteral() != nil {

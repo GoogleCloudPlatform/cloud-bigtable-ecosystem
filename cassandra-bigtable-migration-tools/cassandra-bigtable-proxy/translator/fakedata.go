@@ -39,6 +39,7 @@ func GetSchemaMappingConfig(intRowKeyEncoding types.IntRowKeyEncodingType) *sche
 		{Name: "column8", CQLType: datatype.NewMapType(datatype.Varchar, datatype.Boolean), KeyType: utilities.KEY_TYPE_REGULAR},
 		{Name: "column9", CQLType: datatype.Bigint, KeyType: utilities.KEY_TYPE_REGULAR},
 		{Name: "blob_col", CQLType: datatype.Blob, KeyType: utilities.KEY_TYPE_REGULAR},
+		{Name: "text_col", CQLType: datatype.Varchar, KeyType: utilities.KEY_TYPE_REGULAR},
 		{Name: "bool_col", CQLType: datatype.Boolean, KeyType: utilities.KEY_TYPE_REGULAR},
 		{Name: "timestamp_col", CQLType: datatype.Timestamp, KeyType: utilities.KEY_TYPE_REGULAR},
 		{Name: "int_col", CQLType: datatype.Int, KeyType: utilities.KEY_TYPE_REGULAR},

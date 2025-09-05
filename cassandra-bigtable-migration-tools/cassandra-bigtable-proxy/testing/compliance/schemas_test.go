@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS bigtabledevinstance.user_info (
 	age bigint,
 	code int,
 	credited double,
+	text_col text,
 	balance float,
 	is_active boolean,
 	birth_date timestamp,

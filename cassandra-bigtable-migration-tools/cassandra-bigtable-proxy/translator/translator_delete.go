@@ -191,7 +191,7 @@ func parseColumnAndOperator(val cql.IRelationElementContext) (string, string, er
 		return "", "", err
 	}
 
-	colName := strings.ReplaceAll(colObj.GetText(), literalPlaceholder, "")
+	colName := colObj.GetText()
 	if colName == "" {
 		return "", "", errors.New("could not parse column name")
 	}
@@ -239,12 +239,12 @@ func handleColumnType(val cql.IRelationElementContext, columnType *types.Column,
 		return "", errors.New("could not parse value from query for one of the clauses")
 	}
 
-	value := strings.ReplaceAll(valConst.GetText(), "'", "")
+	value := trimQuotes(valConst.GetText())
 	if value == "" {
 		return "", errors.New("could not parse value from query for one of the clauses")
 	}
 
-	acctualVal := value
+	actualVal := value
 	if value != "?" {
 		formattedVal, err := formatValues(value, columnType.CQLType, 4)
 		if err != nil {
@@ -253,7 +253,7 @@ func handleColumnType(val cql.IRelationElementContext, columnType *types.Column,
 		params[placeholder] = formattedVal
 	}
 
-	return acctualVal, nil
+	return actualVal, nil
 }
 
 // TranslateDeleteQuerytoBigtable() translate the CQL Delete Query into bigtable mutation api equivalent.
@@ -262,9 +262,7 @@ func handleColumnType(val cql.IRelationElementContext, columnType *types.Column,
 //   - queryStr: CQL delete query with condition
 //
 // Returns: QueryClauses and an error if any.
-func (t *Translator) TranslateDeleteQuerytoBigtable(queryStr string, isPreparedQuery bool, sessionKeyspace string) (*DeleteQueryMapping, error) {
-	lowerQuery := strings.ToLower(queryStr)
-	query := renameLiterals(queryStr)
+func (t *Translator) TranslateDeleteQuerytoBigtable(query string, isPreparedQuery bool, sessionKeyspace string) (*DeleteQueryMapping, error) {
 	lexer := cql.NewCqlLexer(antlr.NewInputStream(query))
 	stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
 	p := cql.NewCqlParser(stream)
@@ -298,7 +296,7 @@ func (t *Translator) TranslateDeleteQuerytoBigtable(queryStr string, isPreparedQ
 	if err != nil {
 		return nil, err
 	}
-	timestampInfo, err := GetTimestampInfoForRawDelete(lowerQuery, deleteObj)
+	timestampInfo, err := GetTimestampInfoForRawDelete(deleteObj)
 	if err != nil {
 		return nil, err
 	}
@@ -313,7 +311,7 @@ func (t *Translator) TranslateDeleteQuerytoBigtable(queryStr string, isPreparedQ
 
 	var QueryClauses QueryClauses
 
-	if hasWhere(lowerQuery) {
+	if deleteObj.WhereSpec() != nil {
 		resp, err := parseClauseFromDelete(deleteObj.WhereSpec(), tableConfig)
 		if err != nil {
 			return nil, errors.New("TranslateDeletetQuerytoBigtable: Invalid Where clause condition")

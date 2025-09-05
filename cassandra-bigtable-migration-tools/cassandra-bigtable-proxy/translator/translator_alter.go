@@ -118,6 +118,9 @@ func (t *Translator) TranslateAlterTableToBigtable(query, sessionKeyspace string
 		if tableConfig.HasColumn(addColumn.Name) {
 			return nil, fmt.Errorf("column '%s' already exists in table", addColumn.Name)
 		}
+		if utilities.IsReservedCqlKeyword(addColumn.Name) {
+			return nil, fmt.Errorf("cannot alter a table with reserved keyword as column name: '%s'", addColumn.Name)
+		}
 	}
 
 	var stmt = AlterTableStatementMap{

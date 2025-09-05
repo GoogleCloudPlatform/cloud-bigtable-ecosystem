@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"strings"
 
 	methods "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/methods"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
@@ -173,6 +172,16 @@ func (t *Translator) TranslateCreateTableToBigtable(query, sessionKeyspace strin
 		}
 	}
 
+	if utilities.IsReservedCqlKeyword(tableName) {
+		return nil, fmt.Errorf("cannot create a table with reserved keyword as name: '%s'", tableName)
+	}
+
+	for _, column := range columns {
+		if utilities.IsReservedCqlKeyword(column.Name) {
+			return nil, fmt.Errorf("cannot create a table with reserved keyword as column name: '%s'", column.Name)
+		}
+	}
+
 	if len(pmks) == 0 {
 		return nil, errors.New("no primary key found in create table statement")
 	}
@@ -217,8 +226,4 @@ func createOptionsMap(withElement cql.IWithElementContext) map[string]string {
 		results[optionName] = optionValue
 	}
 	return results
-}
-
-func trimQuotes(s string) string {
-	return strings.Trim(s, "'")
 }

@@ -258,6 +258,14 @@ func TestTranslateAlterTableToBigtable(t *testing.T) {
 			error:           "table property operations are not supported",
 			defaultKeyspace: "",
 		},
+		{
+			name:            "add column with reserved keyword",
+			query:           "ALTER TABLE test_keyspace.user_info add table varchar",
+			tableConfig:     userInfoTable,
+			want:            nil,
+			error:           "cannot alter a table with reserved keyword as column name: 'table'",
+			defaultKeyspace: "",
+		},
 	}
 
 	for _, tt := range tests {

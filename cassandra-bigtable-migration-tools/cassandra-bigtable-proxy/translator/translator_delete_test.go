@@ -179,13 +179,13 @@ func TestTranslator_TranslateDeleteQuerytoBigtable(t *testing.T) {
 		{
 			name: "DELETE query with ifExists condition",
 			args: args{
-				queryStr: "DELETE FROM test_keyspace.user_info WHERE name='test' AND age=15 IF EXISTS",
+				queryStr: `DELETE FROM test_keyspace.user_info WHERE name='test' AND age=15 IF EXISTS`,
 			},
 			fields: fields{
 				SchemaMappingConfig: GetSchemaMappingConfig(types.OrderedCodeEncoding),
 			},
 			want: &DeleteQueryMapping{
-				Query:     "DELETE FROM test_keyspace.user_info WHERE name='test' AND age=15 IF EXISTS",
+				Query:     `DELETE FROM test_keyspace.user_info WHERE name='test' AND age=15 IF EXISTS`,
 				QueryType: "DELETE",
 				Table:     "user_info",
 				Keyspace:  "test_keyspace",
@@ -207,6 +207,45 @@ func TestTranslator_TranslateDeleteQuerytoBigtable(t *testing.T) {
 				ParamKeys:   []string{"value1", "value2"},
 				PrimaryKeys: []string{"name", "age"}, // assuming primary keys
 				RowKey:      "test\x00\x01\x8f",
+				IfExists:    true,
+			},
+			wantErr:         false,
+			defaultKeyspace: "test_keyspace",
+		},
+		{
+			name: "DELETE query with ifExists condition",
+			args: args{
+				queryStr: `DELETE FROM test_keyspace.user_info WHERE name='tes''t' AND age=15 IF EXISTS`,
+			},
+			fields: fields{
+				SchemaMappingConfig: GetSchemaMappingConfig(types.OrderedCodeEncoding),
+			},
+			want: &DeleteQueryMapping{
+				Query:     `DELETE FROM test_keyspace.user_info WHERE name='tes''t' AND age=15 IF EXISTS`,
+				QueryType: "DELETE",
+				Table:     "user_info",
+				Keyspace:  "test_keyspace",
+				Clauses: []types.Clause{
+					{
+						Column:       "name",
+						Operator:     "=",
+						Value:        "tes't",
+						IsPrimaryKey: true,
+					},
+					{
+						Column:       "age",
+						Operator:     "=",
+						Value:        "15",
+						IsPrimaryKey: true,
+					},
+				},
+				Params: map[string]interface{}{
+					"value1": []byte("tes't"),
+					"value2": formattedValue2,
+				},
+				ParamKeys:   []string{"value1", "value2"},
+				PrimaryKeys: []string{"name", "age"}, // assuming primary keys
+				RowKey:      "tes't\x00\x01\x8f",
 				IfExists:    true,
 			},
 			wantErr:         false,

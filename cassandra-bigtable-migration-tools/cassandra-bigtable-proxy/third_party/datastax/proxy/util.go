@@ -17,10 +17,6 @@
 package proxy
 
 import (
-	"fmt"
-	"regexp"
-	"strconv"
-	"strings"
 	"time"
 
 	types "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
@@ -46,12 +42,6 @@ type SystemQueryMetadataCache struct {
 	ColumnsSystemQueryMetadataCache  map[primitive.ProtocolVersion][]message.Row
 }
 
-// Compile a regular expression that matches the WHERE clause with at least one space before and after it.
-// The regex uses case-insensitive matching and captures everything after the WHERE clause.
-// \s+ matches one or more spaces before and after WHERE.
-// (.+) captures everything after WHERE and its trailing spaces.
-var whereRegex = regexp.MustCompile(`(?i)\s+WHERE\s+(.+)`)
-
 // addSecondsToCurrentTimestamp takes a number of seconds as input
 // and returns the current Unix timestamp plus the input time in seconds.
 func addSecondsToCurrentTimestamp(seconds int64) string {
@@ -72,28 +62,6 @@ func unixToISO(unixTimestamp int64) string {
 
 	// Format the time as an ISO 8601 string
 	return t.Format(time.RFC3339)
-}
-
-// ReplaceLimitValue replaces the limit placeholder in the query string with an actual value
-// if the limit is specified in the query parameters.
-func ReplaceLimitValue(query responsehandler.QueryMetadata) (responsehandler.QueryMetadata, error) {
-	if query.Limit.IsLimit {
-		if val, exists := query.Params[limitValue]; exists {
-			if val, ok := val.(int64); ok {
-				if val <= 0 {
-					return query, fmt.Errorf("LIMIT must be strictly positive")
-				}
-				query.Query = strings.ReplaceAll(query.Query, "@"+limitValue, strconv.FormatInt(val, 10))
-				delete(query.Params, limitValue)
-				return query, nil
-			} else {
-				return query, fmt.Errorf("LIMIT must be strictly positive")
-			}
-		} else {
-			return query, fmt.Errorf("limit values does not exist")
-		}
-	}
-	return query, nil
 }
 
 // GetSystemQueryMetadataCache converts structured metadata rows into a SystemQueryMetadataCache.
