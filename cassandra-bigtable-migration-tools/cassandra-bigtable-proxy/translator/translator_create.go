@@ -21,12 +21,10 @@ import (
 	"fmt"
 	"slices"
 
-	methods "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/methods"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	cql "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/third_party/cqlparser"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/utilities"
 	"github.com/antlr4-go/antlr/v4"
-	"github.com/datastax/go-cassandra-native-protocol/message"
 )
 
 const (
@@ -70,14 +68,14 @@ func (t *Translator) TranslateCreateTableToBigtable(query, sessionKeyspace strin
 	}
 
 	var pmks []CreateTablePrimaryKeyConfig
-	var columns []message.ColumnMetadata
+	var columns []types.CreateColumn
 
 	if createTableObj.ColumnDefinitionList().GetText() == "" {
 		return nil, errors.New("malformed create table statement")
 	}
 
 	for i, col := range createTableObj.ColumnDefinitionList().AllColumnDefinition() {
-		dt, err := methods.GetCassandraColumnType(col.DataType().GetText())
+		dt, isFrozen, err := utilities.GetCassandraColumnType(col.DataType().GetText())
 
 		if err != nil {
 			return nil, err
@@ -87,10 +85,9 @@ func (t *Translator) TranslateCreateTableToBigtable(query, sessionKeyspace strin
 			return nil, fmt.Errorf("column type '%s' is not supported", dt.String())
 		}
 
-		columns = append(columns, message.ColumnMetadata{
-			Table:    tableName,
-			Keyspace: keyspaceName,
+		columns = append(columns, types.CreateColumn{
 			Type:     dt,
+			IsFrozen: isFrozen,
 			Name:     col.Column().GetText(),
 			Index:    int32(i),
 		})
@@ -187,7 +184,7 @@ func (t *Translator) TranslateCreateTableToBigtable(query, sessionKeyspace strin
 	}
 
 	for _, pmk := range pmks {
-		colIndex := slices.IndexFunc(columns, func(col message.ColumnMetadata) bool {
+		colIndex := slices.IndexFunc(columns, func(col types.CreateColumn) bool {
 			return col.Name == pmk.Name
 		})
 		if colIndex == -1 {

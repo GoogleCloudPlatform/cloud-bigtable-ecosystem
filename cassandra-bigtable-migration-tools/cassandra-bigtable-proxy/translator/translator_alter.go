@@ -20,11 +20,10 @@ import (
 	"errors"
 	"fmt"
 
-	methods "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/methods"
+	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	cql "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/third_party/cqlparser"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/utilities"
 	"github.com/antlr4-go/antlr/v4"
-	"github.com/datastax/go-cassandra-native-protocol/message"
 )
 
 func (t *Translator) TranslateAlterTableToBigtable(query, sessionKeyspace string) (*AlterTableStatementMap, error) {
@@ -80,17 +79,16 @@ func (t *Translator) TranslateAlterTableToBigtable(query, sessionKeyspace string
 			dropColumns = append(dropColumns, dropColumn.GetText())
 		}
 	}
-	var addColumns []message.ColumnMetadata
+	var addColumns []types.CreateColumn
 	if alterTable.AlterTableOperation().AlterTableAdd() != nil {
 		for i, addColumn := range alterTable.AlterTableOperation().AlterTableAdd().AlterTableColumnDefinition().AllColumn() {
-			dt, err := methods.GetCassandraColumnType(alterTable.AlterTableOperation().AlterTableAdd().AlterTableColumnDefinition().DataType(i).GetText())
+			dt, isFrozen, err := utilities.GetCassandraColumnType(alterTable.AlterTableOperation().AlterTableAdd().AlterTableColumnDefinition().DataType(i).GetText())
 			if err != nil {
 				return nil, err
 			}
 
-			addColumns = append(addColumns, message.ColumnMetadata{
-				Table:    tableName,
-				Keyspace: keyspaceName,
+			addColumns = append(addColumns, types.CreateColumn{
+				IsFrozen: isFrozen,
 				Type:     dt,
 				Name:     addColumn.GetText(),
 				Index:    int32(i),

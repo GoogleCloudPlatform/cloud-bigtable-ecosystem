@@ -33,7 +33,6 @@ import (
 	"google.golang.org/grpc/status"
 
 	constants "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/constants"
-	methods "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/methods"
 	types "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	otelgo "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/otel"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/responsehandler"
@@ -492,7 +491,7 @@ func (btc *BigtableClient) AlterTable(ctx context.Context, data *translator.Alte
 	return nil
 }
 
-func (btc *BigtableClient) addColumnFamilies(columns []message.ColumnMetadata) (map[string]bigtable.Family, error) {
+func (btc *BigtableClient) addColumnFamilies(columns []types.CreateColumn) (map[string]bigtable.Family, error) {
 	columnFamilies := make(map[string]bigtable.Family)
 	for _, col := range columns {
 		if !utilities.IsCollection(col.Type) && col.Type != datatype.Counter {
@@ -520,7 +519,7 @@ func (btc *BigtableClient) addColumnFamilies(columns []message.ColumnMetadata) (
 	return columnFamilies, nil
 }
 
-func (btc *BigtableClient) updateTableSchema(ctx context.Context, keyspace string, tableName string, pmks []translator.CreateTablePrimaryKeyConfig, addCols []message.ColumnMetadata, dropCols []string) error {
+func (btc *BigtableClient) updateTableSchema(ctx context.Context, keyspace string, tableName string, pmks []translator.CreateTablePrimaryKeyConfig, addCols []types.CreateColumn, dropCols []string) error {
 	client, err := btc.getClient(keyspace)
 	if err != nil {
 		return err
@@ -542,6 +541,7 @@ func (btc *BigtableClient) updateTableSchema(ctx context.Context, keyspace strin
 		pmkIndex := slices.IndexFunc(pmks, func(c translator.CreateTablePrimaryKeyConfig) bool {
 			return c.Name == col.Name
 		})
+		mut.Set(schemaMappingTableColumnFamily, "IsFrozen", ts, []byte(strconv.FormatBool(col.IsFrozen)))
 		mut.Set(schemaMappingTableColumnFamily, "IsPrimaryKey", ts, []byte(strconv.FormatBool(pmkIndex != -1)))
 		if pmkIndex != -1 {
 			pmkConfig := pmks[pmkIndex]
@@ -697,6 +697,7 @@ func (btc *BigtableClient) ReadTableConfigs(ctx context.Context, keyspace string
 		// Extract the row key and column values
 		var tableName, columnName, columnType, KeyType string
 		var isPrimaryKey bool
+		var isFrozen bool
 		var pkPrecedence int
 		// Extract column values
 		for _, item := range row[schemaMappingTableColumnFamily] {
@@ -709,6 +710,8 @@ func (btc *BigtableClient) ReadTableConfigs(ctx context.Context, keyspace string
 				columnType = string(item.Value)
 			case schemaMappingTableColumnFamily + ":IsPrimaryKey":
 				isPrimaryKey = string(item.Value) == "true"
+			case schemaMappingTableColumnFamily + ":IsFrozen":
+				isFrozen = string(item.Value) == "true"
 			case schemaMappingTableColumnFamily + ":PK_Precedence":
 				pkPrecedence, readErr = strconv.Atoi(string(item.Value))
 				if readErr != nil {
@@ -718,7 +721,8 @@ func (btc *BigtableClient) ReadTableConfigs(ctx context.Context, keyspace string
 				KeyType = string(item.Value)
 			}
 		}
-		cqlType, err := methods.GetCassandraColumnType(columnType)
+		// we ignore the "isFrozen" returned value here because we don't serialize the frozen<...> type. We don't serialize the frozen type component because datatype.Datatype doesn't support it.
+		cqlType, _, err := utilities.GetCassandraColumnType(columnType)
 		if err != nil {
 			readErr = err
 			return false
@@ -729,6 +733,7 @@ func (btc *BigtableClient) ReadTableConfigs(ctx context.Context, keyspace string
 			Name:         columnName,
 			CQLType:      cqlType,
 			IsPrimaryKey: isPrimaryKey,
+			IsFrozen:     isFrozen,
 			PkPrecedence: pkPrecedence,
 			KeyType:      KeyType,
 		}

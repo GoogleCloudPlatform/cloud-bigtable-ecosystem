@@ -181,7 +181,7 @@ type CreateTableStatementMap struct {
 	Keyspace          string
 	Table             string
 	IfNotExists       bool
-	Columns           []message.ColumnMetadata
+	Columns           []types.CreateColumn
 	PrimaryKeys       []CreateTablePrimaryKeyConfig
 	IntRowKeyEncoding types.IntRowKeyEncodingType
 }
@@ -196,7 +196,7 @@ type AlterTableStatementMap struct {
 	Keyspace    string
 	Table       string
 	IfNotExists bool
-	AddColumns  []message.ColumnMetadata
+	AddColumns  []types.CreateColumn
 	DropColumns []string
 }
 
@@ -241,7 +241,7 @@ type UpdateSetValue struct {
 	Column       string
 	Value        string
 	ColumnFamily string
-	CQLType      string
+	CQLType      datatype.DataType
 	Encrypted    interface{}
 }
 

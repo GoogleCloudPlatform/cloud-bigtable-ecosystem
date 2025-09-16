@@ -108,6 +108,15 @@ CREATE TABLE IF NOT EXISTS bigtabledevinstance.social_posts (
 	PRIMARY KEY (user_id, id)
 );
 `,
+		`
+CREATE TABLE IF NOT EXISTS bigtabledevinstance.frozen_table (
+	name varchar,
+	list_nums frozen<list<int>>,
+	map_text frozen<map<text, text>>,
+	set_text frozen<set<text>>,
+	PRIMARY KEY (name)
+);
+`,
 	}
 
 	if testTarget == TestTargetProxy {

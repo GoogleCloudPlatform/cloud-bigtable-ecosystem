@@ -2293,21 +2293,20 @@ func Test_parseGroupByColumn(t *testing.T) {
 
 func Test_dtAllowedInAggregate(t *testing.T) {
 	tests := []struct {
-		dataType string
+		dataType datatype.DataType
 		expected bool
 	}{
-		{"int", true},
-		{"bigint", true},
-		{"float", true},
-		{"double", true},
-		{"text", false},
-		{"boolean", false},
-		{"timestamp", false},
-		{"", false},
+		{datatype.Int, true},
+		{datatype.Bigint, true},
+		{datatype.Float, true},
+		{datatype.Double, true},
+		{datatype.Varchar, false},
+		{datatype.Boolean, false},
+		{datatype.Timestamp, false},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.dataType, func(t *testing.T) {
+		t.Run(tt.dataType.String(), func(t *testing.T) {
 			got := dtAllowedInAggregate(tt.dataType)
 			if got != tt.expected {
 				t.Errorf("dtAllowedInAggregate(%q) = %v, want %v", tt.dataType, got, tt.expected)

@@ -23,7 +23,6 @@ import (
 	schemaMapping "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/schema-mapping"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/utilities"
 	"github.com/datastax/go-cassandra-native-protocol/datatype"
-	"github.com/datastax/go-cassandra-native-protocol/message"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -54,12 +53,10 @@ func TestTranslateAlterTableToBigtable(t *testing.T) {
 				Table:     "user_info",
 				Keyspace:  "test_keyspace",
 				QueryType: "alter",
-				AddColumns: []message.ColumnMetadata{{
-					Keyspace: "test_keyspace",
-					Table:    "user_info",
-					Name:     "firstname",
-					Index:    0,
-					Type:     datatype.Varchar,
+				AddColumns: []types.CreateColumn{{
+					Name:  "firstname",
+					Index: 0,
+					Type:  datatype.Varchar,
 				}},
 			},
 			error:           "",
@@ -73,12 +70,10 @@ func TestTranslateAlterTableToBigtable(t *testing.T) {
 				Table:     "user_info",
 				Keyspace:  "test_keyspace",
 				QueryType: "alter",
-				AddColumns: []message.ColumnMetadata{{
-					Keyspace: "test_keyspace",
-					Table:    "user_info",
-					Name:     "firstname",
-					Index:    0,
-					Type:     datatype.Varchar,
+				AddColumns: []types.CreateColumn{{
+					Name:  "firstname",
+					Index: 0,
+					Type:  datatype.Varchar,
 				}},
 			},
 			error:           "",
@@ -108,18 +103,14 @@ func TestTranslateAlterTableToBigtable(t *testing.T) {
 				Table:     "user_info",
 				Keyspace:  "test_keyspace",
 				QueryType: "alter",
-				AddColumns: []message.ColumnMetadata{{
-					Keyspace: "test_keyspace",
-					Table:    "user_info",
-					Name:     "firstname",
-					Index:    0,
-					Type:     datatype.Varchar,
+				AddColumns: []types.CreateColumn{{
+					Name:  "firstname",
+					Index: 0,
+					Type:  datatype.Varchar,
 				}, {
-					Keyspace: "test_keyspace",
-					Table:    "user_info",
-					Name:     "number_of_cats",
-					Index:    1,
-					Type:     datatype.Int,
+					Name:  "number_of_cats",
+					Index: 1,
+					Type:  datatype.Int,
 				}},
 			},
 			error:           "",
@@ -133,18 +124,14 @@ func TestTranslateAlterTableToBigtable(t *testing.T) {
 				Table:     "user_info",
 				Keyspace:  "test_keyspace",
 				QueryType: "alter",
-				AddColumns: []message.ColumnMetadata{{
-					Keyspace: "test_keyspace",
-					Table:    "user_info",
-					Name:     "firstname",
-					Index:    0,
-					Type:     datatype.Varchar,
+				AddColumns: []types.CreateColumn{{
+					Name:  "firstname",
+					Index: 0,
+					Type:  datatype.Varchar,
 				}, {
-					Keyspace: "test_keyspace",
-					Table:    "user_info",
-					Name:     "number_of_toes",
-					Index:    1,
-					Type:     datatype.Int,
+					Name:  "number_of_toes",
+					Index: 1,
+					Type:  datatype.Int,
 				}},
 			},
 			error:           "",

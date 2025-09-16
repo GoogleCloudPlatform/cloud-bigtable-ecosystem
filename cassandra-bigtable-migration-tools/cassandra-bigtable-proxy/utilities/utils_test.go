@@ -26,6 +26,7 @@ import (
 	"github.com/datastax/go-cassandra-native-protocol/datatype"
 	"github.com/datastax/go-cassandra-native-protocol/primitive"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestIsCollectionDataType(t *testing.T) {
@@ -1019,6 +1020,89 @@ func TestIsSupportedColumnType(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			got := IsSupportedColumnType(tc.input)
 			assert.Equal(t, tc.expected, got)
+		})
+	}
+}
+
+func TestGetCassandraColumnType(t *testing.T) {
+	testCases := []struct {
+		input        string
+		wantType     datatype.DataType
+		wantIsFrozen bool
+		wantErr      bool
+	}{
+		{"text", datatype.Varchar, false, false},
+		{"blob", datatype.Blob, false, false},
+		{"timestamp", datatype.Timestamp, false, false},
+		{"int", datatype.Int, false, false},
+		{"float", datatype.Float, false, false},
+		{"double", datatype.Double, false, false},
+		{"bigint", datatype.Bigint, false, false},
+		{"boolean", datatype.Boolean, false, false},
+		{"uuid", datatype.Uuid, false, false},
+		{"map<text, boolean>", datatype.NewMapType(datatype.Varchar, datatype.Boolean), false, false},
+		{"map<varchar, boolean>", datatype.NewMapType(datatype.Varchar, datatype.Boolean), false, false},
+		{"map<text, text>", datatype.NewMapType(datatype.Varchar, datatype.Varchar), false, false},
+		{"map<text, varchar>", datatype.NewMapType(datatype.Varchar, datatype.Varchar), false, false},
+		{"map<varchar,text>", datatype.NewMapType(datatype.Varchar, datatype.Varchar), false, false},
+		{"map<varchar, varchar>", datatype.NewMapType(datatype.Varchar, datatype.Varchar), false, false},
+		{"map<varchar>", nil, false, true},
+		{"map<varchar,varchar,varchar>", nil, false, true},
+		{"list<text>", datatype.NewListType(datatype.Varchar), false, false},
+		{"list<varchar>", datatype.NewListType(datatype.Varchar), false, false},
+		{"frozen<list<text>>", datatype.NewListType(datatype.Varchar), true, false},
+		{"frozen<list<varchar>>", datatype.NewListType(datatype.Varchar), true, false},
+		{"set<text>", datatype.NewSetType(datatype.Varchar), false, false},
+		{"set<text", nil, false, true},
+		{"set<", nil, false, true},
+		{"set<varchar>", datatype.NewSetType(datatype.Varchar), false, false},
+		{"frozen<set<text>>", datatype.NewSetType(datatype.Varchar), true, false},
+		{"frozen<set<varchar>>", datatype.NewSetType(datatype.Varchar), true, false},
+		{"unknown", nil, false, true},
+		{"", nil, false, true},
+		{"<>list", nil, false, true},
+		{"<int>", nil, false, true},
+		{"map<map<text,int>", nil, false, true},
+		// Future scope items below:
+		{"map<text, int>", datatype.NewMapType(datatype.Varchar, datatype.Int), false, false},
+		{"map<varchar, int>", datatype.NewMapType(datatype.Varchar, datatype.Int), false, false},
+		{"map<text, bigint>", datatype.NewMapType(datatype.Varchar, datatype.Bigint), false, false},
+		{"map<varchar, bigint>", datatype.NewMapType(datatype.Varchar, datatype.Bigint), false, false},
+		{"map<text, float>", datatype.NewMapType(datatype.Varchar, datatype.Float), false, false},
+		{"map<varchar, float>", datatype.NewMapType(datatype.Varchar, datatype.Float), false, false},
+		{"map<text, double>", datatype.NewMapType(datatype.Varchar, datatype.Double), false, false},
+		{"map<varchar, double>", datatype.NewMapType(datatype.Varchar, datatype.Double), false, false},
+		{"map<text, timestamp>", datatype.NewMapType(datatype.Varchar, datatype.Timestamp), false, false},
+		{"map<varchar, timestamp>", datatype.NewMapType(datatype.Varchar, datatype.Timestamp), false, false},
+		{"map<timestamp, text>", datatype.NewMapType(datatype.Timestamp, datatype.Varchar), false, false},
+		{"map<timestamp, varchar>", datatype.NewMapType(datatype.Timestamp, datatype.Varchar), false, false},
+		{"map<timestamp, boolean>", datatype.NewMapType(datatype.Timestamp, datatype.Boolean), false, false},
+		{"map<timestamp, int>", datatype.NewMapType(datatype.Timestamp, datatype.Int), false, false},
+		{"map<timestamp, bigint>", datatype.NewMapType(datatype.Timestamp, datatype.Bigint), false, false},
+		{"map<timestamp, float>", datatype.NewMapType(datatype.Timestamp, datatype.Float), false, false},
+		{"map<timestamp, double>", datatype.NewMapType(datatype.Timestamp, datatype.Double), false, false},
+		{"map<timestamp, timestamp>", datatype.NewMapType(datatype.Timestamp, datatype.Timestamp), false, false},
+		{"set<int>", datatype.NewSetType(datatype.Int), false, false},
+		{"set<bigint>", datatype.NewSetType(datatype.Bigint), false, false},
+		{"set<float>", datatype.NewSetType(datatype.Float), false, false},
+		{"set<double>", datatype.NewSetType(datatype.Double), false, false},
+		{"set<boolean>", datatype.NewSetType(datatype.Boolean), false, false},
+		{"set<timestamp>", datatype.NewSetType(datatype.Timestamp), false, false},
+		{"set<text>", datatype.NewSetType(datatype.Varchar), false, false},
+		{"set<varchar>", datatype.NewSetType(datatype.Varchar), false, false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.input, func(t *testing.T) {
+			gotType, gotIsFrozen, err := GetCassandraColumnType(tc.input)
+			if tc.wantErr {
+				require.Error(t, err)
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, tc.wantType, gotType)
+			assert.Equal(t, tc.wantIsFrozen, gotIsFrozen)
 		})
 	}
 }

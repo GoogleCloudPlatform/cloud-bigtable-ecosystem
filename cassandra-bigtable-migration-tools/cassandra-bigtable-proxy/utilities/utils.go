@@ -18,6 +18,7 @@ package utilities
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -575,5 +576,94 @@ func IsSupportedColumnType(dt datatype.DataType) bool {
 		return isSupportedCollectionElementType(listType.GetElementType())
 	default:
 		return false
+	}
+}
+
+var cqlGenericTypeRegex = regexp.MustCompile(`^(\w+)<(.+)>$`)
+
+// GetCassandraColumnType converts a string representation of a Cassandra data type into
+// a corresponding DataType value. It supports a range of common Cassandra data types,
+// including text, blob, timestamp, int, bigint, boolean, uuid, various map and list types.
+//
+// Parameters:
+//   - typeStr: A string representing the Cassandra column data type. This function expects
+//     the data type in a specific format (e.g., "text", "int", "map<text, boolean>").
+//
+// Returns:
+//   - datatype.DataType: The corresponding DataType value for the provided string.
+//     This is used to represent the Cassandra data type in a structured format within Go.
+//   - bool: true if is frozen
+//   - error: An error is returned if the provided string does not match any of the known
+//     Cassandra data types. This helps in identifying unsupported or incorrectly specified
+//     data types.
+func GetCassandraColumnType(typeStr string) (datatype.DataType, bool, error) {
+	typeStr = strings.ToLower(strings.ReplaceAll(typeStr, " ", ""))
+
+	matches := cqlGenericTypeRegex.FindStringSubmatch(typeStr)
+	if matches != nil {
+		switch matches[1] {
+		case "frozen":
+			innerType, _, err := GetCassandraColumnType(matches[2])
+			if err != nil {
+				return nil, false, fmt.Errorf("failed to extract type for '%s': %w", typeStr, err)
+			}
+			if !IsCollection(innerType) {
+				return nil, false, fmt.Errorf("failed to extract type for '%s': frozen types must be a collection", typeStr)
+			}
+			return innerType, true, nil
+		case "list":
+			innerType, _, err := GetCassandraColumnType(matches[2])
+			if err != nil {
+				return nil, false, fmt.Errorf("failed to extract type for '%s': %w", typeStr, err)
+			}
+			return datatype.NewListType(innerType), false, nil
+		case "set":
+			innerType, _, err := GetCassandraColumnType(matches[2])
+			if err != nil {
+				return nil, false, fmt.Errorf("failed to extract type for '%s': %w", typeStr, err)
+			}
+			return datatype.NewSetType(innerType), false, nil
+		case "map":
+			parts := strings.SplitN(matches[2], ",", 2)
+			if len(parts) != 2 {
+				return nil, false, fmt.Errorf("failed to extract type for '%s': malformed map type", typeStr)
+			}
+			keyType, _, err := GetCassandraColumnType(parts[0])
+			if err != nil {
+				return nil, false, fmt.Errorf("failed to extract type for '%s': %w", typeStr, err)
+			}
+			valueType, _, err := GetCassandraColumnType(parts[1])
+			if err != nil {
+				return nil, false, fmt.Errorf("failed to extract type for '%s': %w", typeStr, err)
+			}
+			return datatype.NewMapType(keyType, valueType), false, nil
+		default:
+			return nil, false, fmt.Errorf("unsupported generic column type: %s in type %s", matches[1], typeStr)
+		}
+	}
+
+	switch typeStr {
+	case "text", "varchar":
+		return datatype.Varchar, false, nil
+	case "blob":
+		return datatype.Blob, false, nil
+	case "timestamp":
+		return datatype.Timestamp, false, nil
+	case "int":
+		return datatype.Int, false, nil
+	case "bigint":
+		return datatype.Bigint, false, nil
+	case "boolean":
+		return datatype.Boolean, false, nil
+	case "uuid":
+		return datatype.Uuid, false, nil
+	case "float":
+		return datatype.Float, false, nil
+	case "double":
+		return datatype.Double, false, nil
+	case "counter":
+		return datatype.Counter, false, nil
+	default:
+		return nil, false, fmt.Errorf("unsupported column type: %s", typeStr)
 	}
 }

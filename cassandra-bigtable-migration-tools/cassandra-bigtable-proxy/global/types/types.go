@@ -26,9 +26,18 @@ type Column struct {
 	CQLType      datatype.DataType
 	// todo remove this field because it's redundant - you can use PkPrecedence or KeyType to infer this
 	IsPrimaryKey bool
+	// datatype.Datatype doesn't support Frozen types so we're tracking that here - not great but rewriting the types system isn't worth the effort.
+	IsFrozen     bool
 	PkPrecedence int
 	KeyType      string
 	Metadata     message.ColumnMetadata
+}
+
+type CreateColumn struct {
+	Name     string
+	Index    int32
+	IsFrozen bool
+	Type     datatype.DataType
 }
 
 type Clause struct {

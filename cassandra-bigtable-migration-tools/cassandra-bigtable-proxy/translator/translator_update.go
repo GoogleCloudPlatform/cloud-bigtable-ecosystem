@@ -23,7 +23,6 @@ import (
 	"strconv"
 	"strings"
 
-	methods "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/methods"
 	types "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	schemaMapping "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/schema-mapping"
 	cql "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/third_party/cqlparser"
@@ -195,15 +194,11 @@ func parseAssignments(assignments []cql.IAssignmentElementContext, tableConfig *
 				params["set"+strconv.Itoa(i+1)] = val
 			}
 			paramKeys = append(paramKeys, "set"+strconv.Itoa(i+1))
-			cqlTypeStr, err := methods.ConvertCQLDataTypeToString(column.CQLType)
-			if err != nil {
-				return nil, err
-			}
 			setResp = append(setResp, UpdateSetValue{
 				Column:    columnName,
 				Value:     "@set" + strconv.Itoa(i+1),
 				Encrypted: val,
-				CQLType:   cqlTypeStr,
+				CQLType:   column.CQLType,
 			})
 			continue // Prevent falling through to the rest of the loop
 		} else if setVal.SyntaxBracketLs() != nil && setVal.DecimalLiteral() != nil && setVal.SyntaxBracketRs() != nil && setVal.Constant() != nil {
@@ -257,15 +252,11 @@ func parseAssignments(assignments []cql.IAssignmentElementContext, tableConfig *
 			val = value
 		}
 		paramKeys = append(paramKeys, "set"+strconv.Itoa(i+1))
-		cqlTypeStr, err := methods.ConvertCQLDataTypeToString(column.CQLType)
-		if err != nil {
-			return nil, err
-		}
 		setResp = append(setResp, UpdateSetValue{
 			Column:    columnName,
 			Value:     "@set" + strconv.Itoa(i+1),
 			Encrypted: val,
-			CQLType:   cqlTypeStr,
+			CQLType:   column.CQLType,
 		})
 	}
 	return &UpdateSetResponse{
@@ -383,11 +374,7 @@ func (t *Translator) TranslateUpdateQuerytoBigtable(query string, isPreparedQuer
 	var columns []types.Column
 	for _, val := range setValues.UpdateSetValues {
 		values = append(values, val.Encrypted)
-		cqlType, err := methods.GetCassandraColumnType(val.CQLType)
-		if err != nil {
-			return nil, err
-		}
-		columns = append(columns, types.Column{Name: val.Column, ColumnFamily: t.SchemaMappingConfig.SystemColumnFamily, CQLType: cqlType})
+		columns = append(columns, types.Column{Name: val.Column, ColumnFamily: t.SchemaMappingConfig.SystemColumnFamily, CQLType: val.CQLType})
 	}
 	var newValues []interface{} = values
 	var newColumns []types.Column = columns
