@@ -79,7 +79,7 @@ public class SmokeTestIT {
       String insertQuery = String.format(
           "INSERT INTO %s (column1, column2, column3, column4, column5) VALUES (?, ?, ?, ?, ?)",
           qualifiedTestTableName);
-      LOGGER.info("Inserting data with query: " + insertQuery);
+      LOGGER.info("Preparing query: " + insertQuery);
       PreparedStatement preparedInsert = session.prepare(insertQuery);
 
       // Insert
@@ -90,6 +90,7 @@ public class SmokeTestIT {
           .setInt("column3", 12345)
           .setDouble("column4", 1234.5d)
           .setLong("column5", 12345L);
+      LOGGER.info("Inserting row 1");
       session.execute(boundInsert1);
 
       BoundStatement boundInsert2 = preparedInsert
@@ -99,6 +100,7 @@ public class SmokeTestIT {
           .setInt("column3", 67890)
           .setDouble("column4", 6789.0d)
           .setLong("column5", 67890L);
+      LOGGER.info("Inserting row 2");
       session.execute(boundInsert2);
 
       // Query for all entries
@@ -106,6 +108,7 @@ public class SmokeTestIT {
       LOGGER.info("Selecting data with query: " + selectQuery);
       ResultSet resultSet = session.execute(selectQuery);
 
+      LOGGER.info("Inspecting result set");
       Assertions.assertNotNull(resultSet);
 
       List<Row> rows = getRows(resultSet);
