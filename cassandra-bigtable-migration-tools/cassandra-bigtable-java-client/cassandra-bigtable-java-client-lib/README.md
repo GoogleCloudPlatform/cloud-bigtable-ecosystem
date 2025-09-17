@@ -4,7 +4,7 @@ The Cassandra to Bigtable Client for Java lets you integrate your Cassandra-base
 
 # How to include this dependency in your code
 
-Add the following dependency to your Maven `pom.xml`, replacing `VERSION-HERE` with the latest version
+Add the following dependency to your Maven `pom.xml`, replacing `VERSION-HERE` with the latest version. The latest version is: `0.1.4`.
 
 ```xml
 <dependencyManagement>
@@ -19,8 +19,6 @@ Add the following dependency to your Maven `pom.xml`, replacing `VERSION-HERE` w
   </dependencies>
 </dependencyManagement>
 ```
-
-The latest version is: `0.1.3`.
 
 Then, add the dependencies below to your Maven `pom.xml` file (replacing `SPECIFY-CLASSIFIER-HERE` with one from [this list of classifiers](#classifiers)):
 
