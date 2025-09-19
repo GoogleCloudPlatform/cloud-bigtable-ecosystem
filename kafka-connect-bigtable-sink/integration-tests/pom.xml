@@ -188,10 +188,7 @@
                     <parallel>classes</parallel>
                     <useUnlimitedThreads>true</useUnlimitedThreads>
                     <environmentVariables>
-                        <!-- TODO: remove it when transitioning to kokoro. -->
-                        <GOOGLE_APPLICATION_CREDENTIALS>target/test-classes/fake_service_key.json</GOOGLE_APPLICATION_CREDENTIALS>
-                        <!-- TODO: remove it when transitioning to kokoro, use a real Cloud Bigtable instance instead -->
-                        <BIGTABLE_EMULATOR_HOST>localhost:8086</BIGTABLE_EMULATOR_HOST>
+<!--                        <BIGTABLE_EMULATOR_HOST>localhost:8086</BIGTABLE_EMULATOR_HOST>-->
                         <INTEGRATION_TEST_PLUGINS_PATH>${integration.test.plugin.path}</INTEGRATION_TEST_PLUGINS_PATH>
                     </environmentVariables>
                 </configuration>

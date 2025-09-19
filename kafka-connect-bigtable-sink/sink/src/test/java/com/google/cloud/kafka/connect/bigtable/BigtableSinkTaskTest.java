@@ -469,7 +469,7 @@ public class BigtableSinkTaskTest {
   }
 
   @Test
-  public void testUpsertRows() {
+  public void testUpsertRows() throws InterruptedException  {
     Map<String, String> props = BasicPropertiesFactory.getTaskProps();
     int maxBatchSize = 3;
     int totalRecords = 1000;
@@ -547,10 +547,10 @@ public class BigtableSinkTaskTest {
 
     assertEquals(input.keySet(), output.keySet());
     verify(okBatcher, times(1)).add(any());
-    verify(okBatcher, times(1)).sendOutstanding();
+    verify(okBatcher, times(1)).flush();
     assertTotalNumberOfInvocations(okBatcher, 2);
     verify(errorBatcher, times(1)).add(any());
-    verify(errorBatcher, times(1)).sendOutstanding();
+    verify(errorBatcher, times(1)).flush();
     assertTotalNumberOfInvocations(errorBatcher, 2);
 
     output.get(okRecord).get();
@@ -558,7 +558,7 @@ public class BigtableSinkTaskTest {
   }
 
   @Test
-  public void testPutBranches() {
+  public void testPutBranches()throws InterruptedException  {
     SinkRecord record1 = new SinkRecord("table1", 1, null, null, null, null, 1);
     SinkRecord record2 = new SinkRecord("table2", 1, null, null, null, null, 2);
 

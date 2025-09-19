@@ -67,19 +67,22 @@ import org.slf4j.LoggerFactory;
  * Cloud Bigtable.
  */
 public class BigtableSinkTask extends SinkTask {
+
   private BigtableSinkTaskConfig config;
   private BigtableDataClient bigtableData;
   private BigtableTableAdminClientInterface bigtableAdmin;
   private KeyMapper keyMapper;
   private ValueMapper valueMapper;
   private BigtableSchemaManager schemaManager;
-  @VisibleForTesting protected final Map<String, Batcher<RowMutationEntry, Void>> batchers;
-  @VisibleForTesting protected Logger logger = LoggerFactory.getLogger(BigtableSinkTask.class);
+  @VisibleForTesting
+  protected final Map<String, Batcher<RowMutationEntry, Void>> batchers;
+  @VisibleForTesting
+  protected Logger logger = LoggerFactory.getLogger(BigtableSinkTask.class);
 
   /**
    * A default empty constructor. Initialization methods such as {@link BigtableSinkTask#start(Map)}
-   * or {@link SinkTask#initialize(SinkTaskContext)} must be called before {@link
-   * BigtableSinkTask#put(Collection)} can be called. Kafka Connect handles it well.
+   * or {@link SinkTask#initialize(SinkTaskContext)} must be called before
+   * {@link BigtableSinkTask#put(Collection)} can be called. Kafka Connect handles it well.
    */
   public BigtableSinkTask() {
     this(null, null, null, null, null, null, null);
@@ -183,7 +186,11 @@ public class BigtableSinkTask extends SinkTask {
         insertRows(mutations, perRecordResults);
         break;
       case UPSERT:
-        upsertRows(mutations, perRecordResults);
+        try {
+          upsertRows(mutations, perRecordResults);
+        } catch (InterruptedException e) {
+          throw new RuntimeException(e);
+        }
         break;
     }
     handleResults(perRecordResults);
@@ -313,8 +320,8 @@ public class BigtableSinkTask extends SinkTask {
    * Generates a {@link Map} with desired key ordering.
    *
    * @param map A {@link Map} to be sorted.
-   * @param order A {@link Collection} defining desired order of the output {@link Map}. Must be a
-   *     superset of {@code mutations}'s key set.
+   * @param order A {@link Collection} defining desired order of the output {@link Map}. Must be
+   *     a superset of {@code mutations}'s key set.
    * @return A {@link Map} with the same keys and corresponding values as {@code map} with the same
    *     key ordering as {@code order}.
    */
@@ -394,7 +401,8 @@ public class BigtableSinkTask extends SinkTask {
    */
   @VisibleForTesting
   void upsertRows(
-      Map<SinkRecord, MutationData> mutations, Map<SinkRecord, Future<Void>> perRecordResults) {
+      Map<SinkRecord, MutationData> mutations, Map<SinkRecord, Future<Void>> perRecordResults)
+      throws InterruptedException {
     List<Map.Entry<SinkRecord, MutationData>> mutationsToApply =
         new ArrayList<>(mutations.entrySet());
     int maxBatchSize = config.getInt(BigtableSinkTaskConfig.MAX_BATCH_SIZE_CONFIG);
@@ -409,8 +417,7 @@ public class BigtableSinkTask extends SinkTask {
       for (Batcher<RowMutationEntry, Void> b : batchers.values()) {
         // We flush the batchers to ensure that no unsent requests remain in the batchers
         // after this method returns to make the behavior more predictable.
-        // We flush asynchronously and await the results instead.
-        b.sendOutstanding();
+        b.flush();
       }
     }
   }
@@ -424,7 +431,7 @@ public class BigtableSinkTask extends SinkTask {
   @VisibleForTesting
   void performUpsertBatch(
       List<Map.Entry<SinkRecord, MutationData>> batch,
-      Map<SinkRecord, Future<Void>> perRecordResults) {
+      Map<SinkRecord, Future<Void>> perRecordResults) throws InterruptedException {
     logger.trace("upsertBatch(#records={})", batch.size());
     for (Map.Entry<SinkRecord, MutationData> recordEntry : batch) {
       SinkRecord record = recordEntry.getKey();
@@ -437,8 +444,7 @@ public class BigtableSinkTask extends SinkTask {
     }
     for (Batcher<RowMutationEntry, Void> batcher : batchers.values()) {
       // We must flush the batchers to respect CONFIG_MAX_BATCH_SIZE.
-      // We flush asynchronously and await the results instead.
-      batcher.sendOutstanding();
+      batcher.flush();
     }
   }
 

@@ -59,10 +59,8 @@ public abstract class BaseIT {
             + ProducerConfig.BUFFER_MEMORY_CONFIG,
         String.valueOf(maxKafkaMessageSizeBytes));
 
-    // TODO: get it from environment variables after migrating to kokoro.
-    result.put(GCP_PROJECT_ID_CONFIG, "todotodo");
-    result.put(BIGTABLE_INSTANCE_ID_CONFIG, "todotodo");
-    // TODO: fix it when transitioning to kokoro.
+    result.put(GCP_PROJECT_ID_CONFIG, System.getenv("PROJECT_ID"));
+    result.put(BIGTABLE_INSTANCE_ID_CONFIG, System.getenv("INSTANCE_ID"));
     result.put(
         BigtableSinkConfig.GCP_CREDENTIALS_PATH_CONFIG,
         Objects.requireNonNull(System.getenv(CREDENTIALS_PATH_ENV_VAR)));
