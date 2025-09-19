@@ -188,7 +188,6 @@
                     <parallel>classes</parallel>
                     <useUnlimitedThreads>true</useUnlimitedThreads>
                     <environmentVariables>
-<!--                        <BIGTABLE_EMULATOR_HOST>localhost:8086</BIGTABLE_EMULATOR_HOST>-->
                         <INTEGRATION_TEST_PLUGINS_PATH>${integration.test.plugin.path}</INTEGRATION_TEST_PLUGINS_PATH>
                     </environmentVariables>
                 </configuration>
