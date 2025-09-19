@@ -189,6 +189,7 @@ public class BigtableSinkTask extends SinkTask {
         try {
           upsertRows(mutations, perRecordResults);
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           throw new ConnectException("Upsert operation interrupted", e);
         }
         break;
