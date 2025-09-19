@@ -59,8 +59,8 @@ public abstract class BaseIT {
             + ProducerConfig.BUFFER_MEMORY_CONFIG,
         String.valueOf(maxKafkaMessageSizeBytes));
 
-    result.put(GCP_PROJECT_ID_CONFIG, System.getenv("PROJECT_ID"));
-    result.put(BIGTABLE_INSTANCE_ID_CONFIG, System.getenv("INSTANCE_ID"));
+    result.put(GCP_PROJECT_ID_CONFIG, Objects.requireNonNull(System.getenv("PROJECT_ID"), "PROJECT_ID environment variable must be set."));
+    result.put(BIGTABLE_INSTANCE_ID_CONFIG, Objects.requireNonNull(System.getenv("INSTANCE_ID"), "INSTANCE_ID environment variable must be set."));
     result.put(
         BigtableSinkConfig.GCP_CREDENTIALS_PATH_CONFIG,
         Objects.requireNonNull(System.getenv(CREDENTIALS_PATH_ENV_VAR)));
