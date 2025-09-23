@@ -20,7 +20,7 @@ limitations under the License.
     <artifactId>cassandra-bigtable-java-client-parent</artifactId>
     <groupId>com.google.cloud</groupId>
     <packaging>pom</packaging>
-    <version>0.1.5</version><!-- {x-version-update:cassandra-bigtable-java-client-parent:current} -->
+    <version>0.1.6-SNAPSHOT</version><!-- {x-version-update:cassandra-bigtable-java-client-parent:current} -->
     <url>https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem</url>
     <description>
         Parent project for Cassandra to Bigtable Client for Java
