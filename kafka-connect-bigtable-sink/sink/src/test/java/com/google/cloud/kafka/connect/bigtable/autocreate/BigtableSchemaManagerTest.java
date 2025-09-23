@@ -36,8 +36,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.google.api.core.ApiFuture;
-import com.google.bigtable.admin.v2.GcRule;
-import com.google.cloud.bigtable.admin.v2.models.ColumnFamily;
 import com.google.cloud.bigtable.admin.v2.models.CreateTableRequest;
 import com.google.cloud.bigtable.admin.v2.models.GCRules;
 import com.google.cloud.bigtable.admin.v2.models.ModifyColumnFamiliesRequest;
@@ -680,7 +678,7 @@ public class BigtableSchemaManagerTest {
 
   private static MutationData spoofSinkRecordOutput(
       String targetTable, Set<String> columnFamilies) {
-    return new MutationData(targetTable, null, null, columnFamilies);
+    return new MutationData(targetTable, record, null, null, columnFamilies);
   }
 
   private boolean createTableMockRefersTable(String tableName, CreateTableRequest ctr) {

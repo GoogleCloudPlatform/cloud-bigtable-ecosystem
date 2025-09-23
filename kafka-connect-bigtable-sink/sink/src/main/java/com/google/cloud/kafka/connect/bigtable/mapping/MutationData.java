@@ -17,31 +17,41 @@ package com.google.cloud.kafka.connect.bigtable.mapping;
 
 import com.google.cloud.bigtable.data.v2.models.Mutation;
 import com.google.cloud.bigtable.data.v2.models.RowMutationEntry;
+import com.google.cloud.bigtable.data.v2.models.TableId;
+import com.google.cloud.bigtable.data.v2.models.TargetId;
 import com.google.protobuf.ByteString;
 import java.util.Set;
+import org.apache.kafka.connect.sink.SinkRecord;
 
 /**
  * A class representing single Kafka {@link org.apache.kafka.connect.sink.SinkRecord SinkRecord's}
  * output to be written into Cloud Bigtable.
  */
 public class MutationData {
-  private final String targetTable;
+  private final TableId targetTable;
+  private final SinkRecord record;
   private final ByteString rowKey;
   private final Mutation mutation;
   private final Set<String> requiredColumnFamilies;
 
   public MutationData(
-      String targetTable,
+      TableId targetTable,
+      SinkRecord record,
       ByteString rowKey,
       Mutation mutation,
       Set<String> requiredColumnFamilies) {
     this.targetTable = targetTable;
+    this.record = record;
     this.rowKey = rowKey;
     this.mutation = mutation;
     this.requiredColumnFamilies = requiredColumnFamilies;
   }
 
-  public String getTargetTable() {
+  public SinkRecord getRecord() {
+    return record;
+  }
+
+  public TableId getTargetTable() {
     return targetTable;
   }
 

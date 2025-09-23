@@ -41,18 +41,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A class responsible for the creation of Cloud Bigtable {@link Table Table(s)} and {@link
- * ColumnFamily ColumnFamily(s)} needed by the transformed Kafka Connect records.
+ * A class responsible for the creation of Cloud Bigtable {@link Table Table(s)} and
+ * {@link ColumnFamily ColumnFamily(s)} needed by the transformed Kafka Connect records.
  *
  * <p>This class contains nontrivial logic since we try to avoid API calls if possible.
  *
  * <p>This class does not automatically rediscover deleted resources. If another user of the Cloud
  * Bigtable instance deletes a table or a column, the sink using an instance of this class to
- * auto-create the resources, might end up sending requests targeting nonexistent {@link Table
- * Table(s)} and/or {@link ColumnFamily ColumnFamily(s)}.
+ * auto-create the resources, might end up sending requests targeting nonexistent
+ * {@link Table Table(s)} and/or {@link ColumnFamily ColumnFamily(s)}.
  */
 public class BigtableSchemaManager {
-  @VisibleForTesting protected Logger logger = LoggerFactory.getLogger(BigtableSchemaManager.class);
+
+  @VisibleForTesting
+  protected Logger logger = LoggerFactory.getLogger(BigtableSchemaManager.class);
 
   private final BigtableTableAdminClientInterface bigtable;
 
@@ -61,17 +63,17 @@ public class BigtableSchemaManager {
    * families within these tables as the values.
    *
    * <p>We have a single data structure for table and column family caches to ensure that they are
-   * consistent.<br>
-   * An {@link Optional#empty()} value means that a table exists, but we don't know what column
-   * families it contains.
+   * consistent.<br> An {@link Optional#empty()} value means that a table exists, but we don't know
+   * what column families it contains.
    */
-  @VisibleForTesting protected Map<String, Optional<Set<String>>> tableNameToColumnFamilies;
+  @VisibleForTesting
+  protected Map<String, Optional<Set<String>>> tableNameToColumnFamilies;
 
   /**
    * The default constructor.
    *
-   * @param bigtable The Cloud Bigtable admin client used to auto-create {@link Table Table(s)} and
-   *     {@link ColumnFamily ColumnFamily(s)}.
+   * @param bigtable The Cloud Bigtable admin client used to auto-create {@link Table Table(s)}
+   *     and {@link ColumnFamily ColumnFamily(s)}.
    */
   public BigtableSchemaManager(BigtableTableAdminClientInterface bigtable) {
     this.bigtable = bigtable;
@@ -82,12 +84,12 @@ public class BigtableSchemaManager {
    * Ensures that all the {@link Table Table(s)} needed by the input records exist by attempting to
    * create the missing ones.
    *
-   * @param recordsAndOutputs A {@link Map} containing {@link SinkRecord SinkRecord(s)} and their
-   *     matching {@link MutationData} specifying which {@link Table Table(s)} need to exist.
+   * @param recordsAndOutputs A {@link Map} containing {@link SinkRecord SinkRecord(s)} and
+   *     their matching {@link MutationData} specifying which {@link Table Table(s)} need to exist.
    * @return A {@link ResourceCreationResult} containing {@link SinkRecord SinkRecord(s)} for whose
    *     {@link MutationData} auto-creation of {@link Table Table(s)} failed.
    */
-  public ResourceCreationResult ensureTablesExist(Map<SinkRecord, MutationData> recordsAndOutputs) {
+  public ResourceCreationResult ensureTablesExist(Collection<MutationData> recordsAndOutputs) {
     Map<String, List<SinkRecord>> recordsByTableNames = getTableNamesToRecords(recordsAndOutputs);
 
     Map<String, List<SinkRecord>> recordsByMissingTableNames =
@@ -122,15 +124,15 @@ public class BigtableSchemaManager {
    * <p>This method will not try to create missing {@link Table Table(s)} tables if some of the
    * needed ones do not exist, but it will handle that case gracefully.
    *
-   * @param recordsAndOutputs A {@link Map} containing {@link SinkRecord SinkRecord(s)} and their
-   *     matching {@link MutationData} specifying which {@link ColumnFamily ColumnFamily(s)} need to
-   *     exist.
+   * @param recordsAndOutputs A {@link Map} containing {@link SinkRecord SinkRecord(s)} and
+   *     their matching {@link MutationData} specifying which {@link ColumnFamily ColumnFamily(s)}
+   *     need to exist.
    * @return A {@link ResourceCreationResult} containing {@link SinkRecord SinkRecord(s)} for whose
-   *     {@link MutationData} needed {@link Table Table(s)} are missing or auto-creation of {@link
-   *     ColumnFamily ColumnFamily(s)} failed.
+   *     {@link MutationData} needed {@link Table Table(s)} are missing or auto-creation of
+   *     {@link ColumnFamily ColumnFamily(s)} failed.
    */
   public ResourceCreationResult ensureColumnFamiliesExist(
-      Map<SinkRecord, MutationData> recordsAndOutputs) {
+      Collection<MutationData> recordsAndOutputs) {
     Map<Map.Entry<String, String>, List<SinkRecord>> recordsByColumnFamilies =
         getTableColumnFamiliesToRecords(recordsAndOutputs);
 
@@ -142,7 +144,7 @@ public class BigtableSchemaManager {
     logger.debug("Missing {} column families", recordsByMissingColumnFamilies.size());
     Map<ApiFuture<Table>, ResourceAndRecords<Map.Entry<String, String>>>
         recordsByCreateColumnFamilyFutures =
-            sendCreateColumnFamilyRequests(recordsByMissingColumnFamilies);
+        sendCreateColumnFamilyRequests(recordsByMissingColumnFamilies);
 
     // No cache update here since the requests are handled by Cloud Bigtable in a random order.
     // We ignore errors to handle races between multiple tasks of a single connector
@@ -172,11 +174,11 @@ public class BigtableSchemaManager {
    *     that need these tables to exist.
    */
   private static Map<String, List<SinkRecord>> getTableNamesToRecords(
-      Map<SinkRecord, MutationData> recordsAndOutputs) {
+      Collection<MutationData> recordsAndOutputs) {
     Map<String, List<SinkRecord>> tableNamesToRecords = new HashMap<>();
-    for (Map.Entry<SinkRecord, MutationData> rowEntry : recordsAndOutputs.entrySet()) {
-      SinkRecord record = rowEntry.getKey();
-      String tableName = rowEntry.getValue().getTargetTable();
+    for (MutationData mut : recordsAndOutputs) {
+      SinkRecord record = mut.getRecord();
+      String tableName = mut.getTargetTable().toString();
       List<SinkRecord> records =
           tableNamesToRecords.computeIfAbsent(tableName, k -> new ArrayList<>());
       records.add(record);
@@ -192,13 +194,12 @@ public class BigtableSchemaManager {
    *     and column families to exist.
    */
   private static Map<Map.Entry<String, String>, List<SinkRecord>> getTableColumnFamiliesToRecords(
-      Map<SinkRecord, MutationData> recordsAndOutputs) {
+      Collection<MutationData> recordsAndOutputs) {
     Map<Map.Entry<String, String>, List<SinkRecord>> tableColumnFamiliesToRecords = new HashMap<>();
-    for (Map.Entry<SinkRecord, MutationData> e : recordsAndOutputs.entrySet()) {
-      SinkRecord record = e.getKey();
-      MutationData recordMutationData = e.getValue();
-      String tableName = recordMutationData.getTargetTable();
-      for (String columnFamily : recordMutationData.getRequiredColumnFamilies()) {
+    for (MutationData mut : recordsAndOutputs) {
+      SinkRecord record = mut.getRecord();
+      String tableName = mut.getTargetTable().toString();
+      for (String columnFamily : mut.getRequiredColumnFamilies()) {
         Map.Entry<String, String> key =
             new AbstractMap.SimpleImmutableEntry<>(tableName, columnFamily);
         List<SinkRecord> records =
@@ -246,8 +247,8 @@ public class BigtableSchemaManager {
    * <p>Note that it deletes the entries from the cache if the tables disappeared and that it
    * doesn't modify column family caches of tables that aren't provided as an argument.
    *
-   * @param tablesRequiringRefresh A {@link Set} of table names whose column family caches will be
-   *     refreshed.
+   * @param tablesRequiringRefresh A {@link Set} of table names whose column family caches will
+   *     be refreshed.
    */
   @VisibleForTesting
   void refreshTableColumnFamiliesCache(Set<String> tablesRequiringRefresh) {
@@ -293,8 +294,8 @@ public class BigtableSchemaManager {
   }
 
   /**
-   * @param tableNamesToRecords A {@link Map} containing Cloud Bigtable table names and {@link
-   *     SinkRecord SinkRecords} that need these tables to exist.
+   * @param tableNamesToRecords A {@link Map} containing Cloud Bigtable table names and
+   *     {@link SinkRecord SinkRecords} that need these tables to exist.
    * @return A subset of the input argument with the entries corresponding to existing tables
    *     removed.
    */
@@ -306,8 +307,8 @@ public class BigtableSchemaManager {
   }
 
   /**
-   * @param tableColumnFamiliesToRecords A {@link Map} containing {@link Map.Entry} consisting of
-   *     Bigtable table names and column families and {@link SinkRecord SinkRecords} that need to
+   * @param tableColumnFamiliesToRecords A {@link Map} containing {@link Map.Entry} consisting
+   *     of Bigtable table names and column families and {@link SinkRecord SinkRecords} that need to
    *     use these tables and column families to exist.
    * @return A subset of the input argument with the entries corresponding to existing column
    *     families removed.
@@ -339,8 +340,8 @@ public class BigtableSchemaManager {
   }
 
   private Map<ApiFuture<Table>, ResourceAndRecords<Map.Entry<String, String>>>
-      sendCreateColumnFamilyRequests(
-          Map<Map.Entry<String, String>, List<SinkRecord>> recordsByMissingColumnFamilies) {
+  sendCreateColumnFamilyRequests(
+      Map<Map.Entry<String, String>, List<SinkRecord>> recordsByMissingColumnFamilies) {
     Map<ApiFuture<Table>, ResourceAndRecords<Map.Entry<String, String>>> result = new HashMap<>();
     for (Map.Entry<Map.Entry<String, String>, List<SinkRecord>> e :
         recordsByMissingColumnFamilies.entrySet()) {
@@ -387,12 +388,12 @@ public class BigtableSchemaManager {
    *
    * @param resourceCreationFuturesAndRecords {@link Map} of {@link ApiFuture ApiFuture(s)} and
    *     information what resource is created and for which {@link SinkRecord SinkRecord(s)}.
-   * @param errorMessageTemplate The Java format string template of error message with which Cloud
-   *     Bigtable exceptions for valid input data are logged.
-   * @return A {@link Set} of {@link SinkRecord SinkRecord(s)} for which auto resource creation
-   *     failed due to their invalid data.
+   * @param errorMessageTemplate The Java format string template of error message with which
+   *     Cloud Bigtable exceptions for valid input data are logged.
    * @param <Fut> {@link ApiFuture} containing result of the resource creation operation.
    * @param <Id> The resources' type identifier.
+   * @return A {@link Set} of {@link SinkRecord SinkRecord(s)} for which auto resource creation
+   *     failed due to their invalid data.
    */
   @VisibleForTesting
   <Fut extends ApiFuture<?>, Id> Set<SinkRecord> awaitResourceCreationAndHandleInvalidInputErrors(
@@ -427,6 +428,7 @@ public class BigtableSchemaManager {
    */
   @VisibleForTesting
   static class ResourceAndRecords<Id> {
+
     private final Id resource;
     private final List<SinkRecord> records;
 
@@ -455,6 +457,7 @@ public class BigtableSchemaManager {
    */
   @VisibleForTesting
   static class SchemaApiExceptions {
+
     /**
      * @param t Exception thrown by some function using Cloud Bigtable API.
      * @return true if input exception was caused by invalid Cloud Bigtable request, false

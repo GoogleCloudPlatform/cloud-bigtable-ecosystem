@@ -15,6 +15,7 @@
  */
 package com.google.cloud.kafka.connect.bigtable.config;
 
+import com.google.api.gax.batching.BatchingSettings;
 import com.google.api.gax.core.CredentialsProvider;
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.api.gax.retrying.RetrySettings;
@@ -37,6 +38,7 @@ import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -52,8 +54,6 @@ import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.config.ConfigValue;
 import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.connect.errors.RetriableException;
-import org.threeten.bp.Duration;
-import org.threeten.bp.temporal.ChronoUnit;
 
 /**
  * A class defining the configuration of {@link
@@ -69,6 +69,7 @@ public class BigtableSinkConfig extends AbstractConfig {
   public static final String BIGTABLE_APP_PROFILE_ID_CONFIG = "gcp.bigtable.app.profile.id";
   public static final String INSERT_MODE_CONFIG = "insert.mode";
   public static final String MAX_BATCH_SIZE_CONFIG = "max.batch.size";
+  public static final String BATCH_DELAY_THRESHOLD_MS = "batch.delay.threshold.ms";
   public static final String VALUE_NULL_MODE_CONFIG = "value.null.mode";
   public static final String ERROR_MODE_CONFIG = "error.mode";
   public static final String TABLE_NAME_FORMAT_CONFIG = "table.name.format";
@@ -87,9 +88,9 @@ public class BigtableSinkConfig extends AbstractConfig {
           BIGTABLE_INSTANCE_ID_CONFIG,
           BIGTABLE_APP_PROFILE_ID_CONFIG);
   private static final Duration BIGTABLE_CREDENTIALS_CHECK_TIMEOUT =
-      Duration.of(2, ChronoUnit.SECONDS);
+      Duration.ofSeconds(2);
   private static final Duration BIGTABLE_ADMIN_API_WRITE_RETRY_INITIAL_DELAY =
-      Duration.of(100, ChronoUnit.MILLIS);
+      Duration.ofMillis(100);
   private static final double BIGTABLE_CLIENT_RETRY_DELAY_MULTIPLIER = 1.5;
 
   protected BigtableSinkConfig(ConfigDef definition, Map<String, String> properties) {
@@ -529,11 +530,23 @@ public class BigtableSinkConfig extends AbstractConfig {
       dataSettingsBuilder.setAppProfileId(appProfileId);
     }
 
+
     EnhancedBigtableStubSettings.Builder dataStubSettings = dataSettingsBuilder.stubSettings();
+
+    Duration batchDelay = Duration.ofMillis(getLong(BATCH_DELAY_THRESHOLD_MS));
+
+    BatchingSettings batchingSettings = BatchingSettings.newBuilder()
+        .setRequestByteThreshold(getLong(MAX_BATCH_SIZE_CONFIG))
+        // todo investigate flow control
+        .setDelayThresholdDuration(batchDelay)
+        .build();
+
     dataStubSettings.setHeaderProvider(getHeaderProvider());
     dataStubSettings.mutateRowSettings().setRetrySettings(retrySettings);
     dataStubSettings.checkAndMutateRowSettings().setRetrySettings(retrySettings);
-    dataStubSettings.bulkMutateRowsSettings().setRetrySettings(retrySettings);
+    dataStubSettings.bulkMutateRowsSettings()
+        .setRetrySettings(retrySettings)
+        .setBatchingSettings(batchingSettings);
     dataStubSettings.readRowSettings().setRetrySettings(retrySettings);
     dataStubSettings.readRowsSettings().setRetrySettings(retrySettings);
     dataStubSettings.bulkReadRowsSettings().setRetrySettings(retrySettings);
@@ -620,9 +633,9 @@ public class BigtableSinkConfig extends AbstractConfig {
    */
   protected RetrySettings getRetrySettings(Duration totalTimeout, Duration initialDelay) {
     return RetrySettings.newBuilder()
-        .setTotalTimeout(totalTimeout)
-        .setInitialRetryDelay(initialDelay)
-        .setMaxRetryDelay(totalTimeout)
+        .setTotalTimeoutDuration(totalTimeout)
+        .setInitialRetryDelayDuration(initialDelay)
+        .setMaxRetryDelayDuration(totalTimeout)
         .setRetryDelayMultiplier(BIGTABLE_CLIENT_RETRY_DELAY_MULTIPLIER)
         .build();
   }
@@ -632,7 +645,7 @@ public class BigtableSinkConfig extends AbstractConfig {
    *     BigtableSinkConfig#getDefinition()}.
    */
   private Duration getTotalRetryTimeout() {
-    return Duration.of(getLong(RETRY_TIMEOUT_MILLIS_CONFIG), ChronoUnit.MILLIS);
+    return Duration.ofMillis(getLong(RETRY_TIMEOUT_MILLIS_CONFIG));
   }
 
   /**

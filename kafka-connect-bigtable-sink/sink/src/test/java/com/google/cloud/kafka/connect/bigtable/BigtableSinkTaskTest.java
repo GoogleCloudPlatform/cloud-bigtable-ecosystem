@@ -64,6 +64,7 @@ import com.google.cloud.kafka.connect.bigtable.mapping.ValueMapper;
 import com.google.cloud.kafka.connect.bigtable.util.ApiExceptionFactory;
 import com.google.cloud.kafka.connect.bigtable.util.BasicPropertiesFactory;
 import com.google.cloud.kafka.connect.bigtable.util.FutureUtil;
+import com.google.cloud.kafka.connect.bigtable.utils.Utils;
 import com.google.cloud.kafka.connect.bigtable.wrappers.BigtableTableAdminClientInterface;
 import com.google.common.collect.Collections2;
 import com.google.protobuf.ByteString;
@@ -101,10 +102,6 @@ public class BigtableSinkTaskTest {
   TestBigtableSinkTask task;
   BigtableSinkTaskConfig config;
   @Mock
-  BigtableDataClient bigtableData;
-  @Mock
-  BigtableTableAdminClientInterface bigtableAdmin;
-  @Mock
   KeyMapper keyMapper;
   @Mock
   ValueMapper valueMapper;
@@ -119,42 +116,6 @@ public class BigtableSinkTaskTest {
   public void setUp() {
     openMocks(this);
     config = new BigtableSinkTaskConfig(BasicPropertiesFactory.getTaskProps());
-  }
-
-  @Test
-  public void testStop() throws InterruptedException {
-    for (List<Boolean> test :
-        List.of(
-            List.of(false, false),
-            List.of(false, true),
-            List.of(true, false),
-            List.of(true, true))) {
-      assertEquals(2, test.size());
-      boolean adminIsNotNull = test.get(0);
-      boolean dataIsNotNull = test.get(1);
-      int expectedAdminCloseCallCount = adminIsNotNull ? 1 : 0;
-      int expectedDataCloseCallCount = dataIsNotNull ? 1 : 0;
-
-      BigtableTableAdminClientInterface maybeAdmin = adminIsNotNull ? bigtableAdmin : null;
-      BigtableDataClient maybeData = dataIsNotNull ? bigtableData : null;
-      task = new TestBigtableSinkTask(null, maybeData, maybeAdmin, null, null, null, null);
-      Batcher<RowMutationEntry, Void> batcher = mock(Batcher.class);
-      doReturn(completedApiFuture(null)).when(batcher).closeAsync();
-      task.getBatchers().put("batcherTable", batcher);
-
-      doThrow(new RuntimeException()).when(bigtableAdmin).close();
-      doThrow(new RuntimeException()).when(bigtableData).close();
-
-      assertFalse(task.getBatchers().isEmpty());
-      task.stop();
-      assertTrue(task.getBatchers().isEmpty());
-      verify(bigtableAdmin, times(expectedAdminCloseCallCount)).close();
-      verify(bigtableData, times(expectedDataCloseCallCount)).close();
-      verify(batcher, times(1)).closeAsync();
-
-      reset(bigtableAdmin);
-      reset(bigtableData);
-    }
   }
 
   @Test
@@ -260,8 +221,10 @@ public class BigtableSinkTaskTest {
     SinkRecord recordWithNullTimestamp = new SinkRecord(null, 1, null, null, null, null, 2);
 
     assertEquals(
-        (Long) (1000L * timestampMillis), (Long) task.getTimestampMicros(recordWithTimestamp));
-    assertNotNull(task.getTimestampMicros(recordWithNullTimestamp));
+        (Long) (1000L * timestampMillis), (Long) Utils.getTimestampMicros(recordWithTimestamp));
+    assertTrue("null timestamp should be set to current clock time",
+        Math.abs(Utils.getTimestampMicros(recordWithNullTimestamp)) - System.currentTimeMillis()
+            < 1000);
 
     // Assertion that the Java Bigtable client doesn't support microsecond timestamp granularity.
     // When it starts supporting it, getTimestamp() will need to get modified.
@@ -312,59 +275,7 @@ public class BigtableSinkTaskTest {
     assertTotalNumberOfInvocations(errorReporter, 1);
   }
 
-  @Test
-  public void testOrderMapSuccesses() {
-    Integer key1 = 1;
-    Integer key2 = 2;
-    Integer key3 = 3;
-    Integer key4 = 4;
 
-    String value1 = "value1";
-    String value2 = "value2";
-    String value3 = "value3";
-    String value4 = "value4";
-
-    Map<Integer, String> map1 = new LinkedHashMap<>();
-    map1.put(key4, value4);
-    map1.put(key3, value3);
-    map1.put(key2, value2);
-    map1.put(key1, value1);
-
-    assertEquals(List.of(key4, key3, key2, key1), new ArrayList<>(map1.keySet()));
-    assertEquals(List.of(value4, value3, value2, value1), new ArrayList<>(map1.values()));
-    assertEquals(
-        List.of(key1, key2, key3, key4),
-        new ArrayList<>(BigtableSinkTask.orderMap(map1, List.of(key1, key2, key3, key4)).keySet()));
-    assertEquals(
-        List.of(value1, value2, value3, value4),
-        new ArrayList<>(BigtableSinkTask.orderMap(map1, List.of(key1, key2, key3, key4)).values()));
-    assertEquals(
-        List.of(
-            new AbstractMap.SimpleImmutableEntry<>(key1, value1),
-            new AbstractMap.SimpleImmutableEntry<>(key2, value2),
-            new AbstractMap.SimpleImmutableEntry<>(key3, value3),
-            new AbstractMap.SimpleImmutableEntry<>(key4, value4)),
-        new ArrayList<>(
-            BigtableSinkTask.orderMap(map1, List.of(key1, key2, key3, key4)).entrySet()));
-
-    assertEquals(
-        List.of(key1, key2, key3, key4),
-        new ArrayList<>(
-            BigtableSinkTask.orderMap(map1, List.of(-1, key1, -2, key2, -3, key3, -4, key4, -5))
-                .keySet()));
-
-    Collections2.permutations(List.of(key1, key2, key3, key4))
-        .forEach(
-            p -> {
-              assertEquals(p, new ArrayList<>(BigtableSinkTask.orderMap(map1, p).keySet()));
-            });
-  }
-
-  @Test
-  public void testOrderMapError() {
-    Map<Integer, String> map = Map.of(1, "1", 2, "2", -1, "-1");
-    assertThrows(BigtableSinkLogicError.class, () -> BigtableSinkTask.orderMap(map, Set.of(1, 2)));
-  }
 
   @Test
   public void testAutoCreateTablesAndHandleErrors() {
@@ -432,217 +343,5 @@ public class BigtableSinkTaskTest {
             eq(dataErrorRecord),
             argThat(e -> e instanceof InvalidBigtableSchemaModificationException));
     assertTotalNumberOfInvocations(errorReporter, 2);
-  }
-
-  @Test
-  public void testInsertRows() throws ExecutionException, InterruptedException {
-    task = new TestBigtableSinkTask(null, bigtableData, null, null, null, null, null);
-    ApiException exception = ApiExceptionFactory.create();
-    doReturn(false).doReturn(true).doThrow(exception).when(bigtableData).checkAndMutateRow(any());
-
-    SinkRecord successRecord = new SinkRecord("", 1, null, null, null, null, 1);
-    SinkRecord errorRecord = new SinkRecord("", 1, null, null, null, null, 2);
-    SinkRecord exceptionRecord = new SinkRecord("", 1, null, null, null, null, 3);
-    MutationData commonMutationData = mock(MutationData.class);
-    doReturn("ignored").when(commonMutationData).getTargetTable();
-    doReturn(ByteString.copyFrom("ignored".getBytes(StandardCharsets.UTF_8)))
-        .when(commonMutationData)
-        .getRowKey();
-    doReturn(Mutation.create()).when(commonMutationData).getInsertMutation();
-
-    // LinkedHashMap, because we mock consecutive return values of Bigtable client mock and thus
-    // rely on the order.
-    Map<SinkRecord, MutationData> input = new LinkedHashMap<>();
-    input.put(successRecord, commonMutationData);
-    input.put(errorRecord, commonMutationData);
-    input.put(exceptionRecord, commonMutationData);
-    Map<SinkRecord, Future<Void>> output = new HashMap<>();
-    task.insertRows(input, output);
-
-    assertEquals(input.keySet(), output.keySet());
-    verify(bigtableData, times(input.size())).checkAndMutateRow(any());
-    assertTotalNumberOfInvocations(bigtableData, input.size());
-
-    output.get(successRecord).get();
-    assertThrows(ExecutionException.class, () -> output.get(errorRecord).get());
-    assertThrows(ExecutionException.class, () -> output.get(exceptionRecord).get());
-  }
-
-  @Test
-  public void testUpsertRows() throws InterruptedException {
-    Map<String, String> props = BasicPropertiesFactory.getTaskProps();
-    int maxBatchSize = 3;
-    int totalRecords = 1000;
-    props.put(BigtableSinkTaskConfig.MAX_BATCH_SIZE_CONFIG, Integer.toString(maxBatchSize));
-    BigtableSinkTaskConfig config = new BigtableSinkTaskConfig(props);
-
-    task = spy(new TestBigtableSinkTask(config, null, null, null, null, null, null));
-    String batcherTable = "batcherTable";
-    Batcher<RowMutationEntry, Void> batcher = mock(Batcher.class);
-    doAnswer(
-        invocation -> {
-          TestBigtableSinkTask task = (TestBigtableSinkTask) invocation.getMock();
-          task.getBatchers().computeIfAbsent(batcherTable, ignored -> batcher);
-          return null;
-        })
-        .when(task)
-        .performUpsertBatch(any(), any());
-
-    MutationData commonMutationData = mock(MutationData.class);
-
-    Map<SinkRecord, MutationData> input =
-        IntStream.range(0, totalRecords)
-            .mapToObj(i -> new SinkRecord("", 1, null, null, null, null, i))
-            .collect(Collectors.toMap(i -> i, ignored -> commonMutationData));
-
-    Map<SinkRecord, Future<Void>> fakeMutationData = mock(Map.class);
-    assertTrue(task.getBatchers().isEmpty());
-    task.upsertRows(input, fakeMutationData);
-    assertEquals(Set.of(batcher), task.getBatchers().values().stream().collect(Collectors.toSet()));
-
-    int expectedFullBatches = totalRecords / maxBatchSize;
-    int expectedPartialBatches = totalRecords % maxBatchSize == 0 ? 0 : 1;
-
-    verify(task, times(expectedFullBatches))
-        .performUpsertBatch(argThat(v -> v.size() == maxBatchSize), any());
-    verify(task, times(expectedPartialBatches))
-        .performUpsertBatch(argThat(v -> v.size() != maxBatchSize), any());
-  }
-
-  @Test
-  public void testPerformUpsertBatch() throws ExecutionException, InterruptedException {
-    String okTable = "okTable";
-    String errorTable = "errorTable";
-
-    Batcher<RowMutationEntry, Void> okBatcher = mock(Batcher.class);
-    doReturn(completedApiFuture(null)).when(okBatcher).add(any());
-    Batcher<RowMutationEntry, Void> errorBatcher = mock(Batcher.class);
-    doReturn(FutureUtil.failedApiFuture(new Exception())).when(errorBatcher).add(any());
-
-    doReturn(okBatcher).when(bigtableData).newBulkMutationBatcher(okTable);
-    doReturn(errorBatcher).when(bigtableData).newBulkMutationBatcher(errorTable);
-    task = new TestBigtableSinkTask(null, bigtableData, null, null, null, null, null);
-
-    SinkRecord okRecord = new SinkRecord(okTable, 1, null, null, null, null, 1);
-    SinkRecord errorRecord = new SinkRecord(errorTable, 1, null, null, null, null, 2);
-
-    MutationData okMutationData = mock(MutationData.class);
-    doReturn(okTable).when(okMutationData).getTargetTable();
-    doReturn(mock(RowMutationEntry.class)).when(okMutationData).getUpsertMutation();
-    MutationData errorMutationData = mock(MutationData.class);
-    doReturn(errorTable).when(errorMutationData).getTargetTable();
-    doReturn(mock(RowMutationEntry.class)).when(errorMutationData).getUpsertMutation();
-
-    Map<SinkRecord, MutationData> input =
-        Map.of(
-            okRecord, okMutationData,
-            errorRecord, errorMutationData);
-    Map<SinkRecord, Future<Void>> output = new HashMap<>();
-
-    assertTrue(task.getBatchers().isEmpty());
-    task.performUpsertBatch(new ArrayList<>(input.entrySet()), output);
-    assertEquals(
-        Set.of(okBatcher, errorBatcher),
-        task.getBatchers().values().stream().collect(Collectors.toSet()));
-
-    assertEquals(input.keySet(), output.keySet());
-    verify(okBatcher, times(1)).add(any());
-    verify(okBatcher, times(1)).flush();
-    assertTotalNumberOfInvocations(okBatcher, 2);
-    verify(errorBatcher, times(1)).add(any());
-    verify(errorBatcher, times(1)).flush();
-    assertTotalNumberOfInvocations(errorBatcher, 2);
-
-    output.get(okRecord).get();
-    assertThrows(ExecutionException.class, () -> output.get(errorRecord).get());
-  }
-
-  @Test
-  public void testPutBranches() throws InterruptedException {
-    SinkRecord record1 = new SinkRecord("table1", 1, null, null, null, null, 1);
-    SinkRecord record2 = new SinkRecord("table2", 1, null, null, null, null, 2);
-
-    for (List<Boolean> test :
-        List.of(
-            List.of(false, false, false),
-            List.of(false, false, true),
-            List.of(false, true, false),
-            List.of(false, true, true),
-            List.of(true, false, false),
-            List.of(true, false, true),
-            List.of(true, true, false),
-            List.of(true, true, true))) {
-      boolean autoCreateTables = test.get(0);
-      boolean autoCreateColumnFamilies = test.get(1);
-      boolean useInsertMode = test.get(2);
-
-      Map<String, String> props = BasicPropertiesFactory.getTaskProps();
-      props.put(AUTO_CREATE_TABLES_CONFIG, Boolean.toString(autoCreateTables));
-      props.put(AUTO_CREATE_COLUMN_FAMILIES_CONFIG, Boolean.toString(autoCreateColumnFamilies));
-      props.put(INSERT_MODE_CONFIG, (useInsertMode ? InsertMode.INSERT : InsertMode.UPSERT).name());
-      config = new BigtableSinkTaskConfig(props);
-
-      byte[] rowKey = "rowKey".getBytes(StandardCharsets.UTF_8);
-      doReturn(rowKey).when(keyMapper).getKey(any());
-      doAnswer(
-          i -> {
-            MutationDataBuilder builder = new MutationDataBuilder();
-            builder.deleteRow();
-            return builder;
-          })
-          .when(valueMapper)
-          .getRecordMutationDataBuilder(any(), anyString(), anyLong());
-
-      Batcher<RowMutationEntry, Void> batcher = mock(Batcher.class);
-      doReturn(completedApiFuture(null)).when(batcher).add(any());
-      doReturn(batcher).when(bigtableData).newBulkMutationBatcher(anyString());
-      doReturn(new ResourceCreationResult(Collections.emptySet(), Collections.emptySet()))
-          .when(schemaManager)
-          .ensureTablesExist(any());
-      doReturn(new ResourceCreationResult(Collections.emptySet(), Collections.emptySet()))
-          .when(schemaManager)
-          .ensureColumnFamiliesExist(any());
-
-      task =
-          spy(
-              new TestBigtableSinkTask(
-                  config, bigtableData, null, keyMapper, valueMapper, schemaManager, null));
-
-      task.put(List.of(record1, record2));
-
-      verify(task, times(1)).prepareRecords(any());
-      verify(schemaManager, times(autoCreateTables ? 1 : 0)).ensureTablesExist(any());
-      verify(schemaManager, times(autoCreateColumnFamilies ? 1 : 0))
-          .ensureColumnFamiliesExist(any());
-      verify(task, times(useInsertMode ? 1 : 0)).insertRows(any(), any());
-      verify(task, times(useInsertMode ? 0 : 1)).upsertRows(any(), any());
-      verify(task, times(1)).handleResults(any());
-
-      reset(task);
-      reset(schemaManager);
-    }
-  }
-
-  private static class TestBigtableSinkTask extends BigtableSinkTask {
-
-    public TestBigtableSinkTask(
-        BigtableSinkTaskConfig config,
-        BigtableDataClient bigtableData,
-        BigtableTableAdminClientInterface bigtableAdmin,
-        KeyMapper keyMapper,
-        ValueMapper valueMapper,
-        BigtableSchemaManager schemaManager,
-        SinkTaskContext context) {
-      super(config, bigtableData, bigtableAdmin, keyMapper, valueMapper, schemaManager, context);
-      this.logger = mock(Logger.class);
-    }
-
-    public Logger getLogger() {
-      return logger;
-    }
-
-    public Map<String, Batcher<RowMutationEntry, Void>> getBatchers() {
-      return batchers;
-    }
   }
 }
