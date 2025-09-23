@@ -1,6 +1,6 @@
 {
   "bootstrap-sha": "fdf836a56b19fec11a251d29258d06ad9e4fc1df",
-  "last-release-sha": "4d07b296bdaa0e95307a3f6547c8565e919c90dd",
+  "last-release-sha": "821d6c1b955b0be22b81537583db8907c3a6cbed",
   "packages": {
     "cassandra-bigtable-migration-tools/cassandra-bigtable-java-client": {
       "release-type": "java-yoshi"
