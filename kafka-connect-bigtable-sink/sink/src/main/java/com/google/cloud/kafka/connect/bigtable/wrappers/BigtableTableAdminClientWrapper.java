@@ -5,6 +5,8 @@ import com.google.cloud.bigtable.admin.v2.BigtableTableAdminClient;
 import com.google.cloud.bigtable.admin.v2.models.CreateTableRequest;
 import com.google.cloud.bigtable.admin.v2.models.ModifyColumnFamiliesRequest;
 import com.google.cloud.bigtable.admin.v2.models.Table;
+import com.google.cloud.bigtable.data.v2.models.TableId;
+import com.google.cloud.kafka.connect.bigtable.utils.Utils;
 import java.util.List;
 
 public class BigtableTableAdminClientWrapper implements BigtableTableAdminClientInterface {
@@ -36,8 +38,8 @@ public class BigtableTableAdminClientWrapper implements BigtableTableAdminClient
   }
 
   @Override
-  public ApiFuture<Table> getTableAsync(String tableId) {
-    return tableAdminClient.getTableAsync(tableId);
+  public ApiFuture<Table> getTableAsync(TableId tableId) {
+    return tableAdminClient.getTableAsync(Utils.getTableIdString(tableId));
   }
 
   @Override

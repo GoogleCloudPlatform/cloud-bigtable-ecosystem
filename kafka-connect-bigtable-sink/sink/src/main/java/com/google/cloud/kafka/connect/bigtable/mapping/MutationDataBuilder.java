@@ -17,11 +17,13 @@ package com.google.cloud.kafka.connect.bigtable.mapping;
 
 import com.google.cloud.bigtable.data.v2.models.Mutation;
 import com.google.cloud.bigtable.data.v2.models.Range;
+import com.google.cloud.bigtable.data.v2.models.TableId;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.ByteString;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+import org.apache.kafka.connect.sink.SinkRecord;
 
 /** A builder class for {@link MutationData}. */
 public class MutationDataBuilder {
@@ -49,11 +51,11 @@ public class MutationDataBuilder {
    * @return {@link Optional#empty()} if this mutation is empty, an {@link Optional} containing this
    *     mutation ready to be written to Cloud Bigtable otherwise.
    */
-  public Optional<MutationData> maybeBuild(String targetTable, ByteString rowKey) {
+  public Optional<MutationData> maybeBuild(TableId targetTable, ByteString rowKey, SinkRecord record) {
     return this.mutationIsEmpty
         ? Optional.empty()
         : Optional.of(
-            new MutationData(targetTable, rowKey, this.mutation, this.requiredColumnFamilies));
+            new MutationData(targetTable, record, rowKey, this.mutation, this.requiredColumnFamilies));
   }
 
   public void deleteRow() {

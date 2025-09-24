@@ -26,13 +26,14 @@ import static org.mockito.Mockito.verify;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.cloud.bigtable.data.v2.models.Range;
+import com.google.cloud.bigtable.data.v2.models.TableId;
 import com.google.cloud.kafka.connect.bigtable.config.ConfigInterpolation;
 import com.google.cloud.kafka.connect.bigtable.config.NullValueMode;
 import com.google.protobuf.ByteString;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -54,7 +55,7 @@ public class ValueMapperTest {
       ByteString.copyFrom(DEFAULT_COLUMN.getBytes(StandardCharsets.UTF_8));
   private static final ByteString ROW_KEY =
       ByteString.copyFrom("ROW_KEY".getBytes(StandardCharsets.UTF_8));
-  private static final String TARGET_TABLE_NAME = "table";
+  private static final TableId TARGET_TABLE_NAME = TableId.of("table");
   private static final Long TIMESTAMP = 2024L;
   private static final Range.TimestampRange TIMESTAMP_RANGE =
       Range.TimestampRange.create(0, TIMESTAMP);
@@ -381,8 +382,10 @@ public class ValueMapperTest {
     final String decimalFieldName = "KafkaDecimal";
     final String bytesFieldName = "KafkaBytes";
     final Date timestamp = new Date(1488406838808L);
-    final Date time = Date.from(Instant.EPOCH.plus(1234567890, ChronoUnit.MILLIS));
-    final Date date = Date.from(Instant.EPOCH.plus(363, ChronoUnit.DAYS));
+    final Duration days363 = Duration.ofDays(363);
+    final Duration millis = Duration.ofMillis(1234567890);
+    final Date time = Date.from(Instant.EPOCH.plus(millis));
+    final Date date = Date.from(Instant.EPOCH.plus(days363));
     final String decimalString = "0.30000000000000004";
     final Integer decimalScale = 17;
     final BigDecimal decimal = new BigDecimal(decimalString);
@@ -508,7 +511,7 @@ public class ValueMapperTest {
             TIMESTAMP,
             expectedInnermostStringificationBytes);
     assertTotalNumberOfInvocations(mutationDataBuilder, 5);
-    assertTrue(mutationDataBuilder.maybeBuild(TARGET_TABLE_NAME, ROW_KEY).isPresent());
+    assertTrue(mutationDataBuilder.maybeBuild(TARGET_TABLE_NAME, ROW_KEY, null).isPresent());
   }
 
   @Test
@@ -519,7 +522,7 @@ public class ValueMapperTest {
         new TestValueMapper(DEFAULT_COLUMN_FAMILY, DEFAULT_COLUMN, NullValueMode.WRITE);
     MutationDataBuilder mutationDataBuilder = getRecordMutationDataBuilder(mapper, emptyStruct);
     assertTotalNumberOfInvocations(mutationDataBuilder, 0);
-    assertTrue(mutationDataBuilder.maybeBuild(TARGET_TABLE_NAME, ROW_KEY).isEmpty());
+    assertTrue(mutationDataBuilder.maybeBuild(TARGET_TABLE_NAME, ROW_KEY, null).isEmpty());
   }
 
   @Test
@@ -544,7 +547,7 @@ public class ValueMapperTest {
             TIMESTAMP,
             ByteString.copyFrom(ByteUtils.toBytes(value)));
     assertTotalNumberOfInvocations(mutationDataBuilder, 1);
-    assertTrue(mutationDataBuilder.maybeBuild(TARGET_TABLE_NAME, ROW_KEY).isPresent());
+    assertTrue(mutationDataBuilder.maybeBuild(TARGET_TABLE_NAME, ROW_KEY, null).isPresent());
   }
 
   @Test
@@ -573,7 +576,7 @@ public class ValueMapperTest {
             TIMESTAMP,
             ByteString.copyFrom(
                 ("{\"" + innerField + "\":" + value + "}").getBytes(StandardCharsets.UTF_8)));
-    assertTrue(mutationDataBuilder.maybeBuild(TARGET_TABLE_NAME, ROW_KEY).isPresent());
+    assertTrue(mutationDataBuilder.maybeBuild(TARGET_TABLE_NAME, ROW_KEY, null).isPresent());
   }
 
   @Test
@@ -592,7 +595,7 @@ public class ValueMapperTest {
             TIMESTAMP,
             ByteString.copyFrom(ByteUtils.toBytes(value)));
     assertTotalNumberOfInvocations(mutationDataBuilder, 1);
-    assertTrue(mutationDataBuilder.maybeBuild(TARGET_TABLE_NAME, ROW_KEY).isPresent());
+    assertTrue(mutationDataBuilder.maybeBuild(TARGET_TABLE_NAME, ROW_KEY, null).isPresent());
   }
 
   @Test
@@ -682,7 +685,7 @@ public class ValueMapperTest {
         new TestValueMapper(DEFAULT_COLUMN_FAMILY, DEFAULT_COLUMN, NullValueMode.IGNORE);
     MutationDataBuilder mutationDataBuilder = getRecordMutationDataBuilder(mapper, null);
     assertTotalNumberOfInvocations(mutationDataBuilder, 0);
-    assertTrue(mutationDataBuilder.maybeBuild(TARGET_TABLE_NAME, ROW_KEY).isEmpty());
+    assertTrue(mutationDataBuilder.maybeBuild(TARGET_TABLE_NAME, ROW_KEY, null).isEmpty());
   }
 
   @Test
@@ -692,7 +695,7 @@ public class ValueMapperTest {
     MutationDataBuilder mutationDataBuilder =
         getRecordMutationDataBuilder(mapper, getStructWithNullOnNthNestingLevel(1));
     assertTotalNumberOfInvocations(mutationDataBuilder, 0);
-    assertTrue(mutationDataBuilder.maybeBuild(TARGET_TABLE_NAME, ROW_KEY).isEmpty());
+    assertTrue(mutationDataBuilder.maybeBuild(TARGET_TABLE_NAME, ROW_KEY, null).isEmpty());
   }
 
   @Test
@@ -702,7 +705,7 @@ public class ValueMapperTest {
     MutationDataBuilder mutationDataBuilder =
         getRecordMutationDataBuilder(mapper, getStructWithNullOnNthNestingLevel(2));
     assertTotalNumberOfInvocations(mutationDataBuilder, 0);
-    assertTrue(mutationDataBuilder.maybeBuild(TARGET_TABLE_NAME, ROW_KEY).isEmpty());
+    assertTrue(mutationDataBuilder.maybeBuild(TARGET_TABLE_NAME, ROW_KEY, null).isEmpty());
   }
 
   @Test
@@ -713,7 +716,7 @@ public class ValueMapperTest {
     verify(mutationDataBuilder, times(1))
         .setCell(DEFAULT_COLUMN_FAMILY, DEFAULT_COLUMN_BYTES, TIMESTAMP, ByteString.empty());
     assertTotalNumberOfInvocations(mutationDataBuilder, 1);
-    assertTrue(mutationDataBuilder.maybeBuild(TARGET_TABLE_NAME, ROW_KEY).isPresent());
+    assertTrue(mutationDataBuilder.maybeBuild(TARGET_TABLE_NAME, ROW_KEY, null).isPresent());
   }
 
   @Test
@@ -729,7 +732,7 @@ public class ValueMapperTest {
             TIMESTAMP,
             ByteString.empty());
     assertTotalNumberOfInvocations(mutationDataBuilder, 1);
-    assertTrue(mutationDataBuilder.maybeBuild(TARGET_TABLE_NAME, ROW_KEY).isPresent());
+    assertTrue(mutationDataBuilder.maybeBuild(TARGET_TABLE_NAME, ROW_KEY, null).isPresent());
   }
 
   @Test
@@ -745,7 +748,7 @@ public class ValueMapperTest {
             TIMESTAMP,
             ByteString.empty());
     assertTotalNumberOfInvocations(mutationDataBuilder, 1);
-    assertTrue(mutationDataBuilder.maybeBuild(TARGET_TABLE_NAME, ROW_KEY).isPresent());
+    assertTrue(mutationDataBuilder.maybeBuild(TARGET_TABLE_NAME, ROW_KEY, null).isPresent());
   }
 
   @Test
@@ -755,7 +758,7 @@ public class ValueMapperTest {
     MutationDataBuilder mutationDataBuilder = getRecordMutationDataBuilder(mapper, null);
     verify(mutationDataBuilder, times(1)).deleteRow();
     assertTotalNumberOfInvocations(mutationDataBuilder, 1);
-    assertTrue(mutationDataBuilder.maybeBuild(TARGET_TABLE_NAME, ROW_KEY).isPresent());
+    assertTrue(mutationDataBuilder.maybeBuild(TARGET_TABLE_NAME, ROW_KEY, null).isPresent());
   }
 
   @Test
@@ -766,7 +769,7 @@ public class ValueMapperTest {
         getRecordMutationDataBuilder(mapper, getStructWithNullOnNthNestingLevel(1));
     verify(mutationDataBuilder, times(1)).deleteFamily(NESTED_NULL_STRUCT_FIELD_NAME);
     assertTotalNumberOfInvocations(mutationDataBuilder, 1);
-    assertTrue(mutationDataBuilder.maybeBuild(TARGET_TABLE_NAME, ROW_KEY).isPresent());
+    assertTrue(mutationDataBuilder.maybeBuild(TARGET_TABLE_NAME, ROW_KEY, null).isPresent());
   }
 
   @Test
@@ -779,7 +782,7 @@ public class ValueMapperTest {
         .deleteCells(
             NESTED_NULL_STRUCT_FIELD_NAME, NESTED_NULL_STRUCT_FIELD_NAME_BYTES, TIMESTAMP_RANGE);
     assertTotalNumberOfInvocations(mutationDataBuilder, 1);
-    assertTrue(mutationDataBuilder.maybeBuild(TARGET_TABLE_NAME, ROW_KEY).isPresent());
+    assertTrue(mutationDataBuilder.maybeBuild(TARGET_TABLE_NAME, ROW_KEY, null).isPresent());
   }
 
   @Test
@@ -798,7 +801,7 @@ public class ValueMapperTest {
             TIMESTAMP,
             expectedJsonificationBytes);
     assertTotalNumberOfInvocations(mutationDataBuilder, 1);
-    assertTrue(mutationDataBuilder.maybeBuild(TARGET_TABLE_NAME, ROW_KEY).isPresent());
+    assertTrue(mutationDataBuilder.maybeBuild(TARGET_TABLE_NAME, ROW_KEY, null).isPresent());
   }
 
   @Test
@@ -810,7 +813,7 @@ public class ValueMapperTest {
     verify(mutationDataBuilder, times(1))
         .setCell(DEFAULT_TOPIC, DEFAULT_COLUMN_BYTES, TIMESTAMP, ByteString.empty());
     assertTotalNumberOfInvocations(mutationDataBuilder, 1);
-    assertTrue(mutationDataBuilder.maybeBuild(TARGET_TABLE_NAME, ROW_KEY).isPresent());
+    assertTrue(mutationDataBuilder.maybeBuild(TARGET_TABLE_NAME, ROW_KEY, null).isPresent());
   }
 
   private MutationDataBuilder getRecordMutationDataBuilder(ValueMapper mapper, Object kafkaValue) {

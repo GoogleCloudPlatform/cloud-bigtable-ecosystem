@@ -4,6 +4,7 @@ import com.google.api.core.ApiFuture;
 import com.google.cloud.bigtable.admin.v2.models.CreateTableRequest;
 import com.google.cloud.bigtable.admin.v2.models.ModifyColumnFamiliesRequest;
 import com.google.cloud.bigtable.admin.v2.models.Table;
+import com.google.cloud.bigtable.data.v2.models.TableId;
 import java.util.List;
 
 
@@ -21,7 +22,7 @@ public interface BigtableTableAdminClientInterface {
 
   Table getTable(String tableId);
 
-  ApiFuture<Table> getTableAsync(String tableId);
+  ApiFuture<Table> getTableAsync(TableId tableId);
 
   ApiFuture<Table> modifyFamiliesAsync(ModifyColumnFamiliesRequest request);
 
