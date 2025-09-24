@@ -1,14 +1,12 @@
 package com.google.cloud.kafka.connect.bigtable.writers;
 
 import com.google.cloud.kafka.connect.bigtable.mapping.MutationData;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
+import com.google.cloud.kafka.connect.bigtable.utils.SinkResult;
+import java.util.concurrent.CompletableFuture;
 
-public interface BigtableWriter {
+public interface BigtableWriter extends AutoCloseable {
 
-  void Flush() throws InterruptedException;
+  SinkResult<CompletableFuture<Void>> put(MutationData mutation);
 
-  void Close() throws ExecutionException, InterruptedException;
-
-  Future<Void> Put(MutationData mutation) ;
+  void flush() throws InterruptedException;
 }

@@ -24,6 +24,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -42,19 +43,23 @@ import org.apache.kafka.connect.data.Timestamp;
 import org.apache.kafka.connect.errors.DataException;
 
 /**
- * A class responsible for converting Kafka {@link org.apache.kafka.connect.sink.SinkRecord
- * SinkRecord(s)} into Cloud Bigtable row keys.
+ * A class responsible for converting Kafka
+ * {@link org.apache.kafka.connect.sink.SinkRecord SinkRecord(s)} into Cloud Bigtable row keys.
  */
 public class KeyMapper {
+
   final List<List<String>> definition;
   final byte[] delimiter;
+
 
   /**
    * The main constructor.
    *
-   * @param delimiter Delimiter in the mapping as per {@link
+   * @param delimiter Delimiter in the mapping as per
+   *     {@link
    *     com.google.cloud.kafka.connect.bigtable.config.BigtableSinkConfig#ROW_KEY_DELIMITER_CONFIG}
-   * @param definition Definition of the mapping as per {@link
+   * @param definition Definition of the mapping as per
+   *     {@link
    *     com.google.cloud.kafka.connect.bigtable.config.BigtableSinkConfig#ROW_KEY_DEFINITION_CONFIG}.
    */
   public KeyMapper(String delimiter, List<String> definition) {
@@ -67,8 +72,8 @@ public class KeyMapper {
   }
 
   /**
-   * Converts input data into Cloud Bigtable row key bytes as described in {@link
-   * BigtableSinkConfig#getDefinition()}.
+   * Converts input data into Cloud Bigtable row key bytes as described in
+   * {@link BigtableSinkConfig#getDefinition()}.
    *
    * @param kafkaKeyAndSchema Value and optional {@link Schema} of a Kafka message's key to be
    *     converted into a Cloud Bigtable row key.
@@ -94,8 +99,8 @@ public class KeyMapper {
    * @param kafkaKey {@link org.apache.kafka.connect.sink.SinkRecord SinkRecord's} key.
    * @return {@link List} containing {@link List Lists} of key fields that need to be retrieved and
    *     concatenated to construct the Cloud Bigtable row key.
-   *     <p>See {@link KeyMapper#extractField(SchemaAndValue, Iterator)} for details on semantics of
-   *     the inner list.
+   *     <p>See {@link KeyMapper#extractField(SchemaAndValue, Iterator)} for details on semantics
+   *     of the inner list.
    */
   private List<List<String>> getDefinition(Object kafkaKey) {
     if (this.definition.isEmpty()) {
@@ -132,8 +137,8 @@ public class KeyMapper {
   /**
    * Extract possibly nested fields from the input value.
    *
-   * @param keySchemaAndValue {@link org.apache.kafka.connect.sink.SinkRecord SinkRecord's} key or
-   *     some its child with corresponding {@link Schema}.
+   * @param keySchemaAndValue {@link org.apache.kafka.connect.sink.SinkRecord SinkRecord's} key
+   *     or some its child with corresponding {@link Schema}.
    * @param fields Fields that need to be accessed before the target value is reached.
    * @return Extracted nested field.
    */

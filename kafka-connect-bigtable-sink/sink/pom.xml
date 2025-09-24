@@ -81,27 +81,27 @@
     </dependencies>
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>build-helper-maven-plugin</artifactId>
-                <version>3.3.0</version>
-                <executions>
-                    <execution>
-                        <id>add-source</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>add-source</goal>
-                        </goals>
-                        <configuration>
-                            <sources>
-                                <!-- We need to put third-party code inside the `third_party` directory
-                                  for licensing compliance, including them in the project here. -->
-                                <source>./third_party/apache_hbase_common/src/main/java/com/google/cloud/kafka/connect/bigtable/utils/ByteUtils.java</source>
-                            </sources>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
+<!--            <plugin>-->
+<!--                <groupId>org.codehaus.mojo</groupId>-->
+<!--                <artifactId>build-helper-maven-plugin</artifactId>-->
+<!--                <version>3.3.0</version>-->
+<!--                <executions>-->
+<!--                    <execution>-->
+<!--                        <id>add-source</id>-->
+<!--                        <phase>generate-sources</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>add-source</goal>-->
+<!--                        </goals>-->
+<!--                        <configuration>-->
+<!--                            <sources>-->
+<!--                                &lt;!&ndash; We need to put third-party code inside the `third_party` directory-->
+<!--                                  for licensing compliance, including them in the project here. &ndash;&gt;-->
+<!--                                <source>./third_party/apache_hbase_common/src/main/java/com/google/cloud/kafka/connect/bigtable/utils/ByteUtils.java</source>-->
+<!--                            </sources>-->
+<!--                        </configuration>-->
+<!--                    </execution>-->
+<!--                </executions>-->
+<!--            </plugin>-->
             <plugin>
                 <!--
                 The kafka connect plugins are isolated [1].

@@ -15,22 +15,18 @@
  */
 package com.google.cloud.kafka.connect.bigtable;
 
-import com.google.cloud.kafka.connect.bigtable.autocreate.AutoResourceCreator;
-import com.google.cloud.kafka.connect.bigtable.autocreate.AutoResourceCreatorImpl;
 import com.google.cloud.kafka.connect.bigtable.autocreate.BigtableSchemaManager;
 import com.google.cloud.kafka.connect.bigtable.config.BigtableSinkTaskConfig;
 import com.google.cloud.kafka.connect.bigtable.mapping.KeyMapper;
-import com.google.cloud.kafka.connect.bigtable.mapping.MutationData;
 import com.google.cloud.kafka.connect.bigtable.mapping.ValueMapper;
 import com.google.cloud.kafka.connect.bigtable.version.PackageMetadata;
 import com.google.cloud.kafka.connect.bigtable.writers.BigtableWriter;
 import com.google.cloud.kafka.connect.bigtable.writers.BigtableWriterFactory;
 import com.google.common.annotations.VisibleForTesting;
 import java.util.Collection;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.connect.errors.ConnectException;
@@ -47,12 +43,11 @@ import org.slf4j.LoggerFactory;
 public class BigtableSinkTask extends SinkTask {
 
   private BigtableSinkTaskConfig config;
-  private KeyMapper keyMapper;
-  private ValueMapper valueMapper;
+
   private RecordPreparer recordPreparer;
   private BigtableWriter writer;
   private RecordErrorHandler errorHandler;
-  private AutoResourceCreator autoResourceCreator;
+  private BigtableSchemaManager autoResourceCreator;
   @VisibleForTesting
   protected Logger logger = LoggerFactory.getLogger(BigtableSinkTask.class);
 
@@ -73,8 +68,6 @@ public class BigtableSinkTask extends SinkTask {
       ValueMapper valueMapper,
       SinkTaskContext context) {
     this.config = config;
-    this.keyMapper = keyMapper;
-    this.valueMapper = valueMapper;
     this.context = context;
   }
 
@@ -86,43 +79,37 @@ public class BigtableSinkTask extends SinkTask {
             BigtableSinkTask.class.getName()
                 + config.getInt(BigtableSinkTaskConfig.TASK_ID_CONFIG));
 
-    errorHandler = new RecordErrorHandler(context, config.getBigtableErrorMode());
+    errorHandler = new RecordErrorHandler(logger, context, config.getBigtableErrorMode());
 
-    var bigtableData = config.getBigtableDataClient();
-    writer = BigtableWriterFactory.GetWriter(config, bigtableData);
-    var bigtableAdmin = config.getBigtableAdminClient();
+    writer = BigtableWriterFactory.GetWriter(config, config.getBigtableDataClient());
 
-    autoResourceCreator = new AutoResourceCreatorImpl(new BigtableSchemaManager(bigtableAdmin),
-        errorHandler, bigtableAdmin,
-        config.getBoolean(BigtableSinkTaskConfig.AUTO_CREATE_TABLES_CONFIG),
-        config.getBoolean(BigtableSinkTaskConfig.AUTO_CREATE_COLUMN_FAMILIES_CONFIG));
+    autoResourceCreator = new BigtableSchemaManager(config.getBigtableAdminClient());
 
-    keyMapper =
-        new KeyMapper(
-            config.getString(BigtableSinkTaskConfig.ROW_KEY_DELIMITER_CONFIG),
-            config.getList(BigtableSinkTaskConfig.ROW_KEY_DEFINITION_CONFIG));
-    valueMapper =
-        new ValueMapper(
-            config.getString(BigtableSinkTaskConfig.DEFAULT_COLUMN_FAMILY_CONFIG),
-            config.getString(BigtableSinkTaskConfig.DEFAULT_COLUMN_QUALIFIER_CONFIG),
-            config.getNullValueMode());
+    var keyMapper = config.createKeymapper();
+    var valueMapper = config.createValueMapper();
+    recordPreparer = new RecordPreparer(
+        config.getString(BigtableSinkTaskConfig.TABLE_NAME_FORMAT_CONFIG), keyMapper, valueMapper);
   }
 
   @Override
   public void stop() {
     logger.trace("stop()");
     try {
-      writer.Close();
-    } catch (ExecutionException | InterruptedException e) {
+      writer.close();
+    } catch (Exception e) {
       throw new ConnectException("Failed to close bigtable writer", e);
     }
-    autoResourceCreator.Close();
+    try {
+      autoResourceCreator.close();
+    } catch (Exception e) {
+      throw new ConnectException("Failed to close resource creator", e);
+    }
   }
 
   @Override
   public void flush(Map<TopicPartition, OffsetAndMetadata> currentOffsets) {
     try {
-      writer.Flush();
+      writer.flush();
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     }
@@ -137,32 +124,28 @@ public class BigtableSinkTask extends SinkTask {
   @Override
   public void put(Collection<SinkRecord> records) {
     logger.trace("put(#records={})", records.size());
-    if (records.isEmpty()) {
-      return;
+
+    var mutations = records.stream()
+        // convert SinkRecords to Mutations
+        .map(r -> recordPreparer.createRecordMutationTry(r))
+        .flatMap(Optional::stream)
+        // report any errors
+        .map(t -> errorHandler.processTry(t))
+        .flatMap(Optional::stream)
+        .collect(Collectors.toList());
+
+    if (config.getBoolean(BigtableSinkTaskConfig.AUTO_CREATE_TABLES_CONFIG)) {
+      errorHandler.reportErrors(autoResourceCreator.ensureTablesExist(mutations));
     }
 
-    // 1. prepare the records
-    Collection<MutationData> mutations = new LinkedList<>();
-    for (SinkRecord record : records) {
-      try {
-        Optional<MutationData> maybeRecordMutationData = recordPreparer.createRecordMutationData(record);
-        if (maybeRecordMutationData.isPresent()) {
-          mutations.add(maybeRecordMutationData.get());
-        } else {
-          logger.debug("Skipped a record that maps to an empty value.");
-        }
-      } catch (Throwable t) {
-        errorHandler.reportError(record, t);
-      }
+    if (config.getBoolean(BigtableSinkTaskConfig.AUTO_CREATE_COLUMN_FAMILIES_CONFIG)) {
+      errorHandler.reportErrors(autoResourceCreator.ensureColumnFamiliesExist(mutations));
     }
 
-    // 2. create any required tables or column families
-    mutations = autoResourceCreator.CreateResources(mutations);
-
-    // 3. write the data
-    for (MutationData mut : mutations) {
-      var result = writer.Put(mut);
-      errorHandler.handleDelayed(mut.getRecord(), result);
-    }
+    mutations.stream()
+        // write the data
+        .map(m -> writer.put(m))
+        // todo getValue isn't safe
+        .forEach(m -> errorHandler.handleDelayed(m.getRecord(), m.getValue()));
   }
 }

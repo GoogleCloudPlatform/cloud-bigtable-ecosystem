@@ -1,13 +1,15 @@
 package com.google.cloud.kafka.connect.bigtable.autocreate;
 
 import com.google.cloud.kafka.connect.bigtable.mapping.MutationData;
+import com.google.cloud.kafka.connect.bigtable.utils.SinkResult;
+import com.google.cloud.kafka.connect.bigtable.utils.SinkResult.FailureSinkResult;
 import java.util.Collection;
-import java.util.Map;
-import org.apache.kafka.connect.sink.SinkRecord;
 
-public interface AutoResourceCreator {
+public interface AutoResourceCreator extends AutoCloseable {
 
-  Collection<MutationData> CreateResources(Collection<MutationData> mutations);
+  Collection<FailureSinkResult<MutationData>> autoCreateTablesAndHandleErrors(
+      Collection<MutationData> mutations);
 
-  void Close();
+  Collection<FailureSinkResult<MutationData>> autoCreateColumnFamiliesAndHandleErrors(
+      Collection<MutationData> mutations);
 }

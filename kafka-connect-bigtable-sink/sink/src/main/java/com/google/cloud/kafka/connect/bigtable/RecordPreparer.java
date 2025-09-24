@@ -3,15 +3,14 @@ package com.google.cloud.kafka.connect.bigtable;
 import static com.google.cloud.kafka.connect.bigtable.utils.Utils.getTimestampMicros;
 
 import com.google.cloud.bigtable.data.v2.models.TableId;
-import com.google.cloud.kafka.connect.bigtable.config.BigtableSinkTaskConfig;
 import com.google.cloud.kafka.connect.bigtable.config.ConfigInterpolation;
+import com.google.cloud.kafka.connect.bigtable.mapping.KeyMapper;
 import com.google.cloud.kafka.connect.bigtable.mapping.MutationData;
 import com.google.cloud.kafka.connect.bigtable.mapping.MutationDataBuilder;
+import com.google.cloud.kafka.connect.bigtable.mapping.ValueMapper;
+import com.google.cloud.kafka.connect.bigtable.utils.SinkResult;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.ByteString;
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.errors.DataException;
@@ -20,9 +19,23 @@ import org.apache.kafka.connect.sink.SinkRecord;
 public class RecordPreparer {
 
   private final String tableNameFormat;
+  private final KeyMapper keyMapper;
+  private final ValueMapper valueMapper;
 
-  public RecordPreparer(String tableNameFormat) {
+  public RecordPreparer(String tableNameFormat,
+      KeyMapper keyMapper, ValueMapper valueMapper) {
     this.tableNameFormat = tableNameFormat;
+    this.keyMapper = keyMapper;
+    this.valueMapper = valueMapper;
+  }
+
+  public Optional<SinkResult<MutationData>> createRecordMutationTry(SinkRecord record) {
+    try {
+      Optional<MutationData> maybeRecordMutationData = createRecordMutationData(record);
+      return maybeRecordMutationData.map(SinkResult::success);
+    } catch (Throwable t) {
+      return Optional.of(SinkResult.failure(record, t));
+    }
   }
 
   /**

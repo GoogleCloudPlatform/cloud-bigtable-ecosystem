@@ -22,12 +22,15 @@ import com.google.cloud.bigtable.admin.v2.models.ColumnFamily;
 import com.google.cloud.bigtable.admin.v2.models.CreateTableRequest;
 import com.google.cloud.bigtable.admin.v2.models.ModifyColumnFamiliesRequest;
 import com.google.cloud.bigtable.admin.v2.models.Table;
+import com.google.cloud.kafka.connect.bigtable.exception.InvalidBigtableSchemaModificationException;
 import com.google.cloud.kafka.connect.bigtable.mapping.MutationData;
+import com.google.cloud.kafka.connect.bigtable.utils.SinkResult;
 import com.google.cloud.kafka.connect.bigtable.wrappers.BigtableTableAdminClientInterface;
 import com.google.common.annotations.VisibleForTesting;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -36,6 +39,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
+import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,7 +55,7 @@ import org.slf4j.LoggerFactory;
  * auto-create the resources, might end up sending requests targeting nonexistent
  * {@link Table Table(s)} and/or {@link ColumnFamily ColumnFamily(s)}.
  */
-public class BigtableSchemaManager {
+public class BigtableSchemaManager implements AutoCloseable {
 
   @VisibleForTesting
   protected Logger logger = LoggerFactory.getLogger(BigtableSchemaManager.class);
@@ -89,13 +93,13 @@ public class BigtableSchemaManager {
    * @return A {@link ResourceCreationResult} containing {@link SinkRecord SinkRecord(s)} for whose
    *     {@link MutationData} auto-creation of {@link Table Table(s)} failed.
    */
-  public ResourceCreationResult ensureTablesExist(Collection<MutationData> recordsAndOutputs) {
+  public Collection<SinkResult<MutationData>> ensureTablesExist(Collection<MutationData> recordsAndOutputs) {
     Map<String, List<SinkRecord>> recordsByTableNames = getTableNamesToRecords(recordsAndOutputs);
 
     Map<String, List<SinkRecord>> recordsByMissingTableNames =
         missingTablesToRecords(recordsByTableNames);
     if (recordsByMissingTableNames.isEmpty()) {
-      return ResourceCreationResult.empty();
+      return Collections.emptyList();
     }
     logger.debug("Missing {} tables", recordsByMissingTableNames.size());
     Map<ApiFuture<Table>, ResourceAndRecords<String>> recordsByCreateTableFutures =
@@ -114,7 +118,17 @@ public class BigtableSchemaManager {
             .flatMap(Collection::stream)
             .collect(Collectors.toSet());
     bigtableErrors.removeAll(dataErrors);
-    return new ResourceCreationResult(bigtableErrors, dataErrors);
+
+    var results = new HashMap<SinkRecord, SinkResult<MutationData>>();
+    for (SinkRecord record : bigtableErrors) {
+      results.putIfAbsent(record, SinkResult.failure(record,
+          new ConnectException("Table auto-creation failed.")));
+    }
+    for (SinkRecord record : dataErrors) {
+      results.putIfAbsent(record, SinkResult.failure(record,
+          new InvalidBigtableSchemaModificationException("Table auto-creation failed.")));
+    }
+    return results.values();
   }
 
   /**
@@ -131,7 +145,7 @@ public class BigtableSchemaManager {
    *     {@link MutationData} needed {@link Table Table(s)} are missing or auto-creation of
    *     {@link ColumnFamily ColumnFamily(s)} failed.
    */
-  public ResourceCreationResult ensureColumnFamiliesExist(
+  public Collection<SinkResult<MutationData>> ensureColumnFamiliesExist(
       Collection<MutationData> recordsAndOutputs) {
     Map<Map.Entry<String, String>, List<SinkRecord>> recordsByColumnFamilies =
         getTableColumnFamiliesToRecords(recordsAndOutputs);
@@ -139,7 +153,7 @@ public class BigtableSchemaManager {
     Map<Map.Entry<String, String>, List<SinkRecord>> recordsByMissingColumnFamilies =
         missingTableColumnFamiliesToRecords(recordsByColumnFamilies);
     if (recordsByMissingColumnFamilies.isEmpty()) {
-      return ResourceCreationResult.empty();
+      return Collections.emptyList();
     }
     logger.debug("Missing {} column families", recordsByMissingColumnFamilies.size());
     Map<ApiFuture<Table>, ResourceAndRecords<Map.Entry<String, String>>>
@@ -164,7 +178,17 @@ public class BigtableSchemaManager {
     Set<SinkRecord> bigtableErrors =
         missing.values().stream().flatMap(Collection::stream).collect(Collectors.toSet());
     bigtableErrors.removeAll(dataErrors);
-    return new ResourceCreationResult(bigtableErrors, dataErrors);
+
+    var results = new HashMap<SinkRecord, SinkResult<MutationData>>();
+    for (SinkRecord record : bigtableErrors) {
+      results.putIfAbsent(record, SinkResult.failure(record,
+          new ConnectException("Column family auto-creation failed.")));
+    }
+    for (SinkRecord record : dataErrors) {
+      results.putIfAbsent(record, SinkResult.failure(record,
+          new InvalidBigtableSchemaModificationException("Column family auto-creation failed.")));
+    }
+    return results.values();
   }
 
   /**
@@ -418,6 +442,11 @@ public class BigtableSchemaManager {
           }
         });
     return dataErrors;
+  }
+
+  @Override
+  public void close() throws Exception {
+    bigtable.close();
   }
 
   /**

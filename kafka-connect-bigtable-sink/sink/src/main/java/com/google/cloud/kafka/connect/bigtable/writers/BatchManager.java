@@ -7,8 +7,10 @@ import com.google.cloud.bigtable.data.v2.BigtableDataClient;
 import com.google.cloud.bigtable.data.v2.models.RowMutationEntry;
 import com.google.cloud.bigtable.data.v2.models.TableId;
 import com.google.cloud.kafka.connect.bigtable.mapping.MutationData;
+import com.google.cloud.kafka.connect.bigtable.utils.Utils;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -25,7 +27,7 @@ public class BatchManager {
     this.batchers = new HashMap<>();
   }
 
-  public void Flush() throws InterruptedException {
+  public void flush() throws InterruptedException {
     logger.info("Flushing all batches...");
     // asynchronously trigger all records to send
     for (Batcher<RowMutationEntry, Void> value : batchers.values()) {
@@ -39,7 +41,7 @@ public class BatchManager {
     logger.info("Flushed all batches.");
   }
 
-  public void Close() throws ExecutionException, InterruptedException {
+  public void close() throws ExecutionException, InterruptedException {
     try {
       Iterable<ApiFuture<Void>> closeFutures =
           batchers.values().stream().map(Batcher::closeAsync).collect(Collectors.toList());
@@ -50,13 +52,14 @@ public class BatchManager {
     bigtableData.close();
   }
 
-  private Batcher<RowMutationEntry, Void> GetBatcher(TableId tableId){
+  private Batcher<RowMutationEntry, Void> getBatcher(TableId tableId){
     return
         batchers.computeIfAbsent(tableId, bigtableData::newBulkMutationBatcher);
   }
 
-  public ApiFuture<Void> Put(MutationData mutationData) {
-    var batcher = GetBatcher(mutationData.getTargetTable());
-    return batcher.add(mutationData.getUpsertMutation());
+  public CompletableFuture<Void> put(MutationData mutationData) {
+    var batcher = getBatcher(mutationData.getTargetTable());
+    ApiFuture<Void> fut = batcher.add(mutationData.getUpsertMutation());
+    return Utils.toCompletableFuture(fut);
   }
 }

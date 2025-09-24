@@ -29,6 +29,8 @@ import com.google.cloud.bigtable.admin.v2.stub.BigtableTableAdminStubSettings;
 import com.google.cloud.bigtable.data.v2.BigtableDataClient;
 import com.google.cloud.bigtable.data.v2.BigtableDataSettings;
 import com.google.cloud.bigtable.data.v2.stub.EnhancedBigtableStubSettings;
+import com.google.cloud.kafka.connect.bigtable.mapping.KeyMapper;
+import com.google.cloud.kafka.connect.bigtable.mapping.ValueMapper;
 import com.google.cloud.kafka.connect.bigtable.version.PackageMetadata;
 import com.google.cloud.kafka.connect.bigtable.wrappers.BigtableTableAdminClientWrapper;
 import com.google.cloud.kafka.connect.bigtable.wrappers.BigtableTableAdminClientInterface;
@@ -601,6 +603,22 @@ public class BigtableSinkConfig extends AbstractConfig {
     } catch (IOException e) {
       throw new RetriableException(e);
     }
+  }
+
+  public KeyMapper createKeymapper(){
+    return
+        new KeyMapper(
+            getString(BigtableSinkTaskConfig.ROW_KEY_DELIMITER_CONFIG),
+            getList(BigtableSinkTaskConfig.ROW_KEY_DEFINITION_CONFIG));
+  }
+
+  public ValueMapper createValueMapper(){
+
+return
+        new ValueMapper(
+            getString(BigtableSinkTaskConfig.DEFAULT_COLUMN_FAMILY_CONFIG),
+            getString(BigtableSinkTaskConfig.DEFAULT_COLUMN_QUALIFIER_CONFIG),
+            getNullValueMode());
   }
 
   /**

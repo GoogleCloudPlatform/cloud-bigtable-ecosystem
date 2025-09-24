@@ -2,15 +2,22 @@ package com.google.cloud.kafka.connect.bigtable.util;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
+import com.google.bigtable.admin.v2.Table;
 import com.google.cloud.kafka.connect.bigtable.exception.BigtableSinkLogicError;
+import com.google.cloud.kafka.connect.bigtable.utils.Utils;
 import com.google.common.collect.Collections2;
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import org.apache.kafka.common.record.TimestampType;
+import org.apache.kafka.connect.sink.SinkRecord;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -74,4 +81,30 @@ public class UtilsTest {
     assertThrows(
         BigtableSinkLogicError.class, () -> com.google.cloud.kafka.connect.bigtable.utils.Utils.orderMap(map, Set.of(1, 2)));
   }
+
+
+  // @Test
+  // public void testGetTimestamp() {
+  //   task = new TestBigtableSinkTask(null, null, null, null, null, null, null);
+  //   long timestampMillis = 123L;
+  //   SinkRecord recordWithTimestamp =
+  //       new SinkRecord(
+  //           null, 1, null, null, null, null, 1, timestampMillis, TimestampType.CREATE_TIME);
+  //   SinkRecord recordWithNullTimestamp = new SinkRecord(null, 1, null, null, null, null, 2);
+  //
+  //   assertEquals(
+  //       (Long) (1000L * timestampMillis), (Long) Utils.getTimestampMicros(recordWithTimestamp));
+  //   assertTrue("null timestamp should be set to current clock time",
+  //       Math.abs(Utils.getTimestampMicros(recordWithNullTimestamp)) - System.currentTimeMillis()
+  //           < 1000);
+  //
+  //   // Assertion that the Java Bigtable client doesn't support microsecond timestamp granularity.
+  //   // When it starts supporting it, getTimestamp() will need to get modified.
+  //   assertEquals(
+  //       Arrays.stream(Table.TimestampGranularity.values()).collect(Collectors.toSet()),
+  //       Set.of(
+  //           Table.TimestampGranularity.TIMESTAMP_GRANULARITY_UNSPECIFIED,
+  //           Table.TimestampGranularity.MILLIS,
+  //           Table.TimestampGranularity.UNRECOGNIZED));
+  // }
 }

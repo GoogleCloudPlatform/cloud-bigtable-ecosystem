@@ -19,6 +19,7 @@ import com.google.cloud.bigtable.data.v2.models.Mutation;
 import com.google.cloud.bigtable.data.v2.models.RowMutationEntry;
 import com.google.cloud.bigtable.data.v2.models.TableId;
 import com.google.cloud.bigtable.data.v2.models.TargetId;
+import com.google.cloud.kafka.connect.bigtable.utils.HasSinkRecord;
 import com.google.protobuf.ByteString;
 import java.util.Set;
 import org.apache.kafka.connect.sink.SinkRecord;
@@ -27,7 +28,7 @@ import org.apache.kafka.connect.sink.SinkRecord;
  * A class representing single Kafka {@link org.apache.kafka.connect.sink.SinkRecord SinkRecord's}
  * output to be written into Cloud Bigtable.
  */
-public class MutationData {
+public class MutationData implements HasSinkRecord {
   private final TableId targetTable;
   private final SinkRecord record;
   private final ByteString rowKey;

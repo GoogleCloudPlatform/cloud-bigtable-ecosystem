@@ -1,8 +1,8 @@
 package com.google.cloud.kafka.connect.bigtable.writers;
 
 import com.google.cloud.kafka.connect.bigtable.mapping.MutationData;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
+import com.google.cloud.kafka.connect.bigtable.utils.SinkResult;
+import java.util.concurrent.CompletableFuture;
 
 public class BigtableUpsertWriter implements BigtableWriter {
   private final BatchManager batchManager;
@@ -12,17 +12,17 @@ public class BigtableUpsertWriter implements BigtableWriter {
   }
 
   @Override
-  public void Flush() throws InterruptedException {
-    batchManager.Flush();
+  public void flush() throws InterruptedException {
+    batchManager.flush();
   }
 
   @Override
-  public void Close() throws ExecutionException, InterruptedException {
-    batchManager.Close();
+  public SinkResult<CompletableFuture<Void>> put(MutationData mutation) {
+    return SinkResult.success(mutation.getRecord(), batchManager.put(mutation));
   }
 
   @Override
-  public Future<Void> Put(MutationData mutation) {
-    return batchManager.Put(mutation);
+  public void close() throws Exception {
+    batchManager.close();
   }
 }

@@ -5,8 +5,8 @@ import com.google.cloud.bigtable.data.v2.BigtableDataClient;
 import com.google.cloud.bigtable.data.v2.models.ConditionalRowMutation;
 import com.google.cloud.bigtable.data.v2.models.Filters;
 import com.google.cloud.kafka.connect.bigtable.mapping.MutationData;
+import com.google.cloud.kafka.connect.bigtable.utils.SinkResult;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,16 +23,16 @@ public class BigtableInsertWriter implements BigtableWriter {
 
 
   @Override
-  public void Flush() {
+  public void flush() {
 // nothing to do because Put synchronously applies mutations
   }
 
   @Override
-  public void Close() {
+  public void close() {
     bigtableData.close();
   }
 
-  public Future<Void> Put(MutationData mutation) {
+  public SinkResult<CompletableFuture<Void>> put(MutationData mutation) {
     ConditionalRowMutation insert =
         // We want to perform the mutation if and only if the row does not already exist.
         ConditionalRowMutation.create(
@@ -44,13 +44,13 @@ public class BigtableInsertWriter implements BigtableWriter {
     try {
       var insertSuccessful = !bigtableData.checkAndMutateRow(insert);
       if (insertSuccessful) {
-        return CompletableFuture.completedFuture(null);
+        return SinkResult.success(mutation.getRecord(), CompletableFuture.completedFuture(null));
       } else {
-        return CompletableFuture.failedFuture(
-            new ConnectException("Insert failed since the row already existed."));
+        return SinkResult.success(mutation.getRecord(), CompletableFuture.failedFuture(
+            new ConnectException("Insert failed since the row already existed.")));
       }
     } catch (ApiException e) {
-      return CompletableFuture.failedFuture(e);
+      return SinkResult.success(mutation.getRecord(), CompletableFuture.failedFuture(e));
     }
   }
 }

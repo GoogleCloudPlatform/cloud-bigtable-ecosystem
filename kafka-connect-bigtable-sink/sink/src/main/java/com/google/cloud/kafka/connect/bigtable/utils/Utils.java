@@ -5,6 +5,8 @@ import com.google.common.annotations.VisibleForTesting;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 import org.apache.kafka.connect.sink.SinkRecord;
 
 public class Utils {
@@ -54,6 +56,21 @@ public class Utils {
       timestampMillis = System.currentTimeMillis();
     }
     return 1000 * timestampMillis;
+  }
+
+  public static <T> CompletableFuture<T> toCompletableFuture(Future<T> future) {
+    CompletableFuture<T> completable = new CompletableFuture<>();
+
+    // Start a new thread that waits for the future and completes the CompletableFuture
+    new Thread(() -> {
+      try {
+        completable.complete(future.get());
+      } catch (Throwable t) {
+        completable.completeExceptionally(t);
+      }
+    }).start();
+
+    return completable;
   }
 
 }
