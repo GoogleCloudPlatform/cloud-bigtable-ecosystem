@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.6](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/compare/v0.1.5...v0.1.6) (2025-09-24)
+
+
+### Documentation
+
+* updating cassandra-bigtable-java-client-lib ([#113](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/issues/113)) ([69aa574](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/commit/69aa5749c7d3dbe1d111729bbde7b165088b2861))
+
 ## [0.1.5](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/compare/v0.1.4...v0.1.5) (2025-09-22)
 
 
