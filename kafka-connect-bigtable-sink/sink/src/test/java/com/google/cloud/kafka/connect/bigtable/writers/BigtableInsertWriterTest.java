@@ -3,17 +3,17 @@ package com.google.cloud.kafka.connect.bigtable.writers;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 
+
+import com.google.api.core.ApiFuture;
 import com.google.cloud.bigtable.admin.v2.BigtableTableAdminClient;
 import com.google.cloud.bigtable.admin.v2.BigtableTableAdminSettings;
 import com.google.cloud.bigtable.admin.v2.models.CreateTableRequest;
 import com.google.cloud.bigtable.data.v2.BigtableDataClient;
 import com.google.cloud.bigtable.data.v2.BigtableDataSettings;
 import com.google.cloud.bigtable.data.v2.models.Mutation;
+import com.google.cloud.bigtable.data.v2.models.Row;
+import com.google.cloud.bigtable.data.v2.models.RowMutation;
 import com.google.cloud.bigtable.data.v2.models.TableId;
 import com.google.cloud.bigtable.emulator.v2.BigtableEmulatorRule;
 import com.google.cloud.kafka.connect.bigtable.mapping.MutationData;
@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.concurrent.ExecutionException;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.sink.SinkRecord;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -38,7 +39,8 @@ public class BigtableInsertWriterTest {
   public final BigtableEmulatorRule bigtableEmulator = BigtableEmulatorRule.create();
 
   private BigtableDataClient dataClient;
-  private final TableId tableId = TableId.of("table1");
+  private final String tableIdString = "table1";
+  private final TableId tableId = TableId.of(tableIdString);
   private final String cf = "cf";
 
   @Before
@@ -46,19 +48,19 @@ public class BigtableInsertWriterTest {
     // Initialize the clients to connect to the emulator
     BigtableTableAdminSettings.Builder tableAdminSettings = BigtableTableAdminSettings.newBuilderForEmulator(
             bigtableEmulator.getPort())
-        .setProjectId("my-project")
-        .setInstanceId("my-instance");
+        .setInstanceId("my-instance")
+        .setProjectId("my-project");
     var tableAdminClient = BigtableTableAdminClient.create(tableAdminSettings.build());
 
     BigtableDataSettings.Builder dataSettings = BigtableDataSettings.newBuilderForEmulator(
-        bigtableEmulator.getPort())
-        .setProjectId("my-project")
-        .setInstanceId("my-instance");
+            bigtableEmulator.getPort())
+        .setInstanceId("my-instance")
+        .setProjectId("my-project");
     dataClient = BigtableDataClient.create(dataSettings.build());
 
     // Create a test table that can be used in tests
     tableAdminClient.createTable(
-        CreateTableRequest.of(tableId.toString())
+        CreateTableRequest.of(tableIdString)
             .addFamily(cf)
     );
   }
@@ -82,14 +84,11 @@ public class BigtableInsertWriterTest {
     writer.put(md2).getValue().get();
 
     var duplicateKeyMutation = new MutationData(tableId, record, key1, mut, new HashSet<>());
-    Exception exception = null;
-    try {
-      writer.put(duplicateKeyMutation).getValue().get();
-    } catch (Exception e) {
-      exception = e;
-    }
-    assertNotNull(exception);
-    assertEquals(ConnectException.class, exception.getClass());
-    assertEquals("Insert failed since the row already existed.", exception.getMessage());
+    var fut = writer.put(duplicateKeyMutation).getValue();
+
+    ExecutionException exception = assertThrows(ExecutionException.class, fut::get);
+    var cause = exception.getCause();
+    assertEquals(ConnectException.class, cause.getClass());
+    assertEquals("Insert failed since the row already existed.", cause.getMessage());
   }
 }

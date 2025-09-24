@@ -22,9 +22,11 @@ import com.google.cloud.bigtable.admin.v2.models.ColumnFamily;
 import com.google.cloud.bigtable.admin.v2.models.CreateTableRequest;
 import com.google.cloud.bigtable.admin.v2.models.ModifyColumnFamiliesRequest;
 import com.google.cloud.bigtable.admin.v2.models.Table;
+import com.google.cloud.bigtable.data.v2.models.TableId;
 import com.google.cloud.kafka.connect.bigtable.exception.InvalidBigtableSchemaModificationException;
 import com.google.cloud.kafka.connect.bigtable.mapping.MutationData;
 import com.google.cloud.kafka.connect.bigtable.utils.SinkResult;
+import com.google.cloud.kafka.connect.bigtable.utils.Utils;
 import com.google.cloud.kafka.connect.bigtable.wrappers.BigtableTableAdminClientInterface;
 import com.google.common.annotations.VisibleForTesting;
 import java.util.AbstractMap;
@@ -71,7 +73,7 @@ public class BigtableSchemaManager implements AutoCloseable {
    * what column families it contains.
    */
   @VisibleForTesting
-  protected Map<String, Optional<Set<String>>> tableNameToColumnFamilies;
+  protected Map<TableId, Optional<Set<String>>> tableNameToColumnFamilies;
 
   /**
    * The default constructor.
@@ -94,15 +96,15 @@ public class BigtableSchemaManager implements AutoCloseable {
    *     {@link MutationData} auto-creation of {@link Table Table(s)} failed.
    */
   public Collection<SinkResult<MutationData>> ensureTablesExist(Collection<MutationData> recordsAndOutputs) {
-    Map<String, List<SinkRecord>> recordsByTableNames = getTableNamesToRecords(recordsAndOutputs);
+    Map<TableId, List<SinkRecord>> recordsByTableNames = getTableNamesToRecords(recordsAndOutputs);
 
-    Map<String, List<SinkRecord>> recordsByMissingTableNames =
+    Map<TableId, List<SinkRecord>> recordsByMissingTableNames =
         missingTablesToRecords(recordsByTableNames);
     if (recordsByMissingTableNames.isEmpty()) {
       return Collections.emptyList();
     }
     logger.debug("Missing {} tables", recordsByMissingTableNames.size());
-    Map<ApiFuture<Table>, ResourceAndRecords<String>> recordsByCreateTableFutures =
+    Map<ApiFuture<Table>, ResourceAndRecords<TableId>> recordsByCreateTableFutures =
         sendCreateTableRequests(recordsByMissingTableNames);
     // No cache update here since we create tables with no column families, so every (non-delete)
     // write to the table will need to create needed column families first, so saving the data from
@@ -147,16 +149,16 @@ public class BigtableSchemaManager implements AutoCloseable {
    */
   public Collection<SinkResult<MutationData>> ensureColumnFamiliesExist(
       Collection<MutationData> recordsAndOutputs) {
-    Map<Map.Entry<String, String>, List<SinkRecord>> recordsByColumnFamilies =
+    Map<Map.Entry<TableId, String>, List<SinkRecord>> recordsByColumnFamilies =
         getTableColumnFamiliesToRecords(recordsAndOutputs);
 
-    Map<Map.Entry<String, String>, List<SinkRecord>> recordsByMissingColumnFamilies =
+    Map<Map.Entry<TableId, String>, List<SinkRecord>> recordsByMissingColumnFamilies =
         missingTableColumnFamiliesToRecords(recordsByColumnFamilies);
     if (recordsByMissingColumnFamilies.isEmpty()) {
       return Collections.emptyList();
     }
     logger.debug("Missing {} column families", recordsByMissingColumnFamilies.size());
-    Map<ApiFuture<Table>, ResourceAndRecords<Map.Entry<String, String>>>
+    Map<ApiFuture<Table>, ResourceAndRecords<Map.Entry<TableId, String>>>
         recordsByCreateColumnFamilyFutures =
         sendCreateColumnFamilyRequests(recordsByMissingColumnFamilies);
 
@@ -167,13 +169,13 @@ public class BigtableSchemaManager implements AutoCloseable {
         awaitResourceCreationAndHandleInvalidInputErrors(
             recordsByCreateColumnFamilyFutures, "Error creating a Cloud Bigtable column family %s");
 
-    Set<String> tablesRequiringRefresh =
+    Set<TableId> tablesRequiringRefresh =
         recordsByMissingColumnFamilies.keySet().stream()
             .map(Map.Entry::getKey)
             .collect(Collectors.toSet());
     refreshTableColumnFamiliesCache(tablesRequiringRefresh);
 
-    Map<Map.Entry<String, String>, List<SinkRecord>> missing =
+    Map<Map.Entry<TableId, String>, List<SinkRecord>> missing =
         missingTableColumnFamiliesToRecords(recordsByMissingColumnFamilies);
     Set<SinkRecord> bigtableErrors =
         missing.values().stream().flatMap(Collection::stream).collect(Collectors.toSet());
@@ -197,14 +199,13 @@ public class BigtableSchemaManager implements AutoCloseable {
    * @return A {@link Map} containing Cloud Bigtable table names and {@link SinkRecord SinkRecords}
    *     that need these tables to exist.
    */
-  private static Map<String, List<SinkRecord>> getTableNamesToRecords(
+  private static Map<TableId, List<SinkRecord>> getTableNamesToRecords(
       Collection<MutationData> recordsAndOutputs) {
-    Map<String, List<SinkRecord>> tableNamesToRecords = new HashMap<>();
+    Map<TableId, List<SinkRecord>> tableNamesToRecords = new HashMap<>();
     for (MutationData mut : recordsAndOutputs) {
       SinkRecord record = mut.getRecord();
-      String tableName = mut.getTargetTable().toString();
       List<SinkRecord> records =
-          tableNamesToRecords.computeIfAbsent(tableName, k -> new ArrayList<>());
+          tableNamesToRecords.computeIfAbsent(mut.getTargetTable(), k -> new ArrayList<>());
       records.add(record);
     }
     return tableNamesToRecords;
@@ -217,14 +218,14 @@ public class BigtableSchemaManager implements AutoCloseable {
    *     names and column families and {@link SinkRecord SinkRecords} that need to use these tables
    *     and column families to exist.
    */
-  private static Map<Map.Entry<String, String>, List<SinkRecord>> getTableColumnFamiliesToRecords(
+  private static Map<Map.Entry<TableId, String>, List<SinkRecord>> getTableColumnFamiliesToRecords(
       Collection<MutationData> recordsAndOutputs) {
-    Map<Map.Entry<String, String>, List<SinkRecord>> tableColumnFamiliesToRecords = new HashMap<>();
+    Map<Map.Entry<TableId, String>, List<SinkRecord>> tableColumnFamiliesToRecords = new HashMap<>();
     for (MutationData mut : recordsAndOutputs) {
       SinkRecord record = mut.getRecord();
-      String tableName = mut.getTargetTable().toString();
+      TableId tableName = mut.getTargetTable();
       for (String columnFamily : mut.getRequiredColumnFamilies()) {
-        Map.Entry<String, String> key =
+        Map.Entry<TableId, String> key =
             new AbstractMap.SimpleImmutableEntry<>(tableName, columnFamily);
         List<SinkRecord> records =
             tableColumnFamiliesToRecords.computeIfAbsent(key, k -> new ArrayList<>());
@@ -241,9 +242,9 @@ public class BigtableSchemaManager implements AutoCloseable {
    */
   @VisibleForTesting
   void refreshTableNamesCache() {
-    Set<String> tables;
+    Set<TableId> tables;
     try {
-      tables = new HashSet<>(bigtable.listTables());
+      tables = bigtable.listTables().stream().map(TableId::of).collect(Collectors.toSet());
     } catch (ApiException e) {
       logger.error(
           "listTables() exception. If a table got deleted in the meantime, the sink might attempt"
@@ -255,12 +256,12 @@ public class BigtableSchemaManager implements AutoCloseable {
       // The alternative is to throw an exception and fail the whole batch that way.
       return;
     }
-    for (String key : new HashSet<>(tableNameToColumnFamilies.keySet())) {
+    for (TableId key : new HashSet<>(tableNameToColumnFamilies.keySet())) {
       if (!tables.contains(key)) {
         tableNameToColumnFamilies.remove(key);
       }
     }
-    for (String table : tables) {
+    for (TableId table : tables) {
       tableNameToColumnFamilies.putIfAbsent(table, Optional.empty());
     }
   }
@@ -275,28 +276,28 @@ public class BigtableSchemaManager implements AutoCloseable {
    *     be refreshed.
    */
   @VisibleForTesting
-  void refreshTableColumnFamiliesCache(Set<String> tablesRequiringRefresh) {
+  void refreshTableColumnFamiliesCache(Set<TableId> tablesRequiringRefresh) {
     refreshTableNamesCache();
-    List<Map.Entry<String, ApiFuture<Table>>> tableFutures =
+    List<Map.Entry<TableId, ApiFuture<Table>>> tableFutures =
         tableNameToColumnFamilies.keySet().stream()
             .filter(tablesRequiringRefresh::contains)
             .map(t -> new AbstractMap.SimpleImmutableEntry<>(t, bigtable.getTableAsync(t)))
             .collect(Collectors.toList());
-    Map<String, Optional<Set<String>>> newCache = new HashMap<>(tableNameToColumnFamilies);
-    for (Map.Entry<String, ApiFuture<Table>> entry : tableFutures) {
-      String tableName = entry.getKey();
+    Map<TableId, Optional<Set<String>>> newCache = new HashMap<>(tableNameToColumnFamilies);
+    for (Map.Entry<TableId, ApiFuture<Table>> entry : tableFutures) {
+      TableId tableId = entry.getKey();
       try {
         Table tableDetails = entry.getValue().get();
         Set<String> tableColumnFamilies =
             tableDetails.getColumnFamilies().stream()
                 .map(ColumnFamily::getId)
                 .collect(Collectors.toSet());
-        newCache.put(tableName, Optional.of(tableColumnFamilies));
+        newCache.put(tableId, Optional.of(tableColumnFamilies));
       } catch (ExecutionException | InterruptedException e) {
         if (SchemaApiExceptions.maybeExtractBigtableStatusCode(e)
             .map(sc -> StatusCode.Code.NOT_FOUND.equals(sc.getCode()))
             .orElse(false)) {
-          newCache.remove(tableName);
+          newCache.remove(tableId);
         } else {
           // We don't know exactly which column families exist, but we expect the set not to shrink.
           // So we carry on, hoping that our cache is up-to-date.
@@ -306,7 +307,7 @@ public class BigtableSchemaManager implements AutoCloseable {
                   + " might attempt to write some records to a nonexistent column family. If"
                   + " a column family got created in the meantime, records targeting it might be"
                   + " failed prematurely.",
-              tableName,
+              tableId,
               e);
         }
       }
@@ -323,9 +324,9 @@ public class BigtableSchemaManager implements AutoCloseable {
    * @return A subset of the input argument with the entries corresponding to existing tables
    *     removed.
    */
-  private Map<String, List<SinkRecord>> missingTablesToRecords(
-      Map<String, List<SinkRecord>> tableNamesToRecords) {
-    Map<String, List<SinkRecord>> recordsByMissingTableNames = new HashMap<>(tableNamesToRecords);
+  private Map<TableId, List<SinkRecord>> missingTablesToRecords(
+      Map<TableId, List<SinkRecord>> tableNamesToRecords) {
+    Map<TableId, List<SinkRecord>> recordsByMissingTableNames = new HashMap<>(tableNamesToRecords);
     recordsByMissingTableNames.keySet().removeAll(tableNameToColumnFamilies.keySet());
     return recordsByMissingTableNames;
   }
@@ -337,13 +338,13 @@ public class BigtableSchemaManager implements AutoCloseable {
    * @return A subset of the input argument with the entries corresponding to existing column
    *     families removed.
    */
-  private Map<Map.Entry<String, String>, List<SinkRecord>> missingTableColumnFamiliesToRecords(
-      Map<Map.Entry<String, String>, List<SinkRecord>> tableColumnFamiliesToRecords) {
-    Map<Map.Entry<String, String>, List<SinkRecord>> recordsByMissingColumnFamilies =
+  private Map<Map.Entry<TableId, String>, List<SinkRecord>> missingTableColumnFamiliesToRecords(
+      Map<Map.Entry<TableId, String>, List<SinkRecord>> tableColumnFamiliesToRecords) {
+    Map<Map.Entry<TableId, String>, List<SinkRecord>> recordsByMissingColumnFamilies =
         new HashMap<>(tableColumnFamiliesToRecords);
-    for (Map.Entry<String, Optional<Set<String>>> existingEntry :
+    for (Map.Entry<TableId, Optional<Set<String>>> existingEntry :
         tableNameToColumnFamilies.entrySet()) {
-      String tableName = existingEntry.getKey();
+      TableId tableName = existingEntry.getKey();
       for (String columnFamily : existingEntry.getValue().orElse(new HashSet<>())) {
         recordsByMissingColumnFamilies.remove(
             new AbstractMap.SimpleImmutableEntry<>(tableName, columnFamily));
@@ -352,33 +353,33 @@ public class BigtableSchemaManager implements AutoCloseable {
     return recordsByMissingColumnFamilies;
   }
 
-  private Map<ApiFuture<Table>, ResourceAndRecords<String>> sendCreateTableRequests(
-      Map<String, List<SinkRecord>> recordsByMissingTables) {
-    Map<ApiFuture<Table>, ResourceAndRecords<String>> result = new HashMap<>();
-    for (Map.Entry<String, List<SinkRecord>> e : recordsByMissingTables.entrySet()) {
-      ResourceAndRecords<String> resourceAndRecords =
+  private Map<ApiFuture<Table>, ResourceAndRecords<TableId>> sendCreateTableRequests(
+      Map<TableId, List<SinkRecord>> recordsByMissingTables) {
+    Map<ApiFuture<Table>, ResourceAndRecords<TableId>> result = new HashMap<>();
+    for (Map.Entry<TableId, List<SinkRecord>> e : recordsByMissingTables.entrySet()) {
+      ResourceAndRecords<TableId> resourceAndRecords =
           new ResourceAndRecords<>(e.getKey(), e.getValue());
       result.put(createTable(e.getKey()), resourceAndRecords);
     }
     return result;
   }
 
-  private Map<ApiFuture<Table>, ResourceAndRecords<Map.Entry<String, String>>>
+  private Map<ApiFuture<Table>, ResourceAndRecords<Map.Entry<TableId, String>>>
   sendCreateColumnFamilyRequests(
-      Map<Map.Entry<String, String>, List<SinkRecord>> recordsByMissingColumnFamilies) {
-    Map<ApiFuture<Table>, ResourceAndRecords<Map.Entry<String, String>>> result = new HashMap<>();
-    for (Map.Entry<Map.Entry<String, String>, List<SinkRecord>> e :
+      Map<Map.Entry<TableId, String>, List<SinkRecord>> recordsByMissingColumnFamilies) {
+    Map<ApiFuture<Table>, ResourceAndRecords<Map.Entry<TableId, String>>> result = new HashMap<>();
+    for (Map.Entry<Map.Entry<TableId, String>, List<SinkRecord>> e :
         recordsByMissingColumnFamilies.entrySet()) {
-      ResourceAndRecords<Map.Entry<String, String>> resourceAndRecords =
+      ResourceAndRecords<Map.Entry<TableId, String>> resourceAndRecords =
           new ResourceAndRecords<>(e.getKey(), e.getValue());
       result.put(createColumnFamily(e.getKey()), resourceAndRecords);
     }
     return result;
   }
 
-  private ApiFuture<Table> createTable(String tableName) {
-    logger.info("Creating table `{}`", tableName);
-    CreateTableRequest createTableRequest = CreateTableRequest.of(tableName);
+  private ApiFuture<Table> createTable(TableId tableId) {
+    logger.info("Creating table `{}`", tableId);
+    CreateTableRequest createTableRequest = CreateTableRequest.of(Utils.getTableIdString(tableId));
     return bigtable.createTableAsync(createTableRequest);
   }
 
@@ -386,12 +387,12 @@ public class BigtableSchemaManager implements AutoCloseable {
   // Table is atomic and fails if any of the Column Families to be created already exists.
   // Thus by sending multiple requests, we simplify error handling when races between multiple
   // tasks of a single connector happen.
-  private ApiFuture<Table> createColumnFamily(Map.Entry<String, String> tableNameAndColumnFamily) {
-    String tableName = tableNameAndColumnFamily.getKey();
+  private ApiFuture<Table> createColumnFamily(Map.Entry<TableId, String> tableNameAndColumnFamily) {
+    TableId tableName = tableNameAndColumnFamily.getKey();
     String columnFamily = tableNameAndColumnFamily.getValue();
     logger.info("Creating column family `{}` in table `{}`", columnFamily, tableName);
     ModifyColumnFamiliesRequest request =
-        ModifyColumnFamiliesRequest.of(tableName).addFamily(columnFamily);
+        ModifyColumnFamiliesRequest.of(Utils.getTableIdString(tableName)).addFamily(columnFamily);
     return bigtable.modifyFamiliesAsync(request);
   }
 

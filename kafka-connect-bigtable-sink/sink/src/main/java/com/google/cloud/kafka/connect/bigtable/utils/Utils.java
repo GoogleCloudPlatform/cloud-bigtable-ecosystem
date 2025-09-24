@@ -1,5 +1,6 @@
 package com.google.cloud.kafka.connect.bigtable.utils;
 
+import com.google.cloud.bigtable.data.v2.models.TableId;
 import com.google.cloud.kafka.connect.bigtable.exception.BigtableSinkLogicError;
 import com.google.common.annotations.VisibleForTesting;
 import java.util.Collection;
@@ -10,6 +11,7 @@ import java.util.concurrent.Future;
 import org.apache.kafka.connect.sink.SinkRecord;
 
 public class Utils {
+
   /**
    * Generates a {@link Map} with desired key ordering.
    *
@@ -21,7 +23,7 @@ public class Utils {
    */
   @VisibleForTesting
   // It is generic so that we can test it with naturally ordered values easily.
- public static <K, V> Map<K, V> orderMap(Map<K, V> map, Collection<K> order) {
+  public static <K, V> Map<K, V> orderMap(Map<K, V> map, Collection<K> order) {
     if (!order.containsAll(map.keySet())) {
       throw new BigtableSinkLogicError(
           "A collection defining order of keys must be a superset of the input map's key set.");
@@ -73,4 +75,10 @@ public class Utils {
     return completable;
   }
 
+  // todo remove when getTableId access is public
+  public static String getTableIdString(TableId tableId) {
+    var s = tableId.toResourceName("foo", "bar");
+    var split = s.split("/");
+    return split[split.length - 1];
+  }
 }
