@@ -98,7 +98,7 @@ func TestDecodeCollection(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Failure with Unsupported Type",
+			name: "Failure with Unsupported TypeInfo",
 			args: args{
 				dt: func() datatype.DataType {
 					udt, _ := datatype.NewUserDefinedType("ks", "udt", nil, nil)
@@ -688,7 +688,7 @@ func TestConvertToTypedMap(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Failure with Unsupported Key Type",
+			name: "Failure with Unsupported Key TypeInfo",
 			args: args{
 				decodedMap: map[interface{}]interface{}{1: 1},
 				keyType: func() datatype.DataType {
@@ -701,7 +701,7 @@ func TestConvertToTypedMap(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Failure with Unsupported Value Type",
+			name: "Failure with Unsupported Value TypeInfo",
 			args: args{
 				decodedMap: map[interface{}]interface{}{"one": 1},
 				keyType:    datatype.Varchar,
@@ -790,7 +790,7 @@ func TestConvertToTypedMap(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Unsupported Key Type for Timestamp conversion",
+			name: "Unsupported Key TypeInfo for Timestamp conversion",
 			args: args{
 				decodedMap: map[interface{}]interface{}{1: "value"},
 				keyType:    datatype.Timestamp,
@@ -854,7 +854,7 @@ func TestConvertToTypedMap(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Unsupported Key Type for Timestamp conversion",
+			name: "Unsupported Key TypeInfo for Timestamp conversion",
 			args: args{
 				decodedMap: map[interface{}]interface{}{1: "value"},
 				keyType:    datatype.Timestamp,
@@ -864,7 +864,7 @@ func TestConvertToTypedMap(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Convert Map with Unsupported Value Type",
+			name: "Convert Map with Unsupported Value TypeInfo",
 			args: args{
 				decodedMap: map[interface{}]interface{}{"one": "value"},
 				keyType:    datatype.Varchar,
@@ -877,7 +877,7 @@ func TestConvertToTypedMap(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Convert Map of Timestamp to Int with Invalid Value Type",
+			name: "Convert Map of Timestamp to Int with Invalid Value TypeInfo",
 			args: args{
 				decodedMap: map[interface{}]interface{}{
 					time.Unix(0, Timestamp): "not an int",
@@ -905,7 +905,7 @@ func TestConvertToTypedMap(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Convert Map of Timestamp to Bigint with Invalid Key Type",
+			name: "Convert Map of Timestamp to Bigint with Invalid Key TypeInfo",
 			args: args{
 				decodedMap: map[interface{}]interface{}{
 					"not a timestamp": int64(100),
@@ -917,7 +917,7 @@ func TestConvertToTypedMap(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Convert Map of Timestamp to Bigint with Invalid Value Type",
+			name: "Convert Map of Timestamp to Bigint with Invalid Value TypeInfo",
 			args: args{
 				decodedMap: map[interface{}]interface{}{
 					time.Unix(0, Timestamp): "not an int64",
@@ -945,7 +945,7 @@ func TestConvertToTypedMap(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Convert Map of Timestamp to Float with Invalid Key Type",
+			name: "Convert Map of Timestamp to Float with Invalid Key TypeInfo",
 			args: args{
 				decodedMap: map[interface{}]interface{}{
 					"not a timestamp": float32(1.23),
@@ -957,7 +957,7 @@ func TestConvertToTypedMap(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Convert Map of Timestamp to Float with Invalid Value Type",
+			name: "Convert Map of Timestamp to Float with Invalid Value TypeInfo",
 			args: args{
 				decodedMap: map[interface{}]interface{}{
 					time.Unix(0, Timestamp): "not a float32",
@@ -995,7 +995,7 @@ func TestConvertToTypedMap(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Convert Map of Timestamp to Double with Invalid Key Type",
+			name: "Convert Map of Timestamp to Double with Invalid Key TypeInfo",
 			args: args{
 				decodedMap: map[interface{}]interface{}{
 					"not a timestamp": float64(1.23),
@@ -1007,7 +1007,7 @@ func TestConvertToTypedMap(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Convert Map of Timestamp to Double with Invalid Value Type",
+			name: "Convert Map of Timestamp to Double with Invalid Value TypeInfo",
 			args: args{
 				decodedMap: map[interface{}]interface{}{
 					time.Unix(0, Timestamp): "not a float64",
@@ -1045,7 +1045,7 @@ func TestConvertToTypedMap(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Convert Map of Timestamp to Timestamp with Invalid Key Type",
+			name: "Convert Map of Timestamp to Timestamp with Invalid Key TypeInfo",
 			args: args{
 				decodedMap: map[interface{}]interface{}{
 					"not a timestamp": time.Unix(0, 1625247605000000000),
@@ -1057,7 +1057,7 @@ func TestConvertToTypedMap(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Convert Map of Timestamp to Timestamp with Invalid Value Type",
+			name: "Convert Map of Timestamp to Timestamp with Invalid Value TypeInfo",
 			args: args{
 				decodedMap: map[interface{}]interface{}{
 					time.Unix(0, Timestamp): "not a time.Time",

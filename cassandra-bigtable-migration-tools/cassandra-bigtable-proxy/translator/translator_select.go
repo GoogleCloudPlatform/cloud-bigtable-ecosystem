@@ -22,8 +22,7 @@ import (
 	"strconv"
 	"strings"
 
-	methods "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/methods"
-	types "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
+	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	schemaMapping "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/schema-mapping"
 	cql "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/third_party/cqlparser"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/utilities"
@@ -389,8 +388,7 @@ func processFunctionColumn(t *Translator, columnMetadata types.SelectedColumn, t
 		return nil, fmt.Errorf("unknown function '%s'", columnMetadata.FuncName)
 	}
 	if columnMetadata.FuncName != "count" {
-		colType, _ := methods.ConvertCQLDataTypeToString(colMeta.CQLType)
-		if !dtAllowedInAggregate(colType) {
+		if !dtAllowedInAggregate(colMeta.TypeInfo.DataType) {
 			return nil, fmt.Errorf("column not supported for aggregate")
 		}
 	}
@@ -410,15 +408,13 @@ func processFunctionColumn(t *Translator, columnMetadata types.SelectedColumn, t
 // dtAllowedInAggregate checks whether the provided data type is allowed in aggregate functions.
 // It returns true if dataType is one of the supported numeric types (i.e., "int", "bigint", "float", or "double"),
 // ensuring that only appropriate types are used for aggregate operations.
-func dtAllowedInAggregate(dataType string) bool {
-	allowedDataTypes := map[string]bool{
-		"int":     true,
-		"bigint":  true,
-		"float":   true,
-		"double":  true,
-		"counter": true,
+func dtAllowedInAggregate(dt datatype.DataType) bool {
+	switch dt {
+	case datatype.Int, datatype.Bigint, datatype.Float, datatype.Double, datatype.Counter:
+		return true
+	default:
+		return false
 	}
-	return allowedDataTypes[dataType]
 }
 
 // funcAllowedInAggregate checks if a given function name is allowed within an aggregate function.
@@ -477,9 +473,9 @@ func processWriteTimeColumn(tableConfig *schemaMapping.TableConfig, columnMetada
 
 func processAsColumn(columnMetadata types.SelectedColumn, columnFamily string, colMeta *types.Column, columns []string, isGroupBy bool) []string {
 	var columnSelected string
-	if !utilities.IsCollection(colMeta.CQLType) {
+	if !colMeta.TypeInfo.IsCollection() {
 		var columnName = columnMetadata.Name
-		if colMeta.CQLType == datatype.Counter {
+		if colMeta.TypeInfo.IsCounter() {
 			// counters are stored as counter_col['']
 			columnFamily = columnMetadata.Name
 			columnName = ""
@@ -493,7 +489,7 @@ func processAsColumn(columnMetadata types.SelectedColumn, columnFamily string, c
 			columnSelected = fmt.Sprintf("%s['%s'] as %s", columnFamily, columnName, columnMetadata.Alias)
 		}
 	} else {
-		if colMeta.CQLType.GetDataTypeCode() == primitive.DataTypeCodeList {
+		if colMeta.TypeInfo.GetDataTypeCode() == primitive.DataTypeCodeList {
 			columnSelected = fmt.Sprintf("MAP_VALUES(%s) as %s", columnMetadata.Name, columnMetadata.Alias)
 		} else {
 			columnSelected = fmt.Sprintf("`%s` as %s", columnMetadata.Name, columnMetadata.Alias)
@@ -527,9 +523,9 @@ Returns:
 	An updated slice of strings with the new formatted column reference appended.
 */
 func processRegularColumn(columnMetadata types.SelectedColumn, tableName string, columnFamily string, colMeta *types.Column, columns []string, isGroupBy bool) []string {
-	if !utilities.IsCollection(colMeta.CQLType) {
+	if !colMeta.TypeInfo.IsCollection() {
 		var columnName = columnMetadata.Name
-		if colMeta.CQLType == datatype.Counter {
+		if colMeta.TypeInfo.IsCounter() {
 			columnFamily = columnName
 			columnName = ""
 		}
@@ -543,8 +539,7 @@ func processRegularColumn(columnMetadata types.SelectedColumn, tableName string,
 		}
 	} else {
 		var collectionColumn string
-		colType, _ := methods.ConvertCQLDataTypeToString(colMeta.CQLType)
-		if strings.Contains(colType, "list") {
+		if colMeta.TypeInfo.GetDataTypeCode() == primitive.DataTypeCodeList {
 			collectionColumn = fmt.Sprintf("MAP_VALUES(%s)", columnMetadata.Name)
 		} else {
 			collectionColumn = fmt.Sprintf("`%s`", columnMetadata.Name)
@@ -632,7 +627,7 @@ func getBigtableSelectQuery(t *Translator, data *SelectQueryMap) (string, error)
 				groupBykeys = append(groupBykeys, col)
 			} else {
 				if colMeta, ok := tableConfig.Columns[lookupCol]; ok {
-					if !utilities.IsCollection(colMeta.CQLType) {
+					if !colMeta.TypeInfo.IsCollection() {
 						col, err := castColumns(colMeta, t.SchemaMappingConfig.SystemColumnFamily)
 						if err != nil {
 							return "", err
@@ -657,7 +652,7 @@ func getBigtableSelectQuery(t *Translator, data *SelectQueryMap) (string, error)
 				if colMeta, ok := tableConfig.Columns[lookupCol]; ok {
 					if colMeta.IsPrimaryKey {
 						orderByClauses = append(orderByClauses, orderByCol.Column+" "+string(orderByCol.Operation))
-					} else if !utilities.IsCollection(colMeta.CQLType) {
+					} else if !colMeta.TypeInfo.IsCollection() {
 						orderByKey, err := castColumns(colMeta, t.SchemaMappingConfig.SystemColumnFamily)
 						if err != nil {
 							return "", err

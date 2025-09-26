@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS bigtabledevinstance.user_info (
 
 		`
 CREATE TABLE IF NOT EXISTS bigtabledevinstance.orders (
-	user_id varchar,
+	user_id text,
 	order_num int,
 	name varchar,
 	PRIMARY KEY (user_id, order_num)
@@ -106,6 +106,15 @@ CREATE TABLE IF NOT EXISTS bigtabledevinstance.social_posts (
 	likes counter,
 	views counter,
 	PRIMARY KEY (user_id, id)
+);
+`,
+		`
+CREATE TABLE IF NOT EXISTS bigtabledevinstance.frozen_table (
+	name varchar,
+	list_nums frozen<list<int>>,
+	map_text frozen<map<text, text>>,
+	set_text frozen<set<text>>,
+	PRIMARY KEY (name)
 );
 `,
 		`

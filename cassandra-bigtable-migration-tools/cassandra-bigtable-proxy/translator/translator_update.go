@@ -23,13 +23,11 @@ import (
 	"strconv"
 	"strings"
 
-	methods "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/methods"
 	types "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	schemaMapping "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/schema-mapping"
 	cql "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/third_party/cqlparser"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/utilities"
 	"github.com/antlr4-go/antlr/v4"
-	"github.com/datastax/go-cassandra-native-protocol/datatype"
 	"github.com/datastax/go-cassandra-native-protocol/primitive"
 )
 
@@ -187,7 +185,7 @@ func parseAssignments(assignments []cql.IAssignmentElementContext, tableConfig *
 				if utilities.IsCollectionColumn(column) {
 					val = value
 				} else {
-					val, err = formatValues(fmt.Sprintf("%v", value), column.CQLType, 4)
+					val, err = formatValues(fmt.Sprintf("%v", value), column.TypeInfo.DataType, 4)
 					if err != nil {
 						return nil, err
 					}
@@ -195,15 +193,11 @@ func parseAssignments(assignments []cql.IAssignmentElementContext, tableConfig *
 				params["set"+strconv.Itoa(i+1)] = val
 			}
 			paramKeys = append(paramKeys, "set"+strconv.Itoa(i+1))
-			cqlTypeStr, err := methods.ConvertCQLDataTypeToString(column.CQLType)
-			if err != nil {
-				return nil, err
-			}
 			setResp = append(setResp, UpdateSetValue{
 				Column:    columnName,
 				Value:     "@set" + strconv.Itoa(i+1),
 				Encrypted: val,
-				CQLType:   cqlTypeStr,
+				CQLType:   column.TypeInfo,
 			})
 			continue // Prevent falling through to the rest of the loop
 		} else if setVal.SyntaxBracketLs() != nil && setVal.DecimalLiteral() != nil && setVal.SyntaxBracketRs() != nil && setVal.Constant() != nil {
@@ -244,10 +238,10 @@ func parseAssignments(assignments []cql.IAssignmentElementContext, tableConfig *
 			return nil, fmt.Errorf("primary key not allowed to assignments")
 		}
 		if !isPreparedQuery {
-			if utilities.IsCollectionColumn(column) || column.CQLType == datatype.Counter {
+			if column.TypeInfo.IsCollection() || column.TypeInfo.IsCounter() {
 				val = value
 			} else {
-				val, err = formatValues(fmt.Sprintf("%v", value), column.CQLType, 4)
+				val, err = formatValues(fmt.Sprintf("%v", value), column.TypeInfo.DataType, 4)
 				if err != nil {
 					return nil, err
 				}
@@ -257,15 +251,11 @@ func parseAssignments(assignments []cql.IAssignmentElementContext, tableConfig *
 			val = value
 		}
 		paramKeys = append(paramKeys, "set"+strconv.Itoa(i+1))
-		cqlTypeStr, err := methods.ConvertCQLDataTypeToString(column.CQLType)
-		if err != nil {
-			return nil, err
-		}
 		setResp = append(setResp, UpdateSetValue{
 			Column:    columnName,
 			Value:     "@set" + strconv.Itoa(i+1),
 			Encrypted: val,
-			CQLType:   cqlTypeStr,
+			CQLType:   column.TypeInfo,
 		})
 	}
 	return &UpdateSetResponse{
@@ -379,11 +369,7 @@ func (t *Translator) TranslateUpdateQuerytoBigtable(query string, isPreparedQuer
 	var columns []types.Column
 	for _, val := range setValues.UpdateSetValues {
 		values = append(values, val.Encrypted)
-		cqlType, err := methods.GetCassandraColumnType(val.CQLType)
-		if err != nil {
-			return nil, err
-		}
-		columns = append(columns, types.Column{Name: val.Column, ColumnFamily: t.SchemaMappingConfig.SystemColumnFamily, CQLType: cqlType})
+		columns = append(columns, types.Column{Name: val.Column, ColumnFamily: t.SchemaMappingConfig.SystemColumnFamily, TypeInfo: val.CQLType})
 	}
 	var newValues []interface{} = values
 	var newColumns []types.Column = columns
@@ -441,7 +427,7 @@ func (t *Translator) TranslateUpdateQuerytoBigtable(query string, isPreparedQuer
 		for _, val := range QueryClauses.Clauses {
 			var column types.Column
 			if columns, exists := tableConfig.Columns[val.Column]; exists {
-				column = types.Column{Name: columns.Name, ColumnFamily: tableConfig.SystemColumnFamily, CQLType: columns.CQLType}
+				column = types.Column{Name: columns.Name, ColumnFamily: tableConfig.SystemColumnFamily, TypeInfo: columns.TypeInfo}
 			}
 			newColumns = append(newColumns, column)
 
@@ -450,7 +436,7 @@ func (t *Translator) TranslateUpdateQuerytoBigtable(query string, isPreparedQuer
 				pv = val.Value[1:]
 			}
 			value := fmt.Sprintf("%v", QueryClauses.Params[pv])
-			encryVal, err := formatValues(value, column.CQLType, 4)
+			encryVal, err := formatValues(value, column.TypeInfo.DataType, 4)
 			if err != nil {
 				return nil, err
 			}
@@ -481,6 +467,10 @@ func (t *Translator) TranslateUpdateQuerytoBigtable(query string, isPreparedQuer
 		PrimaryKeys:           primaryKeys,
 		TimestampInfo:         timestampInfo,
 		ComplexOperation:      complexMeta,
+	}
+
+	if err := validateComplexOperation(tableConfig, updateQueryData); err != nil {
+		return nil, err
 	}
 
 	return updateQueryData, nil

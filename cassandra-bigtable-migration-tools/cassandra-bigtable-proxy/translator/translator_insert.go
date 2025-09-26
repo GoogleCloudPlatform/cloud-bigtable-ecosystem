@@ -76,7 +76,7 @@ func parseColumnsAndValuesFromInsert(input cql.IInsertColumnSpecContext, tableNa
 		column := types.Column{
 			Name:         columnName,
 			ColumnFamily: tableConfig.SystemColumnFamily,
-			CQLType:      sourceColumn.CQLType,
+			TypeInfo:     sourceColumn.TypeInfo,
 			IsPrimaryKey: isPrimaryKey,
 		}
 		if sourceColumn.IsPrimaryKey {
@@ -138,7 +138,7 @@ func setParamsFromValues(input cql.IInsertValuesSpecContext, columns []types.Col
 					unenVal = goValue
 				} else {
 					unenVal = goValue
-					val, err = formatValues(fmt.Sprintf("%v", goValue), col.CQLType, protocolV)
+					val, err = formatValues(fmt.Sprintf("%v", goValue), col.TypeInfo.DataType, protocolV)
 					if err != nil {
 						return nil, nil, nil, err
 					}

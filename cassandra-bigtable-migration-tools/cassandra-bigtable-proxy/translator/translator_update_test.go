@@ -26,6 +26,7 @@ import (
 	"github.com/datastax/go-cassandra-native-protocol/message"
 	"github.com/datastax/go-cassandra-native-protocol/primitive"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )
 
@@ -67,18 +68,19 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 	}
 
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    *UpdateQueryMapping
-		wantErr bool
+		name            string
+		fields          fields
+		sessionKeyspace string
+		args            args
+		want            *UpdateQueryMapping
+		wantErr         string
 	}{
 		{
 			name: "update blob column",
 			args: args{
 				query: "UPDATE test_keyspace.test_table SET column2 = '0x0000000000000003' WHERE column1 = 'testText' AND column10 = 'column10';",
 			},
-			wantErr: false,
+			wantErr: "",
 			want: &UpdateQueryMapping{
 				ParamKeys: []string{"set1", "value1", "value2"},
 				Params: map[string]interface{}{
@@ -96,7 +98,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 			args: args{
 				query: "UPDATE test_keyspace.test_table SET column3 = true WHERE column1 = 'testText' AND column10 = 'column10';",
 			},
-			wantErr: false,
+			wantErr: "",
 			want: &UpdateQueryMapping{
 				ParamKeys: []string{"set1", "value1", "value2"},
 				Params: map[string]interface{}{
@@ -114,7 +116,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 			args: args{
 				query: "UPDATE test_keyspace.test_table SET column5 = '2024-08-12T12:34:56Z' WHERE column1 = 'testText' AND column10 = 'column10';",
 			},
-			wantErr: false,
+			wantErr: "",
 			want: &UpdateQueryMapping{
 				ParamKeys: []string{"set1", "value1", "value2"},
 				Params: map[string]interface{}{
@@ -132,7 +134,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 			args: args{
 				query: "UPDATE test_keyspace.test_table SET column6 = 123 WHERE column1 = 'testText' AND column10 = 'column10';",
 			},
-			wantErr: false,
+			wantErr: "",
 			want: &UpdateQueryMapping{
 				ParamKeys: []string{"set1", "value1", "value2"},
 				Params: map[string]interface{}{
@@ -150,7 +152,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 			args: args{
 				query: "UPDATE test_keyspace.test_table SET column7 = {'item1', 'item2'} WHERE column1 = 'testText' AND column10 = 'column10';",
 			},
-			wantErr: false,
+			wantErr: "",
 			want: &UpdateQueryMapping{
 				ParamKeys: []string{"set1", "value1", "value2"},
 				Params: map[string]interface{}{
@@ -168,7 +170,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 			args: args{
 				query: "UPDATE test_keyspace.test_table SET column8 = {'key1': true, 'key2': false} WHERE column1 = 'testText' AND column10 = 'column10';",
 			},
-			wantErr: false,
+			wantErr: "",
 			want: &UpdateQueryMapping{
 				ParamKeys: []string{"set1", "value1", "value2"},
 				Params: map[string]interface{}{
@@ -186,7 +188,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 			args: args{
 				query: "UPDATE test_keyspace.test_table SET column9 = 1234567890 WHERE column1 = 'testText' AND column10 = 'column10';",
 			},
-			wantErr: false,
+			wantErr: "",
 			want: &UpdateQueryMapping{
 				ParamKeys: []string{"set1", "value1", "value2"},
 				Params: map[string]interface{}{
@@ -205,7 +207,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 				query: "UPDATE test_keyspace.test_table SET column2 = 'abc' WHERE column10 = 'pkval' AND column1 = 'abc';",
 			},
 			fields:  fields{},
-			wantErr: false,
+			wantErr: "",
 			want: &UpdateQueryMapping{
 				ParamKeys: []string{"set1", "value1", "value2"},
 				Params: map[string]interface{}{
@@ -223,7 +225,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 			args: args{
 				query: "UPDATE test_keyspace.test_table SET column7 = column7 + {'item3'} WHERE column1 = 'testText' AND column10 = 'column10';",
 			},
-			wantErr: false,
+			wantErr: "",
 			want: &UpdateQueryMapping{
 				ParamKeys: []string{"set1", "value1", "value2"},
 				Params: map[string]interface{}{
@@ -246,7 +248,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 			args: args{
 				query: "UPDATE test_keyspace.test_table SET column7 = column7 - {'item2'} WHERE column1 = 'testText' AND column10 = 'column10';",
 			},
-			wantErr: false,
+			wantErr: "",
 			want: &UpdateQueryMapping{
 				ParamKeys: []string{"set1", "value1", "value2"},
 				Params: map[string]interface{}{
@@ -269,7 +271,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 			args: args{
 				query: "UPDATE test_keyspace.test_table SET counter_col = counter_col + 1 WHERE column1 = 'testText' AND column10 = 'column10';",
 			},
-			wantErr: false,
+			wantErr: "",
 			want: &UpdateQueryMapping{
 				ParamKeys: []string{"set1", "value1", "value2"},
 				Params: map[string]interface{}{
@@ -297,14 +299,14 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 			args: args{
 				query: "UPDATE test_keyspace.test_table SET counter_col = counter_col * 1 WHERE column1 = 'testText' AND column10 = 'column10';",
 			},
-			wantErr: true,
+			wantErr: "unsupported counter operation",
 		},
 		{
 			name: "counter operation decrement",
 			args: args{
 				query: "UPDATE test_keyspace.test_table SET counter_col = counter_col - 9 WHERE column1 = 'testText' AND column10 = 'column10';",
 			},
-			wantErr: false,
+			wantErr: "",
 			want: &UpdateQueryMapping{
 				ParamKeys: []string{"set1", "value1", "value2"},
 				Params: map[string]interface{}{
@@ -332,7 +334,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 			args: args{
 				query: "UPDATE test_keyspace.test_table SET counter_col = counter_col + -9 WHERE column1 = 'testText' AND column10 = 'column10';",
 			},
-			wantErr: false,
+			wantErr: "",
 			want: &UpdateQueryMapping{
 				ParamKeys: []string{"set1", "value1", "value2"},
 				Params: map[string]interface{}{
@@ -361,7 +363,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 				query: "UPDATE test_keyspace.test_table SET column2 = 'abc' WHERE column10 = 'pkval' AND column1 = 'abc';",
 			},
 			fields:  fields{},
-			wantErr: false,
+			wantErr: "",
 			want: &UpdateQueryMapping{
 				ParamKeys: []string{"set1", "value1", "value2"},
 				Params: map[string]interface{}{
@@ -379,7 +381,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 			args: args{
 				query: "UPDATE test_keyspace.test_table SET column7 = [] WHERE column1 = 'testText' AND column10 = 'column10';",
 			},
-			wantErr: false,
+			wantErr: "",
 			want: &UpdateQueryMapping{
 				ParamKeys: []string{"set1", "value1", "value2"},
 				Params: map[string]interface{}{
@@ -397,7 +399,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 			args: args{
 				query: "UPDATE test_keyspace.test_table SET column7 = ['item1', 'item2'] WHERE column1 = 'testText' AND column10 = 'column10';",
 			},
-			wantErr: false,
+			wantErr: "",
 			want: &UpdateQueryMapping{
 				ParamKeys: []string{"set1", "value1", "value2"},
 				Params: map[string]interface{}{
@@ -411,11 +413,63 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 			},
 		},
 		{
+			name: "update with frozen list assignment",
+			args: args{
+				query: "UPDATE test_keyspace.test_table SET frozen_list_text = ['item1', 'item2'] WHERE column1 = 'testText' AND column10 = 'column10';",
+			},
+			wantErr: "",
+			want: &UpdateQueryMapping{
+				ParamKeys: []string{"set1", "value1", "value2"},
+				Params: map[string]interface{}{
+					"set1":   []string{"item1", "item2"},
+					"value1": "testText",
+					"value2": "column10",
+				},
+				RowKey:           "testText\x00\x01column10",
+				Keyspace:         "test_keyspace",
+				ComplexOperation: map[string]*ComplexOperation{},
+			},
+		},
+		{
+			name: "append with frozen list fails",
+			args: args{
+				query: "UPDATE test_keyspace.test_table SET frozen_list_text = frozen_list_text + ['item1'] WHERE column1 = 'testText' AND column10 = 'column10';",
+			},
+			wantErr: "cannot partially update frozen column",
+		},
+		{
+			name: "prepend with frozen list fails",
+			args: args{
+				query: "UPDATE test_keyspace.test_table SET frozen_list_text = ['item1'] + frozen_list_text WHERE column1 = 'testText' AND column10 = 'column10';",
+			},
+			wantErr: "cannot partially update frozen column",
+		},
+		{
+			name: "remove from a frozen list fails",
+			args: args{
+				query: "UPDATE test_keyspace.test_table SET frozen_list_text = frozen_list_text - ['item1'] WHERE column1 = 'testText' AND column10 = 'column10';",
+			},
+			wantErr: "cannot partially update frozen column",
+		},
+		{
+			name: "append to a frozen set column fails",
+			args: args{
+				query: "UPDATE test_keyspace.test_table SET frozen_set_text = frozen_set_text + {'item3'} WHERE column1 = 'testText' AND column10 = 'column10';",
+			},
+			wantErr: "cannot partially update frozen column",
+		},
+		{
+			name: "remove from a frozen set column fails",
+			args: args{
+				query: "UPDATE test_keyspace.test_table SET frozen_set_text = frozen_set_text - {'item3'} WHERE column1 = 'testText' AND column10 = 'column10';",
+			},
+			wantErr: "cannot partially update frozen column",
+		},
+		{
 			name: "update with map assignment",
 			args: args{
 				query: "UPDATE test_keyspace.test_table SET column8 = {'key1': true, 'key2': false} WHERE column1 = 'testText' AND column10 = 'column10';",
 			},
-			wantErr: false,
 			want: &UpdateQueryMapping{
 				ParamKeys: []string{"set1", "value1", "value2"},
 				Params: map[string]interface{}{
@@ -433,7 +487,6 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 			args: args{
 				query: "UPDATE test_keyspace.test_table SET column7 = {'item1', 'item2'} WHERE column1 = 'testText' AND column10 = 'column10';",
 			},
-			wantErr: false,
 			want: &UpdateQueryMapping{
 				ParamKeys: []string{"set1", "value1", "value2"},
 				Params: map[string]interface{}{
@@ -451,30 +504,31 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 			args: args{
 				query: "UPDATE test_keyspace.test_table SET column1 = ['item1'] WHERE column10 = 'column10';",
 			},
-			wantErr: true,
+			wantErr: "primary key not allowed to assignments",
 		},
 		{
 			name: "invalid collection syntax (should error)",
 			args: args{
 				query: "UPDATE test_keyspace.test_table SET column7 = ['item1', WHERE column1 = 'testText';",
 			},
-			wantErr: true,
+			// note - this exact error doesn't matter
+			wantErr: "not allowed",
 		},
 		{
 			name: "collection assignment to non-collection column (should error)",
 			args: args{
 				query: "UPDATE test_keyspace.test_table SET column6 = ['item1'] WHERE column1 = 'testText';",
 			},
-			wantErr: true,
+			wantErr: "invalid syntax",
 		},
-
 		{
 			name: "without keyspace in query, with default keyspace",
 			args: args{
 				query: "UPDATE test_table SET column2 = 'abc' WHERE column10 = 'pkval' AND column1 = 'abc';",
 			},
-			fields:  fields{},
-			wantErr: false,
+			sessionKeyspace: "test_keyspace",
+			fields:          fields{},
+			wantErr:         "",
 			want: &UpdateQueryMapping{
 				ParamKeys: []string{"set1", "value1", "value2"},
 				Params: map[string]interface{}{
@@ -492,15 +546,34 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 			args: args{
 				query: "UPDATE test_keyspace.test_table SET column71 = 'newItem' WHERE column1 = 'testText';",
 			},
-			wantErr: true,
+			wantErr: "unknown column 'column71'",
 		},
 		{
 			name: "without keyspace in query, without default keyspace (should error)",
 			args: args{
-				query: "UPDATE test_table SET column1 = 'abc' WHERE column10 = 'pkval' AND column1 = 'abc';",
+				query: "UPDATE test_table SET column2 = 'abc' WHERE column10 = 'pkval' AND column1 = 'abc';",
 			},
 			fields:  fields{},
-			wantErr: true,
+			wantErr: "invalid input parameters found for keyspace",
+		},
+		{
+			name: "without keyspace in query, but with session keyspace is ok",
+			args: args{
+				query: "UPDATE test_table SET column2 = 'abc' WHERE column10 = 'pkval' AND column1 = 'abc';",
+			},
+			sessionKeyspace: "test_keyspace",
+			fields:          fields{},
+			want: &UpdateQueryMapping{
+				ParamKeys: []string{"set1", "value1", "value2"},
+				Params: map[string]interface{}{
+					"set1":   []byte("abc"),
+					"value1": "pkval",
+					"value2": "abc",
+				},
+				RowKey:           "abc\x00\x01pkval",
+				Keyspace:         "test_keyspace",
+				ComplexOperation: map[string]*ComplexOperation{},
+			},
 		},
 		{
 			name: "invalid query syntax (should error)",
@@ -508,7 +581,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 				query: "UPDATE test_keyspace.test_table",
 			},
 			fields:  fields{},
-			wantErr: true,
+			wantErr: "error parsing",
 		},
 		{
 			name: "parser returns empty table (should error)",
@@ -516,7 +589,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 				query: "UPDATE test_keyspace. SET column1 = 'abc' WHERE column10 = 'pkval';",
 			},
 			fields:  fields{},
-			wantErr: true,
+			wantErr: "does not exist",
 		},
 		{
 			name: "parser returns empty keyspace (should error)",
@@ -524,7 +597,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 				query: "UPDATE .test_table SET column1 = 'abc' WHERE column10 = 'pkval';",
 			},
 			fields:  fields{},
-			wantErr: true,
+			wantErr: "invalid input parameters found for keyspace",
 		},
 		{
 			name: "parser returns empty set clause (should error)",
@@ -532,7 +605,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 				query: "UPDATE test_keyspace.test_table SET WHERE column10 = 'pkval';",
 			},
 			fields:  fields{},
-			wantErr: true,
+			wantErr: " ",
 		},
 		{
 			name: "keyspace does not exist (should error)",
@@ -540,7 +613,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 				query: "UPDATE invalid_keyspace.test_table SET column1 = 'abc' WHERE column10 = 'pkval';",
 			},
 			fields:  fields{},
-			wantErr: true,
+			wantErr: "keyspace 'invalid_keyspace' does not exist",
 		},
 		{
 			name: "table does not exist (should error)",
@@ -548,7 +621,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 				query: "UPDATE test_keyspace.invalid_table SET column1 = 'abc' WHERE column10 = 'pkval';",
 			},
 			fields:  fields{},
-			wantErr: true,
+			wantErr: "table invalid_table does not exist",
 		},
 		{
 			name: "missing primary key in where clause (should error)",
@@ -556,7 +629,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 				query: "UPDATE test_keyspace.test_table SET column2 = 'abc' WHERE column1 = 'testText'", // Missing column10
 			},
 			fields:  fields{},
-			wantErr: true,
+			wantErr: "some primary key parts are missing: column10",
 			want:    nil,
 		},
 		{
@@ -565,7 +638,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 				query: "UPDATE test_keyspace.test_table SET column2 = 'abc' WHERE column3 = true", // No PK columns
 			},
 			fields:  fields{},
-			wantErr: true,
+			wantErr: "some primary key parts are missing:",
 			want:    nil,
 		},
 	}
@@ -577,19 +650,15 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 				Logger:              tt.fields.Logger,
 				SchemaMappingConfig: schemaMappingConfig,
 			}
-			got, err := tr.TranslateUpdateQuerytoBigtable(tt.args.query, false, "test_keyspace")
-			if tt.wantErr {
-				assert.Error(t, err)
+			got, err := tr.TranslateUpdateQuerytoBigtable(tt.args.query, false, tt.sessionKeyspace)
+			if tt.wantErr != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.wantErr)
 				return
 			}
-			if got != nil && len(got.RowKey) > 0 && !reflect.DeepEqual(got.RowKey, tt.want.RowKey) {
-				t.Errorf("Translator.TranslateUpdateQuerytoBigtable() = %v, want %v", got.RowKey, tt.want.RowKey)
-			}
-
-			if got != nil && !reflect.DeepEqual(got.Keyspace, tt.want.Keyspace) {
-				t.Errorf("Translator.TranslateUpdateQuerytoBigtable() = %v, want %v", got.Keyspace, tt.want.Keyspace)
-			}
-
+			require.NoError(t, err)
+			assert.Equal(t, tt.want.RowKey, got.RowKey)
+			assert.Equal(t, tt.want.Keyspace, got.Keyspace)
 			assert.Equal(t, tt.want.ComplexOperation, got.ComplexOperation)
 			assert.Equal(t, tt.want.Params, got.Params)
 		})
@@ -629,7 +698,7 @@ func TestTranslator_BuildUpdatePrepareQuery(t *testing.T) {
 					{
 						Name:         "pk_1_text",
 						ColumnFamily: "",
-						CQLType:      datatype.Varchar,
+						TypeInfo:     types.NewCqlTypeInfoFromType(datatype.Varchar),
 					},
 				},
 				st: &UpdateQueryMapping{
@@ -678,7 +747,7 @@ func TestTranslator_BuildUpdatePrepareQuery(t *testing.T) {
 					{
 						Name:         "blob_col",
 						ColumnFamily: "",
-						CQLType:      datatype.Blob,
+						TypeInfo:     types.NewCqlTypeInfoFromType(datatype.Blob),
 					},
 				},
 				Values: []interface{}{[]interface{}(nil)},

@@ -28,12 +28,10 @@ import (
 	"time"
 
 	"cloud.google.com/go/bigtable"
-	"github.com/datastax/go-cassandra-native-protocol/datatype"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	constants "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/constants"
-	methods "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/methods"
 	types "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	otelgo "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/otel"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/responsehandler"
@@ -508,10 +506,10 @@ func (btc *BigtableClient) AlterTable(ctx context.Context, data *translator.Alte
 	return nil
 }
 
-func (btc *BigtableClient) addColumnFamilies(columns []message.ColumnMetadata) (map[string]bigtable.Family, error) {
+func (btc *BigtableClient) addColumnFamilies(columns []types.CreateColumn) (map[string]bigtable.Family, error) {
 	columnFamilies := make(map[string]bigtable.Family)
 	for _, col := range columns {
-		if !utilities.IsCollection(col.Type) && col.Type != datatype.Counter {
+		if !col.TypeInfo.IsCollection() && !col.TypeInfo.IsCounter() {
 			continue
 		}
 
@@ -519,11 +517,11 @@ func (btc *BigtableClient) addColumnFamilies(columns []message.ColumnMetadata) (
 			return nil, fmt.Errorf("counter and collection type columns cannot be named '%s' because it's reserved as the default column family", btc.BigtableConfig.DefaultColumnFamily)
 		}
 
-		if utilities.IsCollection(col.Type) {
+		if col.TypeInfo.IsCollection() {
 			columnFamilies[col.Name] = bigtable.Family{
 				GCPolicy: bigtable.MaxVersionsPolicy(1),
 			}
-		} else if col.Type == datatype.Counter {
+		} else if col.TypeInfo.IsCounter() {
 			columnFamilies[col.Name] = bigtable.Family{
 				GCPolicy: bigtable.NoGcPolicy(),
 				ValueType: bigtable.AggregateType{
@@ -536,7 +534,7 @@ func (btc *BigtableClient) addColumnFamilies(columns []message.ColumnMetadata) (
 	return columnFamilies, nil
 }
 
-func (btc *BigtableClient) updateTableSchema(ctx context.Context, keyspace string, tableName string, pmks []translator.CreateTablePrimaryKeyConfig, addCols []message.ColumnMetadata, dropCols []string) error {
+func (btc *BigtableClient) updateTableSchema(ctx context.Context, keyspace string, tableName string, pmks []translator.CreateTablePrimaryKeyConfig, addCols []types.CreateColumn, dropCols []string) error {
 	client, err := btc.getClient(keyspace)
 	if err != nil {
 		return err
@@ -551,8 +549,8 @@ func (btc *BigtableClient) updateTableSchema(ctx context.Context, keyspace strin
 	for _, col := range addCols {
 		mut := bigtable.NewMutation()
 		mut.Set(schemaMappingTableColumnFamily, smColColumnName, ts, []byte(col.Name))
-		mut.Set(schemaMappingTableColumnFamily, smColColumnType, ts, []byte(col.Type.String()))
-		isCollection := utilities.IsCollection(col.Type)
+		mut.Set(schemaMappingTableColumnFamily, smColColumnType, ts, []byte(col.TypeInfo.RawType))
+		isCollection := col.TypeInfo.IsCollection()
 		// todo this is no longer used. We'll remove this later, in a few releases, but we'll keep it for now so users can roll back to earlier versions of the proxy if needed
 		mut.Set(schemaMappingTableColumnFamily, smColIsCollection, ts, []byte(strconv.FormatBool(isCollection)))
 		pmkIndex := slices.IndexFunc(pmks, func(c translator.CreateTablePrimaryKeyConfig) bool {
@@ -735,7 +733,7 @@ func (btc *BigtableClient) ReadTableConfigs(ctx context.Context, keyspace string
 				keyType = string(item.Value)
 			}
 		}
-		cqlType, err := methods.GetCassandraColumnType(columnType)
+		dt, err := utilities.ParseCqlType(columnType)
 		if err != nil {
 			readErr = err
 			return false
@@ -746,7 +744,7 @@ func (btc *BigtableClient) ReadTableConfigs(ctx context.Context, keyspace string
 		// Create a new column struct
 		column := &types.Column{
 			Name:         columnName,
-			CQLType:      cqlType,
+			TypeInfo:     dt,
 			IsPrimaryKey: isPrimaryKey,
 			PkPrecedence: pkPrecedence,
 			KeyType:      keyType,

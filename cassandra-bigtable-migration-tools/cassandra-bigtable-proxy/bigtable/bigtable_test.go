@@ -860,34 +860,26 @@ var testCreateTableStatementMap = translator.CreateTableStatementMap{
 	Table:             "create_table_test",
 	IfNotExists:       false,
 	IntRowKeyEncoding: types.OrderedCodeEncoding,
-	Columns: []message.ColumnMetadata{
+	Columns: []types.CreateColumn{
 		{
-			Keyspace: "ks1",
-			Table:    "create_table_test",
 			Name:     "org",
 			Index:    0,
-			Type:     datatype.Varchar,
+			TypeInfo: types.NewCqlTypeInfoFromType(datatype.Varchar),
 		},
 		{
-			Keyspace: "ks1",
-			Table:    "create_table_test",
 			Name:     "id",
 			Index:    1,
-			Type:     datatype.Bigint,
+			TypeInfo: types.NewCqlTypeInfoFromType(datatype.Bigint),
 		},
 		{
-			Keyspace: "ks1",
-			Table:    "create_table_test",
 			Name:     "name",
 			Index:    2,
-			Type:     datatype.Varchar,
+			TypeInfo: types.NewCqlTypeInfoFromType(datatype.Varchar),
 		},
 		{
-			Keyspace: "ks1",
-			Table:    "create_table_test",
 			Name:     "zipcode",
 			Index:    3,
-			Type:     datatype.Int,
+			TypeInfo: types.NewCqlTypeInfoFromType(datatype.Int),
 		},
 	},
 	PrimaryKeys: []translator.CreateTablePrimaryKeyConfig{
@@ -928,7 +920,7 @@ func TestCreateTable(t *testing.T) {
 	require.Equal(t, map[string]*types.Column{
 		"org": {
 			Name:         "org",
-			CQLType:      datatype.Varchar,
+			TypeInfo:     types.NewCqlTypeInfoFromType(datatype.Varchar),
 			IsPrimaryKey: true,
 			PkPrecedence: 1,
 			KeyType:      "partition_key",
@@ -942,7 +934,7 @@ func TestCreateTable(t *testing.T) {
 		},
 		"id": {
 			Name:         "id",
-			CQLType:      datatype.Bigint,
+			TypeInfo:     types.NewCqlTypeInfoFromType(datatype.Bigint),
 			IsPrimaryKey: true,
 			PkPrecedence: 2,
 			KeyType:      "clustering",
@@ -956,7 +948,7 @@ func TestCreateTable(t *testing.T) {
 		},
 		"name": {
 			Name:         "name",
-			CQLType:      datatype.Varchar,
+			TypeInfo:     types.NewCqlTypeInfoFromType(datatype.Varchar),
 			IsPrimaryKey: false,
 			PkPrecedence: 0,
 			KeyType:      utilities.KEY_TYPE_REGULAR,
@@ -970,7 +962,7 @@ func TestCreateTable(t *testing.T) {
 		},
 		"zipcode": {
 			Name:         "zipcode",
-			CQLType:      datatype.Int,
+			TypeInfo:     types.NewCqlTypeInfoFromType(datatype.Int),
 			IsPrimaryKey: false,
 			PkPrecedence: 0,
 			KeyType:      utilities.KEY_TYPE_REGULAR,
@@ -1162,12 +1154,10 @@ func TestAlterTable(t *testing.T) {
 		Keyspace:    "ks1",
 		Table:       "alter_table_test",
 		IfNotExists: false,
-		AddColumns: []message.ColumnMetadata{
+		AddColumns: []types.CreateColumn{
 			{
-				Keyspace: "ks1",
-				Table:    "alter_table_test",
 				Name:     "zodiac",
-				Type:     datatype.Varchar,
+				TypeInfo: types.NewCqlTypeInfoFromType(datatype.Varchar),
 			},
 		},
 		DropColumns: []string{
@@ -1183,7 +1173,7 @@ func TestAlterTable(t *testing.T) {
 	require.Equal(t, tableMap["alter_table_test"].Columns, map[string]*types.Column{
 		"org": {
 			Name:         "org",
-			CQLType:      datatype.Varchar,
+			TypeInfo:     types.NewCqlTypeInfoFromType(datatype.Varchar),
 			IsPrimaryKey: true,
 			PkPrecedence: 1,
 			KeyType:      "partition_key",
@@ -1197,7 +1187,7 @@ func TestAlterTable(t *testing.T) {
 		},
 		"id": {
 			Name:         "id",
-			CQLType:      datatype.Bigint,
+			TypeInfo:     types.NewCqlTypeInfoFromType(datatype.Bigint),
 			IsPrimaryKey: true,
 			PkPrecedence: 2,
 			KeyType:      "clustering",
@@ -1211,7 +1201,7 @@ func TestAlterTable(t *testing.T) {
 		},
 		"name": {
 			Name:         "name",
-			CQLType:      datatype.Varchar,
+			TypeInfo:     types.NewCqlTypeInfoFromType(datatype.Varchar),
 			IsPrimaryKey: false,
 			PkPrecedence: 0,
 			KeyType:      utilities.KEY_TYPE_REGULAR,
@@ -1225,7 +1215,7 @@ func TestAlterTable(t *testing.T) {
 		},
 		"zodiac": {
 			Name:         "zodiac",
-			CQLType:      datatype.Varchar,
+			TypeInfo:     types.NewCqlTypeInfoFromType(datatype.Varchar),
 			IsPrimaryKey: false,
 			PkPrecedence: 0,
 			KeyType:      utilities.KEY_TYPE_REGULAR,

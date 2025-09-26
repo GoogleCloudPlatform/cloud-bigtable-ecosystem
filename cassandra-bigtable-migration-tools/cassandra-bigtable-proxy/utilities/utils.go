@@ -18,6 +18,7 @@ package utilities
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -215,7 +216,7 @@ const (
 )
 
 func IsCollectionColumn(c *types.Column) bool {
-	return IsCollection(c.CQLType)
+	return IsCollection(c.TypeInfo.DataType)
 }
 
 // IsCollection() checks if the provided data type is a collection type (list, set, or map).
@@ -542,8 +543,12 @@ func GetClauseByColumn(clause []types.Clause, column string) (types.Clause, erro
 	return types.Clause{}, fmt.Errorf("clause not found")
 }
 
-func IsSupportedPrimaryKeyType(dt datatype.DataType) bool {
-	switch dt {
+func IsSupportedPrimaryKeyType(dt *types.CqlTypeInfo) bool {
+	if dt.IsFrozen {
+		return false
+	}
+
+	switch dt.DataType {
 	case datatype.Int, datatype.Bigint, datatype.Varchar:
 		return true
 	default:
@@ -560,20 +565,133 @@ func isSupportedCollectionElementType(dt datatype.DataType) bool {
 	}
 }
 
-func IsSupportedColumnType(dt datatype.DataType) bool {
-	switch dt.GetDataTypeCode() {
+func IsSupportedColumnType(dt *types.CqlTypeInfo) bool {
+	switch dt.DataType.GetDataTypeCode() {
 	case primitive.DataTypeCodeInt, primitive.DataTypeCodeBigint, primitive.DataTypeCodeBlob, primitive.DataTypeCodeBoolean, primitive.DataTypeCodeDouble, primitive.DataTypeCodeFloat, primitive.DataTypeCodeTimestamp, primitive.DataTypeCodeText, primitive.DataTypeCodeVarchar, primitive.DataTypeCodeCounter:
 		return true
 	case primitive.DataTypeCodeMap:
-		mapType := dt.(datatype.MapType)
+		mapType := dt.DataType.(datatype.MapType)
 		return isSupportedCollectionElementType(mapType.GetKeyType()) && isSupportedCollectionElementType(mapType.GetValueType())
 	case primitive.DataTypeCodeSet:
-		setType := dt.(datatype.SetType)
+		setType := dt.DataType.(datatype.SetType)
 		return isSupportedCollectionElementType(setType.GetElementType())
 	case primitive.DataTypeCodeList:
-		listType := dt.(datatype.ListType)
+		listType := dt.DataType.(datatype.ListType)
 		return isSupportedCollectionElementType(listType.GetElementType())
 	default:
 		return false
+	}
+}
+
+var cqlGenericTypeRegex = regexp.MustCompile(`^(\w+)<(.+)>$`)
+
+func ParseCqlTypeOrDie(typeStr string) *types.CqlTypeInfo {
+	t, err := ParseCqlType(typeStr)
+	if err != nil {
+		panic(err)
+	}
+	return t
+}
+
+// ParseCqlType converts a string representation of a Cassandra data type into
+// a corresponding DataType value. It supports a range of common Cassandra data types,
+// including text, blob, timestamp, int, bigint, boolean, uuid, various map and list types.
+//
+// Parameters:
+//   - typeStr: A string representing the Cassandra column data type. This function expects
+//     the data type in a specific format (e.g., "text", "int", "map<text, boolean>").
+//
+// Returns:
+//   - datatype.DataType: The corresponding DataType value for the provided string.
+//     This is used to represent the Cassandra data type in a structured format within Go.
+//   - bool: true if is frozen
+//   - error: An error is returned if the provided string does not match any of the known
+//     Cassandra data types. This helps in identifying unsupported or incorrectly specified
+//     data types.
+func ParseCqlType(typeStr string) (*types.CqlTypeInfo, error) {
+	typeStr = strings.ToLower(strings.ReplaceAll(typeStr, " ", ""))
+
+	matches := cqlGenericTypeRegex.FindStringSubmatch(typeStr)
+	if matches != nil {
+		switch matches[1] {
+		case "frozen":
+			innerType, err := ParseCqlType(matches[2])
+			if err != nil {
+				return nil, fmt.Errorf("failed to extract type for '%s': %w", typeStr, err)
+			}
+			if !innerType.IsCollection() {
+				return nil, fmt.Errorf("failed to extract type for '%s': frozen types must be a collection", typeStr)
+			}
+			return &types.CqlTypeInfo{
+				RawType:  typeStr,
+				DataType: innerType.DataType,
+				IsFrozen: true,
+			}, nil
+		case "list":
+			innerType, err := ParseCqlType(matches[2])
+			if err != nil {
+				return nil, fmt.Errorf("failed to extract type for '%s': %w", typeStr, err)
+			}
+			return &types.CqlTypeInfo{
+				RawType:  typeStr,
+				DataType: datatype.NewListType(innerType.DataType),
+				IsFrozen: false,
+			}, nil
+		case "set":
+			innerType, err := ParseCqlType(matches[2])
+			if err != nil {
+				return nil, fmt.Errorf("failed to extract type for '%s': %w", typeStr, err)
+			}
+			return &types.CqlTypeInfo{
+				RawType:  typeStr,
+				DataType: datatype.NewSetType(innerType.DataType),
+				IsFrozen: false,
+			}, nil
+		case "map":
+			parts := strings.SplitN(matches[2], ",", 2)
+			if len(parts) != 2 {
+				return nil, fmt.Errorf("failed to extract type for '%s': malformed map type", typeStr)
+			}
+			keyType, err := ParseCqlType(parts[0])
+			if err != nil {
+				return nil, fmt.Errorf("failed to extract type for '%s': %w", typeStr, err)
+			}
+			valueType, err := ParseCqlType(parts[1])
+			if err != nil {
+				return nil, fmt.Errorf("failed to extract type for '%s': %w", typeStr, err)
+			}
+			return &types.CqlTypeInfo{
+				RawType:  typeStr,
+				DataType: datatype.NewMapType(keyType.DataType, valueType.DataType),
+				IsFrozen: false,
+			}, nil
+		default:
+			return nil, fmt.Errorf("unsupported generic column type: %s in type %s", matches[1], typeStr)
+		}
+	}
+
+	switch typeStr {
+	case "text", "varchar":
+		return &types.CqlTypeInfo{RawType: typeStr, DataType: datatype.Varchar, IsFrozen: false}, nil
+	case "blob":
+		return &types.CqlTypeInfo{RawType: typeStr, DataType: datatype.Blob, IsFrozen: false}, nil
+	case "timestamp":
+		return &types.CqlTypeInfo{RawType: typeStr, DataType: datatype.Timestamp, IsFrozen: false}, nil
+	case "int":
+		return &types.CqlTypeInfo{RawType: typeStr, DataType: datatype.Int, IsFrozen: false}, nil
+	case "bigint":
+		return &types.CqlTypeInfo{RawType: typeStr, DataType: datatype.Bigint, IsFrozen: false}, nil
+	case "boolean":
+		return &types.CqlTypeInfo{RawType: typeStr, DataType: datatype.Boolean, IsFrozen: false}, nil
+	case "uuid":
+		return &types.CqlTypeInfo{RawType: typeStr, DataType: datatype.Uuid, IsFrozen: false}, nil
+	case "float":
+		return &types.CqlTypeInfo{RawType: typeStr, DataType: datatype.Float, IsFrozen: false}, nil
+	case "double":
+		return &types.CqlTypeInfo{RawType: typeStr, DataType: datatype.Double, IsFrozen: false}, nil
+	case "counter":
+		return &types.CqlTypeInfo{RawType: typeStr, DataType: datatype.Counter, IsFrozen: false}, nil
+	default:
+		return nil, fmt.Errorf("unsupported column type: %s", typeStr)
 	}
 }

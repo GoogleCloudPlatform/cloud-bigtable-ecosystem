@@ -630,12 +630,12 @@ var mockTableSchemaConfig = schemaMapping.NewSchemaMappingConfig(
 			"cf1", // SystemColumnFamily from the original struct
 			types.OrderedCodeEncoding,
 			[]*types.Column{
-				{Name: "test_id", CQLType: datatype.Varchar, KeyType: utilities.KEY_TYPE_PARTITION, IsPrimaryKey: true},
-				{Name: "column1", CQLType: datatype.Varchar, KeyType: utilities.KEY_TYPE_CLUSTERING, IsPrimaryKey: true, PkPrecedence: 1},
-				{Name: "column10", CQLType: datatype.Varchar, KeyType: utilities.KEY_TYPE_CLUSTERING, IsPrimaryKey: true, PkPrecedence: 2},
-				{Name: "test_hash", CQLType: datatype.Varchar, KeyType: utilities.KEY_TYPE_REGULAR},
-				{Name: "column2", CQLType: datatype.Blob, KeyType: utilities.KEY_TYPE_REGULAR},
-				{Name: "column3", CQLType: datatype.Boolean, KeyType: utilities.KEY_TYPE_REGULAR},
+				{Name: "test_id", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Varchar), KeyType: utilities.KEY_TYPE_PARTITION, IsPrimaryKey: true},
+				{Name: "column1", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Varchar), KeyType: utilities.KEY_TYPE_CLUSTERING, IsPrimaryKey: true, PkPrecedence: 1},
+				{Name: "column10", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Varchar), KeyType: utilities.KEY_TYPE_CLUSTERING, IsPrimaryKey: true, PkPrecedence: 2},
+				{Name: "test_hash", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Varchar), KeyType: utilities.KEY_TYPE_REGULAR},
+				{Name: "column2", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Blob), KeyType: utilities.KEY_TYPE_REGULAR},
+				{Name: "column3", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Boolean), KeyType: utilities.KEY_TYPE_REGULAR},
 			},
 		),
 		schemaMapping.NewTableConfig(
@@ -644,8 +644,8 @@ var mockTableSchemaConfig = schemaMapping.NewSchemaMappingConfig(
 			"cf1", // Assuming a default column family
 			types.OrderedCodeEncoding,
 			[]*types.Column{
-				{Name: "name", CQLType: datatype.Varchar, KeyType: utilities.KEY_TYPE_PARTITION, IsPrimaryKey: true, PkPrecedence: 0},
-				{Name: "age", CQLType: datatype.Varchar, KeyType: utilities.KEY_TYPE_REGULAR},
+				{Name: "name", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Varchar), KeyType: utilities.KEY_TYPE_PARTITION, IsPrimaryKey: true, PkPrecedence: 0},
+				{Name: "age", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Varchar), KeyType: utilities.KEY_TYPE_REGULAR},
 			},
 		),
 	},
@@ -869,7 +869,7 @@ func TestGetMetadataFromCache(t *testing.T) {
 	assert.NotNil(t, variableMeta, "Expected variableMeta to not be nil.")
 	assert.NotNil(t, returnMeta, "Expected returnMeta to not be nil.")
 
-	// Case 6: Invalid Query Type
+	// Case 6: Invalid Query TypeInfo
 	invalidQuery := "Invalid FROM products WHERE product_id = ?;"
 	id = md5.Sum([]byte(invalidQuery))
 	client.AddQueryToCache(id, mockQuery{})
@@ -986,7 +986,7 @@ func TestHandleServerPreparedQuery(t *testing.T) {
 		t.Errorf("Send was not called when expected for test - TestHandleServerPreparedQuery Case 5")
 	}
 
-	// Case 5: Invalid Query Type
+	// Case 5: Invalid Query TypeInfo
 	invalidQuery := "Invalid FROM products WHERE product_id = ?;"
 	id = md5.Sum([]byte(invalidQuery))
 	client.AddQueryToCache(id, mockQuery{})
@@ -1199,7 +1199,7 @@ func TestHandleExecuteForInsert(t *testing.T) {
 		Query:     "INSERT INTO test_keyspace.user_info (name, age) VALUES (?, ?);",
 		QueryType: "INSERT",
 		Table:     "user_info", Keyspace: "test_keyspace",
-		Columns: []types.Column{types.Column{Name: "name", ColumnFamily: "", CQLType: datatype.Varchar, IsPrimaryKey: true}, types.Column{Name: "age", ColumnFamily: "", CQLType: datatype.Varchar, IsPrimaryKey: false}}, Values: []interface{}{[]uint8{0x74, 0x65, 0x73, 0x74, 0x73, 0x68, 0x6f, 0x61, 0x69, 0x62}, []uint8{0x32, 0x35}}, Params: map[string]interface{}(nil), ParamKeys: []string(nil), PrimaryKeys: []string{"name"}, RowKey: "testshoaib", DeleteColumnFamilies: []string(nil), ReturnMetadata: []*message.ColumnMetadata(nil), VariableMetadata: []*message.ColumnMetadata(nil), TimestampInfo: translator.TimestampInfo{Timestamp: 0, HasUsingTimestamp: false, Index: 0}, IfNotExists: false}).Return(&message.RowsResult{}, nil)
+		Columns: []types.Column{types.Column{Name: "name", ColumnFamily: "", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Varchar), IsPrimaryKey: true}, types.Column{Name: "age", ColumnFamily: "", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Varchar), IsPrimaryKey: false}}, Values: []interface{}{[]uint8{0x74, 0x65, 0x73, 0x74, 0x73, 0x68, 0x6f, 0x61, 0x69, 0x62}, []uint8{0x32, 0x35}}, Params: map[string]interface{}(nil), ParamKeys: []string(nil), PrimaryKeys: []string{"name"}, RowKey: "testshoaib", DeleteColumnFamilies: []string(nil), ReturnMetadata: []*message.ColumnMetadata(nil), VariableMetadata: []*message.ColumnMetadata(nil), TimestampInfo: translator.TimestampInfo{Timestamp: 0, HasUsingTimestamp: false, Index: 0}, IfNotExists: false}).Return(&message.RowsResult{}, nil)
 	client := client{
 		ctx:            ctx,
 		preparedQuerys: make(map[[16]byte]interface{}),
@@ -1243,11 +1243,11 @@ func TestHandleExecuteForInsert(t *testing.T) {
 		ParamKeys: []string{"name", "age"},
 		Columns: []types.Column{{
 			Name:         "name",
-			CQLType:      datatype.Varchar,
+			TypeInfo:     types.NewCqlTypeInfoFromType(datatype.Varchar),
 			IsPrimaryKey: true,
 		}, {
 			Name:         "age",
-			CQLType:      datatype.Varchar,
+			TypeInfo:     types.NewCqlTypeInfoFromType(datatype.Varchar),
 			IsPrimaryKey: false}},
 		VariableMetadata: varMeta,
 		ReturnMetadata:   returnMeta,
@@ -1429,7 +1429,7 @@ func TestHandleExecuteForUpdate(t *testing.T) {
 	mockSender := &mockSender{}
 
 	bigTablemockiface := new(mockbigtable.BigTableClientIface)
-	bigTablemockiface.On("UpdateRow", ctx, &translator.UpdateQueryMapping{Query: "UPDATE test_keyspace.user_info SET age = ? WHERE name = ?;", QueryType: "UPDATE", Table: "user_info", Keyspace: "test_keyspace", Columns: []types.Column{types.Column{Name: "name", ColumnFamily: "", CQLType: datatype.Varchar, IsPrimaryKey: true}, types.Column{Name: "age", ColumnFamily: "", CQLType: datatype.Varchar, IsPrimaryKey: false}}, Values: []interface{}{[]uint8{0x74, 0x65, 0x73, 0x74, 0x73, 0x68, 0x6f, 0x61, 0x69, 0x62}, []uint8{0x32, 0x35}}, Params: map[string]interface{}(nil), ParamKeys: []string(nil), PrimaryKeys: []string{"name"}, RowKey: "testshoaib", DeleteColumnFamilies: []string(nil), ReturnMetadata: []*message.ColumnMetadata(nil), VariableMetadata: []*message.ColumnMetadata(nil), TimestampInfo: translator.TimestampInfo{Timestamp: 0, HasUsingTimestamp: false, Index: 0}}).Return(&message.RowsResult{}, nil)
+	bigTablemockiface.On("UpdateRow", ctx, &translator.UpdateQueryMapping{Query: "UPDATE test_keyspace.user_info SET age = ? WHERE name = ?;", QueryType: "UPDATE", Table: "user_info", Keyspace: "test_keyspace", Columns: []types.Column{types.Column{Name: "name", ColumnFamily: "", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Varchar), IsPrimaryKey: true}, types.Column{Name: "age", ColumnFamily: "", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Varchar), IsPrimaryKey: false}}, Values: []interface{}{[]uint8{0x74, 0x65, 0x73, 0x74, 0x73, 0x68, 0x6f, 0x61, 0x69, 0x62}, []uint8{0x32, 0x35}}, Params: map[string]interface{}(nil), ParamKeys: []string(nil), PrimaryKeys: []string{"name"}, RowKey: "testshoaib", DeleteColumnFamilies: []string(nil), ReturnMetadata: []*message.ColumnMetadata(nil), VariableMetadata: []*message.ColumnMetadata(nil), TimestampInfo: translator.TimestampInfo{Timestamp: 0, HasUsingTimestamp: false, Index: 0}}).Return(&message.RowsResult{}, nil)
 	client := client{
 		ctx:            ctx,
 		preparedQuerys: make(map[[16]byte]any),
@@ -1473,11 +1473,11 @@ func TestHandleExecuteForUpdate(t *testing.T) {
 		ParamKeys: []string{"name", "age"},
 		Columns: []types.Column{{
 			Name:         "name",
-			CQLType:      datatype.Varchar,
+			TypeInfo:     types.NewCqlTypeInfoFromType(datatype.Varchar),
 			IsPrimaryKey: true,
 		}, {
 			Name:         "age",
-			CQLType:      datatype.Varchar,
+			TypeInfo:     types.NewCqlTypeInfoFromType(datatype.Varchar),
 			IsPrimaryKey: false}},
 		VariableMetadata: varMeta,
 		ReturnMetadata:   returnMeta,
@@ -1490,7 +1490,7 @@ func TestHandleQueryInsert(t *testing.T) {
 	mockSender := &mockSender{}
 
 	bigTablemockiface := new(mockbigtable.BigTableClientIface)
-	bigTablemockiface.On("InsertRow", nil, &translator.InsertQueryMapping{Query: "INSERT INTO test_keyspace.user_info (name, age) VALUES ('shoaib', '32');", QueryType: "INSERT", Table: "user_info", Keyspace: "test_keyspace", Columns: []types.Column{types.Column{Name: "name", ColumnFamily: "cf1", CQLType: datatype.Varchar, IsPrimaryKey: true}, types.Column{Name: "age", ColumnFamily: "cf1", CQLType: datatype.Varchar, IsPrimaryKey: false}}, Values: []interface{}{[]uint8{0x73, 0x68, 0x6f, 0x61, 0x69, 0x62}, []uint8{0x33, 0x32}}, Params: map[string]interface{}{"age": []uint8{0x33, 0x32}, "name": []uint8{0x73, 0x68, 0x6f, 0x61, 0x69, 0x62}}, ParamKeys: []string{"name", "age"}, PrimaryKeys: []string{"name"}, RowKey: "shoaib", DeleteColumnFamilies: []string(nil), ReturnMetadata: []*message.ColumnMetadata(nil), VariableMetadata: []*message.ColumnMetadata(nil), TimestampInfo: translator.TimestampInfo{Timestamp: 0, HasUsingTimestamp: false, Index: 0}, IfNotExists: false}).Return(&message.RowsResult{}, nil)
+	bigTablemockiface.On("InsertRow", nil, &translator.InsertQueryMapping{Query: "INSERT INTO test_keyspace.user_info (name, age) VALUES ('shoaib', '32');", QueryType: "INSERT", Table: "user_info", Keyspace: "test_keyspace", Columns: []types.Column{types.Column{Name: "name", ColumnFamily: "cf1", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Varchar), IsPrimaryKey: true}, types.Column{Name: "age", ColumnFamily: "cf1", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Varchar), IsPrimaryKey: false}}, Values: []interface{}{[]uint8{0x73, 0x68, 0x6f, 0x61, 0x69, 0x62}, []uint8{0x33, 0x32}}, Params: map[string]interface{}{"age": []uint8{0x33, 0x32}, "name": []uint8{0x73, 0x68, 0x6f, 0x61, 0x69, 0x62}}, ParamKeys: []string{"name", "age"}, PrimaryKeys: []string{"name"}, RowKey: "shoaib", DeleteColumnFamilies: []string(nil), ReturnMetadata: []*message.ColumnMetadata(nil), VariableMetadata: []*message.ColumnMetadata(nil), TimestampInfo: translator.TimestampInfo{Timestamp: 0, HasUsingTimestamp: false, Index: 0}, IfNotExists: false}).Return(&message.RowsResult{}, nil)
 	client := client{
 		ctx:            ctx,
 		preparedQuerys: make(map[[16]byte]interface{}),
@@ -1520,7 +1520,7 @@ func TestHandleQueryUpdate(t *testing.T) {
 	mockSender := &mockSender{}
 
 	bigTablemockiface := new(mockbigtable.BigTableClientIface)
-	bigTablemockiface.On("UpdateRow", nil, &translator.UpdateQueryMapping{Query: "UPDATE test_keyspace.user_info SET age = '33' WHERE name = 'ibrahim';", TranslatedQuery: "", QueryType: "UPDATE", Table: "user_info", Keyspace: "test_keyspace", UpdateSetValues: []translator.UpdateSetValue{translator.UpdateSetValue{Column: "age", Value: "@set1", ColumnFamily: "", CQLType: "text", Encrypted: []uint8{0x33, 0x33}}}, Clauses: []types.Clause{types.Clause{Column: "name", Operator: "=", Value: "@value1", IsPrimaryKey: true}}, Params: map[string]interface{}{"set1": []uint8{0x33, 0x33}, "value1": "ibrahim"}, ParamKeys: []string{"set1", "value1"}, PrimaryKeys: []string{"name"}, Columns: []types.Column{types.Column{Name: "age", ColumnFamily: "cf1", CQLType: datatype.Varchar, IsPrimaryKey: false}, types.Column{Name: "name", ColumnFamily: "cf1", CQLType: datatype.Varchar, IsPrimaryKey: false}}, Values: []interface{}{[]uint8{0x33, 0x33}, []uint8{0x69, 0x62, 0x72, 0x61, 0x68, 0x69, 0x6d}}, RowKey: "ibrahim", DeleteColumnFamilies: []string(nil), DeleteColumQualifires: []types.Column(nil), ReturnMetadata: []*message.ColumnMetadata(nil), VariableMetadata: []*message.ColumnMetadata(nil), TimestampInfo: translator.TimestampInfo{Timestamp: 0, HasUsingTimestamp: false, Index: 0}, IfExists: false, ComplexOperation: map[string]*translator.ComplexOperation{}}).Return(&message.RowsResult{}, nil)
+	bigTablemockiface.On("UpdateRow", nil, &translator.UpdateQueryMapping{Query: "UPDATE test_keyspace.user_info SET age = '33' WHERE name = 'ibrahim';", TranslatedQuery: "", QueryType: "UPDATE", Table: "user_info", Keyspace: "test_keyspace", UpdateSetValues: []translator.UpdateSetValue{translator.UpdateSetValue{Column: "age", Value: "@set1", ColumnFamily: "", CQLType: types.NewCqlTypeInfo("text", datatype.Varchar, false), Encrypted: []uint8{0x33, 0x33}}}, Clauses: []types.Clause{types.Clause{Column: "name", Operator: "=", Value: "@value1", IsPrimaryKey: true}}, Params: map[string]interface{}{"set1": []uint8{0x33, 0x33}, "value1": "ibrahim"}, ParamKeys: []string{"set1", "value1"}, PrimaryKeys: []string{"name"}, Columns: []types.Column{types.Column{Name: "age", ColumnFamily: "cf1", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Varchar), IsPrimaryKey: false}, types.Column{Name: "name", ColumnFamily: "cf1", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Varchar), IsPrimaryKey: false}}, Values: []interface{}{[]uint8{0x33, 0x33}, []uint8{0x69, 0x62, 0x72, 0x61, 0x68, 0x69, 0x6d}}, RowKey: "ibrahim", DeleteColumnFamilies: []string(nil), DeleteColumQualifires: []types.Column(nil), ReturnMetadata: []*message.ColumnMetadata(nil), VariableMetadata: []*message.ColumnMetadata(nil), TimestampInfo: translator.TimestampInfo{Timestamp: 0, HasUsingTimestamp: false, Index: 0}, IfExists: false, ComplexOperation: map[string]*translator.ComplexOperation{}}).Return(&message.RowsResult{}, nil)
 	client := client{
 		ctx:            ctx,
 		preparedQuerys: make(map[[16]byte]interface{}),
@@ -2068,7 +2068,7 @@ func TestHandleDescribeKeyspaces(t *testing.T) {
 					[]*types.Column{
 						{
 							Name:         "column1",
-							CQLType:      datatype.Varchar,
+							TypeInfo:     types.NewCqlTypeInfoFromType(datatype.Varchar),
 							KeyType:      "partition",
 							IsPrimaryKey: true,
 						},
@@ -2082,7 +2082,7 @@ func TestHandleDescribeKeyspaces(t *testing.T) {
 					[]*types.Column{
 						{
 							Name:         "column2",
-							CQLType:      datatype.Varchar,
+							TypeInfo:     types.NewCqlTypeInfoFromType(datatype.Varchar),
 							KeyType:      "partition",
 							IsPrimaryKey: true,
 						},
@@ -2330,7 +2330,7 @@ func TestHandlePostDDLEvent(t *testing.T) {
 				[]*types.Column{
 					{
 						Name:         "id",
-						CQLType:      datatype.Uuid,
+						TypeInfo:     types.NewCqlTypeInfoFromType(datatype.Uuid),
 						KeyType:      "partition",
 						IsPrimaryKey: true,
 						ColumnFamily: "cf",
@@ -2338,7 +2338,7 @@ func TestHandlePostDDLEvent(t *testing.T) {
 					},
 					{
 						Name:         "name",
-						CQLType:      datatype.Varchar,
+						TypeInfo:     types.NewCqlTypeInfoFromType(datatype.Varchar),
 						KeyType:      "clustering",
 						IsPrimaryKey: true,
 						ColumnFamily: "cf",
@@ -2369,7 +2369,14 @@ func TestHandlePostDDLEvent(t *testing.T) {
 					DC:             "",
 					Tokens:         nil,
 					BigtableConfig: nil,
-					OtelConfig:     nil,
+					OtelConfig: &types.OtelConfig{
+						Enabled: false,
+					},
+				},
+				otelInst: &otelgo.OpenTelemetry{
+					Config: &otelgo.OTelConfig{
+						OTELEnabled: false,
+					},
 				},
 				schemaMapping: schemaMappingConfig,
 			}

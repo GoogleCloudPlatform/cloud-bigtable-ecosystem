@@ -88,7 +88,7 @@ func parseTerm(l *lexer, t token) (idempotent bool, typ termType, err error) {
 		} else { // Set or map
 			return parseSetOrMapTerm(l, t)
 		}
-	case tkLparen: // Type cast or tuple literal
+	case tkLparen: // TypeInfo cast or tuple literal
 		if t = l.next(); t == tkIdentifier { // Cast
 			return parseCastTerm(l, t)
 		} else { // Tuple literal

@@ -1161,7 +1161,7 @@ func (c *client) handleExecuteForSelect(raw *frame.RawFrame, msg *partialExecute
 	defer c.proxy.otelInst.RecordMetrics(otelCtx, handleExecuteForSelect, startTime, selectType, c.keyspace, err)
 
 	// Get Decoded parameters
-	otelgo.AddAnnotation(otelCtx, "Decoding Bytes To Cassandra Column Type")
+	otelgo.AddAnnotation(otelCtx, "Decoding Bytes To Cassandra Column TypeInfo")
 	for index, columnMetada := range st.VariableMetadata {
 		decodedValue, err := utilities.DecodeBytesToCassandraColumnType(msg.PositionalValues[index].Contents, columnMetada.Type, raw.Header.Version)
 		if err != nil {

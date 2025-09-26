@@ -18,17 +18,55 @@ package types
 import (
 	"github.com/datastax/go-cassandra-native-protocol/datatype"
 	"github.com/datastax/go-cassandra-native-protocol/message"
+	"github.com/datastax/go-cassandra-native-protocol/primitive"
 )
 
 type Column struct {
 	Name         string
 	ColumnFamily string
-	CQLType      datatype.DataType
+	TypeInfo     *CqlTypeInfo
 	// todo remove this field because it's redundant - you can use PkPrecedence or KeyType to infer this
 	IsPrimaryKey bool
 	PkPrecedence int
 	KeyType      string
 	Metadata     message.ColumnMetadata
+}
+
+type CqlTypeInfo struct {
+	// used to track the exact type given by the user
+	RawType string
+	// describes the datatype, which is a subset of all possible types (i.e. this type only supports varchar and not text)
+	DataType datatype.DataType
+	// is the datatype frozen
+	IsFrozen bool
+}
+
+func NewCqlTypeInfoFromType(dt datatype.DataType) *CqlTypeInfo {
+	return NewCqlTypeInfo(dt.String(), dt, false)
+}
+func NewCqlTypeInfo(rawType string, dataType datatype.DataType, isFrozen bool) *CqlTypeInfo {
+	return &CqlTypeInfo{RawType: rawType, DataType: dataType, IsFrozen: isFrozen}
+}
+
+func (t *CqlTypeInfo) GetDataTypeCode() primitive.DataTypeCode {
+	return t.DataType.GetDataTypeCode()
+}
+func (t *CqlTypeInfo) IsCounter() bool {
+	return t.DataType == datatype.Counter
+}
+func (t *CqlTypeInfo) IsCollection() bool {
+	switch t.DataType.GetDataTypeCode() {
+	case primitive.DataTypeCodeList, primitive.DataTypeCodeSet, primitive.DataTypeCodeMap:
+		return true
+	default:
+		return false
+	}
+}
+
+type CreateColumn struct {
+	Name     string
+	Index    int32
+	TypeInfo *CqlTypeInfo
 }
 
 type Clause struct {

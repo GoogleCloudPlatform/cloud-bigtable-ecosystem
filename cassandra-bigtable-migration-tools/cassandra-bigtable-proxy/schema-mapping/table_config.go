@@ -56,7 +56,7 @@ func NewTableConfig(
 			Table:    name,
 			Name:     column.Name,
 			Index:    int32(i),
-			Type:     column.CQLType,
+			Type:     column.TypeInfo.DataType,
 		}
 		columnMap[column.Name] = column
 		if column.KeyType != utilities.KEY_TYPE_REGULAR {
@@ -117,7 +117,7 @@ func (tableConfig *TableConfig) GetCassandraPositionForColumn(column string) int
 // Returns default column family for primitive types and column name for collections.
 func (tableConfig *TableConfig) GetColumnFamily(columnName string) string {
 	colType, err := tableConfig.GetColumnType(columnName)
-	if err == nil && utilities.IsCollection(colType) {
+	if err == nil && colType.IsCollection() {
 		return columnName
 	}
 	return tableConfig.SystemColumnFamily
@@ -151,7 +151,7 @@ func (tableConfig *TableConfig) Describe() string {
 	var colDefs []string
 	for _, colName := range colNames {
 		col := tableConfig.Columns[colName]
-		colDefs = append(colDefs, fmt.Sprintf("%s %s", colName, strings.ToUpper(col.CQLType.String())))
+		colDefs = append(colDefs, fmt.Sprintf("%s %s", colName, strings.ToUpper(col.TypeInfo.RawType)))
 	}
 
 	var pkCols []string = nil
@@ -199,16 +199,23 @@ func (tableConfig *TableConfig) GetPrimaryKeys() []string {
 	return primaryKeys
 }
 
-func (tableConfig *TableConfig) GetColumnType(columnName string) (datatype.DataType, error) {
+func (tableConfig *TableConfig) GetColumnDataType(columnName string) (datatype.DataType, error) {
+	col, err := tableConfig.GetColumnType(columnName)
+	if err != nil {
+		return nil, err
+	}
+	return col.DataType, nil
+}
+func (tableConfig *TableConfig) GetColumnType(columnName string) (*types.CqlTypeInfo, error) {
 	col, ok := tableConfig.Columns[columnName]
 	if !ok {
 		return nil, fmt.Errorf("undefined column name %s in table %s.%s", columnName, tableConfig.Keyspace, tableConfig.Name)
 	}
 
-	if col.CQLType == nil {
+	if col.TypeInfo == nil {
 		return nil, fmt.Errorf("undefined column name %s in table %s.%s", columnName, tableConfig.Keyspace, tableConfig.Name)
 	}
-	return col.CQLType, nil
+	return col.TypeInfo, nil
 }
 
 // GetMetadataForColumns retrieves metadata for specific columns in a given table.

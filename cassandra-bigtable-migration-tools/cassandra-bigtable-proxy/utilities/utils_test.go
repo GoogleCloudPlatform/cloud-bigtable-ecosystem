@@ -26,6 +26,7 @@ import (
 	"github.com/datastax/go-cassandra-native-protocol/datatype"
 	"github.com/datastax/go-cassandra-native-protocol/primitive"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestIsCollectionDataType(t *testing.T) {
@@ -934,16 +935,16 @@ func TestGetClauseByColumn(t *testing.T) {
 func TestIsSupportedPrimaryKeyType(t *testing.T) {
 	testCases := []struct {
 		name     string
-		input    datatype.DataType
+		input    *types.CqlTypeInfo
 		expected bool
 	}{
-		{"Supported Type - Int", datatype.Int, true},
-		{"Supported Type - Bigint", datatype.Bigint, true},
-		{"Supported Type - Varchar", datatype.Varchar, true},
-		{"Unsupported Type - Boolean", datatype.Boolean, false},
-		{"Unsupported Type - Float", datatype.Float, false},
-		{"Unsupported Type - Blob", datatype.Blob, false},
-		{"Unsupported Type - List", datatype.NewListType(datatype.Int), false},
+		{"Supported TypeInfo - Int", types.NewCqlTypeInfoFromType(datatype.Int), true},
+		{"Supported TypeInfo - Bigint", types.NewCqlTypeInfoFromType(datatype.Bigint), true},
+		{"Supported TypeInfo - Varchar", types.NewCqlTypeInfoFromType(datatype.Varchar), true},
+		{"Unsupported TypeInfo - Boolean", types.NewCqlTypeInfoFromType(datatype.Boolean), false},
+		{"Unsupported TypeInfo - Float", types.NewCqlTypeInfoFromType(datatype.Float), false},
+		{"Unsupported TypeInfo - Blob", types.NewCqlTypeInfoFromType(datatype.Blob), false},
+		{"Unsupported TypeInfo - List", types.NewCqlTypeInfoFromType(datatype.NewListType(datatype.Int)), false},
 	}
 
 	for _, tc := range testCases {
@@ -960,17 +961,17 @@ func TestIsSupportedCollectionElementType(t *testing.T) {
 		input    datatype.DataType
 		expected bool
 	}{
-		{"Supported Type - Int", datatype.Int, true},
-		{"Supported Type - Bigint", datatype.Bigint, true},
-		{"Supported Type - Varchar", datatype.Varchar, true},
-		{"Supported Type - Float", datatype.Float, true},
-		{"Supported Type - Double", datatype.Double, true},
-		{"Supported Type - Timestamp", datatype.Timestamp, true},
-		{"Supported Type - Boolean", datatype.Boolean, true},
-		{"Unsupported Type - Blob", datatype.Blob, false},
-		{"Unsupported Type - UUID", datatype.Uuid, false},
-		{"Unsupported Type - Map", datatype.NewMapType(datatype.Varchar, datatype.Int), false},
-		{"Unsupported Type - Set", datatype.NewSetType(datatype.Varchar), false},
+		{"Supported TypeInfo - Int", datatype.Int, true},
+		{"Supported TypeInfo - Bigint", datatype.Bigint, true},
+		{"Supported TypeInfo - Varchar", datatype.Varchar, true},
+		{"Supported TypeInfo - Float", datatype.Float, true},
+		{"Supported TypeInfo - Double", datatype.Double, true},
+		{"Supported TypeInfo - Timestamp", datatype.Timestamp, true},
+		{"Supported TypeInfo - Boolean", datatype.Boolean, true},
+		{"Unsupported TypeInfo - Blob", datatype.Blob, false},
+		{"Unsupported TypeInfo - UUID", datatype.Uuid, false},
+		{"Unsupported TypeInfo - Map", datatype.NewMapType(datatype.Varchar, datatype.Int), false},
+		{"Unsupported TypeInfo - Set", datatype.NewSetType(datatype.Varchar), false},
 	}
 
 	for _, tc := range testCases {
@@ -984,41 +985,127 @@ func TestIsSupportedCollectionElementType(t *testing.T) {
 func TestIsSupportedColumnType(t *testing.T) {
 	testCases := []struct {
 		name     string
-		input    datatype.DataType
+		input    *types.CqlTypeInfo
 		expected bool
 	}{
 		// --- Positive Cases: Primitive Types ---
-		{"Supported Primitive - Int", datatype.Int, true},
-		{"Supported Primitive - Bigint", datatype.Bigint, true},
-		{"Supported Primitive - Blob", datatype.Blob, true},
-		{"Supported Primitive - Boolean", datatype.Boolean, true},
-		{"Supported Primitive - Double", datatype.Double, true},
-		{"Supported Primitive - Float", datatype.Float, true},
-		{"Supported Primitive - Timestamp", datatype.Timestamp, true},
-		{"Supported Primitive - Varchar", datatype.Varchar, true},
+		{"Supported Primitive - Int", types.NewCqlTypeInfoFromType(datatype.Int), true},
+		{"Supported Primitive - Bigint", types.NewCqlTypeInfoFromType(datatype.Bigint), true},
+		{"Supported Primitive - Blob", types.NewCqlTypeInfoFromType(datatype.Blob), true},
+		{"Supported Primitive - Boolean", types.NewCqlTypeInfoFromType(datatype.Boolean), true},
+		{"Supported Primitive - Double", types.NewCqlTypeInfoFromType(datatype.Double), true},
+		{"Supported Primitive - Float", types.NewCqlTypeInfoFromType(datatype.Float), true},
+		{"Supported Primitive - Timestamp", types.NewCqlTypeInfoFromType(datatype.Timestamp), true},
+		{"Supported Primitive - Varchar", types.NewCqlTypeInfoFromType(datatype.Varchar), true},
 
 		// --- Positive Cases: Collection Types ---
-		{"Supported List", datatype.NewListType(datatype.Int), true},
-		{"Supported Set", datatype.NewSetType(datatype.Varchar), true},
-		{"Supported Map", datatype.NewMapType(datatype.Timestamp, datatype.Float), true},
-		{"Supported Map with Text Key", datatype.NewMapType(datatype.Varchar, datatype.Bigint), true},
+		{"Supported List", types.NewCqlTypeInfoFromType(datatype.NewListType(datatype.Int)), true},
+		{"Supported Set", types.NewCqlTypeInfoFromType(datatype.NewSetType(datatype.Varchar)), true},
+		{"Supported Map", types.NewCqlTypeInfoFromType(datatype.NewMapType(datatype.Timestamp, datatype.Float)), true},
+		{"Supported Map with Text Key", types.NewCqlTypeInfoFromType(datatype.NewMapType(datatype.Varchar, datatype.Bigint)), true},
 
 		// --- Negative Cases: Primitive Types ---
-		{"Unsupported Primitive - UUID", datatype.Uuid, false},
-		{"Unsupported Primitive - TimeUUID", datatype.Timeuuid, false},
+		{"Unsupported Primitive - UUID", types.NewCqlTypeInfoFromType(datatype.Uuid), false},
+		{"Unsupported Primitive - TimeUUID", types.NewCqlTypeInfoFromType(datatype.Timeuuid), false},
 
 		// --- Negative Cases: Collection Types ---
-		{"Unsupported List Element", datatype.NewListType(datatype.Uuid), false},
-		{"Unsupported Set Element", datatype.NewSetType(datatype.Blob), false},
-		{"Unsupported Map Key", datatype.NewMapType(datatype.Blob, datatype.Varchar), false},
-		{"Unsupported Map Value", datatype.NewMapType(datatype.Varchar, datatype.Uuid), false},
-		{"Nested Collection - List of Maps", datatype.NewListType(datatype.NewMapType(datatype.Varchar, datatype.Int)), false},
+		{"Unsupported List Element", types.NewCqlTypeInfoFromType(datatype.NewListType(datatype.Uuid)), false},
+		{"Unsupported Set Element", types.NewCqlTypeInfoFromType(datatype.NewSetType(datatype.Blob)), false},
+		{"Unsupported Map Key", types.NewCqlTypeInfoFromType(datatype.NewMapType(datatype.Blob, datatype.Varchar)), false},
+		{"Unsupported Map Value", types.NewCqlTypeInfoFromType(datatype.NewMapType(datatype.Varchar, datatype.Uuid)), false},
+		{"Nested Collection - List of Maps", types.NewCqlTypeInfoFromType(datatype.NewListType(datatype.NewMapType(datatype.Varchar, datatype.Int))), false},
+		// --- Negative Cases: Frozen Types ---
+		{"Frozen List", types.NewCqlTypeInfo("frozen<list<int>>", datatype.NewListType(datatype.Int), true), true},
+		{"Frozen Set", types.NewCqlTypeInfo("frozen<set<text>>", datatype.NewSetType(datatype.Varchar), true), true},
+		{"Frozen Map", types.NewCqlTypeInfo("frozen<map<timestamp, float>>", datatype.NewMapType(datatype.Timestamp, datatype.Float), true), true},
+		{"Frozen Map with Text Key", types.NewCqlTypeInfo("frozen<map<text, bigint>>", datatype.NewMapType(datatype.Varchar, datatype.Bigint), true), true},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			got := IsSupportedColumnType(tc.input)
 			assert.Equal(t, tc.expected, got)
+		})
+	}
+}
+
+func TestGetCassandraColumnType(t *testing.T) {
+	testCases := []struct {
+		input    string
+		wantType *types.CqlTypeInfo
+		wantErr  bool
+	}{
+		{"text", types.NewCqlTypeInfo("text", datatype.Varchar, false), false},
+		{"blob", types.NewCqlTypeInfo("blob", datatype.Blob, false), false},
+		{"timestamp", types.NewCqlTypeInfo("timestamp", datatype.Timestamp, false), false},
+		{"int", types.NewCqlTypeInfo("int", datatype.Int, false), false},
+		{"float", types.NewCqlTypeInfo("float", datatype.Float, false), false},
+		{"double", types.NewCqlTypeInfo("double", datatype.Double, false), false},
+		{"bigint", types.NewCqlTypeInfo("bigint", datatype.Bigint, false), false},
+		{"boolean", types.NewCqlTypeInfo("boolean", datatype.Boolean, false), false},
+		{"uuid", types.NewCqlTypeInfo("uuid", datatype.Uuid, false), false},
+		{"map<text, boolean>", types.NewCqlTypeInfo("map<text,boolean>", datatype.NewMapType(datatype.Varchar, datatype.Boolean), false), false},
+		{"map<varchar, boolean>", types.NewCqlTypeInfo("map<varchar,boolean>", datatype.NewMapType(datatype.Varchar, datatype.Boolean), false), false},
+		{"map<text, text>", types.NewCqlTypeInfo("map<text,text>", datatype.NewMapType(datatype.Varchar, datatype.Varchar), false), false},
+		{"map<text, varchar>", types.NewCqlTypeInfo("map<text,varchar>", datatype.NewMapType(datatype.Varchar, datatype.Varchar), false), false},
+		{"map<varchar,text>", types.NewCqlTypeInfo("map<varchar,text>", datatype.NewMapType(datatype.Varchar, datatype.Varchar), false), false},
+		{"map<varchar, varchar>", types.NewCqlTypeInfo("map<varchar,varchar>", datatype.NewMapType(datatype.Varchar, datatype.Varchar), false), false},
+		{"map<varchar>", nil, true},
+		{"map<varchar,varchar,varchar>", nil, true},
+		{"list<text>", types.NewCqlTypeInfo("list<text>", datatype.NewListType(datatype.Varchar), false), false},
+		{"list<varchar>", types.NewCqlTypeInfo("list<varchar>", datatype.NewListType(datatype.Varchar), false), false},
+		{"frozen<list<text>>", types.NewCqlTypeInfo("frozen<list<text>>", datatype.NewListType(datatype.Varchar), true), false},
+		{"frozen<list<varchar>>", types.NewCqlTypeInfo("frozen<list<varchar>>", datatype.NewListType(datatype.Varchar), true), false},
+		{"set<text>", types.NewCqlTypeInfo("set<text>", datatype.NewSetType(datatype.Varchar), false), false},
+		{"set<text", nil, true},
+		{"set<", nil, true},
+		{"set<varchar>", types.NewCqlTypeInfo("set<varchar>", datatype.NewSetType(datatype.Varchar), false), false},
+		{"frozen<set<text>>", types.NewCqlTypeInfo("frozen<set<text>>", datatype.NewSetType(datatype.Varchar), true), false},
+		{"frozen<set<varchar>>", types.NewCqlTypeInfo("frozen<set<varchar>>", datatype.NewSetType(datatype.Varchar), true), false},
+		{"unknown", nil, true},
+		{"", nil, true},
+		{"<>list", nil, true},
+		{"<int>", nil, true},
+		{"map<map<text,int>", nil, true},
+		// Future scope items below:
+		{"map<text, int>", types.NewCqlTypeInfo("map<text,int>", datatype.NewMapType(datatype.Varchar, datatype.Int), false), false},
+		{"map<varchar, int>", types.NewCqlTypeInfo("map<varchar,int>", datatype.NewMapType(datatype.Varchar, datatype.Int), false), false},
+		{"map<text, bigint>", types.NewCqlTypeInfo("map<text,bigint>", datatype.NewMapType(datatype.Varchar, datatype.Bigint), false), false},
+		{"map<varchar, bigint>", types.NewCqlTypeInfo("map<varchar,bigint>", datatype.NewMapType(datatype.Varchar, datatype.Bigint), false), false},
+		{"map<text, float>", types.NewCqlTypeInfo("map<text,float>", datatype.NewMapType(datatype.Varchar, datatype.Float), false), false},
+		{"map<varchar, float>", types.NewCqlTypeInfo("map<varchar,float>", datatype.NewMapType(datatype.Varchar, datatype.Float), false), false},
+		{"map<text, double>", types.NewCqlTypeInfo("map<text,double>", datatype.NewMapType(datatype.Varchar, datatype.Double), false), false},
+		{"map<varchar, double>", types.NewCqlTypeInfo("map<varchar,double>", datatype.NewMapType(datatype.Varchar, datatype.Double), false), false},
+		{"map<text, timestamp>", types.NewCqlTypeInfo("map<text,timestamp>", datatype.NewMapType(datatype.Varchar, datatype.Timestamp), false), false},
+		{"map<varchar, timestamp>", types.NewCqlTypeInfo("map<varchar,timestamp>", datatype.NewMapType(datatype.Varchar, datatype.Timestamp), false), false},
+		{"map<timestamp, text>", types.NewCqlTypeInfo("map<timestamp,text>", datatype.NewMapType(datatype.Timestamp, datatype.Varchar), false), false},
+		{"map<timestamp, varchar>", types.NewCqlTypeInfo("map<timestamp,varchar>", datatype.NewMapType(datatype.Timestamp, datatype.Varchar), false), false},
+		{"map<timestamp, boolean>", types.NewCqlTypeInfo("map<timestamp,boolean>", datatype.NewMapType(datatype.Timestamp, datatype.Boolean), false), false},
+		{"map<timestamp, int>", types.NewCqlTypeInfo("map<timestamp,int>", datatype.NewMapType(datatype.Timestamp, datatype.Int), false), false},
+		{"map<timestamp, bigint>", types.NewCqlTypeInfo("map<timestamp,bigint>", datatype.NewMapType(datatype.Timestamp, datatype.Bigint), false), false},
+		{"map<timestamp, float>", types.NewCqlTypeInfo("map<timestamp,float>", datatype.NewMapType(datatype.Timestamp, datatype.Float), false), false},
+		{"map<timestamp, double>", types.NewCqlTypeInfo("map<timestamp,double>", datatype.NewMapType(datatype.Timestamp, datatype.Double), false), false},
+		{"map<timestamp, timestamp>", types.NewCqlTypeInfo("map<timestamp,timestamp>", datatype.NewMapType(datatype.Timestamp, datatype.Timestamp), false), false},
+		{"set<int>", types.NewCqlTypeInfo("set<int>", datatype.NewSetType(datatype.Int), false), false},
+		{"set<bigint>", types.NewCqlTypeInfo("set<bigint>", datatype.NewSetType(datatype.Bigint), false), false},
+		{"set<float>", types.NewCqlTypeInfo("set<float>", datatype.NewSetType(datatype.Float), false), false},
+		{"set<double>", types.NewCqlTypeInfo("set<double>", datatype.NewSetType(datatype.Double), false), false},
+		{"set<boolean>", types.NewCqlTypeInfo("set<boolean>", datatype.NewSetType(datatype.Boolean), false), false},
+		{"set<timestamp>", types.NewCqlTypeInfo("set<timestamp>", datatype.NewSetType(datatype.Timestamp), false), false},
+		{"set<text>", types.NewCqlTypeInfo("set<text>", datatype.NewSetType(datatype.Varchar), false), false},
+		{"set<varchar>", types.NewCqlTypeInfo("set<varchar>", datatype.NewSetType(datatype.Varchar), false), false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.input, func(t *testing.T) {
+			gotType, err := ParseCqlType(tc.input)
+			if tc.wantErr {
+				require.Error(t, err)
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, tc.wantType, gotType)
 		})
 	}
 }

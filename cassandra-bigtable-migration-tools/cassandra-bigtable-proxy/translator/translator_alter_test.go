@@ -23,7 +23,6 @@ import (
 	schemaMapping "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/schema-mapping"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/utilities"
 	"github.com/datastax/go-cassandra-native-protocol/datatype"
-	"github.com/datastax/go-cassandra-native-protocol/message"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -32,10 +31,10 @@ import (
 func TestTranslateAlterTableToBigtable(t *testing.T) {
 
 	userInfoTable := schemaMapping.NewTableConfig("test_keyspace", "user_info", "cf1", types.OrderedCodeEncoding, []*types.Column{
-		{Name: "name", CQLType: datatype.Varchar, KeyType: utilities.KEY_TYPE_PARTITION, PkPrecedence: 1},
-		{Name: "age", CQLType: datatype.Int, KeyType: utilities.KEY_TYPE_CLUSTERING, PkPrecedence: 2},
-		{Name: "email", CQLType: datatype.Varchar, KeyType: utilities.KEY_TYPE_REGULAR, PkPrecedence: 0},
-		{Name: "username", CQLType: datatype.Varchar, KeyType: utilities.KEY_TYPE_REGULAR, PkPrecedence: 0},
+		{Name: "name", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Varchar), KeyType: utilities.KEY_TYPE_PARTITION, PkPrecedence: 1},
+		{Name: "age", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Int), KeyType: utilities.KEY_TYPE_CLUSTERING, PkPrecedence: 2},
+		{Name: "email", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Varchar), KeyType: utilities.KEY_TYPE_REGULAR, PkPrecedence: 0},
+		{Name: "username", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Varchar), KeyType: utilities.KEY_TYPE_REGULAR, PkPrecedence: 0},
 	})
 
 	var tests = []struct {
@@ -54,12 +53,10 @@ func TestTranslateAlterTableToBigtable(t *testing.T) {
 				Table:     "user_info",
 				Keyspace:  "test_keyspace",
 				QueryType: "alter",
-				AddColumns: []message.ColumnMetadata{{
-					Keyspace: "test_keyspace",
-					Table:    "user_info",
+				AddColumns: []types.CreateColumn{{
 					Name:     "firstname",
 					Index:    0,
-					Type:     datatype.Varchar,
+					TypeInfo: types.NewCqlTypeInfo("text", datatype.Varchar, false),
 				}},
 			},
 			error:           "",
@@ -67,18 +64,16 @@ func TestTranslateAlterTableToBigtable(t *testing.T) {
 		},
 		{
 			name:        "Add column with default keyspace",
-			query:       "ALTER TABLE user_info ADD firstname text",
+			query:       "ALTER TABLE user_info ADD firstname varchar",
 			tableConfig: userInfoTable,
 			want: &AlterTableStatementMap{
 				Table:     "user_info",
 				Keyspace:  "test_keyspace",
 				QueryType: "alter",
-				AddColumns: []message.ColumnMetadata{{
-					Keyspace: "test_keyspace",
-					Table:    "user_info",
+				AddColumns: []types.CreateColumn{{
 					Name:     "firstname",
 					Index:    0,
-					Type:     datatype.Varchar,
+					TypeInfo: types.NewCqlTypeInfoFromType(datatype.Varchar),
 				}},
 			},
 			error:           "",
@@ -108,18 +103,14 @@ func TestTranslateAlterTableToBigtable(t *testing.T) {
 				Table:     "user_info",
 				Keyspace:  "test_keyspace",
 				QueryType: "alter",
-				AddColumns: []message.ColumnMetadata{{
-					Keyspace: "test_keyspace",
-					Table:    "user_info",
+				AddColumns: []types.CreateColumn{{
 					Name:     "firstname",
 					Index:    0,
-					Type:     datatype.Varchar,
+					TypeInfo: types.NewCqlTypeInfo("text", datatype.Varchar, false),
 				}, {
-					Keyspace: "test_keyspace",
-					Table:    "user_info",
 					Name:     "number_of_cats",
 					Index:    1,
-					Type:     datatype.Int,
+					TypeInfo: types.NewCqlTypeInfoFromType(datatype.Int),
 				}},
 			},
 			error:           "",
@@ -133,18 +124,14 @@ func TestTranslateAlterTableToBigtable(t *testing.T) {
 				Table:     "user_info",
 				Keyspace:  "test_keyspace",
 				QueryType: "alter",
-				AddColumns: []message.ColumnMetadata{{
-					Keyspace: "test_keyspace",
-					Table:    "user_info",
+				AddColumns: []types.CreateColumn{{
 					Name:     "firstname",
 					Index:    0,
-					Type:     datatype.Varchar,
+					TypeInfo: types.NewCqlTypeInfo("text", datatype.Varchar, false),
 				}, {
-					Keyspace: "test_keyspace",
-					Table:    "user_info",
 					Name:     "number_of_toes",
 					Index:    1,
-					Type:     datatype.Int,
+					TypeInfo: types.NewCqlTypeInfoFromType(datatype.Int),
 				}},
 			},
 			error:           "",

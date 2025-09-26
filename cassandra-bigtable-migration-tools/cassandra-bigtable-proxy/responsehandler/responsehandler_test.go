@@ -1007,7 +1007,7 @@ func TestTypeHandler_BuildResponseRow(t *testing.T) {
 						Table:    "user_info",
 						Name:     "id",
 						Index:    0,
-						// Type will be overridden in the aggregate branch.
+						// TypeInfo will be overridden in the aggregate branch.
 						Type: datatype.Varchar,
 					},
 				},
@@ -1672,7 +1672,7 @@ func TestBuildResponseForSystemQueries(t *testing.T) {
 			expectedRows: 7,
 		},
 		{
-			name: "Failure Case - Invalid Data Type",
+			name: "Failure Case - Invalid Data TypeInfo",
 			rows: [][]any{
 				{"keyspace1", make(chan int)}, // Passing an unsupported type to cause failure
 			},

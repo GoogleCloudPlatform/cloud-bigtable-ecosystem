@@ -230,7 +230,7 @@ func getOperator(val cql.IRelationElementContext) (string, error) {
 //   - A string representing the actual value.
 //   - An error if parsing or formatting the value fails.
 func handleColumnType(val cql.IRelationElementContext, columnType *types.Column, placeholder string, params map[string]interface{}) (string, error) {
-	if columnType == nil || columnType.CQLType == nil {
+	if columnType == nil || columnType.TypeInfo == nil {
 		return "", nil
 	}
 
@@ -243,7 +243,7 @@ func handleColumnType(val cql.IRelationElementContext, columnType *types.Column,
 
 	actualVal := value
 	if value != "?" {
-		formattedVal, err := formatValues(value, columnType.CQLType, 4)
+		formattedVal, err := formatValues(value, columnType.TypeInfo.DataType, 4)
 		if err != nil {
 			return "", err
 		}

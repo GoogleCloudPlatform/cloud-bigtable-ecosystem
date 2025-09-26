@@ -453,7 +453,7 @@ func Test_resolveAndListen(t *testing.T) {
 					return
 				}
 
-				// Type assertion
+				// TypeInfo assertion
 				tcpListener, ok := listener.(*net.TCPListener)
 				if !ok {
 					t.Errorf("Expected *net.TCPListener, got %T", listener)

@@ -37,7 +37,7 @@ type Translator struct {
 type SelectQueryMap struct {
 	Query            string // Original query string
 	TranslatedQuery  string
-	QueryType        string                      // Type of the query (e.g., SELECT)
+	QueryType        string                      // TypeInfo of the query (e.g., SELECT)
 	Table            string                      // Table involved in the query
 	Keyspace         string                      // Keyspace to which the table belongs
 	ColumnMeta       ColumnMeta                  // Translator generated Metadata about the columns involved
@@ -135,7 +135,7 @@ type ComplexOperation struct {
 // InsertQueryMapping represents the mapping of an insert query along with its translation details.
 type InsertQueryMapping struct {
 	Query                string                    // Original query string
-	QueryType            QueryTypesEnum            // Type of the query (e.g., INSERT)
+	QueryType            QueryTypesEnum            // TypeInfo of the query (e.g., INSERT)
 	Table                string                    // Table involved in the query
 	Keyspace             string                    // Keyspace to which the table belongs
 	Columns              []types.Column            // List of columns involved in the insert operation
@@ -160,7 +160,7 @@ type ColumnsResponse struct {
 // DeleteQueryMapping represents the mapping of a delete query along with its translation details.
 type DeleteQueryMapping struct {
 	Query             string                    // Original query string
-	QueryType         QueryTypesEnum            // Type of the query (e.g., DELETE)
+	QueryType         QueryTypesEnum            // TypeInfo of the query (e.g., DELETE)
 	Table             string                    // Table involved in the query
 	Keyspace          string                    // Keyspace to which the table belongs
 	Clauses           []types.Clause            // List of clauses in the delete query
@@ -181,7 +181,7 @@ type CreateTableStatementMap struct {
 	Keyspace          string
 	Table             string
 	IfNotExists       bool
-	Columns           []message.ColumnMetadata
+	Columns           []types.CreateColumn
 	PrimaryKeys       []CreateTablePrimaryKeyConfig
 	IntRowKeyEncoding types.IntRowKeyEncodingType
 }
@@ -196,7 +196,7 @@ type AlterTableStatementMap struct {
 	Keyspace    string
 	Table       string
 	IfNotExists bool
-	AddColumns  []message.ColumnMetadata
+	AddColumns  []types.CreateColumn
 	DropColumns []string
 }
 
@@ -217,7 +217,7 @@ type TruncateTableStatementMap struct {
 type UpdateQueryMapping struct {
 	Query                 string // Original query string
 	TranslatedQuery       string
-	QueryType             QueryTypesEnum            // Type of the query (e.g., UPDATE)
+	QueryType             QueryTypesEnum            // TypeInfo of the query (e.g., UPDATE)
 	Table                 string                    // Table involved in the query
 	Keyspace              string                    // Keyspace to which the table belongs
 	UpdateSetValues       []UpdateSetValue          // Values to be updated
@@ -241,7 +241,7 @@ type UpdateSetValue struct {
 	Column       string
 	Value        string
 	ColumnFamily string
-	CQLType      string
+	CQLType      *types.CqlTypeInfo
 	Encrypted    interface{}
 }
 

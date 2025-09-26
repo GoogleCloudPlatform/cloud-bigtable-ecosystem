@@ -356,7 +356,7 @@ func processCollectionColumnsForRawQueries(tableConfig *schemaMapping.TableConfi
 		val := input.Values[i]
 		if utilities.IsCollectionColumn(&column) {
 			colFamily := tableConfig.GetColumnFamily(column.Name)
-			switch column.CQLType.GetDataTypeCode() {
+			switch column.TypeInfo.GetDataTypeCode() {
 			case primitive.DataTypeCodeList:
 				if err := handleListOperation(val, column, colFamily, input, output); err != nil {
 					return nil, err
@@ -372,7 +372,7 @@ func processCollectionColumnsForRawQueries(tableConfig *schemaMapping.TableConfi
 			default:
 				return nil, fmt.Errorf("column %s is not a collection type", column.Name)
 			}
-		} else if column.CQLType == datatype.Counter {
+		} else if column.TypeInfo.IsCounter() {
 			if err := handleCounterOperation(val, column, input, output); err != nil {
 				return nil, err
 			}
@@ -409,7 +409,7 @@ func handleListOperation(val interface{}, column types.Column, colFamily string,
 			if !ok {
 				return fmt.Errorf("expected string for index, got %T", v.Left)
 			}
-			listType, _ := column.CQLType.(datatype.ListType)
+			listType, _ := column.TypeInfo.DataType.(datatype.ListType)
 			dt := listType.GetElementType()
 
 			return updateListIndex(idx, v.Right, colFamily, dt, output)
@@ -437,9 +437,9 @@ func handleListOperation(val interface{}, column types.Column, colFamily string,
 // Handles both append and prepend operations with type validation and conversion.
 // Returns error if value type doesn't match list element type or conversion fails.
 func addListElements(listValues []string, colFamily string, column types.Column, input ProcessRawCollectionsInput, output *ProcessRawCollectionsOutput) error {
-	listType, ok := column.CQLType.(datatype.ListType)
+	listType, ok := column.TypeInfo.DataType.(datatype.ListType)
 	if !ok {
-		return fmt.Errorf("failed to assert list type for %v", column.CQLType)
+		return fmt.Errorf("failed to assert list type for %v", column.TypeInfo)
 	}
 	dt := listType.GetElementType()
 	prepend := false
@@ -455,7 +455,7 @@ func addListElements(listValues []string, colFamily string, column types.Column,
 		c := types.Column{
 			Name:         string(encTime),
 			ColumnFamily: colFamily,
-			CQLType:      dt,
+			TypeInfo:     types.NewCqlTypeInfoFromType(dt),
 		}
 		// Format the value
 		formattedVal, err := formatValues(v, dt, primitive.ProtocolVersion4)
@@ -473,9 +473,9 @@ func addListElements(listValues []string, colFamily string, column types.Column,
 // Returns error if index is invalid or out of bounds.
 func removeListElements(keys []string, colFamily string, column types.Column, output *ProcessRawCollectionsOutput) error {
 	var listDelete [][]byte
-	listType, ok := column.CQLType.(datatype.ListType)
+	listType, ok := column.TypeInfo.DataType.(datatype.ListType)
 	if !ok {
-		return fmt.Errorf("failed to assert list type for %v", column.CQLType)
+		return fmt.Errorf("failed to assert list type for %v", column.TypeInfo.DataType)
 	}
 
 	listElementType := listType.GetElementType()
@@ -533,7 +533,7 @@ func handleSetOperation(val interface{}, column types.Column, colFamily string, 
 		case "+":
 			setValues, ok := v.Right.([]string)
 			if !ok {
-				return fmt.Errorf("expected []string for remove operation, got %T", v.Right)
+				return fmt.Errorf("expected []string for add operation, got %T", v.Right)
 			}
 			return addSetElements(setValues, colFamily, column, input, output)
 		case "-":
@@ -560,7 +560,7 @@ func addSetElements(setValues []string, colFamily string, column types.Column, i
 		return fmt.Errorf("output cannot be nil")
 	}
 
-	valueType := column.CQLType.(datatype.SetType).GetElementType()
+	valueType := column.TypeInfo.DataType.(datatype.SetType).GetElementType()
 	for _, v := range setValues {
 		// Convert value based on the element type
 		valInInterface, err := DataConversionInInsertionIfRequired(v, primitive.ProtocolVersion4, valueType, "string")
@@ -587,7 +587,7 @@ func addSetElements(setValues []string, colFamily string, column types.Column, i
 		col := types.Column{
 			Name:         v,
 			ColumnFamily: colFamily,
-			CQLType:      valueType,
+			TypeInfo:     types.NewCqlTypeInfoFromType(valueType),
 		}
 		// value parameter is intentionally empty because column identifier holds the value
 		output.NewColumns = append(output.NewColumns, col)
@@ -649,9 +649,9 @@ func handleCounterOperation(val interface{}, column types.Column, input ProcessR
 // Manages simple assignment/replace complete map, add, remove, and update at index operations on map columns.
 // Returns error if operation type is invalid or value type doesn't match map key/value types.
 func handleMapOperation(val interface{}, column types.Column, colFamily string, input ProcessRawCollectionsInput, output *ProcessRawCollectionsOutput) error {
-	mapType, ok := column.CQLType.(datatype.MapType)
+	mapType, ok := column.TypeInfo.DataType.(datatype.MapType)
 	if !ok {
-		return fmt.Errorf("failed to assert map type for %v", column.CQLType)
+		return fmt.Errorf("failed to assert map type for %v", column.TypeInfo.DataType)
 	}
 
 	var keyType datatype.DataType = mapType.GetKeyType()
@@ -699,7 +699,7 @@ func addMapEntries(val interface{}, colFamily string, valDt datatype.DataType, c
 		col := types.Column{
 			Name:         k,
 			ColumnFamily: colFamily,
-			CQLType:      cqlType,
+			TypeInfo:     types.NewCqlTypeInfoFromType(cqlType),
 		}
 		valueFormatted, err := formatValues(v, valDt, primitive.ProtocolVersion4)
 		if err != nil {
@@ -749,7 +749,7 @@ func updateMapIndex(key interface{}, value interface{}, dt datatype.DataType, co
 	col := types.Column{
 		Name:         k,
 		ColumnFamily: colFamily,
-		CQLType:      dt,
+		TypeInfo:     types.NewCqlTypeInfoFromType(dt),
 	}
 	output.NewColumns = append(output.NewColumns, col)
 	output.NewValues = append(output.NewValues, val)
@@ -767,14 +767,14 @@ func processCollectionColumnsForPrepareQueries(tableConfig *schemaMapping.TableC
 	for i, column := range input.ColumnsResponse {
 		output.IndexEnd = i
 		if column.IsPrimaryKey && slices.Contains(input.PrimaryKeys, column.Name) {
-			val, _ := utilities.DecodeBytesToCassandraColumnType(input.Values[i].Contents, column.CQLType, input.ProtocolV)
+			val, _ := utilities.DecodeBytesToCassandraColumnType(input.Values[i].Contents, column.TypeInfo.DataType, input.ProtocolV)
 			output.Unencrypted[column.Name] = val
 			continue
 		}
 		// todo validate the column exists again, in case the column was dropped after the query was prepared.
 		if utilities.IsCollectionColumn(&column) {
 			colFamily := tableConfig.GetColumnFamily(column.Name)
-			switch column.CQLType.GetDataTypeCode() {
+			switch column.TypeInfo.GetDataTypeCode() {
 			case primitive.DataTypeCodeList:
 				if err := handlePrepareListOperation(input.Values[i].Contents, column, colFamily, input, output); err != nil {
 					return nil, err
@@ -793,7 +793,7 @@ func processCollectionColumnsForPrepareQueries(tableConfig *schemaMapping.TableC
 			default:
 				return nil, fmt.Errorf("column %s is not a collection type", column.Name)
 			}
-		} else if column.CQLType == datatype.Counter {
+		} else if column.TypeInfo.IsCounter() {
 			decodedValue, err := proxycore.DecodeType(datatype.Counter, input.ProtocolV, input.Values[i].Contents)
 			if err != nil {
 				return nil, err
@@ -811,7 +811,7 @@ func processCollectionColumnsForPrepareQueries(tableConfig *schemaMapping.TableC
 			// The increment value is part of the prepared statement, so we update the existing ComplexOperation meta with the value provided at execution time.
 			meta.IncrementValue = intVal
 		} else {
-			valInInterface, err := DataConversionInInsertionIfRequired(input.Values[i].Contents, input.ProtocolV, column.CQLType, "byte")
+			valInInterface, err := DataConversionInInsertionIfRequired(input.Values[i].Contents, input.ProtocolV, column.TypeInfo.DataType, "byte")
 			if err != nil {
 				return nil, fmt.Errorf("error converting primitives: %w", err)
 			}
@@ -828,9 +828,9 @@ func processCollectionColumnsForPrepareQueries(tableConfig *schemaMapping.TableC
 // Returns error if value type doesn't match list element type or encoding fails.
 func handlePrepareListOperation(val []byte, column types.Column, colFamily string, input ProcessPrepareCollectionsInput, output *ProcessPrepareCollectionsOutput) error {
 
-	listType, ok := column.CQLType.(datatype.ListType)
+	listType, ok := column.TypeInfo.DataType.(datatype.ListType)
 	if !ok {
-		return fmt.Errorf("failed to assert list type for %v", column.CQLType)
+		return fmt.Errorf("failed to assert list type for %v", column.TypeInfo.DataType)
 	}
 	dt := listType.GetElementType()
 
@@ -882,7 +882,7 @@ func preprocessList(val []byte, colFamily string, complexUpdateMeta *ComplexOper
 // Returns error if value type doesn't match list element type or encoding fails.
 func processList[V any](val []byte, colFamily string, complexUpdateMeta *ComplexOperation, dt datatype.DataType, column types.Column, input ProcessPrepareCollectionsInput, output *ProcessPrepareCollectionsOutput) error {
 	listValDatatype := dt
-	listDT := column.CQLType
+	listDT := column.TypeInfo.DataType
 	if dt == datatype.Timestamp {
 		listValDatatype = datatype.Bigint
 		listDT = utilities.ListOfBigInt
@@ -890,7 +890,7 @@ func processList[V any](val []byte, colFamily string, complexUpdateMeta *Complex
 
 	decodedValue, err := collectiondecoder.DecodeCollection(listDT, input.ProtocolV, val)
 	if err != nil {
-		return fmt.Errorf("error decoding string to %s value: %w", column.CQLType, err)
+		return fmt.Errorf("error decoding string to %s value: %w", column.TypeInfo.DataType, err)
 	}
 	listValues, ok := decodedValue.([]V)
 	if !ok {
@@ -923,7 +923,7 @@ func processList[V any](val []byte, colFamily string, complexUpdateMeta *Complex
 		c := types.Column{
 			Name:         string(encTime),
 			ColumnFamily: colFamily,
-			CQLType:      listValDatatype,
+			TypeInfo:     types.NewCqlTypeInfoFromType(listValDatatype),
 		}
 		// The value parameter is intentionally empty because the column identifier has the value
 		val, _ := formatValues(valueStr, listValDatatype, input.ProtocolV)
@@ -940,12 +940,12 @@ func processList[V any](val []byte, colFamily string, complexUpdateMeta *Complex
 // Manages map operations, append, delete, and update at index and simple assignment.
 // Returns error if value type doesn't match map key/value types or encoding fails.
 func handlePrepareMapOperation(val *primitive.Value, column types.Column, colFamily string, input ProcessPrepareCollectionsInput, output *ProcessPrepareCollectionsOutput) error {
-	mapType, ok := column.CQLType.(datatype.MapType)
+	mapType, ok := column.TypeInfo.DataType.(datatype.MapType)
 	var keyType datatype.DataType = mapType.GetKeyType()
 	var valueDatatype datatype.DataType = mapType.GetValueType()
 
 	if !ok {
-		return fmt.Errorf("failed to assert map type for %v", column.CQLType)
+		return fmt.Errorf("failed to assert map type for %v", column.TypeInfo.DataType)
 	}
 	if meta, ok := input.ComplexMeta[column.Name]; ok {
 
@@ -957,7 +957,7 @@ func handlePrepareMapOperation(val *primitive.Value, column types.Column, colFam
 
 			expectedDt := compleUpdateMeta.ExpectedDatatype
 			if expectedDt == nil {
-				expectedDt = column.CQLType
+				expectedDt = column.TypeInfo.DataType
 			}
 
 			if keyType == datatype.Timestamp {
@@ -1025,7 +1025,7 @@ func processMap[V any](
 	keyType datatype.DataType,
 	valueType datatype.DataType,
 ) error {
-	mapValDatatype := column.CQLType
+	mapValDatatype := column.TypeInfo.DataType
 	if keyType == datatype.Varchar && valueDatatype == datatype.Timestamp {
 		mapValDatatype = utilities.MapOfStrToBigInt // Cassandra stores timestamps as bigint
 	} else if keyType == datatype.Timestamp && valueDatatype == datatype.Timestamp {
@@ -1048,7 +1048,7 @@ func processMap[V any](
 func processVarcharMap[V any](valueDatatype, mapValDatatype datatype.DataType, protocolV primitive.ProtocolVersion, val *primitive.Value, column types.Column, colFamily string, output *ProcessPrepareCollectionsOutput) error {
 	decodedValue, err := proxycore.DecodeType(mapValDatatype, protocolV, val.Contents)
 	if err != nil {
-		return fmt.Errorf("error decoding string to %s value: %w", column.CQLType, err)
+		return fmt.Errorf("error decoding string to %s value: %w", column.TypeInfo.DataType, err)
 	}
 	decodedMap := make(map[string]V)
 	pointerMap, ok := decodedValue.(map[*string]*V)
@@ -1061,7 +1061,7 @@ func processVarcharMap[V any](valueDatatype, mapValDatatype datatype.DataType, p
 			c := types.Column{
 				Name:         k,
 				ColumnFamily: colFamily,
-				CQLType:      valueDatatype,
+				TypeInfo:     types.NewCqlTypeInfoFromType(valueDatatype),
 			}
 			valueStr, err := primitivesToString(v)
 			if err != nil {
@@ -1074,7 +1074,7 @@ func processVarcharMap[V any](valueDatatype, mapValDatatype datatype.DataType, p
 		}
 		return nil
 	} else {
-		return fmt.Errorf("error decoding string to %s value: %w", column.CQLType, err)
+		return fmt.Errorf("error decoding string to %s value: %w", column.TypeInfo.DataType, err)
 	}
 
 }
@@ -1082,7 +1082,7 @@ func processVarcharMap[V any](valueDatatype, mapValDatatype datatype.DataType, p
 func processTimestampMap[V any](valueDatatype, mapValDatatype datatype.DataType, protocolV primitive.ProtocolVersion, val *primitive.Value, column types.Column, colFamily string, output *ProcessPrepareCollectionsOutput) error {
 	decodedValue, err := collectiondecoder.DecodeCollection(mapValDatatype, protocolV, val.Contents)
 	if err != nil {
-		return fmt.Errorf("error decoding string to %s value: %w", column.CQLType, err)
+		return fmt.Errorf("error decoding string to %s value: %w", column.TypeInfo.DataType, err)
 	}
 	decodedMap := make(map[int64]V)
 	pointerMap, ok := decodedValue.(map[time.Time]V)
@@ -1096,7 +1096,7 @@ func processTimestampMap[V any](valueDatatype, mapValDatatype datatype.DataType,
 			c := types.Column{
 				Name:         strconv.FormatInt(k, 10),
 				ColumnFamily: colFamily,
-				CQLType:      valueDatatype,
+				TypeInfo:     types.NewCqlTypeInfoFromType(valueDatatype),
 			}
 			valueStr, err := primitivesToString(v)
 			if err != nil {
@@ -1109,7 +1109,7 @@ func processTimestampMap[V any](valueDatatype, mapValDatatype datatype.DataType,
 		}
 		return nil
 	} else {
-		return fmt.Errorf("error decoding string to %v value: %w", column.CQLType, err)
+		return fmt.Errorf("error decoding string to %v value: %w", column.TypeInfo.DataType, err)
 	}
 
 }
@@ -1129,7 +1129,7 @@ func processDeleteOperationForMapAndSet(
 
 	decodedValue, err := collectiondecoder.DecodeCollection(expectedDt, input.ProtocolV, val.Contents)
 	if err != nil {
-		return fmt.Errorf("error decoding string to %s value: %w", column.CQLType, err)
+		return fmt.Errorf("error decoding string to %s value: %w", column.TypeInfo.DataType, err)
 	}
 	setValue, err := convertToInterfaceSlice(decodedValue)
 	if err != nil {
@@ -1184,7 +1184,7 @@ func processMapKeyAppend(
 	decodedValue, err := proxycore.DecodeType(expectedDT, input.ProtocolV, val.Contents)
 
 	if err != nil {
-		return fmt.Errorf("error decoding string to %s value: %w", column.CQLType, err)
+		return fmt.Errorf("error decoding string to %s value: %w", column.TypeInfo.DataType, err)
 	}
 	mpKey := meta.mapKey
 
@@ -1209,7 +1209,7 @@ func processMapKeyAppend(
 	c := types.Column{
 		Name:         setKey,
 		ColumnFamily: column.Name,
-		CQLType:      valueDatatype,
+		TypeInfo:     types.NewCqlTypeInfoFromType(valueDatatype),
 	}
 	formattedValue, err := formatValues(setValue, valueDatatype, input.ProtocolV)
 	if err != nil {
@@ -1231,9 +1231,9 @@ func handlePrepareSetOperation(val *primitive.Value, column types.Column, colFam
 
 		//handling Delete for specific key e.g map=map-['key1','key2']
 		if complexUpdateMeta.Delete {
-			setType, ok := column.CQLType.(datatype.SetType)
+			setType, ok := column.TypeInfo.DataType.(datatype.SetType)
 			if !ok {
-				return fmt.Errorf("failed to assert map type for %v", column.CQLType)
+				return fmt.Errorf("failed to assert map type for %v", column.TypeInfo.DataType)
 			}
 			if setType.GetElementType() == datatype.Timestamp {
 				setType = utilities.SetOfBigInt
@@ -1259,9 +1259,9 @@ func handleSetProcessing(
 	protocolV primitive.ProtocolVersion,
 	output *ProcessPrepareCollectionsOutput,
 ) error {
-	setType, ok := column.CQLType.(datatype.SetType)
+	setType, ok := column.TypeInfo.DataType.(datatype.SetType)
 	if !ok {
-		return fmt.Errorf("failed to assert set type for %v", column.CQLType)
+		return fmt.Errorf("failed to assert set type for %v", column.TypeInfo.DataType)
 	}
 	valueDataType := setType.GetElementType()
 	if valueDataType == datatype.Timestamp {
@@ -1282,7 +1282,7 @@ func handleSetProcessing(
 	case datatype.Boolean:
 		return processSet[bool](val, column, colFamily, protocolV, setType, valueDataType, output)
 	default:
-		return fmt.Errorf("unexpected set element type: %T", column.CQLType)
+		return fmt.Errorf("unexpected set element type: %T", column.TypeInfo.DataType)
 	}
 }
 
@@ -1302,7 +1302,7 @@ func processSet[V any](
 
 	decodedValue, err := collectiondecoder.DecodeCollection(setType, protocolV, val.Contents)
 	if err != nil {
-		return fmt.Errorf("error decoding string to %s value: %w", column.CQLType, err)
+		return fmt.Errorf("error decoding string to %s value: %w", column.TypeInfo.DataType, err)
 	}
 
 	setValues, ok := decodedValue.([]V)
@@ -1324,7 +1324,7 @@ func processSet[V any](
 		c := types.Column{
 			Name:         valueStr,
 			ColumnFamily: colFamily,
-			CQLType:      valueDataType,
+			TypeInfo:     types.NewCqlTypeInfoFromType(valueDataType),
 		}
 		// The value parameter is intentionally empty because the column identifier has the value
 		val, _ := formatValues("", datatype.Varchar, protocolV)
@@ -1378,12 +1378,39 @@ func buildWhereClause(clauses []types.Clause, tableConfig *schemaMapping.TableCo
 	return whereClause, nil
 }
 
+func validateComplexOperation(tableConfig *schemaMapping.TableConfig, mapping *UpdateQueryMapping) error {
+	for colName, op := range mapping.ComplexOperation {
+		col, err := tableConfig.GetColumn(colName)
+		if err != nil {
+			return err
+		}
+		if col.TypeInfo.IsFrozen && (op.PrependList || op.Append || len(op.ListDeleteValues) > 0 || op.mapKey != nil) {
+			return errors.New("cannot partially update frozen columns")
+		}
+	}
+
+	for _, i := range mapping.Params {
+		ca, ok := i.(ComplexAssignment)
+		if ok {
+			col, err := tableConfig.GetColumn(ca.Column)
+			if err != nil {
+				return err
+			}
+			if col.TypeInfo.IsFrozen {
+				return errors.New("cannot partially update frozen columns")
+			}
+		}
+	}
+
+	return nil
+}
+
 // castColumns handles column type casting in queries.
 // Manages type conversion for column values with validation.
 // Returns error if column type is invalid or conversion fails.
 func castColumns(colMeta *types.Column, columnFamily string) (string, error) {
 	var nc string
-	switch colMeta.CQLType {
+	switch colMeta.TypeInfo.DataType {
 	case datatype.Int:
 		if colMeta.IsPrimaryKey {
 			nc = colMeta.Name
@@ -1415,7 +1442,7 @@ func castColumns(colMeta *types.Column, columnFamily string) (string, error) {
 			nc = fmt.Sprintf("%s['%s']", columnFamily, colMeta.Name)
 		}
 	default:
-		return "", fmt.Errorf("unsupported CQL type: %s", colMeta.CQLType)
+		return "", fmt.Errorf("unsupported CQL type: %s", colMeta.TypeInfo.DataType)
 	}
 	return nc, nil
 }
@@ -1504,13 +1531,13 @@ func parseWhereByClause(input cql.IWhereSpecContext, tableConfig *schemaMapping.
 		if err != nil {
 			return nil, err
 		}
-		if column != nil && column.CQLType != nil {
+		if column != nil && column.TypeInfo.DataType != nil {
 			if operator == constants.CONTAINS || operator == constants.CONTAINS_KEY {
 				if value == "" {
 					return nil, errors.New("could not parse value from query for one of the clauses")
 				}
 				value = trimQuotes(value)
-				typeCode := column.CQLType.GetDataTypeCode()
+				typeCode := column.TypeInfo.GetDataTypeCode()
 				if value != questionMark {
 					if operator == constants.CONTAINS {
 						if typeCode == primitive.DataTypeCodeList { // list
@@ -1531,12 +1558,12 @@ func parseWhereByClause(input cql.IWhereSpecContext, tableConfig *schemaMapping.
 				} else {
 					if operator == "CONTAINS" {
 						if typeCode == primitive.DataTypeCodeSet { // set
-							setType, _ := column.CQLType.(datatype.SetType)
+							setType, _ := column.TypeInfo.DataType.(datatype.SetType)
 							elementType := setType.GetElementType()
 							params[placeholder] = cqlTypeToEmptyPrimitive(elementType, false)
 							operator = constants.MAP_CONTAINS_KEY
 						} else if typeCode == primitive.DataTypeCodeList { // list
-							listType, _ := column.CQLType.(datatype.ListType)
+							listType, _ := column.TypeInfo.DataType.(datatype.ListType)
 							elementType := listType.GetElementType()
 							params[placeholder] = cqlTypeToEmptyPrimitive(elementType, false)
 							operator = constants.ARRAY_INCLUDES
@@ -1563,19 +1590,19 @@ func parseWhereByClause(input cql.IWhereSpecContext, tableConfig *schemaMapping.
 				value = trimQuotes(value)
 				secondValue = trimQuotes(secondValue)
 				if value != questionMark {
-					val, err := stringToPrimitives(value, column.CQLType)
+					val, err := stringToPrimitives(value, column.TypeInfo.DataType)
 					if err != nil {
 						return nil, err
 					}
-					secondVal, err := stringToPrimitives(secondValue, column.CQLType)
+					secondVal, err := stringToPrimitives(secondValue, column.TypeInfo.DataType)
 					if err != nil {
 						return nil, err
 					}
 					params[placeholder] = val
 					params[secondPlaceholder] = secondVal
 				} else {
-					params[placeholder] = cqlTypeToEmptyPrimitive(column.CQLType, column.IsPrimaryKey)
-					params[secondPlaceholder] = params[placeholder] // CQLType will be same for both the values in the between clause
+					params[placeholder] = cqlTypeToEmptyPrimitive(column.TypeInfo.DataType, column.IsPrimaryKey)
+					params[secondPlaceholder] = params[placeholder] // TypeInfo will be same for both the values in the between clause
 				}
 				placeholderCount++ // we need to increase the placeholder count to get the next placeholder as BETWEEN clause has two values
 				paramKeys = append(paramKeys, secondPlaceholder)
@@ -1592,14 +1619,14 @@ func parseWhereByClause(input cql.IWhereSpecContext, tableConfig *schemaMapping.
 
 				if value != questionMark {
 
-					val, err := stringToPrimitives(value, column.CQLType)
+					val, err := stringToPrimitives(value, column.TypeInfo.DataType)
 					if err != nil {
 						return nil, err
 					}
 
 					params[placeholder] = val
 				} else {
-					params[placeholder] = cqlTypeToEmptyPrimitive(column.CQLType, column.IsPrimaryKey)
+					params[placeholder] = cqlTypeToEmptyPrimitive(column.TypeInfo.DataType, column.IsPrimaryKey)
 				}
 			} else {
 				lower := strings.ToLower(val.GetText())
@@ -1612,7 +1639,7 @@ func parseWhereByClause(input cql.IWhereSpecContext, tableConfig *schemaMapping.
 					if value == nil {
 						return nil, errors.New("could not parse all values inside IN operator")
 					}
-					switch column.CQLType {
+					switch column.TypeInfo.DataType {
 					case datatype.Int:
 						var allValues []int
 						for _, inVal := range value {
@@ -1699,7 +1726,7 @@ func parseWhereByClause(input cql.IWhereSpecContext, tableConfig *schemaMapping.
 					}
 				} else {
 					// Create an empty array placeholder value based on the CQL type
-					switch column.CQLType {
+					switch column.TypeInfo.DataType {
 					case datatype.Int:
 						params[placeholder] = make([]int, 0)
 					case datatype.Bigint:
@@ -1715,7 +1742,7 @@ func parseWhereByClause(input cql.IWhereSpecContext, tableConfig *schemaMapping.
 					case datatype.Varchar, datatype.Timestamp:
 						params[placeholder] = make([]string, 0)
 					default:
-						return nil, fmt.Errorf("unsupported array CQL type: %s", column.CQLType)
+						return nil, fmt.Errorf("unsupported array CQL type: %s", column.TypeInfo.DataType)
 					}
 				}
 			}
@@ -2034,7 +2061,7 @@ func convertAllValuesToRowKeyType(primaryKeys []*types.Column, values map[string
 		if !exists {
 			return nil, fmt.Errorf("missing primary key `%s`", pmk.Name)
 		}
-		switch pmk.CQLType {
+		switch pmk.TypeInfo.DataType {
 		case datatype.Int:
 			switch v := value.(type) {
 			// bigtable row keys don't support int32 so convert all int32 values to int64
@@ -2089,7 +2116,7 @@ func convertAllValuesToRowKeyType(primaryKeys []*types.Column, values map[string
 				return nil, fmt.Errorf("failed to convert %T to BigInt for key %s", value, pmk.Name)
 			}
 		default:
-			return nil, fmt.Errorf("unsupported primary key type %s for key %s", pmk.CQLType.String(), pmk.Name)
+			return nil, fmt.Errorf("unsupported primary key type %s for key %s", pmk.TypeInfo.DataType.String(), pmk.Name)
 		}
 	}
 	return result, nil
@@ -2385,7 +2412,7 @@ func (t *Translator) ProcessComplexUpdate(columns []types.Column, values []inter
 
 		meta := &ComplexOperation{}
 
-		switch column.CQLType.GetDataTypeCode() {
+		switch column.TypeInfo.DataType.GetDataTypeCode() {
 		case primitive.DataTypeCodeList:
 			// a. + operation (append): only set append true
 			if ca.Operation == "+" && ca.Left == column.Name {
@@ -2400,7 +2427,7 @@ func (t *Translator) ProcessComplexUpdate(columns []types.Column, values []inter
 				if idx, ok := ca.Left.(string); ok {
 					meta.UpdateListIndex = idx
 				}
-				if listType, ok := column.CQLType.(datatype.ListType); ok {
+				if listType, ok := column.TypeInfo.DataType.(datatype.ListType); ok {
 					meta.ExpectedDatatype = listType.GetElementType()
 				}
 			}
@@ -2420,14 +2447,14 @@ func (t *Translator) ProcessComplexUpdate(columns []types.Column, values []inter
 			if ca.Operation == "-" {
 				meta.Delete = true
 				// get map value datatype
-				if mapType, ok := column.CQLType.(datatype.MapType); ok {
+				if mapType, ok := column.TypeInfo.DataType.(datatype.MapType); ok {
 					meta.ExpectedDatatype = datatype.NewSetType(mapType.GetKeyType())
 				}
 			}
 			// 3. map[key]=? (update for particular key): set updateMapKey, set expected datatype as value type, mark append as true
 			if ca.Operation == "update_key" || ca.Operation == "update_index" {
 				meta.Append = true
-				if mapType, ok := column.CQLType.(datatype.MapType); ok {
+				if mapType, ok := column.TypeInfo.DataType.(datatype.MapType); ok {
 					meta.ExpectedDatatype = mapType.GetValueType()
 				}
 				if key, ok := ca.Left.(string); ok {

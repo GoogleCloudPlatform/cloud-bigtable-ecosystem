@@ -110,7 +110,7 @@ func parseUpdateOp(l *lexer, t token) (idempotent bool, err error) {
 // * Literal (idempotent, if not a list)
 // * Bind marker (ambiguous, so not idempotent)
 // * Function call (ambiguous, so not idempotent)
-// * Type cast (probably not idempotent)
+// * TypeInfo cast (probably not idempotent)
 func isIdempotentUpdateOpTermType(typ termType) bool {
 	return typ == termSetMapUdtLiteral || typ == termTupleLiteral
 }

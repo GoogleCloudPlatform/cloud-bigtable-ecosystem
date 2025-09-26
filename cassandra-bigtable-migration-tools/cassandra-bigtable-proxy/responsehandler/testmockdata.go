@@ -28,22 +28,22 @@ import (
 func GetSchemaMappingConfig() *schemaMapping.SchemaMappingConfig {
 	var (
 		testTableColumns = []*types.Column{
-			{Name: "column1", CQLType: datatype.Varchar, KeyType: utilities.KEY_TYPE_PARTITION, IsPrimaryKey: true, PkPrecedence: 1},
-			{Name: "column10", CQLType: datatype.Varchar, KeyType: utilities.KEY_TYPE_CLUSTERING, IsPrimaryKey: true, PkPrecedence: 2},
+			{Name: "column1", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Varchar), KeyType: utilities.KEY_TYPE_PARTITION, IsPrimaryKey: true, PkPrecedence: 1},
+			{Name: "column10", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Varchar), KeyType: utilities.KEY_TYPE_CLUSTERING, IsPrimaryKey: true, PkPrecedence: 2},
 			// Regular columns
-			{Name: "column2", CQLType: datatype.Blob, KeyType: utilities.KEY_TYPE_REGULAR},
-			{Name: "column3", CQLType: datatype.Boolean, KeyType: utilities.KEY_TYPE_REGULAR},
-			{Name: "column4", CQLType: datatype.NewListType(datatype.Varchar), KeyType: utilities.KEY_TYPE_REGULAR},
-			{Name: "column5", CQLType: datatype.Timestamp, KeyType: utilities.KEY_TYPE_REGULAR},
-			{Name: "column6", CQLType: datatype.Int, KeyType: utilities.KEY_TYPE_REGULAR},
-			{Name: "column7", CQLType: datatype.NewSetType(datatype.Varchar), KeyType: utilities.KEY_TYPE_REGULAR},
-			{Name: "column8", CQLType: datatype.NewMapType(datatype.Varchar, datatype.Boolean), KeyType: utilities.KEY_TYPE_REGULAR},
-			{Name: "column9", CQLType: datatype.Bigint, KeyType: utilities.KEY_TYPE_REGULAR},
-			{Name: "column11", CQLType: datatype.NewSetType(datatype.Varchar), KeyType: utilities.KEY_TYPE_REGULAR},
+			{Name: "column2", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Blob), KeyType: utilities.KEY_TYPE_REGULAR},
+			{Name: "column3", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Boolean), KeyType: utilities.KEY_TYPE_REGULAR},
+			{Name: "column4", TypeInfo: types.NewCqlTypeInfoFromType(datatype.NewListType(datatype.Varchar)), KeyType: utilities.KEY_TYPE_REGULAR},
+			{Name: "column5", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Timestamp), KeyType: utilities.KEY_TYPE_REGULAR},
+			{Name: "column6", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Int), KeyType: utilities.KEY_TYPE_REGULAR},
+			{Name: "column7", TypeInfo: types.NewCqlTypeInfoFromType(datatype.NewSetType(datatype.Varchar)), KeyType: utilities.KEY_TYPE_REGULAR},
+			{Name: "column8", TypeInfo: types.NewCqlTypeInfoFromType(datatype.NewMapType(datatype.Varchar, datatype.Boolean)), KeyType: utilities.KEY_TYPE_REGULAR},
+			{Name: "column9", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Bigint), KeyType: utilities.KEY_TYPE_REGULAR},
+			{Name: "column11", TypeInfo: types.NewCqlTypeInfoFromType(datatype.NewSetType(datatype.Varchar)), KeyType: utilities.KEY_TYPE_REGULAR},
 		}
 
 		userInfoColumns = []*types.Column{
-			{Name: "name", CQLType: datatype.Varchar, KeyType: utilities.KEY_TYPE_PARTITION, IsPrimaryKey: true, PkPrecedence: 0},
+			{Name: "name", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Varchar), KeyType: utilities.KEY_TYPE_PARTITION, IsPrimaryKey: true, PkPrecedence: 0},
 		}
 	)
 

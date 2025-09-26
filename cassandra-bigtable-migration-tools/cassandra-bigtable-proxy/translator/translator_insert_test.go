@@ -80,7 +80,7 @@ func Test_setParamsFromValues(t *testing.T) {
 					{
 						Name:         "name",
 						ColumnFamily: "cf1",
-						CQLType:      datatype.Varchar,
+						TypeInfo:     types.NewCqlTypeInfoFromType(datatype.Varchar),
 					},
 				},
 				schemaMapping:   GetSchemaMappingConfig(types.OrderedCodeEncoding),
@@ -100,7 +100,7 @@ func Test_setParamsFromValues(t *testing.T) {
 					{
 						Name:         "name",
 						ColumnFamily: "cf1",
-						CQLType:      datatype.Varchar,
+						TypeInfo:     types.NewCqlTypeInfoFromType(datatype.Varchar),
 					},
 				},
 				schemaMapping:   GetSchemaMappingConfig(types.OrderedCodeEncoding),
@@ -120,7 +120,7 @@ func Test_setParamsFromValues(t *testing.T) {
 					{
 						Name:         "name",
 						ColumnFamily: "cf1",
-						CQLType:      datatype.Varchar,
+						TypeInfo:     types.NewCqlTypeInfoFromType(datatype.Varchar),
 					},
 				},
 				schemaMapping:   GetSchemaMappingConfig(types.OrderedCodeEncoding),
@@ -140,7 +140,7 @@ func Test_setParamsFromValues(t *testing.T) {
 					{
 						Name:         "name",
 						ColumnFamily: "cf1",
-						CQLType:      datatype.Varchar,
+						TypeInfo:     types.NewCqlTypeInfoFromType(datatype.Varchar),
 					},
 				},
 				schemaMapping:   GetSchemaMappingConfig(types.OrderedCodeEncoding),
@@ -160,7 +160,7 @@ func Test_setParamsFromValues(t *testing.T) {
 					{
 						Name:         "name",
 						ColumnFamily: "cf1",
-						CQLType:      datatype.Varchar,
+						TypeInfo:     types.NewCqlTypeInfoFromType(datatype.Varchar),
 					},
 				},
 				schemaMapping:   GetSchemaMappingConfig(types.OrderedCodeEncoding),
@@ -290,13 +290,13 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 			Table:     "test_table",
 			Keyspace:  "test_keyspace",
 			Columns: []types.Column{
-				{Name: "column1", ColumnFamily: "cf1", CQLType: datatype.Varchar, IsPrimaryKey: true},
-				{Name: "column2", ColumnFamily: "cf1", CQLType: datatype.Blob, IsPrimaryKey: false},
-				{Name: "column3", ColumnFamily: "cf1", CQLType: datatype.Boolean, IsPrimaryKey: false},
-				{Name: "column5", ColumnFamily: "cf1", CQLType: datatype.Timestamp, IsPrimaryKey: false},
-				{Name: "column6", ColumnFamily: "cf1", CQLType: datatype.Int, IsPrimaryKey: false},
-				{Name: "column9", ColumnFamily: "cf1", CQLType: datatype.Bigint, IsPrimaryKey: false},
-				{Name: "column10", ColumnFamily: "cf1", CQLType: datatype.Varchar, IsPrimaryKey: true},
+				{Name: "column1", ColumnFamily: "cf1", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Varchar), IsPrimaryKey: true},
+				{Name: "column2", ColumnFamily: "cf1", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Blob), IsPrimaryKey: false},
+				{Name: "column3", ColumnFamily: "cf1", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Boolean), IsPrimaryKey: false},
+				{Name: "column5", ColumnFamily: "cf1", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Timestamp), IsPrimaryKey: false},
+				{Name: "column6", ColumnFamily: "cf1", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Int), IsPrimaryKey: false},
+				{Name: "column9", ColumnFamily: "cf1", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Bigint), IsPrimaryKey: false},
+				{Name: "column10", ColumnFamily: "cf1", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Varchar), IsPrimaryKey: true},
 			},
 			Values:      nil, // undefined because this is a prepared query
 			Params:      nil, // undefined because this is a prepared query
@@ -327,13 +327,13 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 				Table:     "test_table",
 				Keyspace:  "test_keyspace",
 				Columns: []types.Column{
-					{Name: "column1", ColumnFamily: "cf1", CQLType: datatype.Varchar, IsPrimaryKey: true},
-					{Name: "column2", ColumnFamily: "cf1", CQLType: datatype.Blob, IsPrimaryKey: false},
-					{Name: "column3", ColumnFamily: "cf1", CQLType: datatype.Boolean, IsPrimaryKey: false},
-					{Name: "column5", ColumnFamily: "cf1", CQLType: datatype.Timestamp, IsPrimaryKey: false},
-					{Name: "column6", ColumnFamily: "cf1", CQLType: datatype.Int, IsPrimaryKey: false},
-					{Name: "column9", ColumnFamily: "cf1", CQLType: datatype.Bigint, IsPrimaryKey: false},
-					{Name: "column10", ColumnFamily: "cf1", CQLType: datatype.Varchar, IsPrimaryKey: true},
+					{Name: "column1", ColumnFamily: "cf1", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Varchar), IsPrimaryKey: true},
+					{Name: "column2", ColumnFamily: "cf1", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Blob), IsPrimaryKey: false},
+					{Name: "column3", ColumnFamily: "cf1", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Boolean), IsPrimaryKey: false},
+					{Name: "column5", ColumnFamily: "cf1", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Timestamp), IsPrimaryKey: false},
+					{Name: "column6", ColumnFamily: "cf1", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Int), IsPrimaryKey: false},
+					{Name: "column9", ColumnFamily: "cf1", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Bigint), IsPrimaryKey: false},
+					{Name: "column10", ColumnFamily: "cf1", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Varchar), IsPrimaryKey: true},
 				},
 				Values:      nil, // undefined because this is a prepared query
 				Params:      nil, // undefined because this is a prepared query
@@ -359,11 +359,11 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 				Table:     "test_table",
 				Keyspace:  "test_keyspace",
 				Columns: []types.Column{
-					{Name: "column2", ColumnFamily: "cf1", CQLType: datatype.Blob, IsPrimaryKey: false},
-					{Name: "column3", ColumnFamily: "cf1", CQLType: datatype.Boolean, IsPrimaryKey: false},
-					{Name: "column5", ColumnFamily: "cf1", CQLType: datatype.Timestamp, IsPrimaryKey: false},
-					{Name: "column6", ColumnFamily: "cf1", CQLType: datatype.Int, IsPrimaryKey: false},
-					{Name: "column9", ColumnFamily: "cf1", CQLType: datatype.Bigint, IsPrimaryKey: false},
+					{Name: "column2", ColumnFamily: "cf1", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Blob), IsPrimaryKey: false},
+					{Name: "column3", ColumnFamily: "cf1", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Boolean), IsPrimaryKey: false},
+					{Name: "column5", ColumnFamily: "cf1", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Timestamp), IsPrimaryKey: false},
+					{Name: "column6", ColumnFamily: "cf1", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Int), IsPrimaryKey: false},
+					{Name: "column9", ColumnFamily: "cf1", TypeInfo: types.NewCqlTypeInfoFromType(datatype.Bigint), IsPrimaryKey: false},
 				},
 				Values:      values,
 				Params:      response,
@@ -422,17 +422,17 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 					{
 						Name:         "foo",
 						ColumnFamily: "map_text_text",
-						CQLType:      datatype.Varchar,
+						TypeInfo:     types.NewCqlTypeInfoFromType(datatype.Varchar),
 					},
 					{
 						Name:         "key:",
 						ColumnFamily: "map_text_text",
-						CQLType:      datatype.Varchar,
+						TypeInfo:     types.NewCqlTypeInfoFromType(datatype.Varchar),
 					},
 					{
 						Name:         "k}",
 						ColumnFamily: "map_text_text",
-						CQLType:      datatype.Varchar,
+						TypeInfo:     types.NewCqlTypeInfoFromType(datatype.Varchar),
 					},
 				},
 				Values: []interface{}{
@@ -498,7 +498,7 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 				Columns: []types.Column{types.Column{
 					Name:         "text_col",
 					ColumnFamily: "cf1",
-					CQLType:      datatype.Varchar,
+					TypeInfo:     types.NewCqlTypeInfoFromType(datatype.Varchar),
 				}},
 				Values: []interface{}{
 					formatValueUnsafe(t, "text's", datatype.Varchar, primitive.ProtocolVersion4),
@@ -532,7 +532,7 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 				Columns: []types.Column{types.Column{
 					Name:         "text_col",
 					ColumnFamily: "cf1",
-					CQLType:      datatype.Varchar,
+					TypeInfo:     types.NewCqlTypeInfoFromType(datatype.Varchar),
 				}},
 				Values: []interface{}{
 					formatValueUnsafe(t, "text's", datatype.Varchar, primitive.ProtocolVersion4),
@@ -714,7 +714,7 @@ func TestTranslator_BuildInsertPrepareQuery(t *testing.T) {
 					{
 						Name:         "pk_1_text",
 						ColumnFamily: "cf1",
-						CQLType:      datatype.Varchar,
+						TypeInfo:     types.NewCqlTypeInfoFromType(datatype.Varchar),
 						IsPrimaryKey: true,
 					},
 				},
@@ -732,7 +732,7 @@ func TestTranslator_BuildInsertPrepareQuery(t *testing.T) {
 						{
 							Name:         "pk_1_text",
 							ColumnFamily: "cf1",
-							CQLType:      datatype.Varchar,
+							TypeInfo:     types.NewCqlTypeInfoFromType(datatype.Varchar),
 							IsPrimaryKey: true,
 						},
 					},
@@ -762,7 +762,7 @@ func TestTranslator_BuildInsertPrepareQuery(t *testing.T) {
 					{
 						Name:         "pk_1_text",
 						ColumnFamily: "cf1",
-						CQLType:      datatype.Varchar,
+						TypeInfo:     types.NewCqlTypeInfoFromType(datatype.Varchar),
 						IsPrimaryKey: true,
 					},
 				},
