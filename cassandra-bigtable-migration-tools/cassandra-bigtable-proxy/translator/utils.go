@@ -1892,16 +1892,7 @@ func getTimestampInfoForPrepareQuery(values []*primitive.Value, index int32, off
 		return timestampInfo, err
 	}
 	timestamp := decode.(int64)
-	var t time.Time
-	if timestamp < 10000000000 { // Assuming it's in seconds
-		t = time.Unix(timestamp, 0)
-	} else if timestamp < 10000000000000 { // Assuming it's in milliseconds
-		t = time.Unix(0, timestamp*int64(time.Millisecond))
-	} else { // As, we are supporting till microseconds, we are not converting it to microseconds
-		t = time.Unix(0, timestamp*int64(time.Microsecond))
-	}
-	microsec := t.UnixMicro()
-	timestampInfo.Timestamp = bigtable.Timestamp(microsec)
+	timestampInfo.Timestamp = bigtable.Timestamp(timestamp)
 	return timestampInfo, nil
 }
 
