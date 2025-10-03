@@ -56,7 +56,7 @@ func NewTableConfig(
 			Table:    name,
 			Name:     column.Name,
 			Index:    int32(i),
-			Type:     column.CQLType,
+			Type:     column.CQLType.DataType(),
 		}
 		columnMap[column.Name] = column
 		if column.KeyType != utilities.KEY_TYPE_REGULAR {
@@ -117,7 +117,7 @@ func (tableConfig *TableConfig) GetCassandraPositionForColumn(column string) int
 // Returns default column family for primitive types and column name for collections.
 func (tableConfig *TableConfig) GetColumnFamily(columnName string) string {
 	colType, err := tableConfig.GetColumnType(columnName)
-	if err == nil && utilities.IsCollection(colType) {
+	if err == nil && colType.IsCollection() {
 		return columnName
 	}
 	return tableConfig.SystemColumnFamily
@@ -199,7 +199,14 @@ func (tableConfig *TableConfig) GetPrimaryKeys() []string {
 	return primaryKeys
 }
 
-func (tableConfig *TableConfig) GetColumnType(columnName string) (datatype.DataType, error) {
+func (tableConfig *TableConfig) GetColumnDataType(columnName string) (datatype.DataType, error) {
+	col, err := tableConfig.GetColumnType(columnName)
+	if err != nil {
+		return nil, err
+	}
+	return col.DataType(), nil
+}
+func (tableConfig *TableConfig) GetColumnType(columnName string) (types.CqlDataType, error) {
 	col, ok := tableConfig.Columns[columnName]
 	if !ok {
 		return nil, fmt.Errorf("undefined column name %s in table %s.%s", columnName, tableConfig.Keyspace, tableConfig.Name)

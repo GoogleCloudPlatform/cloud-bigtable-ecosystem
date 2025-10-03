@@ -677,10 +677,10 @@ func TestTranslator_BuildDeletePrepareQuery(t *testing.T) {
 				assert.NoErrorf(t, err, "unexpected error")
 			}
 			if got != tt.want {
-				t.Errorf("Translator.BuildDeletePrepareQuery() got = %v, want %v", got, tt.want)
+				t.Errorf("Translator.BuildDeletePrepareQuery() got = %v, wantNewColumns %v", got, tt.want)
 			}
 			if !reflect.DeepEqual(got1, tt.want1) {
-				t.Errorf("Translator.BuildDeletePrepareQuery() got1 = %v, want %v", got1, tt.want1)
+				t.Errorf("Translator.BuildDeletePrepareQuery() got1 = %v, wantNewColumns %v", got1, tt.want1)
 			}
 		})
 	}
@@ -691,8 +691,8 @@ func newTestTableConfig() *schemaMapping.TableConfig {
 	const systemColumnFamily = "cf1"
 
 	testTableColumns := []*types.Column{
-		{Name: "col1", CQLType: datatype.Varchar, KeyType: utilities.KEY_TYPE_PARTITION},
-		{Name: "col2", CQLType: datatype.Int, KeyType: utilities.KEY_TYPE_CLUSTERING},
+		{Name: "col1", CQLType: types.TypeVarchar, KeyType: utilities.KEY_TYPE_PARTITION},
+		{Name: "col2", CQLType: types.TypeInt, KeyType: utilities.KEY_TYPE_CLUSTERING},
 	}
 
 	return schemaMapping.NewTableConfig(
@@ -885,7 +885,7 @@ func TestFindFirstMissingKey(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := findFirstMissingKey(tt.primaryKeys, tt.primaryKeysFound)
 			if got != tt.want {
-				t.Errorf("findFirstMissingKey() = %v, want %v", got, tt.want)
+				t.Errorf("findFirstMissingKey() = %v, wantNewColumns %v", got, tt.want)
 			}
 		})
 	}

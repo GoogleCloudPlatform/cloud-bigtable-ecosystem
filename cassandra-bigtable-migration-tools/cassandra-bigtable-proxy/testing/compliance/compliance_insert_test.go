@@ -178,7 +178,7 @@ func TestNegativeInsertCases(t *testing.T) {
 		params        []interface{}
 		expectedError string
 	}{
-		{"Wrong Keyspace", `INSERT INTO randomkeyspace.user_info (name, age, code) VALUES (?, ?, ?)`, []interface{}{"Smith", int64(36), 45}, "keyspace randomkeyspace does not exist"},
+		{"Wrong Keyspace", `INSERT INTO randomkeyspace.user_info (name, age, code) VALUES (?, ?, ?)`, []interface{}{"Smith", int64(36), 45}, "keyspace 'randomkeyspace' does not exist"},
 		{"Wrong Table", `INSERT INTO random_table (name, age, code) VALUES (?, ?, ?)`, []interface{}{"Smith", int64(36), 45}, "table random_table does not exist"},
 		{"Wrong Column", `INSERT INTO user_info (name, age, random_column) VALUES (?, ?, ?)`, []interface{}{"Smith", int64(36), 123}, "undefined column name random_column in table bigtabledevinstance.user_info"},
 		{"Missing PK", `INSERT INTO user_info (name, code, code) VALUES (?, ?, ?)`, []interface{}{"Smith", 724, 45}, "some primary key parts are missing: age"},

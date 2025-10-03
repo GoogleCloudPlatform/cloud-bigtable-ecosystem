@@ -41,13 +41,13 @@ func getSchemaMappingConfig() *SchemaMappingConfig {
 				[]*types.Column{
 					{
 						Name:         "column1",
-						CQLType:      datatype.Varchar,
+						CQLType:      types.TypeVarchar,
 						KeyType:      utilities.KEY_TYPE_REGULAR,
 						ColumnFamily: "cf1",
 					},
 					{
 						Name:         "column2",
-						CQLType:      datatype.Int,
+						CQLType:      types.TypeInt,
 						KeyType:      utilities.KEY_TYPE_REGULAR,
 						ColumnFamily: "cf1",
 					},
@@ -61,13 +61,13 @@ func getSchemaMappingConfig() *SchemaMappingConfig {
 				[]*types.Column{
 					{
 						Name:         "id",
-						CQLType:      datatype.Int,
+						CQLType:      types.TypeInt,
 						KeyType:      "partition",
 						IsPrimaryKey: true,
 					},
 					{
 						Name:         "name",
-						CQLType:      datatype.Varchar,
+						CQLType:      types.TypeVarchar,
 						KeyType:      "clustering",
 						IsPrimaryKey: true,
 					},
@@ -114,7 +114,7 @@ func Test_GetColumn(t *testing.T) {
 				Name:         "column1",
 				ColumnFamily: "cf1",
 				IsPrimaryKey: false,
-				CQLType:      datatype.Varchar,
+				CQLType:      types.TypeVarchar,
 			},
 			wantErr: false,
 		},

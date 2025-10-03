@@ -146,7 +146,7 @@ func TestNegativeTestCasesForUpdateOperations(t *testing.T) {
 			name:          "Update with incorrect keyspace",
 			query:         "UPDATE randomkeyspace.user_info SET code=? where name=? and age=?",
 			params:        []interface{}{724, "Smith", int64(36)},
-			expectedError: "keyspace randomkeyspace does not exist",
+			expectedError: "keyspace 'randomkeyspace' does not exist",
 		},
 		{
 			name:          "Update with nonexistent table",

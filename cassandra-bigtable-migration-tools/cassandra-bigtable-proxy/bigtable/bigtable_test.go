@@ -145,7 +145,7 @@ func TestInsertRow(t *testing.T) {
 			data: &translator.InsertQueryMapping{
 				Table:    "test-table-insert",
 				RowKey:   "row1",
-				Columns:  []types.Column{{ColumnFamily: "cf1", Name: "col1"}},
+				Columns:  []*types.Column{{ColumnFamily: "cf1", Name: "col1"}},
 				Values:   []interface{}{[]byte("value1")},
 				Keyspace: "ks1",
 			},
@@ -156,7 +156,7 @@ func TestInsertRow(t *testing.T) {
 			data: &translator.InsertQueryMapping{
 				Table:       "test-table-insert",
 				RowKey:      "row2",
-				Columns:     []types.Column{{ColumnFamily: "cf1", Name: "col1"}},
+				Columns:     []*types.Column{{ColumnFamily: "cf1", Name: "col1"}},
 				Values:      []interface{}{[]byte("value2")},
 				Keyspace:    "ks1",
 				IfNotExists: true,
@@ -168,7 +168,7 @@ func TestInsertRow(t *testing.T) {
 			data: &translator.InsertQueryMapping{
 				Table:       "test-table-insert",
 				RowKey:      "row1",
-				Columns:     []types.Column{{ColumnFamily: "cf1", Name: "col1"}},
+				Columns:     []*types.Column{{ColumnFamily: "cf1", Name: "col1"}},
 				Values:      []interface{}{[]byte("value1")},
 				Keyspace:    "ks1",
 				IfNotExists: true,
@@ -180,7 +180,7 @@ func TestInsertRow(t *testing.T) {
 			data: &translator.InsertQueryMapping{
 				Table:    "test-table-insert",
 				RowKey:   "row3",
-				Columns:  []types.Column{{ColumnFamily: "cf1", Name: "col1"}},
+				Columns:  []*types.Column{{ColumnFamily: "cf1", Name: "col1"}},
 				Values:   []interface{}{[]byte("value3")},
 				Keyspace: "invalid-keyspace",
 			},
@@ -192,7 +192,7 @@ func TestInsertRow(t *testing.T) {
 				Table:                "test-table-insert",
 				RowKey:               "row3",
 				DeleteColumnFamilies: []string{"cf1"},
-				Columns:              []types.Column{{ColumnFamily: "cf1", Name: "col1"}},
+				Columns:              []*types.Column{{ColumnFamily: "cf1", Name: "col1"}},
 				Values:               []interface{}{[]byte("value3")},
 				Keyspace:             "ks1",
 			},
@@ -237,7 +237,7 @@ func TestUpdateRow(t *testing.T) {
 	initialData := &translator.InsertQueryMapping{
 		Table:                "test-table-update",
 		RowKey:               "test-row",
-		Columns:              []types.Column{{ColumnFamily: "cf1", Name: "col1"}},
+		Columns:              []*types.Column{{ColumnFamily: "cf1", Name: "col1"}},
 		Values:               []interface{}{[]byte("initial value")},
 		DeleteColumnFamilies: []string{},
 		Keyspace:             "ks1",
@@ -249,7 +249,7 @@ func TestUpdateRow(t *testing.T) {
 	updateData := &translator.UpdateQueryMapping{
 		Table:                "test-table-update",
 		RowKey:               "test-row",
-		Columns:              []types.Column{{ColumnFamily: "cf1", Name: "col1"}},
+		Columns:              []*types.Column{{ColumnFamily: "cf1", Name: "col1"}},
 		Values:               []interface{}{[]byte("updated value")},
 		DeleteColumnFamilies: []string{},
 		Keyspace:             "ks1",
@@ -288,7 +288,7 @@ func TestDeleteRow(t *testing.T) {
 	initialData := &translator.InsertQueryMapping{
 		Table:                "test-table-delete",
 		RowKey:               "test-row",
-		Columns:              []types.Column{{ColumnFamily: "cf1", Name: "col1"}},
+		Columns:              []*types.Column{{ColumnFamily: "cf1", Name: "col1"}},
 		Values:               []interface{}{[]byte("initial value")},
 		DeleteColumnFamilies: []string{},
 		Keyspace:             "ks1",
@@ -474,7 +474,7 @@ func TestMutateRowDeleteColumnFamily(t *testing.T) {
 	insertData := &translator.InsertQueryMapping{
 		Table:    tableName,
 		RowKey:   "row1",
-		Columns:  []types.Column{{ColumnFamily: "cf1", Name: "col1"}, {ColumnFamily: "cf2", Name: "col2"}},
+		Columns:  []*types.Column{{ColumnFamily: "cf1", Name: "col1"}, {ColumnFamily: "cf2", Name: "col2"}},
 		Values:   []interface{}{[]byte("v1"), []byte("v2")},
 		Keyspace: "ks1",
 	}
@@ -516,7 +516,7 @@ func TestMutateRowDeleteQualifiers(t *testing.T) {
 	insertData := &translator.InsertQueryMapping{
 		Table:    tableName,
 		RowKey:   "row1",
-		Columns:  []types.Column{{ColumnFamily: "cf1", Name: "col1"}, {ColumnFamily: "cf1", Name: "col2"}},
+		Columns:  []*types.Column{{ColumnFamily: "cf1", Name: "col1"}, {ColumnFamily: "cf1", Name: "col2"}},
 		Values:   []interface{}{[]byte("v1"), []byte("v2")},
 		Keyspace: "ks1",
 	}
@@ -527,7 +527,7 @@ func TestMutateRowDeleteQualifiers(t *testing.T) {
 	updateData := &translator.UpdateQueryMapping{
 		Table:                 tableName,
 		RowKey:                "row1",
-		DeleteColumQualifires: []types.Column{{ColumnFamily: "cf1", Name: "col1"}},
+		DeleteColumQualifires: []*types.Column{{ColumnFamily: "cf1", Name: "col1"}},
 		Keyspace:              "ks1",
 	}
 	_, err = btc.UpdateRow(ctx, updateData)
@@ -561,7 +561,7 @@ func TestMutateRowIfExists(t *testing.T) {
 	insertData := &translator.InsertQueryMapping{
 		Table:    tableName,
 		RowKey:   "row1",
-		Columns:  []types.Column{{ColumnFamily: "cf1", Name: "col1"}},
+		Columns:  []*types.Column{{ColumnFamily: "cf1", Name: "col1"}},
 		Values:   []interface{}{[]byte("v1")},
 		Keyspace: "ks1",
 	}
@@ -572,7 +572,7 @@ func TestMutateRowIfExists(t *testing.T) {
 	updateData := &translator.UpdateQueryMapping{
 		Table:    tableName,
 		RowKey:   "row1",
-		Columns:  []types.Column{{ColumnFamily: "cf1", Name: "col1"}},
+		Columns:  []*types.Column{{ColumnFamily: "cf1", Name: "col1"}},
 		Values:   []interface{}{[]byte("v2")},
 		IfExists: true,
 		Keyspace: "ks1",
@@ -614,7 +614,7 @@ func TestMutateRowIfNotExists(t *testing.T) {
 	InsertData := &translator.InsertQueryMapping{
 		Table:       tableName,
 		RowKey:      "row1",
-		Columns:     []types.Column{{ColumnFamily: "cf1", Name: "col1"}},
+		Columns:     []*types.Column{{ColumnFamily: "cf1", Name: "col1"}},
 		Values:      []interface{}{[]byte("v1")},
 		IfNotExists: true,
 		Keyspace:    "ks1",
@@ -654,7 +654,7 @@ func TestMutateRowNonByteValue(t *testing.T) {
 	updateData := &translator.UpdateQueryMapping{
 		Table:    tableName,
 		RowKey:   "row1",
-		Columns:  []types.Column{{ColumnFamily: "cf1", Name: "col1"}},
+		Columns:  []*types.Column{{ColumnFamily: "cf1", Name: "col1"}},
 		Values:   []interface{}{"invalid-value"}, // string instead of []byte
 		Keyspace: "ks1",
 	}
@@ -672,7 +672,7 @@ func TestMutateRowInvalidKeyspace(t *testing.T) {
 	updateData := &translator.UpdateQueryMapping{
 		Table:    "any-table",
 		RowKey:   "row1",
-		Columns:  []types.Column{{ColumnFamily: "cf1", Name: "col1"}},
+		Columns:  []*types.Column{{ColumnFamily: "cf1", Name: "col1"}},
 		Values:   []interface{}{[]byte("value")},
 		Keyspace: "invalid-keyspace",
 	}
@@ -699,7 +699,7 @@ func TestComplexUpdateWithListIndex(t *testing.T) {
 	insertData := &translator.InsertQueryMapping{
 		Table:    tableName,
 		RowKey:   "row1",
-		Columns:  []types.Column{{ColumnFamily: "list", Name: "timestamp1"}, {ColumnFamily: "list", Name: "timestamp2"}},
+		Columns:  []*types.Column{{ColumnFamily: "list", Name: "timestamp1"}, {ColumnFamily: "list", Name: "timestamp2"}},
 		Values:   []interface{}{[]byte("v1"), []byte("v2")},
 		Keyspace: "ks1",
 	}
@@ -718,7 +718,7 @@ func TestComplexUpdateWithListIndex(t *testing.T) {
 		RowKey:           "row1",
 		ComplexOperation: ComplexOperation,
 		Keyspace:         "ks1",
-		Columns:          []types.Column{},
+		Columns:          []*types.Column{},
 		Values:           []interface{}{},
 	}
 	_, err = btc.UpdateRow(ctx, updateData)
@@ -750,7 +750,7 @@ func TestComplexUpdateWithListDeletion(t *testing.T) {
 	insertData := &translator.InsertQueryMapping{
 		Table:    tableName,
 		RowKey:   "row1",
-		Columns:  []types.Column{{ColumnFamily: "list", Name: "timestamp1"}, {ColumnFamily: "list", Name: "timestamp2"}},
+		Columns:  []*types.Column{{ColumnFamily: "list", Name: "timestamp1"}, {ColumnFamily: "list", Name: "timestamp2"}},
 		Values:   []interface{}{[]byte("v1"), []byte("v2")},
 		Keyspace: "ks1",
 	}
@@ -769,7 +769,7 @@ func TestComplexUpdateWithListDeletion(t *testing.T) {
 		RowKey:           "row1",
 		ComplexOperation: ComplexOperation,
 		Keyspace:         "ks1",
-		Columns:          []types.Column{},
+		Columns:          []*types.Column{},
 		Values:           []interface{}{},
 	}
 	_, err = btc.UpdateRow(ctx, updateData)
@@ -802,7 +802,7 @@ func TestComplexUpdateInvalidKeyspace(t *testing.T) {
 		RowKey:           "row1",
 		ComplexOperation: ComplexOperation,
 		Keyspace:         "invalid-keyspace",
-		Columns:          []types.Column{},
+		Columns:          []*types.Column{},
 		Values:           []interface{}{},
 	}
 	_, err = btc.UpdateRow(ctx, updateData)
@@ -827,7 +827,7 @@ func TestComplexUpdateOutOfBoundsIndex(t *testing.T) {
 	insertData := &translator.InsertQueryMapping{
 		Table:    tableName,
 		RowKey:   "row1",
-		Columns:  []types.Column{{ColumnFamily: "list", Name: "timestamp1"}},
+		Columns:  []*types.Column{{ColumnFamily: "list", Name: "timestamp1"}},
 		Values:   []interface{}{[]byte("v1")},
 		Keyspace: "ks1",
 	}
@@ -846,7 +846,7 @@ func TestComplexUpdateOutOfBoundsIndex(t *testing.T) {
 		RowKey:           "row1",
 		ComplexOperation: ComplexOperation,
 		Keyspace:         "ks1",
-		Columns:          []types.Column{},
+		Columns:          []*types.Column{},
 		Values:           []interface{}{},
 	}
 	_, err = btc.UpdateRow(ctx, updateData)
@@ -860,34 +860,26 @@ var testCreateTableStatementMap = translator.CreateTableStatementMap{
 	Table:             "create_table_test",
 	IfNotExists:       false,
 	IntRowKeyEncoding: types.OrderedCodeEncoding,
-	Columns: []message.ColumnMetadata{
+	Columns: []types.CreateColumn{
 		{
-			Keyspace: "ks1",
-			Table:    "create_table_test",
 			Name:     "org",
 			Index:    0,
-			Type:     datatype.Varchar,
+			TypeInfo: types.TypeVarchar,
 		},
 		{
-			Keyspace: "ks1",
-			Table:    "create_table_test",
 			Name:     "id",
 			Index:    1,
-			Type:     datatype.Bigint,
+			TypeInfo: types.TypeBigint,
 		},
 		{
-			Keyspace: "ks1",
-			Table:    "create_table_test",
 			Name:     "name",
 			Index:    2,
-			Type:     datatype.Varchar,
+			TypeInfo: types.TypeVarchar,
 		},
 		{
-			Keyspace: "ks1",
-			Table:    "create_table_test",
 			Name:     "zipcode",
 			Index:    3,
-			Type:     datatype.Int,
+			TypeInfo: types.TypeInt,
 		},
 	},
 	PrimaryKeys: []translator.CreateTablePrimaryKeyConfig{
@@ -928,7 +920,7 @@ func TestCreateTable(t *testing.T) {
 	require.Equal(t, map[string]*types.Column{
 		"org": {
 			Name:         "org",
-			CQLType:      datatype.Varchar,
+			CQLType:      types.TypeVarchar,
 			IsPrimaryKey: true,
 			PkPrecedence: 1,
 			KeyType:      "partition_key",
@@ -942,7 +934,7 @@ func TestCreateTable(t *testing.T) {
 		},
 		"id": {
 			Name:         "id",
-			CQLType:      datatype.Bigint,
+			CQLType:      types.TypeBigint,
 			IsPrimaryKey: true,
 			PkPrecedence: 2,
 			KeyType:      "clustering",
@@ -956,7 +948,7 @@ func TestCreateTable(t *testing.T) {
 		},
 		"name": {
 			Name:         "name",
-			CQLType:      datatype.Varchar,
+			CQLType:      types.TypeVarchar,
 			IsPrimaryKey: false,
 			PkPrecedence: 0,
 			KeyType:      utilities.KEY_TYPE_REGULAR,
@@ -970,7 +962,7 @@ func TestCreateTable(t *testing.T) {
 		},
 		"zipcode": {
 			Name:         "zipcode",
-			CQLType:      datatype.Int,
+			CQLType:      types.TypeInt,
 			IsPrimaryKey: false,
 			PkPrecedence: 0,
 			KeyType:      utilities.KEY_TYPE_REGULAR,
@@ -1162,12 +1154,10 @@ func TestAlterTable(t *testing.T) {
 		Keyspace:    "ks1",
 		Table:       "alter_table_test",
 		IfNotExists: false,
-		AddColumns: []message.ColumnMetadata{
+		AddColumns: []types.CreateColumn{
 			{
-				Keyspace: "ks1",
-				Table:    "alter_table_test",
 				Name:     "zodiac",
-				Type:     datatype.Varchar,
+				TypeInfo: types.TypeVarchar,
 			},
 		},
 		DropColumns: []string{
@@ -1183,7 +1173,7 @@ func TestAlterTable(t *testing.T) {
 	require.Equal(t, tableMap["alter_table_test"].Columns, map[string]*types.Column{
 		"org": {
 			Name:         "org",
-			CQLType:      datatype.Varchar,
+			CQLType:      types.TypeVarchar,
 			IsPrimaryKey: true,
 			PkPrecedence: 1,
 			KeyType:      "partition_key",
@@ -1197,7 +1187,7 @@ func TestAlterTable(t *testing.T) {
 		},
 		"id": {
 			Name:         "id",
-			CQLType:      datatype.Bigint,
+			CQLType:      types.TypeBigint,
 			IsPrimaryKey: true,
 			PkPrecedence: 2,
 			KeyType:      "clustering",
@@ -1211,7 +1201,7 @@ func TestAlterTable(t *testing.T) {
 		},
 		"name": {
 			Name:         "name",
-			CQLType:      datatype.Varchar,
+			CQLType:      types.TypeVarchar,
 			IsPrimaryKey: false,
 			PkPrecedence: 0,
 			KeyType:      utilities.KEY_TYPE_REGULAR,
@@ -1225,7 +1215,7 @@ func TestAlterTable(t *testing.T) {
 		},
 		"zodiac": {
 			Name:         "zodiac",
-			CQLType:      datatype.Varchar,
+			CQLType:      types.TypeVarchar,
 			IsPrimaryKey: false,
 			PkPrecedence: 0,
 			KeyType:      utilities.KEY_TYPE_REGULAR,

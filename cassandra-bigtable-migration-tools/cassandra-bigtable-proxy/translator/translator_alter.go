@@ -20,11 +20,10 @@ import (
 	"errors"
 	"fmt"
 
-	methods "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/methods"
+	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	cql "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/third_party/cqlparser"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/utilities"
 	"github.com/antlr4-go/antlr/v4"
-	"github.com/datastax/go-cassandra-native-protocol/message"
 )
 
 func (t *Translator) TranslateAlterTableToBigtable(query, sessionKeyspace string) (*AlterTableStatementMap, error) {
@@ -80,18 +79,16 @@ func (t *Translator) TranslateAlterTableToBigtable(query, sessionKeyspace string
 			dropColumns = append(dropColumns, dropColumn.GetText())
 		}
 	}
-	var addColumns []message.ColumnMetadata
+	var addColumns []types.CreateColumn
 	if alterTable.AlterTableOperation().AlterTableAdd() != nil {
 		for i, addColumn := range alterTable.AlterTableOperation().AlterTableAdd().AlterTableColumnDefinition().AllColumn() {
-			dt, err := methods.GetCassandraColumnType(alterTable.AlterTableOperation().AlterTableAdd().AlterTableColumnDefinition().DataType(i).GetText())
+			dt, err := utilities.ParseCqlType(alterTable.AlterTableOperation().AlterTableAdd().AlterTableColumnDefinition().DataType(i))
 			if err != nil {
 				return nil, err
 			}
 
-			addColumns = append(addColumns, message.ColumnMetadata{
-				Table:    tableName,
-				Keyspace: keyspaceName,
-				Type:     dt,
+			addColumns = append(addColumns, types.CreateColumn{
+				TypeInfo: dt,
 				Name:     addColumn.GetText(),
 				Index:    int32(i),
 			})
@@ -112,8 +109,8 @@ func (t *Translator) TranslateAlterTableToBigtable(query, sessionKeyspace string
 		}
 	}
 	for _, addColumn := range addColumns {
-		if !utilities.IsSupportedColumnType(addColumn.Type) {
-			return nil, fmt.Errorf("column type '%s' is not supported", addColumn.Type)
+		if !utilities.IsSupportedColumnType(addColumn.TypeInfo) {
+			return nil, fmt.Errorf("column type '%s' is not supported", addColumn.TypeInfo.String())
 		}
 		if utilities.IsReservedCqlKeyword(addColumn.Name) {
 			return nil, fmt.Errorf("cannot alter a table with reserved keyword as column name: '%s'", addColumn.Name)

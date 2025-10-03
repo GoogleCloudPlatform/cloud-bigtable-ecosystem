@@ -80,7 +80,7 @@ func (th *TypeHandler) BuildMetadata(rowMap []map[string]interface{}, query Quer
 			if columnObj.Alias != "" || columnObj.IsFunc || columnObj.MapKey != "" {
 				lookupColumn = columnObj.ColumnName
 			}
-			cqlType, err = tableConfig.GetColumnType(lookupColumn)
+			cqlType, err = tableConfig.GetColumnDataType(lookupColumn)
 			if err != nil {
 				return nil, err
 			}
@@ -135,9 +135,15 @@ func (th *TypeHandler) BuildResponseRow(rowMap map[string]interface{}, query Que
 		} else if col.IsWriteTimeColumn {
 			cqlType = datatype.Timestamp
 		} else if col.IsFunc || col.MapKey != "" || col.IsAs {
-			cqlType, err = tableConfig.GetColumnType(col.ColumnName)
+			cqlType, err = tableConfig.GetColumnDataType(col.ColumnName)
+			if err != nil {
+				return nil, err
+			}
 		} else {
-			cqlType, err = tableConfig.GetColumnType(key)
+			cqlType, err = tableConfig.GetColumnDataType(key)
+			if err != nil {
+				return nil, err
+			}
 		}
 		if err != nil {
 			return nil, err
@@ -311,7 +317,7 @@ func (th *TypeHandler) HandleSetType(arr []interface{}, mr *message.Row, setType
 // Parameters:
 //   - mapData: map of string and interface{} of elementType of data.
 //   - mr: Pointer to the message.Row to append the converted data.
-//   - elementType: Type of the elements in the map.
+//   - elementType: CQLType of the elements in the map.
 //   - protocalV: Cassandra protocol version.
 //
 // Returns: Cassandra datatype and an error if any.

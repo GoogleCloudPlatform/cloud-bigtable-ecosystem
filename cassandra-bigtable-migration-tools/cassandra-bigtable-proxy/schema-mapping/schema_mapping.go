@@ -80,7 +80,7 @@ func (c *SchemaMappingConfig) GetKeyspace(keyspace string) ([]*TableConfig, erro
 	defer c.mu.RUnlock()
 	tables, ok := c.tables[keyspace]
 	if !ok {
-		return nil, fmt.Errorf("keyspace %s does not exist", keyspace)
+		return nil, fmt.Errorf("keyspace '%s' does not exist", keyspace)
 	}
 	var results []*TableConfig = nil
 	for _, table := range tables {
@@ -132,7 +132,7 @@ func (c *SchemaMappingConfig) GetTableConfig(keySpace string, tableName string) 
 	defer c.mu.RUnlock()
 	keyspace, ok := c.tables[keySpace]
 	if !ok {
-		return nil, fmt.Errorf("keyspace %s does not exist", keySpace)
+		return nil, fmt.Errorf("keyspace '%s' does not exist", keySpace)
 	}
 	tableConfig, ok := keyspace[tableName]
 	if !ok {

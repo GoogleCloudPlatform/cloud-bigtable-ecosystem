@@ -67,7 +67,7 @@ func TestSystemColumns(t *testing.T) {
 		"column_name":      "name",
 		"kind":             "regular",
 		"clustering_order": "none",
-		"type":             "text",
+		"type":             "varchar",
 		"position":         "-1",
 	}, results["bigtabledevinstance.orders.name"])
 
@@ -87,7 +87,7 @@ func TestSystemColumns(t *testing.T) {
 		"column_name":      "name",
 		"kind":             "regular",
 		"clustering_order": "none",
-		"type":             "text",
+		"type":             "varchar",
 		"position":         "-1",
 	}, results["bigtabledevinstance.test_int_key.name"])
 
@@ -116,7 +116,7 @@ func TestSystemColumns(t *testing.T) {
 		"column_name":      "email",
 		"kind":             "clustering",
 		"clustering_order": "asc",
-		"type":             "text",
+		"type":             "varchar",
 		"position":         "0",
 	}, results["bigtabledevinstance.compound_key_table.email"])
 	assert.Equal(t, map[string]string{
@@ -125,7 +125,7 @@ func TestSystemColumns(t *testing.T) {
 		"column_name":      "name",
 		"kind":             "regular",
 		"clustering_order": "none",
-		"type":             "text",
+		"type":             "varchar",
 		"position":         "-1",
 	}, results["bigtabledevinstance.compound_key_table.name"])
 }

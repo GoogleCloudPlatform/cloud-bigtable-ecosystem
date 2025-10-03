@@ -16,19 +16,24 @@
 package types
 
 import (
-	"github.com/datastax/go-cassandra-native-protocol/datatype"
 	"github.com/datastax/go-cassandra-native-protocol/message"
 )
 
 type Column struct {
 	Name         string
 	ColumnFamily string
-	CQLType      datatype.DataType
+	CQLType      CqlDataType
 	// todo remove this field because it's redundant - you can use PkPrecedence or KeyType to infer this
 	IsPrimaryKey bool
 	PkPrecedence int
 	KeyType      string
 	Metadata     message.ColumnMetadata
+}
+
+type CreateColumn struct {
+	Name     string
+	Index    int32
+	TypeInfo CqlDataType
 }
 
 type Clause struct {

@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS bigtabledevinstance.user_info (
 
 		`
 CREATE TABLE IF NOT EXISTS bigtabledevinstance.orders (
-	user_id varchar,
+	user_id text,
 	order_num int,
 	name varchar,
 	PRIMARY KEY (user_id, order_num)

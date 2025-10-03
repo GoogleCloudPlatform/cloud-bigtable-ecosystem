@@ -439,7 +439,7 @@ func TestHandlePrimitiveEncoding(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Int Type with nil value",
+			name: "Int CQLType with nil value",
 			args: args{
 				cqlType:         datatype.Int,
 				value:           nil,

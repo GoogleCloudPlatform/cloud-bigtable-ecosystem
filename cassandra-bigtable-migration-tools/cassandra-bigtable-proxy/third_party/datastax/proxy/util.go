@@ -163,15 +163,9 @@ func getColumnMetadata(tableMetadata map[string]map[string]*schemaMapping.TableC
 					clusteringOrder = "asc"
 				}
 
-				tpe := column.CQLType.String()
-				// todo we need to store the actual type in the schema mappings table
-				if column.CQLType == datatype.Varchar {
-					tpe = "text"
-				}
-
 				// Add column metadata
 				columnsMetadataRows = append(columnsMetadataRows, []interface{}{
-					keyspace, tableName, columnName, clusteringOrder, column.KeyType, position, tpe,
+					keyspace, tableName, columnName, clusteringOrder, column.KeyType, position, column.CQLType.String(),
 				})
 			}
 		}
@@ -243,7 +237,7 @@ func ConstructSystemMetadataRows(tableMetadata map[string]map[string]*schemaMapp
 }
 
 // Add system keyspaces, tables, and columns to the schema mapping before system cache construction
-func addSystemKeyspacesToMetadata(tableMetadata map[string]map[string]*schemaMapping.TableConfig) {
+func addSystemKeyspacesToMetadata(tableMetadata map[string]map[string]*schemaMapping.TableConfig) error {
 	// Replication settings for system and example keyspaces, matching Cassandra output
 	replicationMap := map[string]map[string]string{
 		"system":                {"class": "org.apache.cassandra.locator.LocalStrategy"},
@@ -270,9 +264,13 @@ func addSystemKeyspacesToMetadata(tableMetadata map[string]map[string]*schemaMap
 				}
 			}
 			for _, col := range parser.SystemSchemaTablesColumns {
+				cqlDataType, err := utilities.FromDataCode(col.Type)
+				if err != nil {
+					return err
+				}
 				tableMetadata[ks]["tables"].Columns[col.Name] = &types.Column{
 					Name:         col.Name,
-					CQLType:      col.Type,
+					CQLType:      cqlDataType,
 					IsPrimaryKey: col.Name == "keyspace_name" || col.Name == "table_name",
 					KeyType: func() string {
 						if col.Name == "keyspace_name" || col.Name == "table_name" {
@@ -292,9 +290,13 @@ func addSystemKeyspacesToMetadata(tableMetadata map[string]map[string]*schemaMap
 				}
 			}
 			for _, col := range parser.SystemSchemaColumnsColumns {
+				cqlDataType, err := utilities.FromDataCode(col.Type)
+				if err != nil {
+					return err
+				}
 				tableMetadata[ks]["columns"].Columns[col.Name] = &types.Column{
 					Name:         col.Name,
-					CQLType:      col.Type,
+					CQLType:      cqlDataType,
 					IsPrimaryKey: col.Name == "keyspace_name" || col.Name == "table_name" || col.Name == "column_name",
 					KeyType: func() string {
 						if col.Name == "keyspace_name" || col.Name == "table_name" || col.Name == "column_name" {
@@ -314,9 +316,13 @@ func addSystemKeyspacesToMetadata(tableMetadata map[string]map[string]*schemaMap
 				}
 			}
 			for _, col := range parser.SystemSchemaKeyspacesColumns {
+				cqlDataType, err := utilities.FromDataCode(col.Type)
+				if err != nil {
+					return err
+				}
 				tableMetadata[ks]["keyspaces"].Columns[col.Name] = &types.Column{
 					Name:         col.Name,
-					CQLType:      col.Type,
+					CQLType:      cqlDataType,
 					IsPrimaryKey: col.Name == "keyspace_name",
 					KeyType: func() string {
 						if col.Name == "keyspace_name" {
@@ -361,9 +367,13 @@ func addSystemKeyspacesToMetadata(tableMetadata map[string]map[string]*schemaMap
 				{"tokens", datatype.NewSetType(datatype.Varchar)},
 			}
 			for _, col := range columns {
+				cqlDataType, err := utilities.FromDataCode(col.Type)
+				if err != nil {
+					return err
+				}
 				tableMetadata[ks]["local"].Columns[col.Name] = &types.Column{
 					Name:         col.Name,
-					CQLType:      col.Type,
+					CQLType:      cqlDataType,
 					IsPrimaryKey: col.Name == "key",
 					KeyType: func() string {
 						if col.Name == "key" {
@@ -398,9 +408,13 @@ func addSystemKeyspacesToMetadata(tableMetadata map[string]map[string]*schemaMap
 				{"tokens", datatype.NewSetType(datatype.Varchar)},
 			}
 			for _, col := range peerColumns {
+				cqlDataType, err := utilities.FromDataCode(col.Type)
+				if err != nil {
+					return err
+				}
 				tableMetadata[ks]["peers"].Columns[col.Name] = &types.Column{
 					Name:         col.Name,
-					CQLType:      col.Type,
+					CQLType:      cqlDataType,
 					IsPrimaryKey: col.Name == "peer",
 					KeyType: func() string {
 						if col.Name == "peer" {
@@ -437,9 +451,13 @@ func addSystemKeyspacesToMetadata(tableMetadata map[string]map[string]*schemaMap
 				{"tokens", datatype.NewSetType(datatype.Varchar)},
 			}
 			for _, col := range peerV2Columns {
+				cqlDataType, err := utilities.FromDataCode(col.Type)
+				if err != nil {
+					return err
+				}
 				tableMetadata[ks]["peers_v2"].Columns[col.Name] = &types.Column{
 					Name:         col.Name,
-					CQLType:      col.Type,
+					CQLType:      cqlDataType,
 					IsPrimaryKey: col.Name == "peer",
 					KeyType: func() string {
 						if col.Name == "peer" {
@@ -463,9 +481,13 @@ func addSystemKeyspacesToMetadata(tableMetadata map[string]map[string]*schemaMap
 		Columns:  make(map[string]*types.Column),
 	}
 	for _, col := range parser.SystemVirtualSchemaKeyspaces {
+		cqlDataType, err := utilities.FromDataCode(col.Type)
+		if err != nil {
+			return err
+		}
 		tableMetadata["system_virtual_schema"]["keyspaces"].Columns[col.Name] = &types.Column{
 			Name:         col.Name,
-			CQLType:      col.Type,
+			CQLType:      cqlDataType,
 			IsPrimaryKey: false,
 			KeyType:      utilities.KEY_TYPE_REGULAR,
 		}
@@ -477,9 +499,13 @@ func addSystemKeyspacesToMetadata(tableMetadata map[string]map[string]*schemaMap
 		Columns:  make(map[string]*types.Column),
 	}
 	for _, col := range parser.SystemVirtualSchemaTables {
+		cqlDataType, err := utilities.FromDataCode(col.Type)
+		if err != nil {
+			return err
+		}
 		tableMetadata["system_virtual_schema"]["tables"].Columns[col.Name] = &types.Column{
 			Name:         col.Name,
-			CQLType:      col.Type,
+			CQLType:      cqlDataType,
 			IsPrimaryKey: false,
 			KeyType:      utilities.KEY_TYPE_REGULAR,
 		}
@@ -491,13 +517,18 @@ func addSystemKeyspacesToMetadata(tableMetadata map[string]map[string]*schemaMap
 		Columns:  make(map[string]*types.Column),
 	}
 	for _, col := range parser.SystemVirtualSchemaColumns {
+		cqlDataType, err := utilities.FromDataCode(col.Type)
+		if err != nil {
+			return err
+		}
 		tableMetadata["system_virtual_schema"]["columns"].Columns[col.Name] = &types.Column{
 			Name:         col.Name,
-			CQLType:      col.Type,
+			CQLType:      cqlDataType,
 			IsPrimaryKey: false,
 			KeyType:      utilities.KEY_TYPE_REGULAR,
 		}
 	}
+	return nil
 }
 
 // getTimestampMetadata appends a metadata entry for a timestamp column to a list of column metadata

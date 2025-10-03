@@ -16,6 +16,7 @@
 package utilities
 
 import (
+	"fmt"
 	"math"
 	"reflect"
 	"testing"
@@ -26,6 +27,7 @@ import (
 	"github.com/datastax/go-cassandra-native-protocol/datatype"
 	"github.com/datastax/go-cassandra-native-protocol/primitive"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestIsCollectionDataType(t *testing.T) {
@@ -149,10 +151,10 @@ func TestDecodeBytesToCassandraColumnType(t *testing.T) {
 		{
 			name: "Decode list of varchar",
 			input: func() []byte {
-				b, _ := proxycore.EncodeType(ListOfStr, primitive.ProtocolVersion4, []string{"test1", "test2"})
+				b, _ := proxycore.EncodeType(ListOfStr.DataType(), primitive.ProtocolVersion4, []string{"test1", "test2"})
 				return b
 			}(),
-			dataType:        ListOfStr,
+			dataType:        ListOfStr.DataType(),
 			protocolVersion: primitive.ProtocolVersion4,
 			expected:        []string{"test1", "test2"},
 			expectError:     false,
@@ -160,10 +162,10 @@ func TestDecodeBytesToCassandraColumnType(t *testing.T) {
 		{
 			name: "Decode list of bigint",
 			input: func() []byte {
-				b, _ := proxycore.EncodeType(ListOfBigInt, primitive.ProtocolVersion4, []int64{123, 456})
+				b, _ := proxycore.EncodeType(ListOfBigInt.DataType(), primitive.ProtocolVersion4, []int64{123, 456})
 				return b
 			}(),
-			dataType:        ListOfBigInt,
+			dataType:        ListOfBigInt.DataType(),
 			protocolVersion: primitive.ProtocolVersion4,
 			expected:        []int64{123, 456},
 			expectError:     false,
@@ -171,10 +173,10 @@ func TestDecodeBytesToCassandraColumnType(t *testing.T) {
 		{
 			name: "Decode list of double",
 			input: func() []byte {
-				b, _ := proxycore.EncodeType(ListOfDouble, primitive.ProtocolVersion4, []float64{123.45, 456.78})
+				b, _ := proxycore.EncodeType(ListOfDouble.DataType(), primitive.ProtocolVersion4, []float64{123.45, 456.78})
 				return b
 			}(),
-			dataType:        ListOfDouble,
+			dataType:        ListOfDouble.DataType(),
 			protocolVersion: primitive.ProtocolVersion4,
 			expected:        []float64{123.45, 456.78},
 			expectError:     false,
@@ -190,7 +192,7 @@ func TestDecodeBytesToCassandraColumnType(t *testing.T) {
 		{
 			name:            "Unsupported list element type",
 			input:           []byte("test"),
-			dataType:        ListOfBool, // List of boolean is not supported
+			dataType:        ListOfBool.DataType(), // List of boolean is not supported
 			protocolVersion: primitive.ProtocolVersion4,
 			expectError:     true,
 			errorMessage:    "unsupported list element type to decode",
@@ -231,37 +233,37 @@ func TestDecodeNonPrimitive(t *testing.T) {
 		{
 			name: "Decode list of varchar",
 			input: func() []byte {
-				b, _ := proxycore.EncodeType(ListOfStr, primitive.ProtocolVersion4, []string{"test1", "test2"})
+				b, _ := proxycore.EncodeType(ListOfStr.DataType(), primitive.ProtocolVersion4, []string{"test1", "test2"})
 				return b
 			}(),
-			dataType:    ListOfStr,
+			dataType:    ListOfStr.DataType(),
 			expected:    []string{"test1", "test2"},
 			expectError: false,
 		},
 		{
 			name: "Decode list of bigint",
 			input: func() []byte {
-				b, _ := proxycore.EncodeType(ListOfBigInt, primitive.ProtocolVersion4, []int64{123, 456})
+				b, _ := proxycore.EncodeType(ListOfBigInt.DataType(), primitive.ProtocolVersion4, []int64{123, 456})
 				return b
 			}(),
-			dataType:    ListOfBigInt,
+			dataType:    ListOfBigInt.DataType(),
 			expected:    []int64{123, 456},
 			expectError: false,
 		},
 		{
 			name: "Decode list of double",
 			input: func() []byte {
-				b, _ := proxycore.EncodeType(ListOfDouble, primitive.ProtocolVersion4, []float64{123.45, 456.78})
+				b, _ := proxycore.EncodeType(ListOfDouble.DataType(), primitive.ProtocolVersion4, []float64{123.45, 456.78})
 				return b
 			}(),
-			dataType:    ListOfDouble,
+			dataType:    ListOfDouble.DataType(),
 			expected:    []float64{123.45, 456.78},
 			expectError: false,
 		},
 		{
 			name:         "Unsupported list element type",
 			input:        []byte("test"),
-			dataType:     ListOfBool, // List of boolean is not supported
+			dataType:     ListOfBool.DataType(), // List of boolean is not supported
 			expectError:  true,
 			errorMessage: "unsupported list element type to decode",
 		},
@@ -934,16 +936,17 @@ func TestGetClauseByColumn(t *testing.T) {
 func TestIsSupportedPrimaryKeyType(t *testing.T) {
 	testCases := []struct {
 		name     string
-		input    datatype.DataType
+		input    types.CqlDataType
 		expected bool
 	}{
-		{"Supported Type - Int", datatype.Int, true},
-		{"Supported Type - Bigint", datatype.Bigint, true},
-		{"Supported Type - Varchar", datatype.Varchar, true},
-		{"Unsupported Type - Boolean", datatype.Boolean, false},
-		{"Unsupported Type - Float", datatype.Float, false},
-		{"Unsupported Type - Blob", datatype.Blob, false},
-		{"Unsupported Type - List", datatype.NewListType(datatype.Int), false},
+		{"Supported CQLType - Int", ParseCqlTypeOrDie("int"), true},
+		{"Supported CQLType - Bigint", ParseCqlTypeOrDie("bigint"), true},
+		{"Supported CQLType - Varchar", ParseCqlTypeOrDie("varchar"), true},
+		{"Unsupported CQLType - Boolean", ParseCqlTypeOrDie("boolean"), false},
+		{"Unsupported CQLType - Float", ParseCqlTypeOrDie("float"), false},
+		{"Unsupported CQLType - Blob", ParseCqlTypeOrDie("blob"), false},
+		{"Unsupported CQLType - List", ParseCqlTypeOrDie("list<int>"), false},
+		{"Unsupported CQLType - Frozen", ParseCqlTypeOrDie("frozen<list<int>>"), false},
 	}
 
 	for _, tc := range testCases {
@@ -960,17 +963,17 @@ func TestIsSupportedCollectionElementType(t *testing.T) {
 		input    datatype.DataType
 		expected bool
 	}{
-		{"Supported Type - Int", datatype.Int, true},
-		{"Supported Type - Bigint", datatype.Bigint, true},
-		{"Supported Type - Varchar", datatype.Varchar, true},
-		{"Supported Type - Float", datatype.Float, true},
-		{"Supported Type - Double", datatype.Double, true},
-		{"Supported Type - Timestamp", datatype.Timestamp, true},
-		{"Supported Type - Boolean", datatype.Boolean, true},
-		{"Unsupported Type - Blob", datatype.Blob, false},
-		{"Unsupported Type - UUID", datatype.Uuid, false},
-		{"Unsupported Type - Map", datatype.NewMapType(datatype.Varchar, datatype.Int), false},
-		{"Unsupported Type - Set", datatype.NewSetType(datatype.Varchar), false},
+		{"Supported CQLType - Int", datatype.Int, true},
+		{"Supported CQLType - Bigint", datatype.Bigint, true},
+		{"Supported CQLType - Varchar", datatype.Varchar, true},
+		{"Supported CQLType - Float", datatype.Float, true},
+		{"Supported CQLType - Double", datatype.Double, true},
+		{"Supported CQLType - Timestamp", datatype.Timestamp, true},
+		{"Supported CQLType - Boolean", datatype.Boolean, true},
+		{"Unsupported CQLType - Blob", datatype.Blob, false},
+		{"Unsupported CQLType - UUID", datatype.Uuid, false},
+		{"Unsupported CQLType - Map", datatype.NewMapType(datatype.Varchar, datatype.Int), false},
+		{"Unsupported CQLType - Set", datatype.NewSetType(datatype.Varchar), false},
 	}
 
 	for _, tc := range testCases {
@@ -984,41 +987,264 @@ func TestIsSupportedCollectionElementType(t *testing.T) {
 func TestIsSupportedColumnType(t *testing.T) {
 	testCases := []struct {
 		name     string
-		input    datatype.DataType
+		input    types.CqlDataType
 		expected bool
 	}{
 		// --- Positive Cases: Primitive Types ---
-		{"Supported Primitive - Int", datatype.Int, true},
-		{"Supported Primitive - Bigint", datatype.Bigint, true},
-		{"Supported Primitive - Blob", datatype.Blob, true},
-		{"Supported Primitive - Boolean", datatype.Boolean, true},
-		{"Supported Primitive - Double", datatype.Double, true},
-		{"Supported Primitive - Float", datatype.Float, true},
-		{"Supported Primitive - Timestamp", datatype.Timestamp, true},
-		{"Supported Primitive - Varchar", datatype.Varchar, true},
+		{"Supported Primitive - Int", ParseCqlTypeOrDie("int"), true},
+		{"Supported Primitive - Bigint", ParseCqlTypeOrDie("bigint"), true},
+		{"Supported Primitive - Blob", ParseCqlTypeOrDie("blob"), true},
+		{"Supported Primitive - Boolean", ParseCqlTypeOrDie("boolean"), true},
+		{"Supported Primitive - Double", ParseCqlTypeOrDie("double"), true},
+		{"Supported Primitive - Float", ParseCqlTypeOrDie("float"), true},
+		{"Supported Primitive - Timestamp", ParseCqlTypeOrDie("timestamp"), true},
+		{"Supported Primitive - Varchar", ParseCqlTypeOrDie("varchar"), true},
 
 		// --- Positive Cases: Collection Types ---
-		{"Supported List", datatype.NewListType(datatype.Int), true},
-		{"Supported Set", datatype.NewSetType(datatype.Varchar), true},
-		{"Supported Map", datatype.NewMapType(datatype.Timestamp, datatype.Float), true},
-		{"Supported Map with Text Key", datatype.NewMapType(datatype.Varchar, datatype.Bigint), true},
+		{"Supported List", ParseCqlTypeOrDie("list<int>"), true},
+		{"Supported Set", ParseCqlTypeOrDie("set<varchar>"), true},
+		{"Supported Map", ParseCqlTypeOrDie("map<timestamp,float>"), true},
+		{"Supported Map with Text Key", ParseCqlTypeOrDie("map<text,bigint>"), true},
 
 		// --- Negative Cases: Primitive Types ---
-		{"Unsupported Primitive - UUID", datatype.Uuid, false},
-		{"Unsupported Primitive - TimeUUID", datatype.Timeuuid, false},
+		{"Unsupported Primitive - UUID", ParseCqlTypeOrDie("uuid"), false},
+		{"Unsupported Primitive - TimeUUID", ParseCqlTypeOrDie("timeuuid"), false},
 
 		// --- Negative Cases: Collection Types ---
-		{"Unsupported List Element", datatype.NewListType(datatype.Uuid), false},
-		{"Unsupported Set Element", datatype.NewSetType(datatype.Blob), false},
-		{"Unsupported Map Key", datatype.NewMapType(datatype.Blob, datatype.Varchar), false},
-		{"Unsupported Map Value", datatype.NewMapType(datatype.Varchar, datatype.Uuid), false},
-		{"Nested Collection - List of Maps", datatype.NewListType(datatype.NewMapType(datatype.Varchar, datatype.Int)), false},
+		{"Unsupported List Element", ParseCqlTypeOrDie("list<uuid>"), false},
+		{"Unsupported List Element", types.NewListType(types.NewListType(types.TypeInt)), false},
+		{"Unsupported Set Element", ParseCqlTypeOrDie("set<blob>"), false},
+		{"Unsupported Map Key", ParseCqlTypeOrDie("map<blob,text>"), false},
+		{"Unsupported Map Value", ParseCqlTypeOrDie("map<text,uuid>"), false},
+		{"Nested Collection - List of Maps", types.NewListType(types.NewMapType(types.TypeVarchar, types.TypeInt)), false},
+		// --- Negative Cases: Frozen Types ---
+		{"Frozen List", ParseCqlTypeOrDie("frozen<list<int>>"), false},
+		{"Frozen Set", ParseCqlTypeOrDie("frozen<set<text>>"), false},
+		{"Frozen Map", ParseCqlTypeOrDie("frozen<map<timestamp, float>>"), false},
+		{"Frozen Map with Text Key", ParseCqlTypeOrDie("frozen<map<text, bigint>>"), false},
+		{"List of frozen lists", ParseCqlTypeOrDie("list<frozen<list<bigint>>>"), false},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			got := IsSupportedColumnType(tc.input)
 			assert.Equal(t, tc.expected, got)
+		})
+	}
+}
+
+func TestGetCassandraColumnType(t *testing.T) {
+	testCases := []struct {
+		input    string
+		wantType types.CqlDataType
+		wantErr  string
+	}{
+		{"text", types.TypeText, ""},
+		{"blob", types.TypeBlob, ""},
+		{"timestamp", types.TypeTimestamp, ""},
+		{"TimeSTAmp", types.TypeTimestamp, ""},
+		{"int", types.TypeInt, ""},
+		{"float", types.TypeFloat, ""},
+		{"double", types.TypeDouble, ""},
+		{"bigint", types.TypeBigint, ""},
+		{"boolean", types.TypeBoolean, ""},
+		{"uuid", types.TypeUuid, ""},
+		{"map<text, boolean>", types.NewMapType(types.TypeText, types.TypeBoolean), ""},
+		{"map<varchar, boolean>", types.NewMapType(types.TypeVarchar, types.TypeBoolean), ""},
+		{"map<text, text>", types.NewMapType(types.TypeText, types.TypeText), ""},
+		{"map<text, varchar>", types.NewMapType(types.TypeText, types.TypeVarchar), ""},
+		{"map<varchar,text>", types.NewMapType(types.TypeVarchar, types.TypeText), ""},
+		{"map<varchar, varchar>", types.NewMapType(types.TypeVarchar, types.TypeVarchar), ""},
+		{"maP<vARCHar, varcHAr>", types.NewMapType(types.TypeVarchar, types.TypeVarchar), ""},
+		{"map<varchar>", nil, "expected exactly 2 types but found 1 in: 'map<varchar>'"},
+		{"map<varchar,varchar,varchar>", nil, "expected exactly 2 types but found 3 in: 'map<varchar,varchar,varchar>'"},
+		{"map<>", nil, "empty type definition in 'map<>'"},
+		{"int<>", nil, "unexpected data type definition: 'int<>'"},
+		{"list<text>", types.NewListType(types.TypeText), ""},
+		{"list<varchar>", types.NewListType(types.TypeVarchar), ""},
+		{"frozen<list<text>>", types.NewFrozenType(types.NewListType(types.TypeText)), ""},
+		{"frozen<list<varchar>>", types.NewFrozenType(types.NewListType(types.TypeVarchar)), ""},
+		{"set<text>", types.NewSetType(types.TypeText), ""},
+		{"set<text", nil, "missing closing type bracket in: 'set<text'"},
+		{"set", nil, "data type definition missing in: 'set'"},
+		{"frozen", nil, "data type definition missing in: 'frozen'"},
+		{"map", nil, "data type definition missing in: 'map'"},
+		{"list", nil, "data type definition missing in: 'list'"},
+		{"set<", nil, "failed"}, // we don't get a good parsing error from here but that's ok
+		{"set<varchar>", types.NewSetType(types.TypeVarchar), ""},
+		{"frozen<set<text>>", types.NewFrozenType(types.NewSetType(types.TypeText)), ""},
+		{"frozen<set<varchar>>", types.NewFrozenType(types.NewSetType(types.TypeVarchar)), ""},
+		{"unknown", nil, "unknown data type name: 'unknown'"},
+		{"", nil, "unknown data type name: ''"},
+		{"<>list", nil, "unknown data type name: ''"},
+		{"<int>", nil, "unknown data type name: '<int'"},
+		{"map<map<text,int>", nil, "expected exactly 2 types but found 1 in: 'map<map<text,int>'"},
+		{"map<map<text,int>,text>", nil, "map key types must be scalar"},
+		{"map<text, frozen<map<text,int>>>", types.NewMapType(types.TypeText, types.NewFrozenType(types.NewMapType(types.TypeText, types.TypeInt))), ""},
+		// Future scope items below:
+		{"map<text, int>", types.NewMapType(types.TypeText, types.TypeInt), ""},
+		{"map<varchar, int>", types.NewMapType(types.TypeVarchar, types.TypeInt), ""},
+		{"map<text, bigint>", types.NewMapType(types.TypeText, types.TypeBigint), ""},
+		{"map<varchar, bigint>", types.NewMapType(types.TypeVarchar, types.TypeBigint), ""},
+		{"map<text, float>", types.NewMapType(types.TypeText, types.TypeFloat), ""},
+		{"map<varchar, float>", types.NewMapType(types.TypeVarchar, types.TypeFloat), ""},
+		{"map<text, double>", types.NewMapType(types.TypeText, types.TypeDouble), ""},
+		{"map<varchar, double>", types.NewMapType(types.TypeVarchar, types.TypeDouble), ""},
+		{"map<text, timestamp>", types.NewMapType(types.TypeText, types.TypeTimestamp), ""},
+		{"map<varchar, timestamp>", types.NewMapType(types.TypeVarchar, types.TypeTimestamp), ""},
+		{"map<timestamp, text>", types.NewMapType(types.TypeTimestamp, types.TypeText), ""},
+		{"map<timestamp, varchar>", types.NewMapType(types.TypeTimestamp, types.TypeVarchar), ""},
+		{"map<timestamp, boolean>", types.NewMapType(types.TypeTimestamp, types.TypeBoolean), ""},
+		{"map<timestamp, int>", types.NewMapType(types.TypeTimestamp, types.TypeInt), ""},
+		{"map<timestamp, bigint>", types.NewMapType(types.TypeTimestamp, types.TypeBigint), ""},
+		{"map<timestamp, float>", types.NewMapType(types.TypeTimestamp, types.TypeFloat), ""},
+		{"map<timestamp, double>", types.NewMapType(types.TypeTimestamp, types.TypeDouble), ""},
+		{"map<timestamp, timestamp>", types.NewMapType(types.TypeTimestamp, types.TypeTimestamp), ""},
+		{"map<timestamp, sdfs>", nil, "failed"}, // we don't get a good error because the lexer doesn't recognize the invalid type
+		{"map<intt, int>", nil, "failed"},       // we don't get a good error because the lexer doesn't recognize the invalid type
+		{"set<asdfasdf>", nil, "failed"},        // we don't get a good error because the lexer doesn't recognize the invalid type
+		{"list<asdfasdf>", nil, "failed"},       // we don't get a good error because the lexer doesn't recognize the invalid type
+		{"frozen<asdfasdf>", nil, "failed"},     // we don't get a good error because the lexer doesn't recognize the invalid type
+		{"set<int>", types.NewSetType(types.TypeInt), ""},
+		{"set<bigint>", types.NewSetType(types.TypeBigint), ""},
+		{"set<float>", types.NewSetType(types.TypeFloat), ""},
+		{"set<double>", types.NewSetType(types.TypeDouble), ""},
+		{"set<boolean>", types.NewSetType(types.TypeBoolean), ""},
+		{"set<timestamp>", types.NewSetType(types.TypeTimestamp), ""},
+		{"set<text>", types.NewSetType(types.TypeText), ""},
+		{"set<varchar>", types.NewSetType(types.TypeVarchar), ""},
+		{"set<frozen<list<varchar>>>", types.NewSetType(types.NewFrozenType(types.NewListType(types.TypeVarchar))), ""},
+		{"set<frozen<map<text,int>>>", types.NewSetType(types.NewFrozenType(types.NewMapType(types.TypeText, types.TypeInt))), ""},
+		{"list<frozen<map<text,int>>>", types.NewListType(types.NewFrozenType(types.NewMapType(types.TypeText, types.TypeInt))), ""},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.input, func(t *testing.T) {
+			got, err := ParseCqlTypeString(tc.input)
+			if tc.wantErr != "" {
+				assert.Nil(t, got)
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tc.wantErr)
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, tc.wantType, got)
+		})
+	}
+}
+
+func TestFromDataCode(t *testing.T) {
+
+	// ## Test Cases for Primitive Types ##
+	// These tests verify that each primitive type is correctly converted.
+	primitiveTests := []struct {
+		name     string
+		input    datatype.DataType
+		expected types.CqlDataType
+	}{
+		{"Ascii", datatype.Ascii, types.TypeAscii},
+		{"Bigint", datatype.Bigint, types.TypeBigint},
+		{"Blob", datatype.Blob, types.TypeBlob},
+		{"Boolean", datatype.Boolean, types.TypeBoolean},
+		{"Counter", datatype.Counter, types.TypeCounter},
+		{"Decimal", datatype.Decimal, types.TypeDecimal},
+		{"Double", datatype.Double, types.TypeDouble},
+		{"Float", datatype.Float, types.TypeFloat},
+		{"Int", datatype.Int, types.TypeInt},
+		{"Text", datatype.Varchar, types.TypeVarchar},
+		{"Timestamp", datatype.Timestamp, types.TypeTimestamp},
+		{"Uuid", datatype.Uuid, types.TypeUuid},
+		{"Varchar", datatype.Varchar, types.TypeVarchar},
+		{"Varint", datatype.Varint, types.TypeVarint},
+		{"Timeuuid", datatype.Timeuuid, types.TypeTimeuuid},
+		{"Inet", datatype.Inet, types.TypeInet},
+		{"Date", datatype.Date, types.TypeDate},
+		{"Time", datatype.Time, types.TypeTime},
+		{"Smallint", datatype.Smallint, types.TypeSmallint},
+		{"Tinyint", datatype.Tinyint, types.TypeTinyint},
+	}
+
+	for _, tc := range primitiveTests {
+		t.Run(fmt.Sprintf("Primitive_%s", tc.name), func(t *testing.T) {
+			got, err := FromDataCode(tc.input)
+			require.NoError(t, err)
+			assert.Equal(t, tc.expected, got)
+		})
+	}
+
+	// ## Test Cases for Collection Types ##
+	// These tests verify simple and nested collections.
+	collectionTests := []struct {
+		name     string
+		input    datatype.DataType
+		expected types.CqlDataType
+	}{
+		{
+			name:     "Simple List",
+			input:    datatype.NewListType(datatype.Int),
+			expected: types.NewListType(types.TypeInt),
+		},
+		{
+			name:     "Simple Set",
+			input:    datatype.NewSetType(datatype.Varchar),
+			expected: types.NewSetType(types.TypeVarchar),
+		},
+		{
+			name:     "Simple Map",
+			input:    datatype.NewMapType(datatype.Uuid, datatype.Boolean),
+			expected: types.NewMapType(types.TypeUuid, types.TypeBoolean),
+		},
+		{
+			name:     "Nested Collection List<Map<Int, Text>>",
+			input:    datatype.NewListType(datatype.NewMapType(datatype.Int, datatype.Varchar)),
+			expected: types.NewListType(types.NewMapType(types.TypeInt, types.TypeVarchar)),
+		},
+	}
+
+	for _, tc := range collectionTests {
+		t.Run(fmt.Sprintf("Collection_%s", tc.name), func(t *testing.T) {
+			got, err := FromDataCode(tc.input)
+			require.NoError(t, err)
+			assert.Equal(t, tc.expected, got)
+		})
+	}
+
+	// ## Test Cases for Errors ##
+	// These tests ensure the function fails gracefully.
+	errorTests := []struct {
+		name        string
+		input       datatype.DataType
+		expectedErr string
+	}{
+		{
+			name:        "Unhandled Primitive Type",
+			input:       datatype.NewCustomType("foobar"), // An invalid/unhandled code
+			expectedErr: "unhandled type: custom(foobar)",
+		},
+		{
+			name:  "List with unhandled element type",
+			input: datatype.NewListType(datatype.NewCustomType("foobar")), // An invalid/unhandled code
+
+			expectedErr: "unhandled type: custom(foobar)",
+		},
+		{
+			name:        "Map with unhandled key type",
+			input:       datatype.NewMapType(datatype.Varchar, datatype.NewCustomType("foobar")),
+			expectedErr: "unhandled type: custom(foobar)",
+		},
+		{
+			name:        "Map with unhandled key type",
+			input:       datatype.NewMapType(datatype.NewCustomType("foobar"), datatype.Varchar),
+			expectedErr: "unhandled type: custom(foobar)",
+		},
+	}
+
+	for _, tc := range errorTests {
+		t.Run(fmt.Sprintf("Error_%s", tc.name), func(t *testing.T) {
+			_, err := FromDataCode(tc.input)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tc.expectedErr)
 		})
 	}
 }

@@ -23,13 +23,11 @@ import (
 	"strconv"
 	"strings"
 
-	methods "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/methods"
 	types "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	schemaMapping "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/schema-mapping"
 	cql "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/third_party/cqlparser"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/utilities"
 	"github.com/antlr4-go/antlr/v4"
-	"github.com/datastax/go-cassandra-native-protocol/datatype"
 	"github.com/datastax/go-cassandra-native-protocol/primitive"
 )
 
@@ -184,10 +182,10 @@ func parseAssignments(assignments []cql.IAssignmentElementContext, tableConfig *
 				return nil, fmt.Errorf("primary key not allowed to assignments")
 			}
 			if value != questionMark {
-				if utilities.IsCollectionColumn(column) {
+				if column.CQLType.IsCollection() {
 					val = value
 				} else {
-					val, err = formatValues(fmt.Sprintf("%v", value), column.CQLType, 4)
+					val, err = formatValues(fmt.Sprintf("%v", value), column.CQLType.DataType(), 4)
 					if err != nil {
 						return nil, err
 					}
@@ -195,15 +193,11 @@ func parseAssignments(assignments []cql.IAssignmentElementContext, tableConfig *
 				params["set"+strconv.Itoa(i+1)] = val
 			}
 			paramKeys = append(paramKeys, "set"+strconv.Itoa(i+1))
-			cqlTypeStr, err := methods.ConvertCQLDataTypeToString(column.CQLType)
-			if err != nil {
-				return nil, err
-			}
 			setResp = append(setResp, UpdateSetValue{
 				Column:    columnName,
 				Value:     "@set" + strconv.Itoa(i+1),
 				Encrypted: val,
-				CQLType:   cqlTypeStr,
+				CQLType:   column.CQLType,
 			})
 			continue // Prevent falling through to the rest of the loop
 		} else if setVal.SyntaxBracketLs() != nil && setVal.DecimalLiteral() != nil && setVal.SyntaxBracketRs() != nil && setVal.Constant() != nil {
@@ -244,10 +238,10 @@ func parseAssignments(assignments []cql.IAssignmentElementContext, tableConfig *
 			return nil, fmt.Errorf("primary key not allowed to assignments")
 		}
 		if !isPreparedQuery {
-			if utilities.IsCollectionColumn(column) || column.CQLType == datatype.Counter {
+			if column.CQLType.IsCollection() || column.CQLType == types.TypeCounter {
 				val = value
 			} else {
-				val, err = formatValues(fmt.Sprintf("%v", value), column.CQLType, 4)
+				val, err = formatValues(fmt.Sprintf("%v", value), column.CQLType.DataType(), 4)
 				if err != nil {
 					return nil, err
 				}
@@ -257,15 +251,11 @@ func parseAssignments(assignments []cql.IAssignmentElementContext, tableConfig *
 			val = value
 		}
 		paramKeys = append(paramKeys, "set"+strconv.Itoa(i+1))
-		cqlTypeStr, err := methods.ConvertCQLDataTypeToString(column.CQLType)
-		if err != nil {
-			return nil, err
-		}
 		setResp = append(setResp, UpdateSetValue{
 			Column:    columnName,
 			Value:     "@set" + strconv.Itoa(i+1),
 			Encrypted: val,
-			CQLType:   cqlTypeStr,
+			CQLType:   column.CQLType,
 		})
 	}
 	return &UpdateSetResponse{
@@ -376,18 +366,14 @@ func (t *Translator) TranslateUpdateQuerytoBigtable(query string, isPreparedQuer
 	var primkeyvalues []string
 	var rowKey string
 	var values []interface{}
-	var columns []types.Column
+	var columns []*types.Column
 	for _, val := range setValues.UpdateSetValues {
 		values = append(values, val.Encrypted)
-		cqlType, err := methods.GetCassandraColumnType(val.CQLType)
-		if err != nil {
-			return nil, err
-		}
-		columns = append(columns, types.Column{Name: val.Column, ColumnFamily: t.SchemaMappingConfig.SystemColumnFamily, CQLType: cqlType})
+		columns = append(columns, &types.Column{Name: val.Column, ColumnFamily: t.SchemaMappingConfig.SystemColumnFamily, CQLType: val.CQLType})
 	}
 	var newValues []interface{} = values
-	var newColumns []types.Column = columns
-	var delColumns []types.Column
+	var newColumns []*types.Column = columns
+	var delColumns []*types.Column
 	var delColumnFamily []string
 	var complexMeta map[string]*ComplexOperation
 	var rawOutput *ProcessRawCollectionsOutput // Declare rawOutput here
@@ -439,9 +425,9 @@ func (t *Translator) TranslateUpdateQuerytoBigtable(query string, isPreparedQuer
 		complexMeta = rawOutput.ComplexMeta // Assign complexMeta from output
 
 		for _, val := range QueryClauses.Clauses {
-			var column types.Column
+			var column *types.Column
 			if columns, exists := tableConfig.Columns[val.Column]; exists {
-				column = types.Column{Name: columns.Name, ColumnFamily: tableConfig.SystemColumnFamily, CQLType: columns.CQLType}
+				column = &types.Column{Name: columns.Name, ColumnFamily: tableConfig.SystemColumnFamily, CQLType: columns.CQLType}
 			}
 			newColumns = append(newColumns, column)
 
@@ -450,7 +436,7 @@ func (t *Translator) TranslateUpdateQuerytoBigtable(query string, isPreparedQuer
 				pv = val.Value[1:]
 			}
 			value := fmt.Sprintf("%v", QueryClauses.Params[pv])
-			encryVal, err := formatValues(value, column.CQLType, 4)
+			encryVal, err := formatValues(value, column.CQLType.DataType(), 4)
 			if err != nil {
 				return nil, err
 			}
@@ -500,14 +486,14 @@ func (t *Translator) TranslateUpdateQuerytoBigtable(query string, isPreparedQuer
 //   - A pointer to an UpdateQueryMapping populated with the new query components required for the update.
 //   - An error if any issues arise during processing, such as failure to fetch primary keys or errors
 //     handling column data or timestamp.
-func (t *Translator) BuildUpdatePrepareQuery(columnsResponse []types.Column, values []*primitive.Value, st *UpdateQueryMapping, protocolV primitive.ProtocolVersion) (*UpdateQueryMapping, error) {
-	var newColumns []types.Column
+func (t *Translator) BuildUpdatePrepareQuery(columnsResponse []*types.Column, values []*primitive.Value, st *UpdateQueryMapping, protocolV primitive.ProtocolVersion) (*UpdateQueryMapping, error) {
+	var newColumns []*types.Column
 	var newValues []interface{}
 	var primaryKeys []string = st.PrimaryKeys
 	var err error
 	var unencrypted map[string]interface{}
 	var delColumnFamily []string
-	var delColumns []types.Column                      // Added missing declaration
+	var delColumns []*types.Column                     // Added missing declaration
 	var prepareOutput *ProcessPrepareCollectionsOutput // Declare prepareOutput
 
 	tableConfig, err := t.SchemaMappingConfig.GetTableConfig(st.Keyspace, st.Table)

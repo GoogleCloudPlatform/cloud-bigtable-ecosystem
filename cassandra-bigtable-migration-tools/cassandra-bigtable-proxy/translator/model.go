@@ -125,7 +125,7 @@ type ComplexOperation struct {
 	IncrementType    IncrementOperationType // for incrementing a counter
 	IncrementValue   int64                  // how much to increment a counter by
 	UpdateListIndex  string                 // this is for List index
-	ExpectedDatatype datatype.DataType      // this datatype has to be provided in case of change in want datatype.
+	ExpectedDatatype datatype.DataType      // this datatype has to be provided in case of change in wantNewColumns datatype.
 	mapKey           interface{}            // this key is for map key
 	Value            []byte                 // this is value for setting at index for list
 	ListDelete       bool                   // this is for list = list - {value1, value2}
@@ -138,7 +138,7 @@ type InsertQueryMapping struct {
 	QueryType            QueryTypesEnum            // Type of the query (e.g., INSERT)
 	Table                string                    // Table involved in the query
 	Keyspace             string                    // Keyspace to which the table belongs
-	Columns              []types.Column            // List of columns involved in the insert operation
+	Columns              []*types.Column           // List of columns involved in the insert operation
 	Values               []interface{}             // Values to be inserted
 	Params               map[string]interface{}    // Parameters for the query
 	ParamKeys            []string                  // Column names of the parameters
@@ -152,7 +152,7 @@ type InsertQueryMapping struct {
 }
 
 type ColumnsResponse struct {
-	Columns       []types.Column
+	Columns       []*types.Column
 	ParamKeys     []string
 	PrimayColumns []string
 }
@@ -181,7 +181,7 @@ type CreateTableStatementMap struct {
 	Keyspace          string
 	Table             string
 	IfNotExists       bool
-	Columns           []message.ColumnMetadata
+	Columns           []types.CreateColumn
 	PrimaryKeys       []CreateTablePrimaryKeyConfig
 	IntRowKeyEncoding types.IntRowKeyEncodingType
 }
@@ -196,7 +196,7 @@ type AlterTableStatementMap struct {
 	Keyspace    string
 	Table       string
 	IfNotExists bool
-	AddColumns  []message.ColumnMetadata
+	AddColumns  []types.CreateColumn
 	DropColumns []string
 }
 
@@ -225,11 +225,11 @@ type UpdateQueryMapping struct {
 	Params                map[string]interface{}    // Parameters for the query
 	ParamKeys             []string                  // Column names of the parameters
 	PrimaryKeys           []string                  // Primary keys of the table
-	Columns               []types.Column            // List of columns in update query
+	Columns               []*types.Column           // List of columns in update query
 	Values                []interface{}             // values for the update
 	RowKey                string                    // Unique rowkey which is required for update operation
 	DeleteColumnFamilies  []string                  // List of all collection type of columns
-	DeleteColumQualifires []types.Column            // List of all map key deletion in complex update
+	DeleteColumQualifires []*types.Column           // List of all map key deletion in complex update
 	ReturnMetadata        []*message.ColumnMetadata // Metadata of all columns of that table in Cassandra format
 	VariableMetadata      []*message.ColumnMetadata // Metadata of variable columns for prepared queries in Cassandra format
 	TimestampInfo         TimestampInfo
@@ -241,7 +241,7 @@ type UpdateSetValue struct {
 	Column       string
 	Value        string
 	ColumnFamily string
-	CQLType      string
+	CQLType      types.CqlDataType
 	Encrypted    interface{}
 }
 
@@ -258,7 +258,7 @@ type TableObj struct {
 
 // ProcessRawCollectionsInput holds the parameters for processCollectionColumnsForRawQueries.
 type ProcessRawCollectionsInput struct {
-	Columns        []types.Column
+	Columns        []*types.Column
 	Values         []interface{}
 	TableName      string
 	Translator     *Translator
@@ -268,16 +268,16 @@ type ProcessRawCollectionsInput struct {
 
 // ProcessRawCollectionsOutput holds the results from processCollectionColumnsForRawQueries.
 type ProcessRawCollectionsOutput struct {
-	NewColumns      []types.Column
+	NewColumns      []*types.Column
 	NewValues       []interface{}
 	DelColumnFamily []string
-	DelColumns      []types.Column
+	DelColumns      []*types.Column
 	ComplexMeta     map[string]*ComplexOperation
 }
 
 // ProcessPrepareCollectionsInput holds the parameters for processCollectionColumnsForPrepareQueries.
 type ProcessPrepareCollectionsInput struct {
-	ColumnsResponse []types.Column
+	ColumnsResponse []*types.Column
 	Values          []*primitive.Value
 	TableName       string
 	ProtocolV       primitive.ProtocolVersion
@@ -290,12 +290,12 @@ type ProcessPrepareCollectionsInput struct {
 
 // ProcessPrepareCollectionsOutput holds the results from processCollectionColumnsForPrepareQueries.
 type ProcessPrepareCollectionsOutput struct {
-	NewColumns      []types.Column
+	NewColumns      []*types.Column
 	NewValues       []interface{}
 	Unencrypted     map[string]interface{}
 	IndexEnd        int
 	DelColumnFamily []string
-	DelColumns      []types.Column
+	DelColumns      []*types.Column
 	ComplexMeta     map[string]*ComplexOperation
 }
 

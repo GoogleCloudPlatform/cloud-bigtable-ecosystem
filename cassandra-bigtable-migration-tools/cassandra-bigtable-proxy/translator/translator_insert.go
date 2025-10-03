@@ -24,7 +24,6 @@ import (
 	types "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	schemaMapping "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/schema-mapping"
 	cql "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/third_party/cqlparser"
-	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/utilities"
 	"github.com/antlr4-go/antlr/v4"
 	"github.com/datastax/go-cassandra-native-protocol/primitive"
 )
@@ -55,7 +54,7 @@ func parseColumnsAndValuesFromInsert(input cql.IInsertColumnSpecContext, tableNa
 	if len(columns) <= 0 {
 		return nil, errors.New("parseColumnsAndValuesFromInsert: No Columns found in the Insert Query")
 	}
-	var columnArr []types.Column
+	var columnArr []*types.Column
 	var paramKeys []string
 	var primaryColumns []string
 
@@ -73,7 +72,7 @@ func parseColumnsAndValuesFromInsert(input cql.IInsertColumnSpecContext, tableNa
 		if sourceColumn.IsPrimaryKey {
 			isPrimaryKey = true
 		}
-		column := types.Column{
+		column := &types.Column{
 			Name:         columnName,
 			ColumnFamily: tableConfig.SystemColumnFamily,
 			CQLType:      sourceColumn.CQLType,
@@ -102,7 +101,7 @@ func parseColumnsAndValuesFromInsert(input cql.IInsertColumnSpecContext, tableNa
 //   - columns: Array of Column Names
 //
 // Returns: Map Interface for param name as key and its value and error if any
-func setParamsFromValues(input cql.IInsertValuesSpecContext, columns []types.Column, tableConfig *schemaMapping.TableConfig, protocolV primitive.ProtocolVersion, isPreparedQuery bool) (map[string]interface{}, []interface{}, map[string]interface{}, error) {
+func setParamsFromValues(input cql.IInsertValuesSpecContext, columns []*types.Column, tableConfig *schemaMapping.TableConfig, protocolV primitive.ProtocolVersion, isPreparedQuery bool) (map[string]interface{}, []interface{}, map[string]interface{}, error) {
 	if input != nil {
 		valuesExpressionList := input.ExpressionList()
 		if valuesExpressionList == nil {
@@ -133,12 +132,12 @@ func setParamsFromValues(input cql.IInsertValuesSpecContext, columns []types.Col
 				if er != nil {
 					return nil, nil, nil, er
 				}
-				if utilities.IsCollectionColumn(column) {
+				if column.CQLType.IsCollection() {
 					val = goValue
 					unenVal = goValue
 				} else {
 					unenVal = goValue
-					val, err = formatValues(fmt.Sprintf("%v", goValue), col.CQLType, protocolV)
+					val, err = formatValues(fmt.Sprintf("%v", goValue), col.CQLType.DataType(), protocolV)
 					if err != nil {
 						return nil, nil, nil, err
 					}
@@ -235,7 +234,7 @@ func (t *Translator) TranslateInsertQuerytoBigtable(query string, protocolV prim
 	var delColumnFamily []string
 	var rowKey string
 	var newValues []interface{} = values
-	var newColumns []types.Column = columnsResponse.Columns
+	var newColumns []*types.Column = columnsResponse.Columns
 	var rawOutput *ProcessRawCollectionsOutput // Declare rawOutput
 
 	primaryKeys := tableConfig.GetPrimaryKeys()
@@ -300,8 +299,8 @@ func (t *Translator) TranslateInsertQuerytoBigtable(query string, protocolV prim
 //
 // Returns: InsertQueryMapping, build the InsertQueryMapping and return it with nil value of error. In case of error
 // InsertQueryMapping will return as nil and error will contains the error object
-func (t *Translator) BuildInsertPrepareQuery(columnsResponse []types.Column, values []*primitive.Value, st *InsertQueryMapping, protocolV primitive.ProtocolVersion) (*InsertQueryMapping, error) {
-	var newColumns []types.Column
+func (t *Translator) BuildInsertPrepareQuery(columnsResponse []*types.Column, values []*primitive.Value, st *InsertQueryMapping, protocolV primitive.ProtocolVersion) (*InsertQueryMapping, error) {
+	var newColumns []*types.Column
 	var newValues []interface{}
 	var primaryKeys []string = st.PrimaryKeys
 	var delColumnFamily []string

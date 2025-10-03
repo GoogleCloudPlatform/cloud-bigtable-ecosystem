@@ -103,10 +103,10 @@ func detectTableEncoding(tableInfo *bigtable.TableInfo, defaultEncoding types.In
 	return defaultEncoding
 }
 
-func createBigtableRowKeySchema(pmks []translator.CreateTablePrimaryKeyConfig, cols []message.ColumnMetadata, intRowKeyEncoding types.IntRowKeyEncodingType) (*bigtable.StructType, error) {
+func createBigtableRowKeySchema(pmks []translator.CreateTablePrimaryKeyConfig, cols []types.CreateColumn, intRowKeyEncoding types.IntRowKeyEncodingType) (*bigtable.StructType, error) {
 	var rowKeySchemaFields []bigtable.StructField
 	for _, key := range pmks {
-		pmkIndex := slices.IndexFunc(cols, func(c message.ColumnMetadata) bool {
+		pmkIndex := slices.IndexFunc(cols, func(c types.CreateColumn) bool {
 			return c.Name == key.Name
 		})
 		if pmkIndex == -1 {
@@ -124,8 +124,8 @@ func createBigtableRowKeySchema(pmks []translator.CreateTablePrimaryKeyConfig, c
 	}, nil
 }
 
-func createBigtableRowKeyField(col message.ColumnMetadata, intRowKeyEncoding types.IntRowKeyEncodingType) (bigtable.StructField, error) {
-	switch col.Type {
+func createBigtableRowKeyField(col types.CreateColumn, intRowKeyEncoding types.IntRowKeyEncodingType) (bigtable.StructField, error) {
+	switch col.TypeInfo.DataType() {
 	case datatype.Varchar:
 		return bigtable.StructField{FieldName: col.Name, FieldType: bigtable.StringType{Encoding: bigtable.StringUtf8BytesEncoding{}}}, nil
 	case datatype.Int, datatype.Bigint, datatype.Timestamp:
@@ -137,7 +137,7 @@ func createBigtableRowKeyField(col message.ColumnMetadata, intRowKeyEncoding typ
 		}
 		return bigtable.StructField{}, fmt.Errorf("unhandled int row key encoding %v", intRowKeyEncoding)
 	default:
-		return bigtable.StructField{}, fmt.Errorf("unhandled row key type %s", col.Type)
+		return bigtable.StructField{}, fmt.Errorf("unhandled row key type %s", col.TypeInfo.String())
 	}
 }
 

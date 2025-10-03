@@ -5,7 +5,6 @@ import (
 
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/utilities"
-	"github.com/datastax/go-cassandra-native-protocol/datatype"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,7 +20,7 @@ func TestTableConfig_Describe(t *testing.T) {
 				{
 					Name:         "name",
 					ColumnFamily: "cf1",
-					CQLType:      datatype.Varchar,
+					CQLType:      types.TypeVarchar,
 					IsPrimaryKey: false,
 					PkPrecedence: 0,
 					KeyType:      utilities.KEY_TYPE_REGULAR,
@@ -29,7 +28,7 @@ func TestTableConfig_Describe(t *testing.T) {
 				{
 					Name:         "org_id",
 					ColumnFamily: "cf1",
-					CQLType:      datatype.Bigint,
+					CQLType:      types.TypeBigint,
 					IsPrimaryKey: true,
 					PkPrecedence: 1,
 					KeyType:      utilities.KEY_TYPE_PARTITION,
@@ -37,7 +36,7 @@ func TestTableConfig_Describe(t *testing.T) {
 				{
 					Name:         "user_id",
 					ColumnFamily: "cf1",
-					CQLType:      datatype.Bigint,
+					CQLType:      types.TypeBigint,
 					IsPrimaryKey: true,
 					PkPrecedence: 2,
 					KeyType:      utilities.KEY_TYPE_CLUSTERING,
@@ -51,7 +50,7 @@ func TestTableConfig_Describe(t *testing.T) {
 				{
 					Name:         "org_id",
 					ColumnFamily: "cf1",
-					CQLType:      datatype.Bigint,
+					CQLType:      types.TypeBigint,
 					IsPrimaryKey: true,
 					PkPrecedence: 1,
 					KeyType:      utilities.KEY_TYPE_PARTITION,
@@ -59,7 +58,7 @@ func TestTableConfig_Describe(t *testing.T) {
 				{
 					Name:         "user_id",
 					ColumnFamily: "cf1",
-					CQLType:      datatype.Bigint,
+					CQLType:      types.TypeBigint,
 					IsPrimaryKey: true,
 					PkPrecedence: 2,
 					KeyType:      utilities.KEY_TYPE_PARTITION,
@@ -67,7 +66,7 @@ func TestTableConfig_Describe(t *testing.T) {
 				{
 					Name:         "group_id",
 					ColumnFamily: "cf1",
-					CQLType:      datatype.Bigint,
+					CQLType:      types.TypeBigint,
 					IsPrimaryKey: true,
 					PkPrecedence: 3,
 					KeyType:      utilities.KEY_TYPE_CLUSTERING,
@@ -75,7 +74,7 @@ func TestTableConfig_Describe(t *testing.T) {
 				{
 					Name:         "name",
 					ColumnFamily: "cf1",
-					CQLType:      datatype.Varchar,
+					CQLType:      types.TypeVarchar,
 					IsPrimaryKey: false,
 					PkPrecedence: 0,
 					KeyType:      utilities.KEY_TYPE_REGULAR,
@@ -89,7 +88,7 @@ func TestTableConfig_Describe(t *testing.T) {
 				{
 					Name:         "org_id",
 					ColumnFamily: "cf1",
-					CQLType:      datatype.Bigint,
+					CQLType:      types.TypeBigint,
 					IsPrimaryKey: true,
 					PkPrecedence: 1,
 					KeyType:      utilities.KEY_TYPE_PARTITION,
@@ -97,7 +96,7 @@ func TestTableConfig_Describe(t *testing.T) {
 				{
 					Name:         "user_id",
 					ColumnFamily: "cf1",
-					CQLType:      datatype.Bigint,
+					CQLType:      types.TypeBigint,
 					IsPrimaryKey: false,
 					PkPrecedence: 0,
 					KeyType:      utilities.KEY_TYPE_REGULAR,
@@ -105,7 +104,7 @@ func TestTableConfig_Describe(t *testing.T) {
 				{
 					Name:         "name",
 					ColumnFamily: "cf1",
-					CQLType:      datatype.Varchar,
+					CQLType:      types.TypeVarchar,
 					IsPrimaryKey: false,
 					PkPrecedence: 0,
 					KeyType:      utilities.KEY_TYPE_REGULAR,

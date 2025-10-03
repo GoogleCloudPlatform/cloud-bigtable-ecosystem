@@ -1187,8 +1187,8 @@ func cqlparserParserInit() {
 		1, 0, 0, 0, 2175, 2172, 1, 0, 0, 0, 2176, 323, 1, 0, 0, 0, 2177, 2179,
 		3, 326, 163, 0, 2178, 2180, 3, 328, 164, 0, 2179, 2178, 1, 0, 0, 0, 2179,
 		2180, 1, 0, 0, 0, 2180, 325, 1, 0, 0, 0, 2181, 2182, 7, 6, 0, 0, 2182,
-		327, 1, 0, 0, 0, 2183, 2184, 3, 562, 281, 0, 2184, 2190, 3, 326, 163, 0,
-		2185, 2186, 3, 570, 285, 0, 2186, 2187, 3, 326, 163, 0, 2187, 2189, 1,
+		327, 1, 0, 0, 0, 2183, 2184, 3, 562, 281, 0, 2184, 2190, 3, 324, 162, 0,
+		2185, 2186, 3, 570, 285, 0, 2186, 2187, 3, 324, 162, 0, 2187, 2189, 1,
 		0, 0, 0, 2188, 2185, 1, 0, 0, 0, 2189, 2192, 1, 0, 0, 0, 2190, 2188, 1,
 		0, 0, 0, 2190, 2191, 1, 0, 0, 0, 2191, 2193, 1, 0, 0, 0, 2192, 2190, 1,
 		0, 0, 0, 2193, 2194, 3, 564, 282, 0, 2194, 329, 1, 0, 0, 0, 2195, 2198,
@@ -36591,8 +36591,8 @@ type IDataTypeDefinitionContext interface {
 
 	// Getter signatures
 	SyntaxBracketLa() ISyntaxBracketLaContext
-	AllDataTypeName() []IDataTypeNameContext
-	DataTypeName(i int) IDataTypeNameContext
+	AllDataType() []IDataTypeContext
+	DataType(i int) IDataTypeContext
 	SyntaxBracketRa() ISyntaxBracketRaContext
 	AllSyntaxComma() []ISyntaxCommaContext
 	SyntaxComma(i int) ISyntaxCommaContext
@@ -36649,20 +36649,20 @@ func (s *DataTypeDefinitionContext) SyntaxBracketLa() ISyntaxBracketLaContext {
 	return t.(ISyntaxBracketLaContext)
 }
 
-func (s *DataTypeDefinitionContext) AllDataTypeName() []IDataTypeNameContext {
+func (s *DataTypeDefinitionContext) AllDataType() []IDataTypeContext {
 	children := s.GetChildren()
 	len := 0
 	for _, ctx := range children {
-		if _, ok := ctx.(IDataTypeNameContext); ok {
+		if _, ok := ctx.(IDataTypeContext); ok {
 			len++
 		}
 	}
 
-	tst := make([]IDataTypeNameContext, len)
+	tst := make([]IDataTypeContext, len)
 	i := 0
 	for _, ctx := range children {
-		if t, ok := ctx.(IDataTypeNameContext); ok {
-			tst[i] = t.(IDataTypeNameContext)
+		if t, ok := ctx.(IDataTypeContext); ok {
+			tst[i] = t.(IDataTypeContext)
 			i++
 		}
 	}
@@ -36670,11 +36670,11 @@ func (s *DataTypeDefinitionContext) AllDataTypeName() []IDataTypeNameContext {
 	return tst
 }
 
-func (s *DataTypeDefinitionContext) DataTypeName(i int) IDataTypeNameContext {
+func (s *DataTypeDefinitionContext) DataType(i int) IDataTypeContext {
 	var t antlr.RuleContext
 	j := 0
 	for _, ctx := range s.GetChildren() {
-		if _, ok := ctx.(IDataTypeNameContext); ok {
+		if _, ok := ctx.(IDataTypeContext); ok {
 			if j == i {
 				t = ctx.(antlr.RuleContext)
 				break
@@ -36687,7 +36687,7 @@ func (s *DataTypeDefinitionContext) DataTypeName(i int) IDataTypeNameContext {
 		return nil
 	}
 
-	return t.(IDataTypeNameContext)
+	return t.(IDataTypeContext)
 }
 
 func (s *DataTypeDefinitionContext) SyntaxBracketRa() ISyntaxBracketRaContext {
@@ -36779,7 +36779,7 @@ func (p *CqlParser) DataTypeDefinition() (localctx IDataTypeDefinitionContext) {
 	}
 	{
 		p.SetState(2184)
-		p.DataTypeName()
+		p.DataType()
 	}
 	p.SetState(2190)
 	p.GetErrorHandler().Sync(p)
@@ -36795,7 +36795,7 @@ func (p *CqlParser) DataTypeDefinition() (localctx IDataTypeDefinitionContext) {
 		}
 		{
 			p.SetState(2186)
-			p.DataTypeName()
+			p.DataType()
 		}
 
 		p.SetState(2192)

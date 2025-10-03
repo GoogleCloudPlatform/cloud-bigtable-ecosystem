@@ -92,7 +92,7 @@ func TestNegativeTestCasesForAlterTable(t *testing.T) {
 		{
 			name:          "Alter a table in a non-existent keyspace",
 			query:         "ALTER TABLE invalid_keyspace.alter_test_table ADD some_col text",
-			expectedError: "keyspace invalid_keyspace does not exist",
+			expectedError: "keyspace 'invalid_keyspace' does not exist",
 		},
 		{
 			name:          "Add a column with an unsupported data type",
