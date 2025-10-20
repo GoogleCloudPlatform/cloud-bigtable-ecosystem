@@ -18,6 +18,7 @@ func TestParseCliArgs(t *testing.T) {
 	if err != nil {
 		log.Fatalf("could not get current working directory: %v", err)
 	}
+	const NO_ERROR_EXPECTED = ""
 
 	tests := []struct {
 		name    string
@@ -56,7 +57,7 @@ func TestParseCliArgs(t *testing.T) {
 				QuickStartDefaultColumnFamily: "cf1",
 				QuickStartSchemaMappingTable:  "schema_mapping",
 			},
-			wantErr: "",
+			wantErr: NO_ERROR_EXPECTED,
 		},
 		{
 			name: "Version flag",
@@ -89,7 +90,7 @@ func TestParseCliArgs(t *testing.T) {
 				QuickStartDefaultColumnFamily: "cf1",
 				QuickStartSchemaMappingTable:  "schema_mapping",
 			},
-			wantErr: "",
+			wantErr: NO_ERROR_EXPECTED,
 		},
 		{
 			name: "Quick start args",
@@ -129,7 +130,7 @@ func TestParseCliArgs(t *testing.T) {
 				QuickStartDefaultColumnFamily: "my-default-column-family",
 				QuickStartSchemaMappingTable:  "my-schema-mapping-table",
 			},
-			wantErr: "",
+			wantErr: NO_ERROR_EXPECTED,
 		},
 		{
 			name:    "unrecognized flag",
@@ -165,7 +166,7 @@ func TestParseCliArgs(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := ParseCliArgs(tt.args)
-			if tt.wantErr != "" {
+			if tt.wantErr != NO_ERROR_EXPECTED {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), tt.wantErr)
 				return
@@ -177,6 +178,7 @@ func TestParseCliArgs(t *testing.T) {
 }
 
 func TestParseProxyConfig(t *testing.T) {
+	const NO_ERROR_EXPECTED = ""
 
 	wd, err := os.Getwd()
 	if err != nil {
@@ -222,7 +224,7 @@ func TestParseProxyConfig(t *testing.T) {
 					},
 				},
 			},
-			wantErr: "",
+			wantErr: NO_ERROR_EXPECTED,
 		},
 		{
 			name:    "invalid protocol config",
@@ -267,7 +269,7 @@ func TestParseProxyConfig(t *testing.T) {
 					},
 				},
 			},
-			wantErr: "",
+			wantErr: NO_ERROR_EXPECTED,
 		},
 		{
 			name: "quick start",
@@ -300,7 +302,7 @@ func TestParseProxyConfig(t *testing.T) {
 					},
 				},
 			},
-			wantErr: "",
+			wantErr: NO_ERROR_EXPECTED,
 		},
 		{
 			name: "quick start with keyspace id",
@@ -333,7 +335,7 @@ func TestParseProxyConfig(t *testing.T) {
 					},
 				},
 			},
-			wantErr: "",
+			wantErr: NO_ERROR_EXPECTED,
 		},
 		{
 			name:    "missing quickstart arg",
@@ -378,6 +380,8 @@ func TestParseProxyConfig(t *testing.T) {
 }
 
 func TestValidateInstanceConfigs(t *testing.T) {
+	const NO_ERROR_EXPECTED = ""
+
 	tests := []struct {
 		name    string
 		args    []*types.ProxyInstanceConfig
@@ -427,7 +431,7 @@ func TestValidateInstanceConfigs(t *testing.T) {
 					},
 				},
 			},
-			wantErr: "",
+			wantErr: NO_ERROR_EXPECTED,
 		},
 	}
 	for _, tt := range tests {
@@ -446,6 +450,7 @@ func TestValidateInstanceConfigs(t *testing.T) {
 }
 
 func TestValidateInstanceConfig(t *testing.T) {
+	const NO_ERROR_EXPECTED = ""
 	tests := []struct {
 		name    string
 		args    *types.ProxyInstanceConfig
@@ -474,7 +479,7 @@ func TestValidateInstanceConfig(t *testing.T) {
 				},
 				OtelConfig: nil,
 			},
-			wantErr: "",
+			wantErr: NO_ERROR_EXPECTED,
 		},
 		{
 			name: "missing project id",

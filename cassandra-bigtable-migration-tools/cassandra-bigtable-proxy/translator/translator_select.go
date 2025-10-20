@@ -409,12 +409,11 @@ func processFunctionColumn(t *Translator, columnMetadata types.SelectedColumn, t
 // It returns true if dataType is one of the supported numeric types (i.e., "int", "bigint", "float", or "double"),
 // ensuring that only appropriate types are used for aggregate operations.
 func dtAllowedInAggregate(dt datatype.DataType) bool {
-	switch dt {
-	case datatype.Int, datatype.Bigint, datatype.Float, datatype.Double, datatype.Counter:
-		return true
-	default:
-		return false
-	}
+	return dt == datatype.Int ||
+		dt == datatype.Bigint ||
+		dt == datatype.Float ||
+		dt == datatype.Double ||
+		dt == datatype.Counter
 }
 
 // funcAllowedInAggregate checks if a given function name is allowed within an aggregate function.
