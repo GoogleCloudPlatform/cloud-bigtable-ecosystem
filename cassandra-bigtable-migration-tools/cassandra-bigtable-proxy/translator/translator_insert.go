@@ -324,7 +324,6 @@ func (t *Translator) BuildInsertPrepareQuery(columnsResponse []*types.Column, va
 		ColumnsResponse: columnsResponse,
 		Values:          values,
 		TableName:       st.Table,
-		ProtocolV:       qctx.ProtocolV,
 		PrimaryKeys:     primaryKeys,
 		Translator:      t,
 		KeySpace:        st.Keyspace,

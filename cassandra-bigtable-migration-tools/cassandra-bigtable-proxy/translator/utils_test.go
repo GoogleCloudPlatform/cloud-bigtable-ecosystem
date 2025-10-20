@@ -1136,7 +1136,6 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 				ColumnsResponse: tt.columns,
 				Values:          tt.values,
 				TableName:       tt.tableName,
-				ProtocolV:       tt.protocolV,
 				PrimaryKeys:     tt.primaryKeys,
 				Translator:      tt.translator,
 				KeySpace:        "test_keyspace",
@@ -1147,7 +1146,7 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
 			}
 
-			output, err := processCollectionColumnsForPrepareQueries(tc, input)
+			output, err := processCollectionColumnsForPrepareQueries(tc, input, qctx)
 
 			if tt.wantErr {
 				require.Error(t, err)
@@ -1671,7 +1670,7 @@ func TestCreateOrderedCodeKey(t *testing.T) {
 				{Name: "user_id", CQLType: types.TypeBigint, KeyType: utilities.KEY_TYPE_PARTITION, PkPrecedence: 1},
 			}),
 			values:  map[string]interface{}{"user_id": int64(-1)},
-			want:    nil,
+			want:    "",
 			wantErr: true,
 		},
 		{
@@ -1782,7 +1781,7 @@ func TestCreateOrderedCodeKey(t *testing.T) {
 				"team_num": int64(1),
 				"city":     "new york",
 			},
-			want:    nil,
+			want:    "",
 			wantErr: true,
 		},
 		{

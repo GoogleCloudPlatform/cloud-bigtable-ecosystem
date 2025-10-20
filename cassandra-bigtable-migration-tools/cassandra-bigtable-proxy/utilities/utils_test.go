@@ -54,6 +54,10 @@ func TestIsCollectionDataType(t *testing.T) {
 }
 
 func TestDecodeBytesToCassandraColumnType(t *testing.T) {
+	qctx := &types.QueryContext{
+		Now:       time.Now().UTC(),
+		ProtocolV: primitive.ProtocolVersion4,
+	}
 	tests := []struct {
 		name            string
 		input           []byte
@@ -209,7 +213,7 @@ func TestDecodeBytesToCassandraColumnType(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := DecodeBytesToCassandraColumnType(tt.input, tt.dataType, tt.protocolVersion)
+			result, err := DecodeBytesToCassandraColumnType(tt.input, tt.dataType, qctx)
 
 			if tt.expectError {
 				assert.Error(t, err)
@@ -222,6 +226,10 @@ func TestDecodeBytesToCassandraColumnType(t *testing.T) {
 }
 
 func TestDecodeNonPrimitive(t *testing.T) {
+	qctx := &types.QueryContext{
+		Now:       time.Now().UTC(),
+		ProtocolV: primitive.ProtocolVersion4,
+	}
 	tests := []struct {
 		name         string
 		input        []byte
@@ -278,7 +286,7 @@ func TestDecodeNonPrimitive(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := decodeNonPrimitive(tt.dataType, tt.input)
+			result, err := decodeNonPrimitive(tt.dataType, tt.input, qctx)
 
 			if tt.expectError {
 				assert.Error(t, err)

@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	"github.com/datastax/go-cassandra-native-protocol/datatype"
 	"github.com/datastax/go-cassandra-native-protocol/primitive"
 )
@@ -32,6 +33,10 @@ const (
 )
 
 func TestDecodeCollection(t *testing.T) {
+	qctx := &types.QueryContext{
+		Now:       time.Now().UTC(),
+		ProtocolV: primitive.ProtocolVersion4,
+	}
 	type args struct {
 		dt      datatype.DataType
 		version primitive.ProtocolVersion
@@ -153,7 +158,7 @@ func TestDecodeCollection(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := DecodeCollection(tt.args.dt, tt.args.version, tt.args.encoded)
+			got, err := DecodeCollection(tt.args.dt, tt.args.encoded, qctx)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("DecodeCollection() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -166,6 +171,10 @@ func TestDecodeCollection(t *testing.T) {
 }
 
 func TestDecodeListOrSet(t *testing.T) {
+	qctx := &types.QueryContext{
+		Now:       time.Now().UTC(),
+		ProtocolV: primitive.ProtocolVersion4,
+	}
 	type args struct {
 		elementType datatype.DataType
 		version     primitive.ProtocolVersion
@@ -404,7 +413,7 @@ func TestDecodeListOrSet(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := decodeListOrSet(tt.args.elementType, tt.args.version, tt.args.reader, tt.args.length)
+			got, err := decodeListOrSet(tt.args.elementType, qctx, tt.args.reader, tt.args.length)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("decodeListOrSet() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -1094,6 +1103,10 @@ func TestConvertToTypedMap(t *testing.T) {
 }
 
 func TestDecodeMap(t *testing.T) {
+	qctx := &types.QueryContext{
+		Now:       time.Now().UTC(),
+		ProtocolV: primitive.ProtocolVersion4,
+	}
 	type args struct {
 		valueType datatype.DataType
 		version   primitive.ProtocolVersion
@@ -1254,7 +1267,7 @@ func TestDecodeMap(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := decodeMap(tt.args.valueType, tt.args.version, tt.args.reader, tt.args.keyType, tt.args.length)
+			got, err := decodeMap(tt.args.valueType, qctx, tt.args.reader, tt.args.keyType, tt.args.length)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("decodeMap() error = %v, wantErr %v", err, tt.wantErr)
 				return

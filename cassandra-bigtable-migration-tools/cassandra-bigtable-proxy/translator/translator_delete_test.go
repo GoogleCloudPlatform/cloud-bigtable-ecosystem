@@ -20,6 +20,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	schemaMapping "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/schema-mapping"
@@ -34,10 +35,13 @@ import (
 )
 
 func TestTranslator_TranslateDeleteQuerytoBigtable(t *testing.T) {
-	var protocalV primitive.ProtocolVersion = 4
+	qctx := &types.QueryContext{
+		Now:       time.Now().UTC(),
+		ProtocolV: primitive.ProtocolVersion4,
+	}
 	params := make(map[string]interface{})
-	formattedValue, _ := formatValues("test", datatype.Varchar, protocalV)
-	formattedValue2, _ := formatValues("15", datatype.Int, protocalV)
+	formattedValue, _ := formatValues("test", datatype.Varchar, qctx)
+	formattedValue2, _ := formatValues("15", datatype.Int, qctx)
 	params["value1"] = formattedValue
 	params2 := make(map[string]interface{})
 	params2["value1"] = formattedValue
@@ -494,7 +498,7 @@ func TestTranslator_TranslateDeleteQuerytoBigtable(t *testing.T) {
 				Logger:              tt.fields.Logger,
 				SchemaMappingConfig: tt.fields.SchemaMappingConfig,
 			}
-			got, err := tr.TranslateDeleteQuerytoBigtable(tt.args.queryStr, false, tt.defaultKeyspace)
+			got, err := tr.TranslateDeleteQuerytoBigtable(tt.args.queryStr, false, tt.defaultKeyspace, qctx)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Translator.TranslateDeleteQuerytoBigtable() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -505,6 +509,10 @@ func TestTranslator_TranslateDeleteQuerytoBigtable(t *testing.T) {
 }
 
 func TestTranslator_BuildDeletePrepareQuery(t *testing.T) {
+	qctx := &types.QueryContext{
+		Now:       time.Now().UTC(),
+		ProtocolV: primitive.ProtocolVersion4,
+	}
 	type fields struct {
 		Logger              *zap.Logger
 		SchemaMappingConfig *schemaMapping.SchemaMappingConfig
@@ -670,7 +678,7 @@ func TestTranslator_BuildDeletePrepareQuery(t *testing.T) {
 				Logger:              tt.fields.Logger,
 				SchemaMappingConfig: tt.fields.SchemaMappingConfig,
 			}
-			got, got1, err := tr.BuildDeletePrepareQuery(tt.args.values, tt.args.st, tt.args.variableColumnMetadata, tt.args.protocolV)
+			got, got1, err := tr.BuildDeletePrepareQuery(tt.args.values, tt.args.st, tt.args.variableColumnMetadata, qctx)
 			if tt.wantErr {
 				assert.Error(t, err, "error want")
 			} else {

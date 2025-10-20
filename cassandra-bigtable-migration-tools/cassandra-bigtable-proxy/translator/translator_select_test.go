@@ -29,11 +29,16 @@ import (
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/utilities"
 	"github.com/antlr4-go/antlr/v4"
 	"github.com/datastax/go-cassandra-native-protocol/datatype"
+	"github.com/datastax/go-cassandra-native-protocol/primitive"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 )
 
 func TestTranslator_TranslateSelectQuerytoBigtable(t *testing.T) {
+	qctx := &types.QueryContext{
+		Now:       time.Now().UTC(),
+		ProtocolV: primitive.ProtocolVersion4,
+	}
 	type fields struct {
 		Logger *zap.Logger
 	}
@@ -45,7 +50,7 @@ func TestTranslator_TranslateSelectQuerytoBigtable(t *testing.T) {
  where column1 = 'test' AND column3='true'
  AND column5 <= '2015-05-03 13:30:54.234' AND column6 >= '123'
  AND column9 > '-10000000' LIMIT 20000;;`
-	timeStamp, _ := parseCqlTimestamp("2015-05-03 13:30:54.234")
+	timeStamp, _ := parseCqlTimestamp("2015-05-03 13:30:54.234", qctx)
 
 	inputPreparedQuery := `select column1, column2, column3 from  test_keyspace.test_table
  where column1 = '?' AND column2='?' AND column3='?'
@@ -1212,7 +1217,7 @@ func TestTranslator_TranslateSelectQuerytoBigtable(t *testing.T) {
 				Logger:              tt.fields.Logger,
 				SchemaMappingConfig: schemaMappingConfig,
 			}
-			got, err := tr.TranslateSelectQuerytoBigtable(tt.args.query, tt.defaultKeyspace)
+			got, err := tr.TranslateSelectQuerytoBigtable(tt.args.query, tt.defaultKeyspace, qctx)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Translator.TranslateSelectQuerytoBigtable() error = %v, wantErr %v", err, tt.wantErr)
 				return
