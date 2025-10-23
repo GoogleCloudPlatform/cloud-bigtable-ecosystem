@@ -25,7 +25,6 @@ import (
 	"github.com/datastax/go-cassandra-native-protocol/datatype"
 	"github.com/datastax/go-cassandra-native-protocol/message"
 	"github.com/datastax/go-cassandra-native-protocol/primitive"
-	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -1686,34 +1685,12 @@ func TestBuildResponseForSystemQueries(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := BuildResponseForSystemQueries(tt.rows, protocolVersion)
 
-			if (err != nil) != tt.wantErr {
-				t.Errorf("BuildResponseForSystemQueries() error = %v, wantErr %v", err, tt.wantErr)
+			if tt.wantErr {
+				require.Error(t, err)
 				return
 			}
-			if !tt.wantErr {
-				// Use cmp.Equal with custom comparer
-				totalReturnedRows := len(got[0])
-				if tt.expectedRows != totalReturnedRows {
-					t.Errorf("Mismatch in encoded system query metadata response:\n%s", cmp.Diff(tt.want, got, customComparer))
-				}
-			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
-
-// Custom comparer to ignore ordering of map keys
-var customComparer = cmp.FilterValues(func(x, y interface{}) bool {
-	_, xOk := x.(map[string]string)
-	_, yOk := y.(map[string]string)
-	return xOk && yOk
-}, cmp.Comparer(func(x, y map[string]string) bool {
-	if len(x) != len(y) {
-		return false
-	}
-	for k, v := range x {
-		if y[k] != v {
-			return false
-		}
-	}
-	return true
-}))

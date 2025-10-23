@@ -2106,7 +2106,7 @@ func createOrderedCodeKey(tableConfig *schemaMapping.TableConfig, values map[str
 	if err != nil {
 		return "", err
 	}
-	var input = make([]interface{}, len(values))
+	var input []interface{} = nil
 	for i, pmk := range tableConfig.PrimaryKeys {
 		if i != pmk.PkPrecedence-1 {
 			return "", fmt.Errorf("wrong order for primary keys")
