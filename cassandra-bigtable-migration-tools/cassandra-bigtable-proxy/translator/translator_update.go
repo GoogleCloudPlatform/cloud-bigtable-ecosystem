@@ -443,7 +443,7 @@ func (t *Translator) TranslateUpdateQuerytoBigtable(query string, isPreparedQuer
 			newValues = append(newValues, encryVal)
 		}
 	} else {
-		complexMeta, err = t.ProcessComplexUpdate(columns, values, tableName, keyspaceName, PrependColumns)
+		complexMeta, err = t.ProcessComplexUpdate(columns, values)
 		if err != nil {
 			return nil, err
 		}

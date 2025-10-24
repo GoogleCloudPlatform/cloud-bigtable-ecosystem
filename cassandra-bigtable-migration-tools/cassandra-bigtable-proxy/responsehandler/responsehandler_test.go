@@ -503,7 +503,7 @@ func TestTypeHandler_HandleMapType(t *testing.T) {
 				SchemaMappingConfig: tt.fields.SchemaMappingConfig,
 				ColumnMetadataCache: tt.fields.ColumnMetadataCache,
 			}
-			if err := th.HandleMapType(tt.args.mapData, tt.args.mr, tt.args.mapType, tt.args.protocalV); (err != nil) != tt.wantErr {
+			if err := th.HandleMapType(tt.args.mapData, tt.args.mr, tt.args.mapType, false, tt.args.protocalV); (err != nil) != tt.wantErr {
 				t.Errorf("TypeHandler.HandleMapType() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -797,7 +797,7 @@ func TestTypeHandler_HandleSetType(t *testing.T) {
 				SchemaMappingConfig: tt.fields.SchemaMappingConfig,
 				ColumnMetadataCache: tt.fields.ColumnMetadataCache,
 			}
-			err := th.HandleSetType(tt.args.arr, tt.args.mr, tt.args.setType, tt.args.protocalV)
+			err := th.HandleSetType(tt.args.arr, tt.args.mr, tt.args.setType, false, tt.args.protocalV)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("TypeHandler.HandleSetType() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -1101,7 +1101,7 @@ func TestTypeHandler_BuildResponseRow(t *testing.T) {
 			},
 			args: args{
 				rowMap: map[string]interface{}{
-					"abcd": []byte{0, 0, 0, 0, 0, 0, 0, 12},
+					"abcd": formatValueOrDie(t, datatype.Bigint, 8000000),
 				},
 				query: QueryMetadata{
 					TableName:           "test_table",
@@ -1129,7 +1129,47 @@ func TestTypeHandler_BuildResponseRow(t *testing.T) {
 				},
 			},
 			want: message.Row{
-				[]byte{0, 0, 0, 0, 0, 0, 0, 12},
+				formatValueOrDie(t, datatype.Bigint, 8000),
+			},
+			wantErr: false,
+		},
+		{
+			name: "Success in writetime query with 0",
+			fields: fields{
+				Logger:              zap.NewExample(),
+				SchemaMappingConfig: GetSchemaMappingConfig(),
+			},
+			args: args{
+				rowMap: map[string]interface{}{
+					"abcd": formatValueOrDie(t, datatype.Bigint, 0),
+				},
+				query: QueryMetadata{
+					TableName:           "test_table",
+					Query:               "SELECT writetime(column_ts) as abcd FROM test_table;",
+					KeyspaceName:        "test_keyspace",
+					IsStar:              false,
+					DefaultColumnFamily: "cf1",
+					SelectedColumns: []types.SelectedColumn{
+						{
+							Name:              "writetime(column_ts)",
+							ColumnName:        "column_ts",
+							IsWriteTimeColumn: true,
+							Alias:             "abcd",
+						},
+					},
+				},
+				cmd: []*message.ColumnMetadata{
+					{
+						Keyspace: "test_keyspace",
+						Table:    "test_table",
+						Name:     "abcd",
+						Index:    0,
+						Type:     datatype.Timestamp,
+					},
+				},
+			},
+			want: message.Row{
+				formatValueOrDie(t, datatype.Bigint, 0),
 			},
 			wantErr: false,
 		},
@@ -1347,6 +1387,12 @@ func TestTypeHandler_BuildResponseRow(t *testing.T) {
 			assert.Equal(t, tt.want, got)
 		})
 	}
+}
+
+func formatValueOrDie(t *testing.T, dt datatype.DataType, value interface{}) []byte {
+	result, err := proxycore.EncodeType(dt, primitive.ProtocolVersion4, value)
+	require.NoError(t, err)
+	return result
 }
 
 func TestGetQueryColumn(t *testing.T) {
@@ -1630,7 +1676,7 @@ func TestTypeHandler_HandleListType(t *testing.T) {
 				SchemaMappingConfig: tt.fields.SchemaMappingConfig,
 				ColumnMetadataCache: tt.fields.ColumnMetadataCache,
 			}
-			if err := th.HandleListType(tt.args.listData, tt.args.mr, tt.args.listType, tt.args.protocalV); (err != nil) != tt.wantErr {
+			if err := th.HandleListType(tt.args.listData, tt.args.mr, tt.args.listType, false, tt.args.protocalV); (err != nil) != tt.wantErr {
 				t.Errorf("TypeHandler.HandleListType() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

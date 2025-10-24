@@ -179,9 +179,6 @@ func (btc *BigtableClient) mutateRow(ctx context.Context, tableName, rowKey stri
 	}
 
 	tbl := client.Open(tableName)
-	if timestamp == 0 {
-		timestamp = bigtable.Timestamp(bigtable.Now().Time().UnixMicro())
-	}
 
 	var mutationCount = 0
 	// Delete column families

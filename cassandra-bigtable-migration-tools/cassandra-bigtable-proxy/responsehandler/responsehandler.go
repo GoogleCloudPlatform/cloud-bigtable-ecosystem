@@ -130,11 +130,13 @@ func (th *TypeHandler) BuildResponseRow(rowMap map[string]interface{}, query Que
 		var cqlType datatype.DataType
 		var err error
 		var isPrimaryKey = false
+		var isWriteTime = false
 		col := GetQueryColumn(query, index, key)
 		if col.FuncName == FUNC_NAME_COUNT {
 			cqlType = datatype.Bigint
 		} else if col.IsWriteTimeColumn {
 			cqlType = datatype.Timestamp
+			isWriteTime = true
 		} else if col.IsFunc || col.MapKey != "" || col.IsAs {
 			var c *types.Column
 			c, err = tableConfig.GetColumn(col.ColumnName)
@@ -229,7 +231,7 @@ func (th *TypeHandler) BuildResponseRow(rowMap map[string]interface{}, query Que
 					mr = append(mr, nil)
 					continue
 				}
-				err = th.HandleSetType(setval, &mr, setType, query.ProtocalV)
+				err = th.HandleSetType(setval, &mr, setType, isWriteTime, query.ProtocalV)
 				if err != nil {
 					return nil, err
 				}
@@ -243,7 +245,7 @@ func (th *TypeHandler) BuildResponseRow(rowMap map[string]interface{}, query Que
 					mr = append(mr, nil)
 					continue
 				}
-				err = th.HandleListType(listVal, &mr, listType, query.ProtocalV)
+				err = th.HandleListType(listVal, &mr, listType, isWriteTime, query.ProtocalV)
 				if err != nil {
 					return nil, err
 				}
@@ -269,9 +271,9 @@ func (th *TypeHandler) BuildResponseRow(rowMap map[string]interface{}, query Que
 				}
 
 				if mapType.GetKeyType() == datatype.Varchar {
-					err = th.HandleMapType(mapData, &mr, mapType, query.ProtocalV)
+					err = th.HandleMapType(mapData, &mr, mapType, isWriteTime, query.ProtocalV)
 				} else if mapType.GetKeyType() == datatype.Timestamp {
-					err = th.HandleTimestampMap(mapData, &mr, mapType, query.ProtocalV)
+					err = th.HandleTimestampMap(mapData, &mr, mapType, isWriteTime, query.ProtocalV)
 				}
 				if err != nil {
 					th.Logger.Error("Error while Encoding json->bytes -> ", zap.Error(err))
@@ -279,7 +281,7 @@ func (th *TypeHandler) BuildResponseRow(rowMap map[string]interface{}, query Que
 				}
 			}
 		} else {
-			value, err = HandlePrimitiveEncoding(cqlType, value, isPrimaryKey, query.ProtocalV, true)
+			value, err = HandlePrimitiveEncoding(cqlType, value, isWriteTime, isPrimaryKey, query.ProtocalV, true)
 			if err != nil {
 				return nil, err
 			}
@@ -302,10 +304,10 @@ func (th *TypeHandler) BuildResponseRow(rowMap map[string]interface{}, query Que
 //   - protocalV: Cassandra protocol version.
 //
 // Returns: Cassandra datatype and an error if any.
-func (th *TypeHandler) HandleSetType(arr []interface{}, mr *message.Row, setType datatype.SetType, protocalV primitive.ProtocolVersion) error {
+func (th *TypeHandler) HandleSetType(arr []interface{}, mr *message.Row, setType datatype.SetType, isWriteTime bool, protocalV primitive.ProtocolVersion) error {
 	newArr := []interface{}{}
 	for _, key := range arr {
-		boolVal, err := HandlePrimitiveEncoding(setType.GetElementType(), key, false, protocalV, false)
+		boolVal, err := HandlePrimitiveEncoding(setType.GetElementType(), key, isWriteTime, false, protocalV, false)
 		if err != nil {
 			return fmt.Errorf("error while decoding primitive type: %w", err)
 		}
@@ -328,7 +330,7 @@ func (th *TypeHandler) HandleSetType(arr []interface{}, mr *message.Row, setType
 //   - protocalV: Cassandra protocol version.
 //
 // Returns: Cassandra datatype and an error if any.
-func (th *TypeHandler) HandleMapType(mapData map[string]interface{}, mr *message.Row, mapType datatype.MapType, protocalV primitive.ProtocolVersion) error {
+func (th *TypeHandler) HandleMapType(mapData map[string]interface{}, mr *message.Row, mapType datatype.MapType, isWriteTime bool, protocalV primitive.ProtocolVersion) error {
 	var bytes []byte
 
 	maps := make(map[string]interface{})
@@ -337,7 +339,7 @@ func (th *TypeHandler) HandleMapType(mapData map[string]interface{}, mr *message
 		if !ok {
 			return fmt.Errorf("type assertion to []byte failed for key: %s", key)
 		}
-		bv, decodeErr := HandlePrimitiveEncoding(mapType.GetValueType(), byteArray, false, protocalV, false)
+		bv, decodeErr := HandlePrimitiveEncoding(mapType.GetValueType(), byteArray, isWriteTime, false, protocalV, false)
 		if decodeErr != nil {
 			return fmt.Errorf("error decoding map value for key %s: %w", key, decodeErr)
 		}
@@ -354,14 +356,14 @@ func (th *TypeHandler) HandleMapType(mapData map[string]interface{}, mr *message
 	return nil
 }
 
-func (th *TypeHandler) HandleListType(listData []interface{}, mr *message.Row, listType datatype.ListType, protocalV primitive.ProtocolVersion) error {
+func (th *TypeHandler) HandleListType(listData []interface{}, mr *message.Row, listType datatype.ListType, isWriteTime bool, protocalV primitive.ProtocolVersion) error {
 	list := make([]interface{}, 0)
 	for i, value := range listData {
 		byteArray, ok := value.([]byte)
 		if !ok {
 			return fmt.Errorf("type assertion to []byte failed")
 		}
-		bv, decodeErr := HandlePrimitiveEncoding(listType.GetElementType(), byteArray, false, protocalV, false)
+		bv, decodeErr := HandlePrimitiveEncoding(listType.GetElementType(), byteArray, isWriteTime, false, protocalV, false)
 		if decodeErr != nil {
 			return fmt.Errorf("error decoding list element at position %d: %w", i, decodeErr)
 		}

@@ -46,6 +46,7 @@ import (
 //   - time.Duration: The total elapsed time for the operation.
 //   - error: Error if the select statement execution fails.
 func (btc *BigtableClient) SelectStatement(ctx context.Context, query rh.QueryMetadata) (*message.RowsResult, time.Time, error) {
+	btc.Logger.Debug("preparing select statement", zap.String("query", query.Query))
 	preparedStmt, err := btc.PrepareStatement(ctx, query)
 	if err != nil {
 		btc.Logger.Error("Failed to prepare statement", zap.String("query", query.Query), zap.Any("params", query.ParamValues), zap.Error(err))
@@ -69,6 +70,8 @@ func (btc *BigtableClient) ExecutePreparedStatement(ctx context.Context, query r
 	var bigtableEnd time.Time
 	var columnMetadata []*message.ColumnMetadata
 	var processingErr error
+
+	btc.Logger.Debug("binding select statement", zap.String("query", query.Query), zap.Any("params", query.Params))
 
 	boundStmt, err := preparedStmt.Bind(query.Params)
 	if err != nil {

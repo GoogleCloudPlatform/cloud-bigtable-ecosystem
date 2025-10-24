@@ -1787,27 +1787,20 @@ func GetTimestampInfo(queryStr string, insertObj cql.IInsertContext, index int32
 // Handles timestamp conversion and formatting with validation.
 // Returns error if timestamp format is invalid or conversion fails.
 func convertToBigtableTimestamp(tsValue string, index int32) (TimestampInfo, error) {
-	var timestampInfo TimestampInfo
-	unixTime := int64(0)
-	var err error
-	if tsValue != "" && !strings.Contains(tsValue, questionMark) {
-		unixTime, err = strconv.ParseInt(tsValue, 10, 64)
-		if err != nil {
-			return timestampInfo, err
-		}
+	if tsValue == "" || strings.Contains(tsValue, questionMark) {
+		return TimestampInfo{Timestamp: bigtable.Now(), HasUsingTimestamp: true, Index: index}, nil
 	}
-	t := time.Unix(unixTime, 0)
-	switch len(tsValue) {
-	case 13: // Milliseconds
-		t = time.Unix(0, unixTime*int64(time.Millisecond))
-	case 16: // Microseconds
-		t = time.Unix(0, unixTime*int64(time.Microsecond))
+
+	unixTime, err := strconv.ParseInt(tsValue, 10, 64)
+	if err != nil {
+		return TimestampInfo{}, err
 	}
-	microsec := t.UnixMicro()
-	timestampInfo.Timestamp = bigtable.Timestamp(microsec)
-	timestampInfo.HasUsingTimestamp = true
-	timestampInfo.Index = index
-	return timestampInfo, nil
+
+	return TimestampInfo{
+		Timestamp:         bigtable.Time(time.UnixMilli(unixTime)),
+		HasUsingTimestamp: true,
+		Index:             index,
+	}, nil
 }
 
 // GetTimestampInfoForRawDelete retrieves timestamp information for delete operations.
@@ -1817,28 +1810,29 @@ func GetTimestampInfoForRawDelete(deleteObj cql.IDelete_Context) (TimestampInfo,
 	var timestampInfo TimestampInfo
 	hasUsingTimestamp := deleteObj.UsingTimestampSpec() != nil
 	timestampInfo.HasUsingTimestamp = false
-	if hasUsingTimestamp {
-		tsSpec := deleteObj.UsingTimestampSpec()
-		if tsSpec == nil {
-			return timestampInfo, ErrParsingTs
-		}
-
-		timestampSpec := tsSpec.Timestamp()
-		if timestampSpec == nil {
-			return timestampInfo, ErrParsingDelObj
-		}
-
-		if tsSpec.KwUsing() != nil {
-			tsSpec.KwUsing()
-		}
-		valLiteral := timestampSpec.DecimalLiteral()
-		if valLiteral == nil {
-			return timestampInfo, ErrTsNoValue
-		}
-		tsValue := valLiteral.GetText()
-		return convertToBigtableTimestamp(tsValue, 0)
+	if !hasUsingTimestamp {
+		return timestampInfo, nil
 	}
-	return timestampInfo, nil
+
+	tsSpec := deleteObj.UsingTimestampSpec()
+	if tsSpec == nil {
+		return timestampInfo, ErrParsingTs
+	}
+
+	timestampSpec := tsSpec.Timestamp()
+	if timestampSpec == nil {
+		return timestampInfo, ErrParsingDelObj
+	}
+
+	if tsSpec.KwUsing() != nil {
+		tsSpec.KwUsing()
+	}
+	valLiteral := timestampSpec.DecimalLiteral()
+	if valLiteral == nil {
+		return timestampInfo, ErrTsNoValue
+	}
+	tsValue := valLiteral.GetText()
+	return convertToBigtableTimestamp(tsValue, 0)
 }
 
 // GetTimestampInfoByUpdate retrieves timestamp information for update operations.
@@ -1863,7 +1857,7 @@ func GetTimestampInfoByUpdate(updateObj cql.IUpdateContext) (TimestampInfo, erro
 // getTimestampInfoForPrepareQuery retrieves timestamp information from prepared queries.
 // Extracts timestamp values from prepared statement parameters with validation.
 // Returns error if timestamp format is invalid or extraction fails.
-func getTimestampInfoForPrepareQuery(values []*primitive.Value, index int32, offset int32) (TimestampInfo, error) {
+func getTimestampInfoForPrepareQuery(values []*primitive.Value, index int32) (TimestampInfo, error) {
 	var timestampInfo TimestampInfo
 	timestampInfo.HasUsingTimestamp = true
 	if values[index] == nil {
@@ -1876,8 +1870,8 @@ func getTimestampInfoForPrepareQuery(values []*primitive.Value, index int32, off
 		fmt.Println("error while decoding timestamp column in prepare insert:", err)
 		return timestampInfo, err
 	}
-	timestamp := decode.(int64)
-	timestampInfo.Timestamp = bigtable.Timestamp(timestamp)
+	timestamp := time.UnixMilli(decode.(int64)).UTC()
+	timestampInfo.Timestamp = bigtable.Time(timestamp)
 	return timestampInfo, nil
 }
 
@@ -1888,7 +1882,7 @@ func ProcessTimestamp(st *InsertQueryMapping, values []*primitive.Value) (Timest
 	var timestampInfo TimestampInfo
 	timestampInfo.HasUsingTimestamp = false
 	if st.TimestampInfo.HasUsingTimestamp {
-		return getTimestampInfoForPrepareQuery(values, st.TimestampInfo.Index, 0)
+		return getTimestampInfoForPrepareQuery(values, st.TimestampInfo.Index)
 	}
 	return timestampInfo, nil
 }
@@ -1902,7 +1896,7 @@ func ProcessTimestampByUpdate(st *UpdateQueryMapping, values []*primitive.Value)
 	timestampInfo.HasUsingTimestamp = false
 	variableMetadata := st.VariableMetadata
 	if st.TimestampInfo.HasUsingTimestamp {
-		timestampInfo, err = getTimestampInfoForPrepareQuery(values, st.TimestampInfo.Index, 0)
+		timestampInfo, err = getTimestampInfoForPrepareQuery(values, st.TimestampInfo.Index)
 		if err != nil {
 			return timestampInfo, values, variableMetadata, err
 		}
@@ -1920,7 +1914,7 @@ func ProcessTimestampByDelete(st *DeleteQueryMapping, values []*primitive.Value)
 	timestampInfo.HasUsingTimestamp = false
 	var err error
 	if st.TimestampInfo.HasUsingTimestamp {
-		timestampInfo, err = getTimestampInfoForPrepareQuery(values, st.TimestampInfo.Index, 1)
+		timestampInfo, err = getTimestampInfoForPrepareQuery(values, st.TimestampInfo.Index)
 		if err != nil {
 			return timestampInfo, values, err
 		}
@@ -2395,7 +2389,7 @@ func EncodeInt(value interface{}, pv primitive.ProtocolVersion) ([]byte, error) 
 // ProcessComplexUpdate processes complex update operations.
 // Handles complex column updates including collections and counters with validation.
 // Returns error if update type is invalid or processing fails.
-func (t *Translator) ProcessComplexUpdate(columns []*types.Column, values []interface{}, tableName, keyspaceName string, prependColumns []string) (map[string]*ComplexOperation, error) {
+func (t *Translator) ProcessComplexUpdate(columns []*types.Column, values []interface{}) (map[string]*ComplexOperation, error) {
 	complexMeta := make(map[string]*ComplexOperation)
 
 	for i, column := range columns {
