@@ -111,37 +111,33 @@ func setUpTests() {
 		testTarget = TestTargetCassandra
 	}
 	log.Println(fmt.Sprintf("determined test target to be %s from the cluster name '%s'", testTarget.String(), clusterName))
-	//
-	//log.Println("Creating test tables...")
-	//for i, stmt := range getSchemas() {
-	//	log.Println(fmt.Sprintf("Running create table statement: '%d'...", i))
-	//	err = session.Query(stmt).Exec()
-	//	if err != nil {
-	//		log.Fatalf("could not create table: %v", err)
-	//	}
-	//}
-	//
-	//tableNames := []string{
-	//	"bigtabledevinstance.user_info",
-	//	"bigtabledevinstance.orders",
-	//	"bigtabledevinstance.aggregation_grouping_test",
-	//	"bigtabledevinstance.multiple_int_keys",
-	//	"bigtabledevinstance.test_int_key",
-	//	"bigtabledevinstance.social_posts",
-	//}
-	//
-	//if testTarget == TestTargetProxy {
-	//	tableNames = append(tableNames, "bigtabledevinstance.orders_big_endian_encoded")
-	//}
-	//
-	//// truncate all tables
-	//for _, table := range tableNames {
-	//	log.Println(fmt.Sprintf("truncating table: '%s'...", table))
-	//	err = session.Query(fmt.Sprintf("TRUNCATE TABLE %s", table)).Exec()
-	//	if err != nil {
-	//		log.Fatalf("could not create table: %v", err)
-	//	}
-	//}
+
+	log.Println("Creating test tables...")
+	for i, stmt := range getSchemas() {
+		log.Println(fmt.Sprintf("Running create table statement: '%d'...", i))
+		err = session.Query(stmt).Exec()
+		if err != nil {
+			log.Fatalf("could not create table: %v", err)
+		}
+	}
+	tables, err := cqlshScanToMap("select * from system_schema.tables")
+	if err != nil {
+		log.Fatalf("could not read system tables: %v", err)
+	}
+	for _, tableRow := range tables {
+		keyspace := tableRow["keyspace_name"]
+		table := tableRow["table_name"]
+		// don't truncate system tables
+		if keyspace == "system_schema" || keyspace == "system_virtual_schema" || keyspace == "system" {
+			continue
+		}
+
+		log.Println(fmt.Sprintf("truncating table: '%s'...", table))
+		err = session.Query(fmt.Sprintf("TRUNCATE TABLE %s", table)).Exec()
+		if err != nil {
+			log.Fatalf("could not truncate table: %v", err)
+		}
+	}
 
 	log.Println("All test tables successfully created!")
 }

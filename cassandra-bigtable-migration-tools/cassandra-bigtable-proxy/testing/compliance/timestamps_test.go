@@ -16,6 +16,9 @@ func TestInsert(t *testing.T) {
 		inputTimestamp time.Time
 	}{
 		{
+			inputTimestamp: time.UnixMilli(0),
+		},
+		{
 			inputTimestamp: time.UnixMilli(1),
 		},
 		{
