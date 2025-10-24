@@ -800,6 +800,7 @@ func (c *client) prepareDeleteType(raw *frame.RawFrame, msg *message.Prepare, id
 func (c *client) prepareInsertType(raw *frame.RawFrame, msg *message.Prepare, id [16]byte, qctx *types.QueryContext) ([]*message.ColumnMetadata, []*message.ColumnMetadata, error) {
 	var returnColumns []string
 
+	c.proxy.logger.Debug("handling insert query", zap.String("query", msg.Query))
 	// Get the return columns from the query
 	insertQueryMetadata, err := c.proxy.translator.TranslateInsertQuerytoBigtable(msg.Query, true, c.keyspace, qctx)
 	if err != nil {
@@ -835,6 +836,7 @@ func (c *client) prepareInsertType(raw *frame.RawFrame, msg *message.Prepare, id
 
 // function to handle and select query of prepared type
 func (c *client) prepareSelectType(raw *frame.RawFrame, msg *message.Prepare, id [16]byte, qctx *types.QueryContext) ([]*message.ColumnMetadata, []*message.ColumnMetadata, error) {
+	c.proxy.logger.Debug("handling select query", zap.String("query", msg.Query))
 	var variableColumns, columnsWithInOp []string
 	translatedSelectQuery, err := c.proxy.translator.TranslateSelectQuerytoBigtable(msg.Query, c.keyspace, qctx)
 	if err != nil {
@@ -943,6 +945,7 @@ func (c *client) prepareUpdateType(raw *frame.RawFrame, msg *message.Prepare, id
 	var returnColumns, variableColumns, columnsWithInOp []string
 	var err error
 
+	c.proxy.logger.Debug("handling update query", zap.String("query", msg.Query))
 	updateQueryMetadata, err := c.proxy.translator.TranslateUpdateQuerytoBigtable(msg.Query, true, c.keyspace, qctx)
 	if err != nil {
 		c.proxy.logger.Error(translatorErrorMessage, zap.String(Query, msg.Query), zap.Error(err))

@@ -70,4 +70,26 @@ func TestInsert(t *testing.T) {
 			assert.Equal(t, endTime, endTime)
 		})
 	}
+
+	for i, tc := range tests {
+		t.Run("cqlsh "+tc.name, func(t *testing.T) {
+			t.Parallel()
+			region := fmt.Sprintf("us-south-%d", i+1)
+			inputFmt := "2006-01-02 15:04:05.000-0700"
+			endTime := tc.inputTimestamp.Add(1 * time.Hour)
+
+			_, err := cqlshExec(fmt.Sprintf("INSERT INTO bigtabledevinstance.timestamp_key (region, event_time, measurement, end_time) VALUES ('%s', '%s', 1.23, '%s') USING TIMESTAMP %d", region, tc.inputTimestamp.UTC().Format(inputFmt), endTime.UTC().Format(inputFmt), tc.inputTimestamp.UnixMilli()))
+			require.NoError(t, err)
+
+			got, err := cqlshScanToMap(fmt.Sprintf("SELECT event_time, WRITETIME(end_time), end_time FROM bigtabledevinstance.timestamp_key WHERE region = '%s' AND event_time = '%s'", region, tc.inputTimestamp.UTC().Format(inputFmt)))
+			require.NoError(t, err)
+			require.Equal(t, 1, len(got))
+			outfmt := "2006-01-02 15:04:05.000000-0700"
+			assert.Equal(t, map[string]string{
+				"event_time":          tc.inputTimestamp.UTC().Format(outfmt),
+				"WRITETIME(end_time)": tc.inputTimestamp.UTC().Format(outfmt),
+				"end_time":            endTime.UTC().Format(outfmt),
+			}, got[0])
+		})
+	}
 }

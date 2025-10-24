@@ -106,7 +106,7 @@ var plusMinusRegex = regexp.MustCompile(`^[-+]*$`)
 var rowsRegex = regexp.MustCompile(`^\(\d+ rows\)$`)
 
 func cqlshExec(query string) (string, error) {
-	cmd := exec.Command("cqlsh", "--request-timeout=60", "-e", query)
+	cmd := exec.Command("cqlsh", "--request-timeout=60", "-e", query, "127.0.0.1", "9042")
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
