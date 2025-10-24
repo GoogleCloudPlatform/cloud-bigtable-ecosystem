@@ -38,6 +38,10 @@ type QueryContext struct {
 	ProtocolV primitive.ProtocolVersion
 }
 
+func NewQueryContext(now time.Time, protocolV primitive.ProtocolVersion) *QueryContext {
+	return &QueryContext{Now: now.UTC(), ProtocolV: protocolV}
+}
+
 type CreateColumn struct {
 	Name     string
 	Index    int32

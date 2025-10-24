@@ -42,10 +42,7 @@ import (
 
 // TestParseTimestamp tests the parseCqlTimestamp function with various timestamp formats.
 func TestParseTimestamp(t *testing.T) {
-	qctx := &types.QueryContext{
-		Now:       time.Now(),
-		ProtocolV: primitive.ProtocolVersion4,
-	}
+	qctx := types.NewQueryContext(time.Now(), primitive.ProtocolVersion4)
 	cases := []struct {
 		name    string
 		input   string
@@ -87,7 +84,7 @@ func TestParseTimestamp(t *testing.T) {
 			input: "2011-02-03",
 			want:  time.Date(2011, 02, 03, 0, 0, 0, 0, time.UTC),
 		},
-		{name: "now", input: "TimEsTamp(nOW())", want: qctx.Now},
+		{name: "now", input: "toTimEsTamp(nOW())", want: qctx.Now},
 		{name: "march-2-2011", input: "1299038700000", want: time.Date(2011, time.March, 2, 4, 5, 0, 0, time.UTC)},
 		{name: "march-2-2011", input: "2011-03-02 04:05+0000", want: time.Date(2011, time.March, 2, 4, 5, 0, 0, time.UTC)},
 		{name: "march-2-2011", input: "2011-03-02 04:05:00+0000", want: time.Date(2011, time.March, 2, 4, 5, 0, 0, time.UTC)},
