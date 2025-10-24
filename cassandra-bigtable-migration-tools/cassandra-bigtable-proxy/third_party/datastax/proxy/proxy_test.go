@@ -343,10 +343,8 @@ var namedValues = map[string]*primitive.Value{
 }
 
 func Test_handleExecutionForDeletePreparedQuery(t *testing.T) {
-	qctx := &types.QueryContext{
-		Now:       time.Now().UTC(),
-		ProtocolV: primitive.ProtocolVersion4,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	id := md5.Sum([]byte("DELETE FROM key_space.test_table WHERE test_id = '?'"))
 	mockProxy := &Proxy{
 		schemaMapping: mockTableSchemaConfig,
@@ -885,10 +883,8 @@ func TestGetMetadataFromCache(t *testing.T) {
 }
 
 func TestHandleServerPreparedQuery(t *testing.T) {
-	qctx := &types.QueryContext{
-		Now:       time.Now().UTC(),
-		ProtocolV: primitive.ProtocolVersion4,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	ctx := context.Background()
 	mockSender := &mockSender{}
 
@@ -1005,10 +1001,8 @@ func TestHandleServerPreparedQuery(t *testing.T) {
 }
 
 func TestPrepareInsertType(t *testing.T) {
-	qctx := &types.QueryContext{
-		Now:       time.Now().UTC(),
-		ProtocolV: primitive.ProtocolVersion4,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	ctx := context.Background()
 	mockSender := &mockSender{}
 
@@ -1037,10 +1031,8 @@ func TestPrepareInsertType(t *testing.T) {
 }
 
 func TestPrepareSelectType(t *testing.T) {
-	qctx := &types.QueryContext{
-		Now:       time.Now().UTC(),
-		ProtocolV: primitive.ProtocolVersion4,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	ctx := context.Background()
 	mockSender := &mockSender{}
 
@@ -1096,10 +1088,8 @@ func TestPrepareSelectType(t *testing.T) {
 }
 
 func TestPrepareSelectTypeWithClauseFunction(t *testing.T) {
-	qctx := &types.QueryContext{
-		Now:       time.Now().UTC(),
-		ProtocolV: primitive.ProtocolVersion4,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	ctx := context.Background()
 	mockSender := &mockSender{}
 
@@ -1155,10 +1145,8 @@ func TestPrepareSelectTypeWithClauseFunction(t *testing.T) {
 }
 
 func TestPrepareUpdateType(t *testing.T) {
-	qctx := &types.QueryContext{
-		Now:       time.Now().UTC(),
-		ProtocolV: primitive.ProtocolVersion4,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	ctx := context.Background()
 	mockSender := &mockSender{}
 	client := client{
@@ -1186,10 +1174,8 @@ func TestPrepareUpdateType(t *testing.T) {
 }
 
 func TestPrepareDeleteType(t *testing.T) {
-	qctx := &types.QueryContext{
-		Now:       time.Now().UTC(),
-		ProtocolV: primitive.ProtocolVersion4,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	ctx := context.Background()
 	mockSender := &mockSender{}
 
@@ -1218,10 +1204,8 @@ func TestPrepareDeleteType(t *testing.T) {
 }
 
 func TestHandleExecuteForInsert(t *testing.T) {
-	qctx := &types.QueryContext{
-		Now:       time.Now().UTC(),
-		ProtocolV: primitive.ProtocolVersion4,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	ctx := context.Background()
 	mockSender := &mockSender{}
 
@@ -1286,10 +1270,8 @@ func TestHandleExecuteForInsert(t *testing.T) {
 	}, ctx, qctx)
 }
 func TestHandleExecuteForSelect(t *testing.T) {
-	qctx := &types.QueryContext{
-		Now:       time.Now().UTC(),
-		ProtocolV: primitive.ProtocolVersion4,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	ctx := context.Background()
 	mockSender := &mockSender{}
 	preparedStatement := &bigtable.PreparedStatement{}
@@ -1411,10 +1393,8 @@ func TestHandleExecuteForSelect(t *testing.T) {
 }
 
 func TestHandleExecuteForDelete(t *testing.T) {
-	qctx := &types.QueryContext{
-		Now:       time.Now().UTC(),
-		ProtocolV: primitive.ProtocolVersion4,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	ctx := context.Background()
 	mockSender := &mockSender{}
 
@@ -1464,10 +1444,8 @@ func TestHandleExecuteForDelete(t *testing.T) {
 }
 
 func TestHandleExecuteForUpdate(t *testing.T) {
-	qctx := &types.QueryContext{
-		Now:       time.Now().UTC(),
-		ProtocolV: primitive.ProtocolVersion4,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	ctx := context.Background()
 	mockSender := &mockSender{}
 
@@ -1618,10 +1596,8 @@ func TestHandleQueryDelete(t *testing.T) {
 }
 
 func TestHandleBatchUpdate(t *testing.T) {
-	qctx := &types.QueryContext{
-		Now:       time.Now().UTC(),
-		ProtocolV: primitive.ProtocolVersion4,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	ctx := context.Background()
 	mockSender := &mockSender{}
 
@@ -1660,10 +1636,8 @@ func TestHandleBatchUpdate(t *testing.T) {
 }
 
 func TestHandleBatchInsert(t *testing.T) {
-	qctx := &types.QueryContext{
-		Now:       time.Now().UTC(),
-		ProtocolV: primitive.ProtocolVersion4,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	ctx := context.Background()
 	mockSender := &mockSender{}
 
@@ -1701,10 +1675,8 @@ func TestHandleBatchInsert(t *testing.T) {
 }
 
 func TestHandleBatchSelect(t *testing.T) {
-	qctx := &types.QueryContext{
-		Now:       time.Now().UTC(),
-		ProtocolV: primitive.ProtocolVersion4,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	ctx := context.Background()
 	mockSender := &mockSender{}
 
@@ -1766,10 +1738,8 @@ func TestHandleBatchSelect(t *testing.T) {
 }
 
 func TestHandleBatchDelete(t *testing.T) {
-	qctx := &types.QueryContext{
-		Now:       time.Now().UTC(),
-		ProtocolV: primitive.ProtocolVersion4,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	ctx := context.Background()
 	mockSender := &mockSender{}
 

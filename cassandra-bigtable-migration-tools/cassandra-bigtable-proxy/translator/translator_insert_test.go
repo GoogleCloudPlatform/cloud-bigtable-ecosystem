@@ -52,10 +52,8 @@ func parseInsertQuery(query string) cql.IInsertContext {
 }
 
 func Test_setParamsFromValues(t *testing.T) {
-	qctx := &types.QueryContext{
-		Now:       time.Now(),
-		ProtocolV: primitive.ProtocolVersion4,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	response := make(map[string]interface{})
 	val, _ := formatValues("Test", datatype.Varchar, qctx)
 	specialCharVal, _ := formatValues("#!@#$%^&*()_+", datatype.Varchar, qctx)
@@ -229,10 +227,7 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 		queryStr        string
 		isPreparedQuery bool
 	}
-	qctx := &types.QueryContext{
-		Now:       time.Now(),
-		ProtocolV: primitive.ProtocolVersion4,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
 
 	tests := []struct {
 		name    string
@@ -689,10 +684,8 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 }
 
 func TestTranslator_BuildInsertPrepareQuery(t *testing.T) {
-	qctx := &types.QueryContext{
-		Now:       time.Now().UTC(),
-		ProtocolV: primitive.ProtocolVersion4,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	type fields struct {
 		Logger              *zap.Logger
 		SchemaMappingConfig *schemaMapping.SchemaMappingConfig

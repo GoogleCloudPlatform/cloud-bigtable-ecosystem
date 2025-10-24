@@ -951,17 +951,17 @@ func TestTypeHandler_BuildResponseRow(t *testing.T) {
 			},
 			args: args{
 				rowMap: map[string]interface{}{
-					"column8['mapKey']": []byte("mapKeyValue"),
+					"column_map['mapKey']": []byte("mapKeyValue"),
 				},
 				query: QueryMetadata{
 					TableName:           "test_table",
-					Query:               "SELECT column8['mapKey'] FROM test_table;",
+					Query:               "SELECT column_map['mapKey'] FROM test_table;",
 					KeyspaceName:        "test_keyspace",
 					IsStar:              false,
 					DefaultColumnFamily: "cf1",
 					SelectedColumns: []types.SelectedColumn{
 						{
-							Name: "column8['mapKey']", MapKey: "mapKey", ColumnName: "column8",
+							Name: "column_map['mapKey']", MapKey: "mapKey", ColumnName: "column_map",
 						},
 					},
 				},
@@ -969,7 +969,7 @@ func TestTypeHandler_BuildResponseRow(t *testing.T) {
 					{
 						Keyspace: "test_keyspace",
 						Table:    "test_table",
-						Name:     "column8['mapKey']",
+						Name:     "column_map['mapKey']",
 						Index:    0,
 						Type:     datatype.Varchar,
 					},
@@ -1105,14 +1105,14 @@ func TestTypeHandler_BuildResponseRow(t *testing.T) {
 				},
 				query: QueryMetadata{
 					TableName:           "test_table",
-					Query:               "SELECT writetime(column5) as abcd FROM test_table;",
+					Query:               "SELECT writetime(column_ts) as abcd FROM test_table;",
 					KeyspaceName:        "test_keyspace",
 					IsStar:              false,
 					DefaultColumnFamily: "cf1",
 					SelectedColumns: []types.SelectedColumn{
 						{
-							Name:              "writetime(column5)",
-							ColumnName:        "column5",
+							Name:              "writetime(column_ts)",
+							ColumnName:        "column_ts",
 							IsWriteTimeColumn: true,
 							Alias:             "abcd",
 						},
@@ -1145,15 +1145,15 @@ func TestTypeHandler_BuildResponseRow(t *testing.T) {
 				},
 				query: QueryMetadata{
 					TableName:           "test_table",
-					Query:               "SELECT column5 as abcd FROM test_table;",
+					Query:               "SELECT column_ts as abcd FROM test_table;",
 					KeyspaceName:        "test_keyspace",
 					IsStar:              false,
 					DefaultColumnFamily: "cf1",
 					SelectedColumns: []types.SelectedColumn{
 						{
-							Name:       "column5",
+							Name:       "column_ts",
 							Alias:      "abcd",
-							ColumnName: "column5",
+							ColumnName: "column_ts",
 							IsAs:       true,
 						},
 					},
@@ -1181,20 +1181,20 @@ func TestTypeHandler_BuildResponseRow(t *testing.T) {
 			},
 			args: args{
 				rowMap: map[string]interface{}{
-					"column11": []Maptype{
+					"column_set2": []Maptype{
 						{Key: "tag1", Value: ""},
 						{Key: "tag2", Value: ""},
 					},
 				},
 				query: QueryMetadata{
 					TableName:           "test_table",
-					Query:               "SELECT column11 FROM test_table;",
+					Query:               "SELECT column_set2 FROM test_table;",
 					KeyspaceName:        "test_keyspace",
 					IsStar:              false,
 					DefaultColumnFamily: "cf1",
 					SelectedColumns: []types.SelectedColumn{
 						{
-							Name: "column11",
+							Name: "column_set2",
 						},
 					},
 				},
@@ -1202,7 +1202,7 @@ func TestTypeHandler_BuildResponseRow(t *testing.T) {
 					{
 						Keyspace: "test_keyspace",
 						Table:    "test_table",
-						Name:     "column11",
+						Name:     "column_set2",
 						Index:    0,
 						Type:     datatype.NewSetType(datatype.Varchar),
 					},
@@ -1259,20 +1259,20 @@ func TestTypeHandler_BuildResponseRow(t *testing.T) {
 			},
 			args: args{
 				rowMap: map[string]interface{}{
-					"column4": []Maptype{
+					"column_list": []Maptype{
 						{Key: "key1", Value: []byte("tage1")},
 						{Key: "key2", Value: []byte("tage2")},
 					},
 				},
 				query: QueryMetadata{
 					TableName:           "test_table",
-					Query:               "SELECT column4 FROM test_table;",
+					Query:               "SELECT column_list FROM test_table;",
 					KeyspaceName:        "test_keyspace",
 					IsStar:              false,
 					DefaultColumnFamily: "cf1",
 					SelectedColumns: []types.SelectedColumn{
 						{
-							Name: "column4",
+							Name: "column_list",
 						},
 					},
 				},
@@ -1280,7 +1280,7 @@ func TestTypeHandler_BuildResponseRow(t *testing.T) {
 					{
 						Keyspace: "test_keyspace",
 						Table:    "test_table",
-						Name:     "column4",
+						Name:     "column_list",
 						Index:    0,
 						Type:     datatype.NewListType(datatype.Varchar),
 					},
@@ -1299,20 +1299,20 @@ func TestTypeHandler_BuildResponseRow(t *testing.T) {
 			},
 			args: args{
 				rowMap: map[string]interface{}{
-					"column4": []Maptype{
+					"column_list": []Maptype{
 						{Key: "tag1", Value: ""},
 						{Key: "tag2", Value: ""},
 					},
 				},
 				query: QueryMetadata{
 					TableName:           "test_table",
-					Query:               "SELECT column4 FROM test_table;",
+					Query:               "SELECT column_list FROM test_table;",
 					KeyspaceName:        "test_keyspace",
 					IsStar:              false,
 					DefaultColumnFamily: "cf1",
 					SelectedColumns: []types.SelectedColumn{
 						{
-							Name: "column4",
+							Name: "column_list",
 						},
 					},
 				},
@@ -1320,7 +1320,7 @@ func TestTypeHandler_BuildResponseRow(t *testing.T) {
 					{
 						Keyspace: "test_keyspace",
 						Table:    "test_table",
-						Name:     "column4",
+						Name:     "column_list",
 						Index:    0,
 						Type:     datatype.NewListType(datatype.Varchar),
 					},
@@ -1352,8 +1352,8 @@ func TestTypeHandler_BuildResponseRow(t *testing.T) {
 func TestGetQueryColumn(t *testing.T) {
 	query := QueryMetadata{
 		SelectedColumns: []types.SelectedColumn{
-			{Name: "column1", Alias: "alias1", IsWriteTimeColumn: false},
-			{Name: "column2", Alias: "alias2", IsWriteTimeColumn: true},
+			{Name: "pk_1", Alias: "alias1", IsWriteTimeColumn: false},
+			{Name: "column_blob", Alias: "alias2", IsWriteTimeColumn: true},
 			{Name: "column3", Alias: "alias3", IsWriteTimeColumn: false},
 		},
 	}
@@ -1370,7 +1370,7 @@ func TestGetQueryColumn(t *testing.T) {
 			name:     "Match by Name at index",
 			query:    query,
 			index:    0,
-			key:      "column1",
+			key:      "pk_1",
 			expected: query.SelectedColumns[0],
 		},
 		{
@@ -1384,7 +1384,7 @@ func TestGetQueryColumn(t *testing.T) {
 			name:     "Match by Name in iteration",
 			query:    query,
 			index:    2,
-			key:      "column2",
+			key:      "column_blob",
 			expected: query.SelectedColumns[1],
 		},
 		{
@@ -1643,7 +1643,6 @@ func TestBuildResponseForSystemQueries(t *testing.T) {
 	tests := []struct {
 		name         string
 		rows         [][]interface{}
-		want         []message.Row
 		wantErr      bool
 		expectedRows int
 	}{
@@ -1666,7 +1665,7 @@ func TestBuildResponseForSystemQueries(t *testing.T) {
 		{
 			name: "Valid Column Metadata Encoding",
 			rows: [][]any{
-				{"keyspace1", "table1", "column1", "none", "regular", 0, "text"},
+				{"keyspace1", "table1", "pk_1", "none", "regular", 0, "text"},
 			},
 			wantErr:      false,
 			expectedRows: 7,
@@ -1690,7 +1689,7 @@ func TestBuildResponseForSystemQueries(t *testing.T) {
 				return
 			}
 			require.NoError(t, err)
-			assert.Equal(t, tt.want, got)
+			assert.Equal(t, tt.expectedRows, len(got[0]))
 		})
 	}
 }

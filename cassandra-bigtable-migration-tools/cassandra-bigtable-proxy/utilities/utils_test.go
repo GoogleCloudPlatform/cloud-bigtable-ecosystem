@@ -54,10 +54,8 @@ func TestIsCollectionDataType(t *testing.T) {
 }
 
 func TestDecodeBytesToCassandraColumnType(t *testing.T) {
-	qctx := &types.QueryContext{
-		Now:       time.Now().UTC(),
-		ProtocolV: primitive.ProtocolVersion4,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	tests := []struct {
 		name            string
 		input           []byte
@@ -226,10 +224,8 @@ func TestDecodeBytesToCassandraColumnType(t *testing.T) {
 }
 
 func TestDecodeNonPrimitive(t *testing.T) {
-	qctx := &types.QueryContext{
-		Now:       time.Now().UTC(),
-		ProtocolV: primitive.ProtocolVersion4,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	tests := []struct {
 		name         string
 		input        []byte

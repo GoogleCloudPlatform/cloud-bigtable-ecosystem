@@ -146,10 +146,7 @@ func TestPrimitivesToString(t *testing.T) {
 }
 
 func TestStringToPrimitives(t *testing.T) {
-	qctx := &types.QueryContext{
-		Now:       time.Now(),
-		ProtocolV: primitive.ProtocolVersion4,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
 	tests := []struct {
 		value    string
 		cqlType  types.ScalarType
@@ -249,10 +246,7 @@ func Test_formatValues(t *testing.T) {
 		},
 	}
 
-	qctx := &types.QueryContext{
-		Now:       time.Now(),
-		ProtocolV: primitive.ProtocolVersion4,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -291,10 +285,7 @@ func Test_processCollectionColumnsForPrepareQueries(t *testing.T) {
 	setTypeDouble := datatype.NewSetType(datatype.Double)
 	setTypeTimestamp := datatype.NewSetType(datatype.Timestamp)
 
-	qctx := &types.QueryContext{
-		Now:       time.Now(),
-		ProtocolV: primitive.ProtocolVersion4,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
 
 	valuesTextText := map[string]string{"test": "test"}
 	textBytesTextText, _ := proxycore.EncodeType(mapTypeTextText, primitive.ProtocolVersion4, valuesTextText)
@@ -1587,10 +1578,8 @@ func compareComplexOperation(expected, actual *ComplexOperation) bool {
 }
 
 func TestCreateOrderedCodeKey(t *testing.T) {
-	qctx := &types.QueryContext{
-		Now:       time.Now().UTC(),
-		ProtocolV: primitive.ProtocolVersion4,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	tests := []struct {
 		name        string
 		tableConfig *schemaMapping.TableConfig
@@ -2158,10 +2147,7 @@ func TestEncodeInt(t *testing.T) {
 }
 
 func TestProcessCollectionColumnsForPrepareQueries_ComplexMetaAndNonCollection(t *testing.T) {
-	qctx := &types.QueryContext{
-		Now:       time.Now(),
-		ProtocolV: primitive.ProtocolVersion4,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
 	translator := &Translator{
 		Logger:              zap.NewNop(),
 		SchemaMappingConfig: GetSchemaMappingConfig(types.OrderedCodeEncoding),
@@ -2820,10 +2806,7 @@ func Test_getTableAndKeyspaceObjects(t *testing.T) {
 }
 
 func TestAddSetElements(t *testing.T) {
-	qctx := &types.QueryContext{
-		Now:       time.Now(),
-		ProtocolV: primitive.ProtocolVersion4,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
 	tests := []struct {
 		name        string
 		setValues   []string
@@ -2986,10 +2969,7 @@ func TestAddSetElements(t *testing.T) {
 }
 
 func TestHandleListOperation(t *testing.T) {
-	qctx := &types.QueryContext{
-		Now:       time.Now(),
-		ProtocolV: primitive.ProtocolVersion4,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
 	tests := []struct {
 		name      string
 		column    *types.Column
@@ -3090,10 +3070,7 @@ func TestHandleListOperation(t *testing.T) {
 }
 
 func TestHandleSetOperation(t *testing.T) {
-	qctx := &types.QueryContext{
-		Now:       time.Now(),
-		ProtocolV: primitive.ProtocolVersion4,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
 	tests := []struct {
 		name      string
 		column    *types.Column
@@ -3181,10 +3158,7 @@ func TestHandleSetOperation(t *testing.T) {
 }
 
 func TestHandleMapOperation(t *testing.T) {
-	qctx := &types.QueryContext{
-		Now:       time.Now(),
-		ProtocolV: primitive.ProtocolVersion4,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
 	tests := []struct {
 		name      string
 		column    *types.Column
@@ -3286,10 +3260,7 @@ func TestHandleMapOperation(t *testing.T) {
 }
 
 func TestProcessCollectionColumnsForRawQueries(t *testing.T) {
-	qctx := &types.QueryContext{
-		Now:       time.Now(),
-		ProtocolV: primitive.ProtocolVersion4,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
 	// Mock key data types for columns
 	colList := &types.Column{
 		Name:    "list_text",
@@ -3337,10 +3308,7 @@ func TestProcessCollectionColumnsForRawQueries(t *testing.T) {
 }
 
 func TestConvertAllValuesToRowKeyType(t *testing.T) {
-	qctx := &types.QueryContext{
-		Now:       time.Now(),
-		ProtocolV: primitive.ProtocolVersion4,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
 	pkCols := []*types.Column{
 		{
 			Name:         "id_int",

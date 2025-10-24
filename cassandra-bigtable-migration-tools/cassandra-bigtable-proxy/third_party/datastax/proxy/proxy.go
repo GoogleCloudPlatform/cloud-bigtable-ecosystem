@@ -593,10 +593,7 @@ func (c *client) Receive(reader io.Reader) error {
 
 // function to execute query on cassandra
 func (c *client) handlePrepare(raw *frame.RawFrame, msg *message.Prepare) {
-	qctx := &types.QueryContext{
-		Now:       time.Now(),
-		ProtocolV: raw.Header.Version,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), raw.Header.Version)
 	c.proxy.logger.Debug("handling prepare", zap.String(Query, msg.Query), zap.Int16("stream", raw.Header.StreamId))
 
 	keyspace := c.keyspace
@@ -1021,10 +1018,8 @@ func (c *client) handleExecute(raw *frame.RawFrame, msg *partialExecute) {
 	ctx := context.Background()
 	id := preparedIdKey(msg.queryId)
 
-	qctx := &types.QueryContext{
-		Now:       time.Now(),
-		ProtocolV: raw.Header.Version,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), raw.Header.Version)
+
 	if stmt, ok := c.preparedSystemQuery[id]; ok {
 		c.interceptSystemQuery(raw.Header, stmt)
 	} else if preparedStmt, ok := c.GetQueryFromCache(id); ok {
@@ -1049,10 +1044,7 @@ func (c *client) handleExecute(raw *frame.RawFrame, msg *partialExecute) {
 
 // handle batch queries
 func (c *client) handleBatch(raw *frame.RawFrame, msg *partialBatch) {
-	qctx := &types.QueryContext{
-		Now:       time.Now(),
-		ProtocolV: raw.Header.Version,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), raw.Header.Version)
 	startTime := time.Now()
 	var keySpace string
 	var batchQueriesString []string
@@ -1446,10 +1438,7 @@ func (c *client) handleQuery(raw *frame.RawFrame, msg *partialQuery) {
 	})
 	defer c.proxy.otelInst.EndSpan(span)
 
-	qctx := &types.QueryContext{
-		Now:       time.Now().UTC(),
-		ProtocolV: raw.Header.Version,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), raw.Header.Version)
 
 	if handled {
 		if err != nil {

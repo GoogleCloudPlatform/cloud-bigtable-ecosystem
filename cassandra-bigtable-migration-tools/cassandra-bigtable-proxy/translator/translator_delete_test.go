@@ -35,10 +35,8 @@ import (
 )
 
 func TestTranslator_TranslateDeleteQuerytoBigtable(t *testing.T) {
-	qctx := &types.QueryContext{
-		Now:       time.Now().UTC(),
-		ProtocolV: primitive.ProtocolVersion4,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	params := make(map[string]interface{})
 	formattedValue, _ := formatValues("test", datatype.Varchar, qctx)
 	formattedValue2, _ := formatValues("15", datatype.Int, qctx)
@@ -509,10 +507,8 @@ func TestTranslator_TranslateDeleteQuerytoBigtable(t *testing.T) {
 }
 
 func TestTranslator_BuildDeletePrepareQuery(t *testing.T) {
-	qctx := &types.QueryContext{
-		Now:       time.Now().UTC(),
-		ProtocolV: primitive.ProtocolVersion4,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	type fields struct {
 		Logger              *zap.Logger
 		SchemaMappingConfig *schemaMapping.SchemaMappingConfig

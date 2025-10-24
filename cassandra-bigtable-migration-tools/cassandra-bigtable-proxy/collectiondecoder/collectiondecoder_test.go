@@ -33,10 +33,7 @@ const (
 )
 
 func TestDecodeCollection(t *testing.T) {
-	qctx := &types.QueryContext{
-		Now:       time.Now().UTC(),
-		ProtocolV: primitive.ProtocolVersion4,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
 	type args struct {
 		dt      datatype.DataType
 		version primitive.ProtocolVersion
@@ -171,10 +168,7 @@ func TestDecodeCollection(t *testing.T) {
 }
 
 func TestDecodeListOrSet(t *testing.T) {
-	qctx := &types.QueryContext{
-		Now:       time.Now().UTC(),
-		ProtocolV: primitive.ProtocolVersion4,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
 	type args struct {
 		elementType datatype.DataType
 		version     primitive.ProtocolVersion
@@ -1103,10 +1097,8 @@ func TestConvertToTypedMap(t *testing.T) {
 }
 
 func TestDecodeMap(t *testing.T) {
-	qctx := &types.QueryContext{
-		Now:       time.Now().UTC(),
-		ProtocolV: primitive.ProtocolVersion4,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	type args struct {
 		valueType datatype.DataType
 		version   primitive.ProtocolVersion

@@ -32,10 +32,8 @@ import (
 )
 
 func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
-	qctx := &types.QueryContext{
-		Now:       time.Now().UTC(),
-		ProtocolV: primitive.ProtocolVersion4,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	const NO_ERROR_EXPECTED = ""
 	type fields struct {
 		Logger *zap.Logger
@@ -619,10 +617,8 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 }
 
 func TestTranslator_BuildUpdatePrepareQuery(t *testing.T) {
-	qctx := &types.QueryContext{
-		Now:       time.Now().UTC(),
-		ProtocolV: primitive.ProtocolVersion4,
-	}
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	type fields struct {
 		Logger              *zap.Logger
 		SchemaMappingConfig *schemaMapping.SchemaMappingConfig

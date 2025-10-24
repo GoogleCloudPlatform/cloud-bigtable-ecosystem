@@ -28,18 +28,18 @@ import (
 func GetSchemaMappingConfig() *schemaMapping.SchemaMappingConfig {
 	var (
 		testTableColumns = []*types.Column{
-			{Name: "column1", CQLType: utilities.ParseCqlTypeOrDie("varchar"), KeyType: utilities.KEY_TYPE_PARTITION, IsPrimaryKey: true, PkPrecedence: 1},
-			{Name: "column10", CQLType: utilities.ParseCqlTypeOrDie("varchar"), KeyType: utilities.KEY_TYPE_CLUSTERING, IsPrimaryKey: true, PkPrecedence: 2},
+			{Name: "pk_1", CQLType: utilities.ParseCqlTypeOrDie("varchar"), KeyType: utilities.KEY_TYPE_PARTITION, IsPrimaryKey: true, PkPrecedence: 1},
+			{Name: "pk_2", CQLType: utilities.ParseCqlTypeOrDie("varchar"), KeyType: utilities.KEY_TYPE_CLUSTERING, IsPrimaryKey: true, PkPrecedence: 2},
 			// Regular columns
-			{Name: "column2", CQLType: utilities.ParseCqlTypeOrDie("blob"), KeyType: utilities.KEY_TYPE_REGULAR},
-			{Name: "column3", CQLType: utilities.ParseCqlTypeOrDie("boolean"), KeyType: utilities.KEY_TYPE_REGULAR},
-			{Name: "column4", CQLType: utilities.ParseCqlTypeOrDie("list<text>"), KeyType: utilities.KEY_TYPE_REGULAR},
-			{Name: "column5", CQLType: utilities.ParseCqlTypeOrDie("timestamp"), KeyType: utilities.KEY_TYPE_REGULAR},
-			{Name: "column6", CQLType: utilities.ParseCqlTypeOrDie("int"), KeyType: utilities.KEY_TYPE_REGULAR},
-			{Name: "column7", CQLType: utilities.ParseCqlTypeOrDie("set<text>"), KeyType: utilities.KEY_TYPE_REGULAR},
-			{Name: "column8", CQLType: utilities.ParseCqlTypeOrDie("map<varchar,boolean>"), KeyType: utilities.KEY_TYPE_REGULAR},
-			{Name: "column9", CQLType: utilities.ParseCqlTypeOrDie("bigint"), KeyType: utilities.KEY_TYPE_REGULAR},
-			{Name: "column11", CQLType: utilities.ParseCqlTypeOrDie("set<text>"), KeyType: utilities.KEY_TYPE_REGULAR},
+			{Name: "column_blob", CQLType: utilities.ParseCqlTypeOrDie("blob"), KeyType: utilities.KEY_TYPE_REGULAR},
+			{Name: "column_bool", CQLType: utilities.ParseCqlTypeOrDie("boolean"), KeyType: utilities.KEY_TYPE_REGULAR},
+			{Name: "column_list", CQLType: utilities.ParseCqlTypeOrDie("list<text>"), KeyType: utilities.KEY_TYPE_REGULAR},
+			{Name: "column_ts", CQLType: utilities.ParseCqlTypeOrDie("timestamp"), KeyType: utilities.KEY_TYPE_REGULAR},
+			{Name: "column_int", CQLType: utilities.ParseCqlTypeOrDie("int"), KeyType: utilities.KEY_TYPE_REGULAR},
+			{Name: "column_set", CQLType: utilities.ParseCqlTypeOrDie("set<text>"), KeyType: utilities.KEY_TYPE_REGULAR},
+			{Name: "column_map", CQLType: utilities.ParseCqlTypeOrDie("map<varchar,boolean>"), KeyType: utilities.KEY_TYPE_REGULAR},
+			{Name: "column_bigint", CQLType: utilities.ParseCqlTypeOrDie("bigint"), KeyType: utilities.KEY_TYPE_REGULAR},
+			{Name: "column_set2", CQLType: utilities.ParseCqlTypeOrDie("set<text>"), KeyType: utilities.KEY_TYPE_REGULAR},
 		}
 
 		userInfoColumns = []*types.Column{
