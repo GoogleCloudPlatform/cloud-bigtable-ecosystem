@@ -92,26 +92,26 @@ func (s ScalarType) IsFrozen() bool {
 
 // Pre-defined constants for common scalar types for convenience.
 var (
-	TypeAscii     CqlDataType = ScalarType{name: "ascii", code: ASCII, dt: datatype.Varchar}
-	TypeVarchar   CqlDataType = ScalarType{name: "varchar", code: VARCHAR, dt: datatype.Varchar}
-	TypeBigint    CqlDataType = ScalarType{name: "bigint", code: BIGINT, dt: datatype.Bigint}
-	TypeBlob      CqlDataType = ScalarType{name: "blob", code: BLOB, dt: datatype.Blob}
-	TypeBoolean   CqlDataType = ScalarType{name: "boolean", code: BOOLEAN, dt: datatype.Boolean}
-	TypeCounter   CqlDataType = ScalarType{name: "counter", code: COUNTER, dt: datatype.Counter}
-	TypeDate      CqlDataType = ScalarType{name: "date", code: DATE, dt: datatype.Date}
-	TypeDecimal   CqlDataType = ScalarType{name: "decimal", code: DECIMAL, dt: datatype.Decimal}
-	TypeDouble    CqlDataType = ScalarType{name: "double", code: DOUBLE, dt: datatype.Double}
-	TypeFloat     CqlDataType = ScalarType{name: "float", code: FLOAT, dt: datatype.Float}
-	TypeInet      CqlDataType = ScalarType{name: "inet", code: INET, dt: datatype.Inet}
-	TypeInt       CqlDataType = ScalarType{name: "int", code: INT, dt: datatype.Int}
-	TypeSmallint  CqlDataType = ScalarType{name: "smallint", code: SMALLINT, dt: datatype.Smallint}
-	TypeText      CqlDataType = ScalarType{name: "text", code: TEXT, dt: datatype.Varchar}
-	TypeTime      CqlDataType = ScalarType{name: "time", code: TIME, dt: datatype.Time}
-	TypeTimestamp CqlDataType = ScalarType{name: "timestamp", code: TIMESTAMP, dt: datatype.Timestamp}
-	TypeTimeuuid  CqlDataType = ScalarType{name: "timeuuid", code: TIMEUUID, dt: datatype.Timeuuid}
-	TypeTinyint   CqlDataType = ScalarType{name: "tinyint", code: TINYINT, dt: datatype.Tinyint}
-	TypeUuid      CqlDataType = ScalarType{name: "uuid", code: UUID, dt: datatype.Uuid}
-	TypeVarint    CqlDataType = ScalarType{name: "varint", code: VARINT, dt: datatype.Varint}
+	TypeAscii     = ScalarType{name: "ascii", code: ASCII, dt: datatype.Varchar}
+	TypeVarchar   = ScalarType{name: "varchar", code: VARCHAR, dt: datatype.Varchar}
+	TypeBigint    = ScalarType{name: "bigint", code: BIGINT, dt: datatype.Bigint}
+	TypeBlob      = ScalarType{name: "blob", code: BLOB, dt: datatype.Blob}
+	TypeBoolean   = ScalarType{name: "boolean", code: BOOLEAN, dt: datatype.Boolean}
+	TypeCounter   = ScalarType{name: "counter", code: COUNTER, dt: datatype.Counter}
+	TypeDate      = ScalarType{name: "date", code: DATE, dt: datatype.Date}
+	TypeDecimal   = ScalarType{name: "decimal", code: DECIMAL, dt: datatype.Decimal}
+	TypeDouble    = ScalarType{name: "double", code: DOUBLE, dt: datatype.Double}
+	TypeFloat     = ScalarType{name: "float", code: FLOAT, dt: datatype.Float}
+	TypeInet      = ScalarType{name: "inet", code: INET, dt: datatype.Inet}
+	TypeInt       = ScalarType{name: "int", code: INT, dt: datatype.Int}
+	TypeSmallint  = ScalarType{name: "smallint", code: SMALLINT, dt: datatype.Smallint}
+	TypeText      = ScalarType{name: "text", code: TEXT, dt: datatype.Varchar}
+	TypeTime      = ScalarType{name: "time", code: TIME, dt: datatype.Time}
+	TypeTimestamp = ScalarType{name: "timestamp", code: TIMESTAMP, dt: datatype.Timestamp}
+	TypeTimeuuid  = ScalarType{name: "timeuuid", code: TIMEUUID, dt: datatype.Timeuuid}
+	TypeTinyint   = ScalarType{name: "tinyint", code: TINYINT, dt: datatype.Tinyint}
+	TypeUuid      = ScalarType{name: "uuid", code: UUID, dt: datatype.Uuid}
+	TypeVarint    = ScalarType{name: "varint", code: VARINT, dt: datatype.Varint}
 )
 
 type MapType struct {

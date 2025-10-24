@@ -107,7 +107,7 @@ func getNodeValue(node antlr.Tree, parent antlr.ParserRuleContext) interface{} {
 //   - An error if invalid input is detected, such as an empty assignment list or issues with assignment syntax,
 //     or if a column type cannot be retrieved from the schema mapping table, or if an attempt is made to assign
 //     a value to a primary key.
-func parseAssignments(assignments []cql.IAssignmentElementContext, tableConfig *schemaMapping.TableConfig, prependColumn *[]string, isPreparedQuery bool) (*UpdateSetResponse, error) {
+func parseAssignments(assignments []cql.IAssignmentElementContext, tableConfig *schemaMapping.TableConfig, prependColumn *[]string, isPreparedQuery bool, qctx *types.QueryContext) (*UpdateSetResponse, error) {
 	if len(assignments) == 0 {
 		return nil, errors.New("invalid input")
 	}
@@ -185,7 +185,7 @@ func parseAssignments(assignments []cql.IAssignmentElementContext, tableConfig *
 				if column.CQLType.IsCollection() {
 					val = value
 				} else {
-					val, err = formatValues(fmt.Sprintf("%v", value), column.CQLType.DataType(), 4)
+					val, err = formatValues(fmt.Sprintf("%v", value), column.CQLType.DataType(), qctx)
 					if err != nil {
 						return nil, err
 					}
@@ -241,7 +241,7 @@ func parseAssignments(assignments []cql.IAssignmentElementContext, tableConfig *
 			if column.CQLType.IsCollection() || column.CQLType == types.TypeCounter {
 				val = value
 			} else {
-				val, err = formatValues(fmt.Sprintf("%v", value), column.CQLType.DataType(), 4)
+				val, err = formatValues(fmt.Sprintf("%v", value), column.CQLType.DataType(), qctx)
 				if err != nil {
 					return nil, err
 				}
@@ -271,7 +271,7 @@ func parseAssignments(assignments []cql.IAssignmentElementContext, tableConfig *
 //   - query: CQL Update query
 //
 // Returns: UpdateQueryMapping struct and error if any
-func (t *Translator) TranslateUpdateQuerytoBigtable(query string, isPreparedQuery bool, sessionKeyspace string) (*UpdateQueryMapping, error) {
+func (t *Translator) TranslateUpdateQuerytoBigtable(query string, isPreparedQuery bool, sessionKeyspace string, qctx *types.QueryContext) (*UpdateQueryMapping, error) {
 	lexer := cql.NewCqlLexer(antlr.NewInputStream(query))
 	stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
 	p := cql.NewCqlParser(stream)
@@ -321,7 +321,7 @@ func (t *Translator) TranslateUpdateQuerytoBigtable(query string, isPreparedQuer
 	if allAssignmentObj == nil {
 		return nil, errors.New("error parsing all the assignment object")
 	}
-	setValues, err := parseAssignments(allAssignmentObj, tableConfig, &PrependColumns, isPreparedQuery)
+	setValues, err := parseAssignments(allAssignmentObj, tableConfig, &PrependColumns, isPreparedQuery, qctx)
 	if err != nil {
 		return nil, err
 	}
@@ -329,7 +329,7 @@ func (t *Translator) TranslateUpdateQuerytoBigtable(query string, isPreparedQuer
 	var QueryClauses QueryClauses
 
 	if updateObj.WhereSpec() != nil {
-		resp, err := parseWhereByClause(updateObj.WhereSpec(), tableConfig)
+		resp, err := parseWhereByClause(updateObj.WhereSpec(), tableConfig, qctx)
 		if err != nil {
 			return nil, err
 		}
@@ -399,7 +399,7 @@ func (t *Translator) TranslateUpdateQuerytoBigtable(query string, isPreparedQuer
 		if len(primkeyvalues) != len(primaryKeys) {
 			return nil, errors.New("missing primary key values in where clause")
 		}
-		rowKeyBytes, err := createOrderedCodeKey(tableConfig, pkValues)
+		rowKeyBytes, err := createOrderedCodeKey(tableConfig, pkValues, qctx)
 		if err != nil {
 			return nil, err
 		}
@@ -414,7 +414,7 @@ func (t *Translator) TranslateUpdateQuerytoBigtable(query string, isPreparedQuer
 			KeySpace:       keyspaceName,
 			PrependColumns: PrependColumns,
 		}
-		rawOutput, err = processCollectionColumnsForRawQueries(tableConfig, rawInput)
+		rawOutput, err = processCollectionColumnsForRawQueries(tableConfig, rawInput, qctx)
 		if err != nil {
 			return nil, fmt.Errorf("error processing raw collection columns: %w", err)
 		}
@@ -436,14 +436,14 @@ func (t *Translator) TranslateUpdateQuerytoBigtable(query string, isPreparedQuer
 				pv = val.Value[1:]
 			}
 			value := fmt.Sprintf("%v", QueryClauses.Params[pv])
-			encryVal, err := formatValues(value, column.CQLType.DataType(), 4)
+			encryVal, err := formatValues(value, column.CQLType.DataType(), qctx)
 			if err != nil {
 				return nil, err
 			}
 			newValues = append(newValues, encryVal)
 		}
 	} else {
-		complexMeta, err = t.ProcessComplexUpdate(columns, values, tableName, keyspaceName, PrependColumns)
+		complexMeta, err = t.ProcessComplexUpdate(columns, values)
 		if err != nil {
 			return nil, err
 		}
@@ -486,7 +486,7 @@ func (t *Translator) TranslateUpdateQuerytoBigtable(query string, isPreparedQuer
 //   - A pointer to an UpdateQueryMapping populated with the new query components required for the update.
 //   - An error if any issues arise during processing, such as failure to fetch primary keys or errors
 //     handling column data or timestamp.
-func (t *Translator) BuildUpdatePrepareQuery(columnsResponse []*types.Column, values []*primitive.Value, st *UpdateQueryMapping, protocolV primitive.ProtocolVersion) (*UpdateQueryMapping, error) {
+func (t *Translator) BuildUpdatePrepareQuery(columnsResponse []*types.Column, values []*primitive.Value, st *UpdateQueryMapping, qctx *types.QueryContext) (*UpdateQueryMapping, error) {
 	var newColumns []*types.Column
 	var newValues []interface{}
 	var primaryKeys []string = st.PrimaryKeys
@@ -514,14 +514,13 @@ func (t *Translator) BuildUpdatePrepareQuery(columnsResponse []*types.Column, va
 		ColumnsResponse: columnsResponse,
 		Values:          values,
 		TableName:       st.Table,
-		ProtocolV:       protocolV,
 		PrimaryKeys:     primaryKeys,
 		Translator:      t,
 		KeySpace:        st.Keyspace,
 		ComplexMeta:     st.ComplexOperation,
 	}
 
-	prepareOutput, err = processCollectionColumnsForPrepareQueries(tableConfig, prepareInput)
+	prepareOutput, err = processCollectionColumnsForPrepareQueries(tableConfig, prepareInput, qctx)
 	if err != nil {
 		return nil, err
 	}
@@ -540,16 +539,15 @@ func (t *Translator) BuildUpdatePrepareQuery(columnsResponse []*types.Column, va
 
 		if slices.Contains(primaryKeys, column.Name) {
 
-			val, _ := utilities.DecodeBytesToCassandraColumnType(values[i+indexEnd+1].Contents, variableMetadata[i+indexEnd+1].Type, protocolV)
+			val, _ := utilities.DecodeBytesToCassandraColumnType(values[i+indexEnd+1].Contents, variableMetadata[i+indexEnd+1].Type, qctx)
 			unencrypted[column.Name] = val
 		}
 	}
 
-	rowKeyBytes, err := createOrderedCodeKey(tableConfig, unencrypted)
+	rowKey, err := createOrderedCodeKey(tableConfig, unencrypted, qctx)
 	if err != nil {
 		return nil, err
 	}
-	rowKey := string(rowKeyBytes)
 
 	UpdateQueryData := &UpdateQueryMapping{
 		Query:                 st.Query,

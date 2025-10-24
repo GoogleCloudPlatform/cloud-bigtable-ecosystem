@@ -34,6 +34,6 @@ func TestAppend(t *testing.T) {
 	// Error test: unsupported type
 	_, err = Append(buf, struct{}{})
 	if err == nil {
-		t.Fatal("expected error for unsupported type, got nil")
+		t.Fatal("want error for unsupported type, got nil")
 	}
 }

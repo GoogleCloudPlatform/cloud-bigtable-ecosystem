@@ -16,7 +16,10 @@
 package types
 
 import (
+	"time"
+
 	"github.com/datastax/go-cassandra-native-protocol/message"
+	"github.com/datastax/go-cassandra-native-protocol/primitive"
 )
 
 type Column struct {
@@ -28,6 +31,15 @@ type Column struct {
 	PkPrecedence int
 	KeyType      string
 	Metadata     message.ColumnMetadata
+}
+
+type QueryContext struct {
+	Now       time.Time
+	ProtocolV primitive.ProtocolVersion
+}
+
+func NewQueryContext(now time.Time, protocolV primitive.ProtocolVersion) *QueryContext {
+	return &QueryContext{Now: now.UTC(), ProtocolV: protocolV}
 }
 
 type CreateColumn struct {

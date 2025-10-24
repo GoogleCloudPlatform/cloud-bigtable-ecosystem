@@ -89,7 +89,7 @@ func TestTypeHandler_HandleTimestampMap(t *testing.T) {
 				SchemaMappingConfig: tt.fields.SchemaMappingConfig,
 				ColumnMetadataCache: tt.fields.ColumnMetadataCache,
 			}
-			err := th.HandleTimestampMap(tt.args.mapData, tt.args.mr, tt.args.mapType, tt.args.protocalV)
+			err := th.HandleTimestampMap(tt.args.mapData, tt.args.mr, tt.args.mapType, false, tt.args.protocalV)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("TypeHandler.HandleTimestampMap() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -107,9 +107,10 @@ func TestTypeHandler_decodeValue(t *testing.T) {
 		ColumnMetadataCache map[string]map[string]message.ColumnMetadata
 	}
 	type args struct {
-		byteArray   []byte
-		elementType datatype.DataType
-		protocalV   primitive.ProtocolVersion
+		byteArray    []byte
+		elementType  datatype.DataType
+		protocalV    primitive.ProtocolVersion
+		isPrimaryKey bool
 	}
 	tests := []struct {
 		name    string
@@ -193,7 +194,7 @@ func TestTypeHandler_decodeValue(t *testing.T) {
 				SchemaMappingConfig: tt.fields.SchemaMappingConfig,
 				ColumnMetadataCache: tt.fields.ColumnMetadataCache,
 			}
-			got, err := th.DecodeValue(tt.args.byteArray, tt.args.elementType, tt.args.protocalV)
+			got, err := th.DecodeValue(tt.args.byteArray, tt.args.elementType, tt.args.isPrimaryKey, false, tt.args.protocalV)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("TypeHandler.DecodeValue() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -211,6 +212,8 @@ func TestHandlePrimitiveEncoding(t *testing.T) {
 		value           interface{}
 		protocalVersion primitive.ProtocolVersion
 		encode          bool
+		isPrimaryKey    bool
+		isWriteTime     bool
 	}
 	tests := []struct {
 		name    string
@@ -463,7 +466,7 @@ func TestHandlePrimitiveEncoding(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := HandlePrimitiveEncoding(tt.args.cqlType, tt.args.value, tt.args.protocalVersion, tt.args.encode)
+			got, err := HandlePrimitiveEncoding(tt.args.cqlType, tt.args.value, tt.args.isWriteTime, tt.args.isPrimaryKey, tt.args.protocalVersion, tt.args.encode)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("HandlePrimitiveEncoding() error = %v, wantErr %v", err, tt.wantErr)
 				return

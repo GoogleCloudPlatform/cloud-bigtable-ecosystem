@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/bigtable"
+	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/utilities"
 	"github.com/datastax/go-cassandra-native-protocol/datatype"
 	"github.com/datastax/go-cassandra-native-protocol/message"
 	"github.com/datastax/go-cassandra-native-protocol/primitive"
@@ -45,9 +46,10 @@ import (
 //   - time.Duration: The total elapsed time for the operation.
 //   - error: Error if the select statement execution fails.
 func (btc *BigtableClient) SelectStatement(ctx context.Context, query rh.QueryMetadata) (*message.RowsResult, time.Time, error) {
+	btc.Logger.Debug("preparing select statement", zap.String("query", query.Query))
 	preparedStmt, err := btc.PrepareStatement(ctx, query)
 	if err != nil {
-		btc.Logger.Error("Failed to prepare statement", zap.String("query", query.Query), zap.Error(err))
+		btc.Logger.Error("Failed to prepare statement", zap.String("query", query.Query), zap.Any("params", query.ParamValues), zap.Error(err))
 		return nil, time.Now(), fmt.Errorf("failed to prepare statement: %w", err)
 	}
 	return btc.ExecutePreparedStatement(ctx, query, preparedStmt)
@@ -68,6 +70,8 @@ func (btc *BigtableClient) ExecutePreparedStatement(ctx context.Context, query r
 	var bigtableEnd time.Time
 	var columnMetadata []*message.ColumnMetadata
 	var processingErr error
+
+	btc.Logger.Debug("binding select statement", zap.String("query", query.Query), zap.Any("params", query.Params))
 
 	boundStmt, err := preparedStmt.Bind(query.Params)
 	if err != nil {
@@ -209,7 +213,7 @@ func (btc *BigtableClient) convertResultRowToMap(resultRow bigtable.ResultRow, q
 		case float32:
 			rowMap[colName] = float64(v)
 		case time.Time:
-			encoded, _ := proxycore.EncodeType(datatype.Timestamp, primitive.ProtocolVersion4, v.UnixMicro())
+			encoded, _ := proxycore.EncodeType(datatype.Timestamp, primitive.ProtocolVersion4, utilities.TimeToBigtableBigInt(v))
 			rowMap[colName] = encoded
 		case nil:
 			rowMap[colName] = nil

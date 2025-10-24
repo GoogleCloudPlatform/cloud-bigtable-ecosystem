@@ -280,7 +280,6 @@ type ProcessPrepareCollectionsInput struct {
 	ColumnsResponse []*types.Column
 	Values          []*primitive.Value
 	TableName       string
-	ProtocolV       primitive.ProtocolVersion
 	PrimaryKeys     []string
 	Translator      *Translator
 	KeySpace        string

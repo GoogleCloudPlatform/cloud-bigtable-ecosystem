@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"time"
 
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/third_party/datastax/proxycore"
 	"github.com/datastax/go-cassandra-native-protocol/datatype"
@@ -38,11 +39,11 @@ import (
 //   - protocolV: The Cassandra protocol version used for encoding.
 //
 // Returns: An error if the encoding fails or if the map type retrieval does not succeed.
-func (th *TypeHandler) HandleTimestampMap(mapData map[string]interface{}, mr *message.Row, mapType datatype.MapType, protocolV primitive.ProtocolVersion) error {
+func (th *TypeHandler) HandleTimestampMap(mapData map[string]interface{}, mr *message.Row, mapType datatype.MapType, isWriteTime bool, protocolV primitive.ProtocolVersion) error {
 	var bytes []byte
 	var err error
 
-	detailsField, err := th.decodeMapData(mapData, mapType.GetValueType(), protocolV)
+	detailsField, err := th.decodeMapData(mapData, mapType.GetValueType(), isWriteTime, protocolV)
 	if err != nil {
 		return err
 	}
@@ -67,7 +68,7 @@ func (th *TypeHandler) HandleTimestampMap(mapData map[string]interface{}, mr *me
 // Returns: An interface{} containing the decoded map data, or an error if decoding fails or
 //
 //	if any key can't be parsed to an int64.
-func (th *TypeHandler) decodeMapData(mapData map[string]interface{}, elementType datatype.DataType, protocolV primitive.ProtocolVersion) (interface{}, error) {
+func (th *TypeHandler) decodeMapData(mapData map[string]interface{}, elementType datatype.DataType, isWriteTime bool, protocolV primitive.ProtocolVersion) (interface{}, error) {
 	result := make(map[int64]interface{})
 
 	for key, value := range mapData {
@@ -76,7 +77,7 @@ func (th *TypeHandler) decodeMapData(mapData map[string]interface{}, elementType
 			return nil, fmt.Errorf("type assertion to []byte failed")
 		}
 
-		decodedValue, err := th.DecodeValue(byteArray, elementType, protocolV)
+		decodedValue, err := th.DecodeValue(byteArray, elementType, isWriteTime, false, protocolV)
 		if err != nil {
 			return nil, err
 		}
@@ -102,15 +103,15 @@ func (th *TypeHandler) decodeMapData(mapData map[string]interface{}, elementType
 // Returns: An interface{} containing the decoded value and an error if the decoding fails
 //
 //	or if the element type is unsupported.
-func (th *TypeHandler) DecodeValue(byteArray []byte, elementType datatype.DataType, protocolV primitive.ProtocolVersion) (interface{}, error) {
+func (th *TypeHandler) DecodeValue(byteArray []byte, elementType datatype.DataType, isWriteTime, isPrimaryKey bool, protocolV primitive.ProtocolVersion) (interface{}, error) {
 	var decodedValue interface{}
 	var err error
 
 	switch elementType {
 	case datatype.Boolean:
-		decodedValue, err = HandlePrimitiveEncoding(elementType, byteArray, protocolV, false)
+		decodedValue, err = HandlePrimitiveEncoding(elementType, byteArray, isWriteTime, isPrimaryKey, protocolV, false)
 	case datatype.Int:
-		decodedValue, err = HandlePrimitiveEncoding(elementType, byteArray, protocolV, false)
+		decodedValue, err = HandlePrimitiveEncoding(elementType, byteArray, isWriteTime, isPrimaryKey, protocolV, false)
 	case datatype.Bigint:
 		decodedValue, err = proxycore.DecodeType(datatype.Bigint, protocolV, byteArray)
 	case datatype.Float:
@@ -226,6 +227,18 @@ func decodeAndReturnBigInt(value interface{}, pv primitive.ProtocolVersion) (int
 	}
 }
 
+func decodeAndReturnTimestamp(value interface{}, isWriteTime, isPrimaryKey bool, pv primitive.ProtocolVersion) (time.Time, error) {
+	intVal, err := decodeAndReturnBigInt(value, pv)
+	if err != nil {
+		return time.Time{}, err
+	}
+	if isPrimaryKey || isWriteTime {
+		return time.UnixMicro(intVal), nil
+	} else {
+		return time.UnixMilli(intVal), nil
+	}
+}
+
 /**
 * DecodeAndReturnFloat is a function that decodes a value to an int64.
 *
@@ -292,7 +305,7 @@ func decodeAndReturnDouble(value interface{}, pv primitive.ProtocolVersion) (flo
 *
 * Returns: The encoded value and an error if any.
  */
-func HandlePrimitiveEncoding(dt datatype.DataType, value interface{}, protocalVersion primitive.ProtocolVersion, encode bool) (interface{}, error) {
+func HandlePrimitiveEncoding(dt datatype.DataType, value interface{}, isWriteTime, isPrimaryKey bool, protocalVersion primitive.ProtocolVersion, encode bool) (interface{}, error) {
 	val := reflect.ValueOf(value)
 	if !val.IsValid() {
 		return value, nil
@@ -308,7 +321,9 @@ func HandlePrimitiveEncoding(dt datatype.DataType, value interface{}, protocalVe
 		decodedValue, err = decodeAndReturnBool(value, protocalVersion)
 	} else if dt == datatype.Int {
 		decodedValue, err = decodeAndReturnInt(value, protocalVersion)
-	} else if dt == datatype.Bigint || dt == datatype.Timestamp || dt == datatype.Counter {
+	} else if dt == datatype.Timestamp {
+		decodedValue, err = decodeAndReturnTimestamp(value, isWriteTime, isPrimaryKey, protocalVersion)
+	} else if dt == datatype.Bigint || dt == datatype.Counter {
 		decodedValue, err = decodeAndReturnBigInt(value, protocalVersion)
 	} else if dt == datatype.Float {
 		decodedValue, err = decodeAndReturnFloat(value, protocalVersion)
@@ -332,7 +347,10 @@ func HandlePrimitiveEncoding(dt datatype.DataType, value interface{}, protocalVe
 		return nil, err
 	}
 	if encode {
-		encoded, _ := proxycore.EncodeType(dt, protocalVersion, decodedValue)
+		encoded, err := proxycore.EncodeType(dt, protocalVersion, decodedValue)
+		if err != nil {
+			return nil, err
+		}
 		return encoded, nil
 	}
 	return decodedValue, nil

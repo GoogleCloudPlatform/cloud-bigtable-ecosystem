@@ -198,3 +198,49 @@ func TestNegativeInsertCases(t *testing.T) {
 		})
 	}
 }
+
+type TimestampEvent struct {
+	region      string
+	eventTime   time.Time
+	measurement float32
+	endTime     time.Time
+}
+
+func TestTimestampInKey(t *testing.T) {
+	t.Parallel()
+
+	t.Run("base case", func(t *testing.T) {
+		t.Parallel()
+
+		input := TimestampEvent{
+			region:      "us-east-1",
+			eventTime:   time.Now().UTC(),
+			measurement: 123.45,
+			endTime:     time.Now().UTC().Add(time.Hour * 3),
+		}
+		err := session.Query(`INSERT INTO timestamp_key (region, event_time, measurement, end_time) VALUES (?, ?, ?, ?)`,
+			input.region, input.eventTime, input.measurement, input.endTime).Exec()
+
+		require.NoError(t, err)
+
+		var got = TimestampEvent{}
+		err = session.Query(`
+        SELECT region, event_time, measurement, end_time
+        FROM timestamp_key
+        WHERE region = ? AND event_time = ?`,
+			input.region,
+			input.eventTime,
+		).Scan(
+			&got.region,
+			&got.eventTime,
+			&got.measurement,
+			&got.endTime,
+		)
+
+		input.eventTime = input.eventTime.Truncate(time.Millisecond)
+		input.endTime = input.endTime.Truncate(time.Millisecond)
+
+		require.NoError(t, err)
+		assert.Equal(t, input, got)
+	})
+}

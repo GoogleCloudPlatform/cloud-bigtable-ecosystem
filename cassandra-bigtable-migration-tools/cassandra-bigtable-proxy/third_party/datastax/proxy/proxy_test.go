@@ -343,6 +343,7 @@ var namedValues = map[string]*primitive.Value{
 }
 
 func Test_handleExecutionForDeletePreparedQuery(t *testing.T) {
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
 
 	id := md5.Sum([]byte("DELETE FROM key_space.test_table WHERE test_id = '?'"))
 	mockProxy := &Proxy{
@@ -423,7 +424,7 @@ func Test_handleExecutionForDeletePreparedQuery(t *testing.T) {
 				preparedQuerys:      tt.fields.preparedQuerys,
 				sender:              mockSender,
 			}
-			c.handleExecuteForDelete(tt.args.raw, tt.args.msg, tt.args.st, tt.fields.ctx)
+			c.handleExecuteForDelete(tt.args.raw, tt.args.msg, tt.args.st, tt.fields.ctx, qctx)
 			assert.Nil(t, c.preparedSystemQuery)
 			assert.Nil(t, c.preparedQuerys)
 		})
@@ -882,6 +883,8 @@ func TestGetMetadataFromCache(t *testing.T) {
 }
 
 func TestHandleServerPreparedQuery(t *testing.T) {
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	ctx := context.Background()
 	mockSender := &mockSender{}
 
@@ -903,7 +906,7 @@ func TestHandleServerPreparedQuery(t *testing.T) {
 	// Case 1: When the query is not found in the cache.
 	client.handleServerPreparedQuery(mockRawFrame, &message.Prepare{Query: insertQuery,
 		Keyspace: "test",
-	}, "insert")
+	}, "insert", qctx)
 	if !mockSender.SendCalled {
 		t.Errorf("Send was not called when expected for test - TestHandleServerPreparedQuery Case 1")
 	}
@@ -920,7 +923,7 @@ func TestHandleServerPreparedQuery(t *testing.T) {
 		}},
 	})
 	// Retrieve and assert
-	client.handleServerPreparedQuery(mockRawFrame, &message.Prepare{Query: insertQuery}, "insert")
+	client.handleServerPreparedQuery(mockRawFrame, &message.Prepare{Query: insertQuery}, "insert", qctx)
 	if !mockSender.SendCalled {
 		t.Errorf("Send was not called when expected for test - TestHandleServerPreparedQuery Case 2")
 	}
@@ -942,7 +945,7 @@ func TestHandleServerPreparedQuery(t *testing.T) {
 	})
 	// Retrieve and assert
 	client.handleServerPreparedQuery(mockRawFrame, &message.Prepare{Query: selectQuery,
-		Keyspace: "test"}, "select")
+		Keyspace: "test"}, "select", qctx)
 	if !mockSender.SendCalled {
 		t.Errorf("Send was not called when expected for test - TestHandleServerPreparedQuery Case 3")
 	}
@@ -962,7 +965,7 @@ func TestHandleServerPreparedQuery(t *testing.T) {
 		}},
 	})
 	// Retrieve and assert
-	client.handleServerPreparedQuery(mockRawFrame, &message.Prepare{Query: updateQuery}, "update")
+	client.handleServerPreparedQuery(mockRawFrame, &message.Prepare{Query: updateQuery}, "update", qctx)
 	if !mockSender.SendCalled {
 		t.Errorf("Send was not called when expected for test - TestHandleServerPreparedQuery Case 4")
 	}
@@ -981,7 +984,7 @@ func TestHandleServerPreparedQuery(t *testing.T) {
 		}},
 	})
 	// Retrieve and assert
-	client.handleServerPreparedQuery(mockRawFrame, &message.Prepare{Query: deleteQuery}, "delete")
+	client.handleServerPreparedQuery(mockRawFrame, &message.Prepare{Query: deleteQuery}, "delete", qctx)
 	if !mockSender.SendCalled {
 		t.Errorf("Send was not called when expected for test - TestHandleServerPreparedQuery Case 5")
 	}
@@ -991,13 +994,15 @@ func TestHandleServerPreparedQuery(t *testing.T) {
 	id = md5.Sum([]byte(invalidQuery))
 	client.AddQueryToCache(id, mockQuery{})
 	// Retrieve and assert
-	client.handleServerPreparedQuery(mockRawFrame, &message.Prepare{Query: deleteQuery}, "invalid")
+	client.handleServerPreparedQuery(mockRawFrame, &message.Prepare{Query: deleteQuery}, "invalid", qctx)
 	if !mockSender.SendCalled {
 		t.Errorf("Send was not called when expected for test - TestHandleServerPreparedQuery Case 6")
 	}
 }
 
 func TestPrepareInsertType(t *testing.T) {
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	ctx := context.Background()
 	mockSender := &mockSender{}
 
@@ -1019,13 +1024,15 @@ func TestPrepareInsertType(t *testing.T) {
 	returnMetadata, variableMetadata, err := client.prepareInsertType(mockRawFrame, &message.Prepare{
 		Query:    insertQuery,
 		Keyspace: keyspace,
-	}, id)
+	}, id, qctx)
 	assert.NoError(t, err)
 	assert.NotNil(t, returnMetadata)
 	assert.NotNil(t, variableMetadata)
 }
 
 func TestPrepareSelectType(t *testing.T) {
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	ctx := context.Background()
 	mockSender := &mockSender{}
 
@@ -1074,13 +1081,15 @@ func TestPrepareSelectType(t *testing.T) {
 	returnMetadata, variableMetadata, err := client.prepareSelectType(mockRawFrame, &message.Prepare{
 		Query:    selectQuery,
 		Keyspace: keyspace,
-	}, id)
+	}, id, qctx)
 	assert.NoError(t, err)
 	assert.NotNil(t, returnMetadata)
 	assert.NotNil(t, variableMetadata)
 }
 
 func TestPrepareSelectTypeWithClauseFunction(t *testing.T) {
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	ctx := context.Background()
 	mockSender := &mockSender{}
 
@@ -1129,13 +1138,15 @@ func TestPrepareSelectTypeWithClauseFunction(t *testing.T) {
 	returnMetadata, variableMetadata, err := client.prepareSelectType(mockRawFrame, &message.Prepare{
 		Query:    selectQuery,
 		Keyspace: keyspace,
-	}, id)
+	}, id, qctx)
 	assert.NoError(t, err)
 	assert.NotNil(t, returnMetadata)
 	assert.NotNil(t, variableMetadata)
 }
 
 func TestPrepareUpdateType(t *testing.T) {
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	ctx := context.Background()
 	mockSender := &mockSender{}
 	client := client{
@@ -1156,13 +1167,15 @@ func TestPrepareUpdateType(t *testing.T) {
 	returnMetadata, variableMetadata, err := client.prepareUpdateType(mockRawFrame, &message.Prepare{
 		Query:    updateQuery,
 		Keyspace: keyspace,
-	}, id)
+	}, id, qctx)
 	assert.NoError(t, err)
 	assert.NotNil(t, returnMetadata)
 	assert.NotNil(t, variableMetadata)
 }
 
 func TestPrepareDeleteType(t *testing.T) {
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	ctx := context.Background()
 	mockSender := &mockSender{}
 
@@ -1184,13 +1197,15 @@ func TestPrepareDeleteType(t *testing.T) {
 	returnMetadata, variableMetadata, err := client.prepareDeleteType(mockRawFrame, &message.Prepare{
 		Query:    deleteQuery,
 		Keyspace: keyspace,
-	}, id)
+	}, id, qctx)
 	assert.NoError(t, err)
 	assert.NotNil(t, returnMetadata)
 	assert.NotNil(t, variableMetadata)
 }
 
 func TestHandleExecuteForInsert(t *testing.T) {
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	ctx := context.Background()
 	mockSender := &mockSender{}
 
@@ -1223,7 +1238,7 @@ func TestHandleExecuteForInsert(t *testing.T) {
 	varMeta, returnMeta, err := client.prepareInsertType(mockRawFrame, &message.Prepare{
 		Query:    insertQuery,
 		Keyspace: keyspace,
-	}, id)
+	}, id, qctx)
 	assert.NoError(t, err)
 	client.handleExecuteForInsert(mockRawFrame, &partialExecute{
 		queryId: id[:],
@@ -1252,9 +1267,11 @@ func TestHandleExecuteForInsert(t *testing.T) {
 		VariableMetadata: varMeta,
 		ReturnMetadata:   returnMeta,
 		Values:           []interface{}{"testshoaib", "25"},
-	}, ctx)
+	}, ctx, qctx)
 }
 func TestHandleExecuteForSelect(t *testing.T) {
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	ctx := context.Background()
 	mockSender := &mockSender{}
 	preparedStatement := &bigtable.PreparedStatement{}
@@ -1295,7 +1312,7 @@ func TestHandleExecuteForSelect(t *testing.T) {
 	varMeta, returnMeta, err := client.prepareSelectType(mockRawFrame, &message.Prepare{
 		Query:    selectQuery,
 		Keyspace: keyspace,
-	}, id)
+	}, id, qctx)
 	assert.NoError(t, err)
 	assert.NotNil(t, varMeta)
 	assert.NotNil(t, returnMeta)
@@ -1368,7 +1385,7 @@ func TestHandleExecuteForSelect(t *testing.T) {
 	client.handleExecuteForSelect(mockRawFrame, &partialExecute{
 		queryId:          id[:],
 		PositionalValues: positionalValues,
-	}, selectQueryMap, ctx)
+	}, selectQueryMap, ctx, qctx)
 
 	// 7. Verify
 	assert.True(t, mockSender.SendCalled)
@@ -1376,6 +1393,8 @@ func TestHandleExecuteForSelect(t *testing.T) {
 }
 
 func TestHandleExecuteForDelete(t *testing.T) {
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	ctx := context.Background()
 	mockSender := &mockSender{}
 
@@ -1404,7 +1423,7 @@ func TestHandleExecuteForDelete(t *testing.T) {
 	varMeta, returnMeta, err := client.prepareDeleteType(mockRawFrame, &message.Prepare{
 		Query:    deleteQuery,
 		Keyspace: keyspace,
-	}, id)
+	}, id, qctx)
 	t.Log("varMeta-0>¸", varMeta)
 	assert.NoError(t, err)
 
@@ -1421,10 +1440,12 @@ func TestHandleExecuteForDelete(t *testing.T) {
 	client.handleExecuteForDelete(mockRawFrame, &partialExecute{
 		queryId:          id[:],
 		PositionalValues: []*primitive.Value{{Type: primitive.ValueTypeRegular, Contents: []byte("name")}, {Type: primitive.ValueTypeRegular, Contents: []byte("age")}},
-	}, deleteQueryMap, ctx)
+	}, deleteQueryMap, ctx, qctx)
 }
 
 func TestHandleExecuteForUpdate(t *testing.T) {
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	ctx := context.Background()
 	mockSender := &mockSender{}
 
@@ -1453,7 +1474,7 @@ func TestHandleExecuteForUpdate(t *testing.T) {
 	varMeta, returnMeta, err := client.prepareUpdateType(mockRawFrame, &message.Prepare{
 		Query:    updateQuery,
 		Keyspace: keyspace,
-	}, id)
+	}, id, qctx)
 	assert.NoError(t, err)
 	client.handleExecuteForUpdate(mockRawFrame, &partialExecute{
 		queryId: id[:],
@@ -1482,7 +1503,7 @@ func TestHandleExecuteForUpdate(t *testing.T) {
 		VariableMetadata: varMeta,
 		ReturnMetadata:   returnMeta,
 		Values:           []interface{}{"testshoaib", "25"},
-	}, ctx)
+	}, ctx, qctx)
 }
 
 func TestHandleQueryInsert(t *testing.T) {
@@ -1575,6 +1596,8 @@ func TestHandleQueryDelete(t *testing.T) {
 }
 
 func TestHandleBatchUpdate(t *testing.T) {
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	ctx := context.Background()
 	mockSender := &mockSender{}
 
@@ -1604,7 +1627,7 @@ func TestHandleBatchUpdate(t *testing.T) {
 	_, _, err := client.prepareUpdateType(mockRawFrame, &message.Prepare{
 		Query:    updateQuery,
 		Keyspace: keyspace,
-	}, id)
+	}, id, qctx)
 	assert.NoError(t, err)
 	client.handleBatch(mockRawFrame, &partialBatch{
 		queryOrIds:            []interface{}{id[:]},
@@ -1613,6 +1636,8 @@ func TestHandleBatchUpdate(t *testing.T) {
 }
 
 func TestHandleBatchInsert(t *testing.T) {
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	ctx := context.Background()
 	mockSender := &mockSender{}
 
@@ -1641,7 +1666,7 @@ func TestHandleBatchInsert(t *testing.T) {
 	_, _, err := client.prepareInsertType(mockRawFrame, &message.Prepare{
 		Query:    insertQuery,
 		Keyspace: keyspace,
-	}, id)
+	}, id, qctx)
 	assert.NoError(t, err)
 	client.handleBatch(mockRawFrame, &partialBatch{
 		queryOrIds:            []interface{}{id[:]},
@@ -1650,6 +1675,8 @@ func TestHandleBatchInsert(t *testing.T) {
 }
 
 func TestHandleBatchSelect(t *testing.T) {
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	ctx := context.Background()
 	mockSender := &mockSender{}
 
@@ -1702,7 +1729,7 @@ func TestHandleBatchSelect(t *testing.T) {
 	_, _, err := client.prepareSelectType(mockRawFrame, &message.Prepare{
 		Query:    selectQuery,
 		Keyspace: keyspace,
-	}, id)
+	}, id, qctx)
 	assert.NoError(t, err)
 	client.handleBatch(mockRawFrame, &partialBatch{
 		queryOrIds:            []interface{}{id[:]},
@@ -1711,6 +1738,8 @@ func TestHandleBatchSelect(t *testing.T) {
 }
 
 func TestHandleBatchDelete(t *testing.T) {
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	ctx := context.Background()
 	mockSender := &mockSender{}
 
@@ -1739,7 +1768,7 @@ func TestHandleBatchDelete(t *testing.T) {
 	_, _, err := client.prepareDeleteType(mockRawFrame, &message.Prepare{
 		Query:    deleteQuery,
 		Keyspace: keyspace,
-	}, id)
+	}, id, qctx)
 	assert.NoError(t, err)
 	client.handleBatch(mockRawFrame, &partialBatch{
 		queryOrIds:            []interface{}{id[:]},

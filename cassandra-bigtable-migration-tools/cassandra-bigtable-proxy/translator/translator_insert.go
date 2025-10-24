@@ -101,7 +101,7 @@ func parseColumnsAndValuesFromInsert(input cql.IInsertColumnSpecContext, tableNa
 //   - columns: Array of Column Names
 //
 // Returns: Map Interface for param name as key and its value and error if any
-func setParamsFromValues(input cql.IInsertValuesSpecContext, columns []*types.Column, tableConfig *schemaMapping.TableConfig, protocolV primitive.ProtocolVersion, isPreparedQuery bool) (map[string]interface{}, []interface{}, map[string]interface{}, error) {
+func setParamsFromValues(input cql.IInsertValuesSpecContext, columns []*types.Column, tableConfig *schemaMapping.TableConfig, isPreparedQuery bool, qctx *types.QueryContext) (map[string]interface{}, []interface{}, map[string]interface{}, error) {
 	if input != nil {
 		valuesExpressionList := input.ExpressionList()
 		if valuesExpressionList == nil {
@@ -137,7 +137,7 @@ func setParamsFromValues(input cql.IInsertValuesSpecContext, columns []*types.Co
 					unenVal = goValue
 				} else {
 					unenVal = goValue
-					val, err = formatValues(fmt.Sprintf("%v", goValue), col.CQLType.DataType(), protocolV)
+					val, err = formatValues(fmt.Sprintf("%v", goValue), col.CQLType.DataType(), qctx)
 					if err != nil {
 						return nil, nil, nil, err
 					}
@@ -161,7 +161,7 @@ func setParamsFromValues(input cql.IInsertValuesSpecContext, columns []*types.Co
 // Returns: InsertQueryMapping, build the InsertQueryMapping and return it with nil value of error. In case of error
 // InsertQueryMapping will return as nil and error will contains the error object
 
-func (t *Translator) TranslateInsertQuerytoBigtable(query string, protocolV primitive.ProtocolVersion, isPreparedQuery bool, sessionKeyspace string) (*InsertQueryMapping, error) {
+func (t *Translator) TranslateInsertQuerytoBigtable(query string, isPreparedQuery bool, sessionKeyspace string, qctx *types.QueryContext) (*InsertQueryMapping, error) {
 	lexer := cql.NewCqlLexer(antlr.NewInputStream(query))
 	stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
 	p := cql.NewCqlParser(stream)
@@ -221,7 +221,7 @@ func (t *Translator) TranslateInsertQuerytoBigtable(query string, protocolV prim
 	var unencrypted map[string]interface{}
 
 	if !isPreparedQuery {
-		params, values, unencrypted, err = setParamsFromValues(insertObj.InsertValuesSpec(), columnsResponse.Columns, tableConfig, protocolV, isPreparedQuery)
+		params, values, unencrypted, err = setParamsFromValues(insertObj.InsertValuesSpec(), columnsResponse.Columns, tableConfig, isPreparedQuery, qctx)
 		if err != nil {
 			return nil, err
 		}
@@ -248,11 +248,10 @@ func (t *Translator) TranslateInsertQuerytoBigtable(query string, protocolV prim
 	}
 
 	if !isPreparedQuery {
-		rowKeyBytes, err := createOrderedCodeKey(tableConfig, unencrypted)
+		rowKey, err = createOrderedCodeKey(tableConfig, unencrypted, qctx)
 		if err != nil {
 			return nil, err
 		}
-		rowKey = string(rowKeyBytes)
 
 		// Building new colum family, qualifier and values for collection type of data.
 		rawInput := ProcessRawCollectionsInput{
@@ -262,7 +261,7 @@ func (t *Translator) TranslateInsertQuerytoBigtable(query string, protocolV prim
 			Translator: t,
 			KeySpace:   keyspaceName,
 		}
-		rawOutput, err = processCollectionColumnsForRawQueries(tableConfig, rawInput)
+		rawOutput, err = processCollectionColumnsForRawQueries(tableConfig, rawInput, qctx)
 		if err != nil {
 			return nil, fmt.Errorf("error processing raw collection columns: %w", err)
 		}
@@ -299,7 +298,7 @@ func (t *Translator) TranslateInsertQuerytoBigtable(query string, protocolV prim
 //
 // Returns: InsertQueryMapping, build the InsertQueryMapping and return it with nil value of error. In case of error
 // InsertQueryMapping will return as nil and error will contains the error object
-func (t *Translator) BuildInsertPrepareQuery(columnsResponse []*types.Column, values []*primitive.Value, st *InsertQueryMapping, protocolV primitive.ProtocolVersion) (*InsertQueryMapping, error) {
+func (t *Translator) BuildInsertPrepareQuery(columnsResponse []*types.Column, values []*primitive.Value, st *InsertQueryMapping, qctx *types.QueryContext) (*InsertQueryMapping, error) {
 	var newColumns []*types.Column
 	var newValues []interface{}
 	var primaryKeys []string = st.PrimaryKeys
@@ -325,13 +324,12 @@ func (t *Translator) BuildInsertPrepareQuery(columnsResponse []*types.Column, va
 		ColumnsResponse: columnsResponse,
 		Values:          values,
 		TableName:       st.Table,
-		ProtocolV:       protocolV,
 		PrimaryKeys:     primaryKeys,
 		Translator:      t,
 		KeySpace:        st.Keyspace,
 		ComplexMeta:     nil, // Assuming nil for insert
 	}
-	prepareOutput, err = processCollectionColumnsForPrepareQueries(tableConfig, prepareInput)
+	prepareOutput, err = processCollectionColumnsForPrepareQueries(tableConfig, prepareInput, qctx)
 	if err != nil {
 		fmt.Println("Error processing prepared collection columns:", err)
 		return nil, err
@@ -341,11 +339,10 @@ func (t *Translator) BuildInsertPrepareQuery(columnsResponse []*types.Column, va
 	unencrypted = prepareOutput.Unencrypted
 	delColumnFamily = prepareOutput.DelColumnFamily
 
-	rowKeyBytes, err := createOrderedCodeKey(tableConfig, unencrypted)
+	rowKey, err := createOrderedCodeKey(tableConfig, unencrypted, qctx)
 	if err != nil {
 		return nil, err
 	}
-	rowKey := string(rowKeyBytes)
 
 	insertQueryData := &InsertQueryMapping{
 		Columns:              newColumns,

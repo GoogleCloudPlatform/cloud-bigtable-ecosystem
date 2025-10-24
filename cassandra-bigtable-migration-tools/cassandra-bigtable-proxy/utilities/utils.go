@@ -236,28 +236,28 @@ func IsCollection(dt datatype.DataType) bool {
 //   - protocolVersion: primitive.ProtocolVersion
 //
 // Returns: (interface{}, error)
-func DecodeBytesToCassandraColumnType(b []byte, choice datatype.PrimitiveType, protocolVersion primitive.ProtocolVersion) (any, error) {
+func DecodeBytesToCassandraColumnType(b []byte, choice datatype.PrimitiveType, qctx *types.QueryContext) (any, error) {
 	switch choice.GetDataTypeCode() {
 	case primitive.DataTypeCodeVarchar:
-		return proxycore.DecodeType(datatype.Varchar, protocolVersion, b)
+		return proxycore.DecodeType(datatype.Varchar, qctx.ProtocolV, b)
 	case primitive.DataTypeCodeDouble:
-		return proxycore.DecodeType(datatype.Double, protocolVersion, b)
+		return proxycore.DecodeType(datatype.Double, qctx.ProtocolV, b)
 	case primitive.DataTypeCodeFloat:
-		return proxycore.DecodeType(datatype.Float, protocolVersion, b)
+		return proxycore.DecodeType(datatype.Float, qctx.ProtocolV, b)
 	case primitive.DataTypeCodeBigint, primitive.DataTypeCodeCounter:
-		return proxycore.DecodeType(datatype.Bigint, protocolVersion, b)
+		return proxycore.DecodeType(datatype.Bigint, qctx.ProtocolV, b)
 	case primitive.DataTypeCodeTimestamp:
-		return proxycore.DecodeType(datatype.Timestamp, protocolVersion, b)
+		return proxycore.DecodeType(datatype.Timestamp, qctx.ProtocolV, b)
 	case primitive.DataTypeCodeInt:
 		var decodedInt int64
 		if len(b) == 8 {
-			decoded, err := proxycore.DecodeType(datatype.Bigint, protocolVersion, b)
+			decoded, err := proxycore.DecodeType(datatype.Bigint, qctx.ProtocolV, b)
 			if err != nil {
 				return nil, err
 			}
 			decodedInt = decoded.(int64)
 		} else {
-			decoded, err := proxycore.DecodeType(datatype.Int, protocolVersion, b)
+			decoded, err := proxycore.DecodeType(datatype.Int, qctx.ProtocolV, b)
 			if err != nil {
 				return nil, err
 			}
@@ -265,13 +265,13 @@ func DecodeBytesToCassandraColumnType(b []byte, choice datatype.PrimitiveType, p
 		}
 		return decodedInt, nil
 	case primitive.DataTypeCodeBoolean:
-		return proxycore.DecodeType(datatype.Boolean, protocolVersion, b)
+		return proxycore.DecodeType(datatype.Boolean, qctx.ProtocolV, b)
 	case primitive.DataTypeCodeDate:
-		return proxycore.DecodeType(datatype.Date, protocolVersion, b)
+		return proxycore.DecodeType(datatype.Date, qctx.ProtocolV, b)
 	case primitive.DataTypeCodeBlob:
-		return proxycore.DecodeType(datatype.Blob, protocolVersion, b)
+		return proxycore.DecodeType(datatype.Blob, qctx.ProtocolV, b)
 	default:
-		res, err := decodeNonPrimitive(choice, b)
+		res, err := decodeNonPrimitive(choice, b, qctx)
 		return res, err
 	}
 }
@@ -364,7 +364,7 @@ func FromDataCode(dt datatype.DataType) (types.CqlDataType, error) {
 }
 
 // decodeNonPrimitive() Decodes non-primitive types like list, list, and list from byte data based on the provided datatype choice. Returns the decoded collection or an error if unsupported.
-func decodeNonPrimitive(choice datatype.PrimitiveType, b []byte) (any, error) {
+func decodeNonPrimitive(choice datatype.PrimitiveType, b []byte, qctx *types.QueryContext) (any, error) {
 	var err error
 	// Check if it's a list type
 	if choice.GetDataTypeCode() == primitive.DataTypeCodeList {
@@ -375,25 +375,25 @@ func decodeNonPrimitive(choice datatype.PrimitiveType, b []byte) (any, error) {
 		// Now check the element type's code
 		switch elementType.GetDataTypeCode() {
 		case primitive.DataTypeCodeVarchar:
-			decodedList, err := collectiondecoder.DecodeCollection(ListOfStr.DataType(), primitive.ProtocolVersion4, b)
+			decodedList, err := collectiondecoder.DecodeCollection(ListOfStr.DataType(), b, qctx)
 			if err != nil {
 				return nil, err
 			}
 			return decodedList, err
 		case primitive.DataTypeCodeInt:
-			decodedList, err := collectiondecoder.DecodeCollection(ListOfInt.DataType(), primitive.ProtocolVersion4, b)
+			decodedList, err := collectiondecoder.DecodeCollection(ListOfInt.DataType(), b, qctx)
 			if err != nil {
 				return nil, err
 			}
 			return decodedList, err
 		case primitive.DataTypeCodeBigint:
-			decodedList, err := collectiondecoder.DecodeCollection(ListOfBigInt.DataType(), primitive.ProtocolVersion4, b)
+			decodedList, err := collectiondecoder.DecodeCollection(ListOfBigInt.DataType(), b, qctx)
 			if err != nil {
 				return nil, err
 			}
 			return decodedList, err
 		case primitive.DataTypeCodeDouble:
-			decodedList, err := collectiondecoder.DecodeCollection(ListOfDouble.DataType(), primitive.ProtocolVersion4, b)
+			decodedList, err := collectiondecoder.DecodeCollection(ListOfDouble.DataType(), b, qctx)
 			if err != nil {
 				return nil, err
 			}
@@ -628,7 +628,7 @@ func IsSupportedPrimaryKeyType(dt types.CqlDataType) bool {
 	}
 
 	switch dt.DataType() {
-	case datatype.Int, datatype.Bigint, datatype.Varchar:
+	case datatype.Int, datatype.Bigint, datatype.Varchar, datatype.Timestamp:
 		return true
 	default:
 		return false
@@ -885,6 +885,12 @@ func validateNoDataTypeDefinition(dt cql.IDataTypeContext) error {
 	}
 	return nil
 }
+
+func TimeToBigtableBigInt(t time.Time) int64 {
+	// bigtable timestamps are in micros but cassandra is in millis, so we need to truncate to millis
+	return t.UTC().Truncate(time.Millisecond).UnixMicro()
+}
+
 func validateDataTypeDefinition(dt cql.IDataTypeContext, expectedTypeCount int) error {
 	def := dt.DataTypeDefinition()
 	if def == nil {

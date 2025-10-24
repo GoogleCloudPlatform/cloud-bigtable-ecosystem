@@ -19,6 +19,7 @@ package translator
 import (
 	"reflect"
 	"testing"
+	"time"
 
 	types "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	schemaMapping "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/schema-mapping"
@@ -31,6 +32,8 @@ import (
 )
 
 func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	const NO_ERROR_EXPECTED = ""
 	type fields struct {
 		Logger *zap.Logger
@@ -40,30 +43,30 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 	}
 
 	valueBlob := "0x0000000000000003"
-	setBlob, err := formatValues(valueBlob, datatype.Blob, 4)
+	setBlob, err := formatValues(valueBlob, datatype.Blob, qctx)
 	if err != nil {
 		t.Errorf("formatValues() error = %v", err)
 	}
 
 	valueTimestamp := "2024-08-12T12:34:56Z"
-	setTimestamp, err := formatValues(valueTimestamp, datatype.Timestamp, 4)
+	setTimestamp, err := formatValues(valueTimestamp, datatype.Timestamp, qctx)
 	if err != nil {
 		t.Errorf("formatValues() error = %v", err)
 	}
 
 	valueInt := "123"
-	setInt, err := formatValues(valueInt, datatype.Int, 4)
+	setInt, err := formatValues(valueInt, datatype.Int, qctx)
 	if err != nil {
 		t.Errorf("formatValues() error = %v", err)
 	}
 
 	valueBigInt := "1234567890"
-	setBigInt, err := formatValues(valueBigInt, datatype.Bigint, 4)
+	setBigInt, err := formatValues(valueBigInt, datatype.Bigint, qctx)
 	if err != nil {
 		t.Errorf("formatValues() error = %v", err)
 	}
 
-	setTrueBool, err := formatValues("true", datatype.Boolean, 4)
+	setTrueBool, err := formatValues("true", datatype.Boolean, qctx)
 	if err != nil {
 		t.Errorf("formatValues() error = %v", err)
 	}
@@ -598,7 +601,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 				Logger:              tt.fields.Logger,
 				SchemaMappingConfig: schemaMappingConfig,
 			}
-			got, err := tr.TranslateUpdateQuerytoBigtable(tt.args.query, false, tt.sessionKeyspace)
+			got, err := tr.TranslateUpdateQuerytoBigtable(tt.args.query, false, tt.sessionKeyspace, qctx)
 			if tt.wantErr != NO_ERROR_EXPECTED {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), tt.wantErr)
@@ -614,6 +617,8 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 }
 
 func TestTranslator_BuildUpdatePrepareQuery(t *testing.T) {
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	type fields struct {
 		Logger              *zap.Logger
 		SchemaMappingConfig *schemaMapping.SchemaMappingConfig
@@ -709,7 +714,7 @@ func TestTranslator_BuildUpdatePrepareQuery(t *testing.T) {
 				Logger:              tt.fields.Logger,
 				SchemaMappingConfig: tt.fields.SchemaMappingConfig,
 			}
-			got, err := tr.BuildUpdatePrepareQuery(tt.args.columnsResponse, tt.args.values, tt.args.st, tt.args.protocolV)
+			got, err := tr.BuildUpdatePrepareQuery(tt.args.columnsResponse, tt.args.values, tt.args.st, qctx)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Translator.BuildUpdatePrepareQuery() error = %v, wantErr %v", err, tt.wantErr)
 				return

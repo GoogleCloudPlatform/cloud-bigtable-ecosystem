@@ -593,6 +593,7 @@ func (c *client) Receive(reader io.Reader) error {
 
 // function to execute query on cassandra
 func (c *client) handlePrepare(raw *frame.RawFrame, msg *message.Prepare) {
+	qctx := types.NewQueryContext(time.Now().UTC(), raw.Header.Version)
 	c.proxy.logger.Debug("handling prepare", zap.String(Query, msg.Query), zap.Int16("stream", raw.Header.StreamId))
 
 	keyspace := c.keyspace
@@ -639,7 +640,7 @@ func (c *client) handlePrepare(raw *frame.RawFrame, msg *message.Prepare) {
 		}
 
 	} else {
-		c.handleServerPreparedQuery(raw, msg, queryType)
+		c.handleServerPreparedQuery(raw, msg, queryType, qctx)
 	}
 }
 
@@ -676,7 +677,7 @@ func (c *client) getMetadataFromCache(id [16]byte) ([]*message.ColumnMetadata, [
 //   - msg: *message.Prepare
 //
 // Returns: nil
-func (c *client) handleServerPreparedQuery(raw *frame.RawFrame, msg *message.Prepare, queryType string) {
+func (c *client) handleServerPreparedQuery(raw *frame.RawFrame, msg *message.Prepare, queryType string, qctx *types.QueryContext) {
 	var PkIndices []uint16
 	var err error
 	var columns, variableColumnMetadata []*message.ColumnMetadata
@@ -687,13 +688,13 @@ func (c *client) handleServerPreparedQuery(raw *frame.RawFrame, msg *message.Pre
 	if !found {
 		switch queryType {
 		case selectType:
-			columns, variableColumnMetadata, err = c.prepareSelectType(raw, msg, id)
+			columns, variableColumnMetadata, err = c.prepareSelectType(raw, msg, id, qctx)
 		case insertType:
-			columns, variableColumnMetadata, err = c.prepareInsertType(raw, msg, id)
+			columns, variableColumnMetadata, err = c.prepareInsertType(raw, msg, id, qctx)
 		case deleteType:
-			columns, variableColumnMetadata, err = c.prepareDeleteType(raw, msg, id)
+			columns, variableColumnMetadata, err = c.prepareDeleteType(raw, msg, id, qctx)
 		case updateType:
-			columns, variableColumnMetadata, err = c.prepareUpdateType(raw, msg, id)
+			columns, variableColumnMetadata, err = c.prepareUpdateType(raw, msg, id, qctx)
 		default:
 			c.proxy.logger.Error("Unhandled Prepared Query Scenario", zap.String(Query, msg.Query))
 			c.sender.Send(raw.Header, &message.Invalid{ErrorMessage: "Unhandled Prepared Query Scenario"})
@@ -725,11 +726,11 @@ func (c *client) handleServerPreparedQuery(raw *frame.RawFrame, msg *message.Pre
 }
 
 // function to handle and delete query of prepared type
-func (c *client) prepareDeleteType(raw *frame.RawFrame, msg *message.Prepare, id [16]byte) ([]*message.ColumnMetadata, []*message.ColumnMetadata, error) {
+func (c *client) prepareDeleteType(raw *frame.RawFrame, msg *message.Prepare, id [16]byte, qctx *types.QueryContext) ([]*message.ColumnMetadata, []*message.ColumnMetadata, error) {
 	var returnColumns, variableColumns, columnsWithInOp []string
 	var err error
 
-	deleteQueryMetadata, err := c.proxy.translator.TranslateDeleteQuerytoBigtable(msg.Query, true, c.keyspace)
+	deleteQueryMetadata, err := c.proxy.translator.TranslateDeleteQuerytoBigtable(msg.Query, true, c.keyspace, qctx)
 	if err != nil {
 		c.proxy.logger.Error(translatorErrorMessage, zap.String(Query, msg.Query), zap.Error(err))
 		c.sender.Send(raw.Header, &message.Invalid{ErrorMessage: err.Error()})
@@ -796,11 +797,12 @@ func (c *client) prepareDeleteType(raw *frame.RawFrame, msg *message.Prepare, id
 }
 
 // function to handle and insert query of prepared type
-func (c *client) prepareInsertType(raw *frame.RawFrame, msg *message.Prepare, id [16]byte) ([]*message.ColumnMetadata, []*message.ColumnMetadata, error) {
+func (c *client) prepareInsertType(raw *frame.RawFrame, msg *message.Prepare, id [16]byte, qctx *types.QueryContext) ([]*message.ColumnMetadata, []*message.ColumnMetadata, error) {
 	var returnColumns []string
 
+	c.proxy.logger.Debug("handling insert query", zap.String("query", msg.Query))
 	// Get the return columns from the query
-	insertQueryMetadata, err := c.proxy.translator.TranslateInsertQuerytoBigtable(msg.Query, raw.Header.Version, true, c.keyspace)
+	insertQueryMetadata, err := c.proxy.translator.TranslateInsertQuerytoBigtable(msg.Query, true, c.keyspace, qctx)
 	if err != nil {
 		c.proxy.logger.Error(translatorErrorMessage, zap.String(Query, msg.Query), zap.Error(err))
 		c.sender.Send(raw.Header, &message.Invalid{ErrorMessage: err.Error()})
@@ -833,9 +835,10 @@ func (c *client) prepareInsertType(raw *frame.RawFrame, msg *message.Prepare, id
 }
 
 // function to handle and select query of prepared type
-func (c *client) prepareSelectType(raw *frame.RawFrame, msg *message.Prepare, id [16]byte) ([]*message.ColumnMetadata, []*message.ColumnMetadata, error) {
+func (c *client) prepareSelectType(raw *frame.RawFrame, msg *message.Prepare, id [16]byte, qctx *types.QueryContext) ([]*message.ColumnMetadata, []*message.ColumnMetadata, error) {
+	c.proxy.logger.Debug("handling select query", zap.String("query", msg.Query))
 	var variableColumns, columnsWithInOp []string
-	translatedSelectQuery, err := c.proxy.translator.TranslateSelectQuerytoBigtable(msg.Query, c.keyspace)
+	translatedSelectQuery, err := c.proxy.translator.TranslateSelectQuerytoBigtable(msg.Query, c.keyspace, qctx)
 	if err != nil {
 		c.proxy.logger.Error(translatorErrorMessage, zap.String(Query, msg.Query), zap.Error(err))
 		c.sender.Send(raw.Header, &message.Invalid{ErrorMessage: err.Error()})
@@ -938,11 +941,12 @@ func (c *client) prepareSelectType(raw *frame.RawFrame, msg *message.Prepare, id
 }
 
 // function to handle update query of prepared type
-func (c *client) prepareUpdateType(raw *frame.RawFrame, msg *message.Prepare, id [16]byte) ([]*message.ColumnMetadata, []*message.ColumnMetadata, error) {
+func (c *client) prepareUpdateType(raw *frame.RawFrame, msg *message.Prepare, id [16]byte, qctx *types.QueryContext) ([]*message.ColumnMetadata, []*message.ColumnMetadata, error) {
 	var returnColumns, variableColumns, columnsWithInOp []string
 	var err error
 
-	updateQueryMetadata, err := c.proxy.translator.TranslateUpdateQuerytoBigtable(msg.Query, true, c.keyspace)
+	c.proxy.logger.Debug("handling update query", zap.String("query", msg.Query))
+	updateQueryMetadata, err := c.proxy.translator.TranslateUpdateQuerytoBigtable(msg.Query, true, c.keyspace, qctx)
 	if err != nil {
 		c.proxy.logger.Error(translatorErrorMessage, zap.String(Query, msg.Query), zap.Error(err))
 		c.sender.Send(raw.Header, &message.Invalid{ErrorMessage: err.Error()})
@@ -1016,18 +1020,21 @@ func (c *client) prepareUpdateType(raw *frame.RawFrame, msg *message.Prepare, id
 func (c *client) handleExecute(raw *frame.RawFrame, msg *partialExecute) {
 	ctx := context.Background()
 	id := preparedIdKey(msg.queryId)
+
+	qctx := types.NewQueryContext(time.Now().UTC(), raw.Header.Version)
+
 	if stmt, ok := c.preparedSystemQuery[id]; ok {
 		c.interceptSystemQuery(raw.Header, stmt)
 	} else if preparedStmt, ok := c.GetQueryFromCache(id); ok {
 		switch st := preparedStmt.(type) {
 		case *translator.SelectQueryMap:
-			c.handleExecuteForSelect(raw, msg, st, ctx)
+			c.handleExecuteForSelect(raw, msg, st, ctx, qctx)
 		case *translator.InsertQueryMapping:
-			c.handleExecuteForInsert(raw, msg, st, ctx)
+			c.handleExecuteForInsert(raw, msg, st, ctx, qctx)
 		case *translator.DeleteQueryMapping:
-			c.handleExecuteForDelete(raw, msg, st, ctx)
+			c.handleExecuteForDelete(raw, msg, st, ctx, qctx)
 		case *translator.UpdateQueryMapping:
-			c.handleExecuteForUpdate(raw, msg, st, ctx)
+			c.handleExecuteForUpdate(raw, msg, st, ctx, qctx)
 		default:
 			c.proxy.logger.Error("Unhandled Prepare Execute Scenario")
 			c.sender.Send(raw.Header, &message.ServerError{ErrorMessage: "Unhandled Prepared Query Object"})
@@ -1040,6 +1047,7 @@ func (c *client) handleExecute(raw *frame.RawFrame, msg *partialExecute) {
 
 // handle batch queries
 func (c *client) handleBatch(raw *frame.RawFrame, msg *partialBatch) {
+	qctx := types.NewQueryContext(time.Now().UTC(), raw.Header.Version)
 	startTime := time.Now()
 	var keySpace string
 	var batchQueriesString []string
@@ -1063,7 +1071,7 @@ func (c *client) handleBatch(raw *frame.RawFrame, msg *partialBatch) {
 		if preparedStmt, ok := c.GetQueryFromCache(id); ok {
 			switch st := preparedStmt.(type) {
 			case *translator.InsertQueryMapping:
-				queryMetadata, columns, err := c.prepareInsertQueryMetadata(raw, msg.BatchPositionalValues[index], st)
+				queryMetadata, columns, err := c.prepareInsertQueryMetadata(raw, msg.BatchPositionalValues[index], st, qctx)
 				keySpace = st.Keyspace
 				if err != nil {
 					c.proxy.logger.Error("Error preparing insert batch query metadata", zap.String(Query, st.Query), zap.Error(err))
@@ -1080,7 +1088,7 @@ func (c *client) handleBatch(raw *frame.RawFrame, msg *partialBatch) {
 				batchQueriesString = append(batchQueriesString, st.Query)
 			case *translator.DeleteQueryMapping:
 				keySpace = st.Keyspace
-				queryMetadata, err := c.prepareDeleteQueryMetadata(raw, msg.BatchPositionalValues[index], st)
+				queryMetadata, err := c.prepareDeleteQueryMetadata(raw, msg.BatchPositionalValues[index], st, qctx)
 				if err != nil {
 					c.proxy.logger.Error("Error preparing delete batch query metadata", zap.String(Query, st.Query), zap.Error(err))
 					c.sender.Send(raw.Header, &message.ConfigError{ErrorMessage: err.Error()})
@@ -1096,7 +1104,7 @@ func (c *client) handleBatch(raw *frame.RawFrame, msg *partialBatch) {
 				batchQueriesString = append(batchQueriesString, st.Query)
 			case *translator.UpdateQueryMapping:
 				keySpace = st.Keyspace
-				queryMetadata, mutData, err := c.prepareUpdateQueryMetadata(raw, msg.BatchPositionalValues[index], st)
+				queryMetadata, mutData, err := c.prepareUpdateQueryMetadata(raw, msg.BatchPositionalValues[index], st, qctx)
 				if err != nil {
 					c.proxy.logger.Error("Error preparing updadte batch query metadata", zap.String(Query, st.Query), zap.Error(err))
 					c.sender.Send(raw.Header, &message.ConfigError{ErrorMessage: err.Error()})
@@ -1147,7 +1155,7 @@ func (c *client) handleBatch(raw *frame.RawFrame, msg *partialBatch) {
 }
 
 // handleExecute for Select prepared query
-func (c *client) handleExecuteForSelect(raw *frame.RawFrame, msg *partialExecute, st *translator.SelectQueryMap, ctx context.Context) {
+func (c *client) handleExecuteForSelect(raw *frame.RawFrame, msg *partialExecute, st *translator.SelectQueryMap, ctx context.Context, qctx *types.QueryContext) {
 	startTime := time.Now()
 	var err error
 	var result *message.RowsResult
@@ -1163,7 +1171,7 @@ func (c *client) handleExecuteForSelect(raw *frame.RawFrame, msg *partialExecute
 	// Get Decoded parameters
 	otelgo.AddAnnotation(otelCtx, "Decoding Bytes To Cassandra Column Type")
 	for index, columnMetada := range st.VariableMetadata {
-		decodedValue, err := utilities.DecodeBytesToCassandraColumnType(msg.PositionalValues[index].Contents, columnMetada.Type, raw.Header.Version)
+		decodedValue, err := utilities.DecodeBytesToCassandraColumnType(msg.PositionalValues[index].Contents, columnMetada.Type, qctx)
 		if err != nil {
 			c.proxy.logger.Error(errorWhileDecoding, zap.String(Query, st.Query), zap.String("Column", columnMetada.Name), zap.Error(err))
 			c.sender.Send(raw.Header, &message.ConfigError{ErrorMessage: err.Error()})
@@ -1238,7 +1246,7 @@ func (c *client) handleExecuteForSelect(raw *frame.RawFrame, msg *partialExecute
 }
 
 // handleExecute for update prepared query
-func (c *client) handleExecuteForUpdate(raw *frame.RawFrame, msg *partialExecute, st *translator.UpdateQueryMapping, ctx context.Context) {
+func (c *client) handleExecuteForUpdate(raw *frame.RawFrame, msg *partialExecute, st *translator.UpdateQueryMapping, ctx context.Context, qctx *types.QueryContext) {
 	startTime := time.Now()
 	var otelErr error
 	otelCtx, span := c.proxy.otelInst.StartSpan(ctx, updateType, []attribute.KeyValue{
@@ -1248,7 +1256,7 @@ func (c *client) handleExecuteForUpdate(raw *frame.RawFrame, msg *partialExecute
 	defer c.proxy.otelInst.EndSpan(span)
 	defer c.proxy.otelInst.RecordMetrics(otelCtx, handleExecuteForUpdate, startTime, updateType, c.keyspace, otelErr)
 
-	queryMetadata, _, err := c.prepareUpdateQueryMetadata(raw, msg.PositionalValues, st)
+	queryMetadata, _, err := c.prepareUpdateQueryMetadata(raw, msg.PositionalValues, st, qctx)
 
 	if err != nil {
 		c.proxy.logger.Error("Error preparing update query metadata", zap.String(Query, st.Query), zap.Error(err))
@@ -1270,7 +1278,7 @@ func (c *client) handleExecuteForUpdate(raw *frame.RawFrame, msg *partialExecute
 }
 
 // handleExecute for delete prepared query
-func (c *client) handleExecuteForDelete(raw *frame.RawFrame, msg *partialExecute, st *translator.DeleteQueryMapping, ctx context.Context) {
+func (c *client) handleExecuteForDelete(raw *frame.RawFrame, msg *partialExecute, st *translator.DeleteQueryMapping, ctx context.Context, qctx *types.QueryContext) {
 	start := time.Now()
 	var otelErr error
 	otelCtx, span := c.proxy.otelInst.StartSpan(ctx, deleteType, []attribute.KeyValue{
@@ -1281,7 +1289,7 @@ func (c *client) handleExecuteForDelete(raw *frame.RawFrame, msg *partialExecute
 	defer c.proxy.otelInst.RecordMetrics(otelCtx, handleExecuteForDelete, start, deleteType, c.keyspace, otelErr)
 
 	var deleteMetadata *translator.DeleteQueryMapping
-	deleteMetadata, err := c.prepareDeleteQueryMetadata(raw, msg.PositionalValues, st)
+	deleteMetadata, err := c.prepareDeleteQueryMetadata(raw, msg.PositionalValues, st, qctx)
 	if err != nil {
 		c.proxy.logger.Error("Error preparing Delete query metadata", zap.String(Query, st.Query), zap.Error(err))
 		c.sender.Send(raw.Header, &message.ConfigError{ErrorMessage: err.Error()})
@@ -1302,9 +1310,9 @@ func (c *client) handleExecuteForDelete(raw *frame.RawFrame, msg *partialExecute
 }
 
 // handleExecute for insert prepared query
-func (c *client) handleExecuteForInsert(raw *frame.RawFrame, msg *partialExecute, st *translator.InsertQueryMapping, ctx context.Context) {
+func (c *client) handleExecuteForInsert(raw *frame.RawFrame, msg *partialExecute, st *translator.InsertQueryMapping, ctx context.Context, qctx *types.QueryContext) {
 	start := time.Now()
-	queryMetadata, _, err := c.prepareInsertQueryMetadata(raw, msg.PositionalValues, st)
+	queryMetadata, _, err := c.prepareInsertQueryMetadata(raw, msg.PositionalValues, st, qctx)
 	if err != nil {
 		c.proxy.logger.Error("Error preparing insert query metadata", zap.String(Query, st.Query), zap.Error(err))
 		c.sender.Send(raw.Header, &message.ConfigError{ErrorMessage: err.Error()})
@@ -1336,8 +1344,8 @@ func (c *client) handleExecuteForInsert(raw *frame.RawFrame, msg *partialExecute
 }
 
 // Prepare update query metadata
-func (c *client) prepareUpdateQueryMetadata(raw *frame.RawFrame, paramValues []*primitive.Value, st *translator.UpdateQueryMapping) (*translator.UpdateQueryMapping, []bigtableModule.ColumnData, error) {
-	updateData, iErr := c.proxy.translator.BuildUpdatePrepareQuery(st.Columns, paramValues, st, raw.Header.Version)
+func (c *client) prepareUpdateQueryMetadata(raw *frame.RawFrame, paramValues []*primitive.Value, st *translator.UpdateQueryMapping, qctx *types.QueryContext) (*translator.UpdateQueryMapping, []bigtableModule.ColumnData, error) {
+	updateData, iErr := c.proxy.translator.BuildUpdatePrepareQuery(st.Columns, paramValues, st, qctx)
 	if iErr != nil {
 		return nil, nil, fmt.Errorf("error building update prepare query:%s", iErr)
 	}
@@ -1355,7 +1363,7 @@ func (c *client) prepareUpdateQueryMetadata(raw *frame.RawFrame, paramValues []*
 }
 
 // Prepare delete query metadata
-func (c *client) prepareDeleteQueryMetadata(raw *frame.RawFrame, paramValue []*primitive.Value, st *translator.DeleteQueryMapping) (*translator.DeleteQueryMapping, error) {
+func (c *client) prepareDeleteQueryMetadata(raw *frame.RawFrame, paramValue []*primitive.Value, st *translator.DeleteQueryMapping, qctx *types.QueryContext) (*translator.DeleteQueryMapping, error) {
 	tableConfig, err := c.proxy.schemaMapping.GetTableConfig(st.Keyspace, st.Table)
 	if err != nil {
 		return nil, err
@@ -1376,7 +1384,7 @@ func (c *client) prepareDeleteQueryMetadata(raw *frame.RawFrame, paramValue []*p
 		}
 	}
 
-	rowKey, timestamp, err := c.proxy.translator.BuildDeletePrepareQuery(paramValue, st, variableColumnMetadata, raw.Header.Version)
+	rowKey, timestamp, err := c.proxy.translator.BuildDeletePrepareQuery(paramValue, st, variableColumnMetadata, qctx)
 	if err != nil {
 		return nil, fmt.Errorf("error building rowkey for delete prepare query:%w", err)
 	}
@@ -1402,8 +1410,8 @@ func (c *client) prepareDeleteQueryMetadata(raw *frame.RawFrame, paramValue []*p
 }
 
 // Prepare insert query metadata
-func (c *client) prepareInsertQueryMetadata(raw *frame.RawFrame, paramValue []*primitive.Value, st *translator.InsertQueryMapping) (*translator.InsertQueryMapping, []bigtableModule.ColumnData, error) {
-	insertData, iErr := c.proxy.translator.BuildInsertPrepareQuery(st.Columns, paramValue, st, raw.Header.Version)
+func (c *client) prepareInsertQueryMetadata(raw *frame.RawFrame, paramValue []*primitive.Value, st *translator.InsertQueryMapping, qctx *types.QueryContext) (*translator.InsertQueryMapping, []bigtableModule.ColumnData, error) {
+	insertData, iErr := c.proxy.translator.BuildInsertPrepareQuery(st.Columns, paramValue, st, qctx)
 	if iErr != nil {
 		return nil, nil, fmt.Errorf("error building insert prepare query:%s", iErr)
 	}
@@ -1432,6 +1440,8 @@ func (c *client) handleQuery(raw *frame.RawFrame, msg *partialQuery) {
 		attribute.String("Query", msg.query),
 	})
 	defer c.proxy.otelInst.EndSpan(span)
+
+	qctx := types.NewQueryContext(time.Now().UTC(), raw.Header.Version)
 
 	if handled {
 		if err != nil {
@@ -1467,7 +1477,7 @@ func (c *client) handleQuery(raw *frame.RawFrame, msg *partialQuery) {
 			}
 			return
 		case selectType:
-			translatedSelectQuery, err := c.proxy.translator.TranslateSelectQuerytoBigtable(msg.query, c.keyspace)
+			translatedSelectQuery, err := c.proxy.translator.TranslateSelectQuerytoBigtable(msg.query, c.keyspace, qctx)
 			if err != nil {
 				c.proxy.logger.Error(translatorErrorMessage, zap.String(Query, msg.query), zap.Error(err))
 				otelErr = err
@@ -1503,11 +1513,17 @@ func (c *client) handleQuery(raw *frame.RawFrame, msg *partialQuery) {
 				c.sender.Send(raw.Header, &message.Invalid{ErrorMessage: err.Error()})
 				return
 			}
+
+			for _, column := range result.Metadata.Columns {
+				c.proxy.logger.Info("select type:", zap.String("results", column.Type.String()))
+			}
+			c.proxy.logger.Info("select results:", zap.Any("results", result))
+
 			c.sender.Send(raw.Header, result)
 			return
 
 		case insertType:
-			insertData, err := c.proxy.translator.TranslateInsertQuerytoBigtable(msg.query, raw.Header.Version, false, c.keyspace)
+			insertData, err := c.proxy.translator.TranslateInsertQuerytoBigtable(msg.query, false, c.keyspace, qctx)
 			if err != nil {
 				c.proxy.logger.Error(translatorErrorMessage, zap.String(Query, msg.query), zap.Error(err))
 				otelErr = err
@@ -1536,7 +1552,7 @@ func (c *client) handleQuery(raw *frame.RawFrame, msg *partialQuery) {
 			return
 
 		case deleteType:
-			queryMetadata, err := c.proxy.translator.TranslateDeleteQuerytoBigtable(msg.query, false, c.keyspace)
+			queryMetadata, err := c.proxy.translator.TranslateDeleteQuerytoBigtable(msg.query, false, c.keyspace, qctx)
 			if err != nil {
 				c.proxy.logger.Error(translatorErrorMessage, zap.String(Query, msg.query), zap.Error(err))
 				otelErr = err
@@ -1570,7 +1586,7 @@ func (c *client) handleQuery(raw *frame.RawFrame, msg *partialQuery) {
 			}
 
 		case updateType:
-			updateQueryMetaData, err := c.proxy.translator.TranslateUpdateQuerytoBigtable(msg.query, false, c.keyspace)
+			updateQueryMetaData, err := c.proxy.translator.TranslateUpdateQuerytoBigtable(msg.query, false, c.keyspace, qctx)
 			if err != nil {
 				c.proxy.logger.Error(translatorErrorMessage, zap.String(Query, msg.query), zap.Error(err))
 				otelErr = err
