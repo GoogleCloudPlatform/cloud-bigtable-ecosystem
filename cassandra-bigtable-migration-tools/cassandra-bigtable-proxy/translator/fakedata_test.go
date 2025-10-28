@@ -65,6 +65,11 @@ func GetSchemaMappingConfig(intRowKeyEncoding types.IntRowKeyEncodingType) *sche
 		{Name: "age", CQLType: u.ParseCqlTypeOrDie("int"), KeyType: u.KEY_TYPE_CLUSTERING, PkPrecedence: 2},
 	}
 
+	timestampKeyTable := []*types.Column{
+		{Name: "event_time", CQLType: types.TypeTimestamp, KeyType: u.KEY_TYPE_PARTITION, PkPrecedence: 1},
+		{Name: "event_type", CQLType: types.TypeText, KeyType: u.KEY_TYPE_REGULAR},
+	}
+
 	nonPrimitiveTableColumns := []*types.Column{
 		{Name: "pk_1_text", CQLType: u.ParseCqlTypeOrDie("text"), KeyType: u.KEY_TYPE_PARTITION, PkPrecedence: 1},
 		{Name: "map_text_text", CQLType: u.ParseCqlTypeOrDie("map<varchar,varchar>"), KeyType: u.KEY_TYPE_REGULAR},
@@ -102,6 +107,7 @@ func GetSchemaMappingConfig(intRowKeyEncoding types.IntRowKeyEncodingType) *sche
 		schemaMapping.NewTableConfig("test_keyspace", "int_table", systemColumnFamily, intRowKeyEncoding, intTableColumns),
 		schemaMapping.NewTableConfig("test_keyspace", "user_info", systemColumnFamily, intRowKeyEncoding, userInfoColumns),
 		schemaMapping.NewTableConfig("test_keyspace", "non_primitive_table", systemColumnFamily, intRowKeyEncoding, nonPrimitiveTableColumns),
+		schemaMapping.NewTableConfig("test_keyspace", "timestamp_row_keys", systemColumnFamily, intRowKeyEncoding, timestampKeyTable),
 	}
 
 	return schemaMapping.NewSchemaMappingConfig("schema_mapping", systemColumnFamily, zap.NewNop(), allTableConfigs)

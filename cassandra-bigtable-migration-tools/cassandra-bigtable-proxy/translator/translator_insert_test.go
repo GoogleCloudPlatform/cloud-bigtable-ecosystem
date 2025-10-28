@@ -19,6 +19,7 @@ package translator
 import (
 	"reflect"
 	"testing"
+	"time"
 
 	types "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	schemaMapping "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/schema-mapping"
@@ -33,6 +34,14 @@ import (
 	"go.uber.org/zap"
 )
 
+func createOrderedCodeKeyFromSliceOrDie(v []interface{}, e types.IntRowKeyEncodingType) string {
+	result, err := createOrderedCodeKeyFromSlice(v, e)
+	if err != nil {
+		panic(err)
+	}
+	return result
+}
+
 func parseInsertQuery(query string) cql.IInsertContext {
 	lexer := cql.NewCqlLexer(antlr.NewInputStream(query))
 	stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
@@ -43,10 +52,11 @@ func parseInsertQuery(query string) cql.IInsertContext {
 }
 
 func Test_setParamsFromValues(t *testing.T) {
-	var protocalV primitive.ProtocolVersion = 4
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	response := make(map[string]interface{})
-	val, _ := formatValues("Test", datatype.Varchar, protocalV)
-	specialCharVal, _ := formatValues("#!@#$%^&*()_+", datatype.Varchar, protocalV)
+	val, _ := formatValues("Test", datatype.Varchar, qctx)
+	specialCharVal, _ := formatValues("#!@#$%^&*()_+", datatype.Varchar, qctx)
 	response["name"] = val
 	specialCharResponse := make(map[string]interface{})
 	specialCharResponse["name"] = specialCharVal
@@ -62,7 +72,6 @@ func Test_setParamsFromValues(t *testing.T) {
 		input           cql.IInsertValuesSpecContext
 		columns         []*types.Column
 		schemaMapping   *schemaMapping.SchemaMappingConfig
-		protocolV       primitive.ProtocolVersion
 		isPreparedQuery bool
 	}
 	tests := []struct {
@@ -85,7 +94,6 @@ func Test_setParamsFromValues(t *testing.T) {
 					},
 				},
 				schemaMapping:   GetSchemaMappingConfig(types.OrderedCodeEncoding),
-				protocolV:       protocalV,
 				isPreparedQuery: false,
 			},
 			want:    specialCharResponse,
@@ -105,7 +113,6 @@ func Test_setParamsFromValues(t *testing.T) {
 					},
 				},
 				schemaMapping:   GetSchemaMappingConfig(types.OrderedCodeEncoding),
-				protocolV:       protocalV,
 				isPreparedQuery: false,
 			},
 			want:    response,
@@ -125,7 +132,6 @@ func Test_setParamsFromValues(t *testing.T) {
 					},
 				},
 				schemaMapping:   GetSchemaMappingConfig(types.OrderedCodeEncoding),
-				protocolV:       protocalV,
 				isPreparedQuery: true,
 			},
 			want:    make(map[string]interface{}),
@@ -145,7 +151,6 @@ func Test_setParamsFromValues(t *testing.T) {
 					},
 				},
 				schemaMapping:   GetSchemaMappingConfig(types.OrderedCodeEncoding),
-				protocolV:       protocalV,
 				isPreparedQuery: false,
 			},
 			want:    nil,
@@ -165,7 +170,6 @@ func Test_setParamsFromValues(t *testing.T) {
 					},
 				},
 				schemaMapping:   GetSchemaMappingConfig(types.OrderedCodeEncoding),
-				protocolV:       protocalV,
 				isPreparedQuery: false,
 			},
 			want:    nil,
@@ -179,7 +183,6 @@ func Test_setParamsFromValues(t *testing.T) {
 				input:           parseInsertQuery("INSERT INTO xobani_derived.user_info ( name ) VALUES").InsertValuesSpec(),
 				columns:         nil,
 				schemaMapping:   GetSchemaMappingConfig(types.OrderedCodeEncoding),
-				protocolV:       protocalV,
 				isPreparedQuery: false,
 			},
 			want:    nil,
@@ -191,7 +194,7 @@ func Test_setParamsFromValues(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tc, _ := tt.args.schemaMapping.GetTableConfig("test_keyspace", "user_info")
-			got, got1, got2, err := setParamsFromValues(tt.args.input, tt.args.columns, tc, tt.args.protocolV, tt.args.isPreparedQuery)
+			got, got1, got2, err := setParamsFromValues(tt.args.input, tt.args.columns, tc, tt.args.isPreparedQuery, qctx)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("setParamsFromValues() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -209,65 +212,22 @@ func Test_setParamsFromValues(t *testing.T) {
 	}
 }
 
-func formatValueUnsafe(t *testing.T, value string, cqlType datatype.DataType, protocolV primitive.ProtocolVersion) []byte {
-	result, err := formatValues(value, cqlType, protocolV)
+func formatValueOrDie(t *testing.T, value string, cqlType datatype.DataType, qctx *types.QueryContext) []byte {
+	result, err := formatValues(value, cqlType, qctx)
 	require.NoError(t, err)
 	return result
 }
 
 func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
-	var protocolV primitive.ProtocolVersion = 4
 	type fields struct {
 		Logger              *zap.Logger
 		SchemaMappingConfig *schemaMapping.SchemaMappingConfig
 	}
 	type args struct {
 		queryStr        string
-		protocolV       primitive.ProtocolVersion
 		isPreparedQuery bool
 	}
-
-	// Define values and format them
-	textValue := "test-text"
-	blobValue := "0x0000000000000003"
-	booleanValue := "true"
-	timestampValue := "2024-08-12T12:34:56Z"
-	intValue := "123"
-	bigIntValue := "1234567890"
-	column10 := "column10"
-
-	formattedText, _ := formatValues(textValue, datatype.Varchar, protocolV)
-	formattedBlob, _ := formatValues(blobValue, datatype.Blob, protocolV)
-	formattedBoolean, _ := formatValues(booleanValue, datatype.Boolean, protocolV)
-	formattedTimestamp, _ := formatValues(timestampValue, datatype.Timestamp, protocolV)
-	formattedInt, _ := formatValues(intValue, datatype.Int, protocolV)
-	formattedBigInt, _ := formatValues(bigIntValue, datatype.Bigint, protocolV)
-	formattedcolumn10text, _ := formatValues(column10, datatype.Varchar, protocolV)
-
-	values := []interface{}{
-		formattedBlob,
-		formattedBoolean,
-		formattedTimestamp,
-		formattedInt,
-		formattedBigInt,
-	}
-
-	response := map[string]interface{}{
-		"column1":  formattedText,
-		"column2":  formattedBlob,
-		"column3":  formattedBoolean,
-		"column5":  formattedTimestamp,
-		"column6":  formattedInt,
-		"column9":  formattedBigInt,
-		"column10": formattedcolumn10text,
-	}
-
-	query := "INSERT INTO test_keyspace.test_table (column1, column2, column3, column5, column6, column9, column10) VALUES ('" +
-		textValue + "', '" + blobValue + "', " + booleanValue + ", '" + timestampValue + "', " + intValue + ", " + bigIntValue + ", " + column10 + ")"
-
-	preparedQuery := "INSERT INTO test_keyspace.test_table (column1, column2, column3, column5, column6, column9, column10) VALUES ('?', '?', '?', '?', '?', '?', '?')"
-	// Query with USING TIMESTAMP
-	preparedQueryWithTimestamp := "INSERT INTO test_keyspace.test_table (column1, column2, column3, column5, column6, column9, column10) VALUES (?, ?, ?, ?, ?, ?, ?) USING TIMESTAMP ?"
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
 
 	tests := []struct {
 		name    string
@@ -275,55 +235,54 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 		args    args
 		want    *InsertQueryMapping
 		wantErr bool
-	}{{
-		name: "success with prepared query and USING TIMESTAMP",
-		args: args{
-			queryStr:        preparedQueryWithTimestamp,
-			protocolV:       protocolV,
-			isPreparedQuery: true,
-		},
-		fields: fields{
-			SchemaMappingConfig: GetSchemaMappingConfig(types.OrderedCodeEncoding),
-		},
-		want: &InsertQueryMapping{
-			Query:     preparedQueryWithTimestamp,
-			QueryType: "INSERT",
-			Table:     "test_table",
-			Keyspace:  "test_keyspace",
-			Columns: []*types.Column{
-				{Name: "column1", ColumnFamily: "cf1", CQLType: utilities.ParseCqlTypeOrDie("varchar"), IsPrimaryKey: true},
-				{Name: "column2", ColumnFamily: "cf1", CQLType: utilities.ParseCqlTypeOrDie("blob"), IsPrimaryKey: false},
-				{Name: "column3", ColumnFamily: "cf1", CQLType: utilities.ParseCqlTypeOrDie("boolean"), IsPrimaryKey: false},
-				{Name: "column5", ColumnFamily: "cf1", CQLType: utilities.ParseCqlTypeOrDie("timestamp"), IsPrimaryKey: false},
-				{Name: "column6", ColumnFamily: "cf1", CQLType: utilities.ParseCqlTypeOrDie("int"), IsPrimaryKey: false},
-				{Name: "column9", ColumnFamily: "cf1", CQLType: utilities.ParseCqlTypeOrDie("bigint"), IsPrimaryKey: false},
-				{Name: "column10", ColumnFamily: "cf1", CQLType: utilities.ParseCqlTypeOrDie("varchar"), IsPrimaryKey: true},
-			},
-			Values:      nil, // undefined because this is a prepared query
-			Params:      nil, // undefined because this is a prepared query
-			ParamKeys:   []string{"column1", "column2", "column3", "column5", "column6", "column9", "column10"},
-			PrimaryKeys: []string{"column1", "column10"},
-			RowKey:      "", // undefined because this is a prepared query
-			TimestampInfo: TimestampInfo{
-				Timestamp:         0,
-				HasUsingTimestamp: true,
-				Index:             7,
-			}, // Should include the custom timestamp parameter
-		},
-		wantErr: false,
-	},
+	}{
 		{
-			name: "success with prepared query",
+			name: "success with prepared query and USING TIMESTAMP",
 			args: args{
-				queryStr:        preparedQuery,
-				protocolV:       protocolV,
+				queryStr:        "INSERT INTO test_keyspace.test_table (column1, column2, column3, column5, column6, column9, column10) VALUES (?, ?, ?, ?, ?, ?, ?) USING TIMESTAMP ?",
 				isPreparedQuery: true,
 			},
 			fields: fields{
 				SchemaMappingConfig: GetSchemaMappingConfig(types.OrderedCodeEncoding),
 			},
 			want: &InsertQueryMapping{
-				Query:     preparedQuery,
+				Query:     "INSERT INTO test_keyspace.test_table (column1, column2, column3, column5, column6, column9, column10) VALUES (?, ?, ?, ?, ?, ?, ?) USING TIMESTAMP ?",
+				QueryType: "INSERT",
+				Table:     "test_table",
+				Keyspace:  "test_keyspace",
+				Columns: []*types.Column{
+					{Name: "column1", ColumnFamily: "cf1", CQLType: utilities.ParseCqlTypeOrDie("varchar"), IsPrimaryKey: true},
+					{Name: "column2", ColumnFamily: "cf1", CQLType: utilities.ParseCqlTypeOrDie("blob"), IsPrimaryKey: false},
+					{Name: "column3", ColumnFamily: "cf1", CQLType: utilities.ParseCqlTypeOrDie("boolean"), IsPrimaryKey: false},
+					{Name: "column5", ColumnFamily: "cf1", CQLType: utilities.ParseCqlTypeOrDie("timestamp"), IsPrimaryKey: false},
+					{Name: "column6", ColumnFamily: "cf1", CQLType: utilities.ParseCqlTypeOrDie("int"), IsPrimaryKey: false},
+					{Name: "column9", ColumnFamily: "cf1", CQLType: utilities.ParseCqlTypeOrDie("bigint"), IsPrimaryKey: false},
+					{Name: "column10", ColumnFamily: "cf1", CQLType: utilities.ParseCqlTypeOrDie("varchar"), IsPrimaryKey: true},
+				},
+				Values:      nil, // undefined because this is a prepared query
+				Params:      nil, // undefined because this is a prepared query
+				ParamKeys:   []string{"column1", "column2", "column3", "column5", "column6", "column9", "column10"},
+				PrimaryKeys: []string{"column1", "column10"},
+				RowKey:      "", // undefined because this is a prepared query
+				TimestampInfo: TimestampInfo{
+					Timestamp:         0,
+					HasUsingTimestamp: true,
+					Index:             7,
+				}, // Should include the custom timestamp parameter
+			},
+			wantErr: false,
+		},
+		{
+			name: "success with prepared query",
+			args: args{
+				queryStr:        "INSERT INTO test_keyspace.test_table (column1, column2, column3, column5, column6, column9, column10) VALUES ('?', '?', '?', '?', '?', '?', '?')",
+				isPreparedQuery: true,
+			},
+			fields: fields{
+				SchemaMappingConfig: GetSchemaMappingConfig(types.OrderedCodeEncoding),
+			},
+			want: &InsertQueryMapping{
+				Query:     "INSERT INTO test_keyspace.test_table (column1, column2, column3, column5, column6, column9, column10) VALUES ('?', '?', '?', '?', '?', '?', '?')",
 				QueryType: "INSERT",
 				Table:     "test_table",
 				Keyspace:  "test_keyspace",
@@ -347,15 +306,14 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 		{
 			name: "success",
 			args: args{
-				queryStr:        query,
-				protocolV:       protocolV,
+				queryStr:        "INSERT INTO test_keyspace.test_table (column1, column2, column3, column5, column6, column9, column10) VALUES ('test-text', '0x0000000000000003', true, '2024-08-12T12:34:56Z', 123, 1234567890, 'column10')",
 				isPreparedQuery: false,
 			},
 			fields: fields{
 				SchemaMappingConfig: GetSchemaMappingConfig(types.OrderedCodeEncoding),
 			},
 			want: &InsertQueryMapping{
-				Query:     query,
+				Query:     "INSERT INTO test_keyspace.test_table (column1, column2, column3, column5, column6, column9, column10) VALUES ('test-text', '0x0000000000000003', true, '2024-08-12T12:34:56Z', 123, 1234567890, 'column10')",
 				QueryType: "INSERT",
 				Table:     "test_table",
 				Keyspace:  "test_keyspace",
@@ -366,8 +324,22 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 					{Name: "column6", ColumnFamily: "cf1", CQLType: utilities.ParseCqlTypeOrDie("int"), IsPrimaryKey: false},
 					{Name: "column9", ColumnFamily: "cf1", CQLType: utilities.ParseCqlTypeOrDie("bigint"), IsPrimaryKey: false},
 				},
-				Values:      values,
-				Params:      response,
+				Values: []interface{}{
+					formatValueOrDie(t, "0x0000000000000003", datatype.Blob, qctx),
+					formatValueOrDie(t, "true", datatype.Boolean, qctx),
+					formatValueOrDie(t, "2024-08-12T12:34:56Z", datatype.Timestamp, qctx),
+					formatValueOrDie(t, "123", datatype.Int, qctx),
+					formatValueOrDie(t, "1234567890", datatype.Bigint, qctx),
+				},
+				Params: map[string]interface{}{
+					"column1":  formatValueOrDie(t, "test-text", datatype.Varchar, qctx),
+					"column2":  formatValueOrDie(t, "0x0000000000000003", datatype.Blob, qctx),
+					"column3":  formatValueOrDie(t, "true", datatype.Boolean, qctx),
+					"column5":  formatValueOrDie(t, "2024-08-12T12:34:56Z", datatype.Timestamp, qctx),
+					"column6":  formatValueOrDie(t, "123", datatype.Int, qctx),
+					"column9":  formatValueOrDie(t, "1234567890", datatype.Bigint, qctx),
+					"column10": formatValueOrDie(t, "column10", datatype.Varchar, qctx),
+				},
 				ParamKeys:   []string{"column1", "column2", "column3", "column5", "column6", "column9", "column10"},
 				PrimaryKeys: []string{"column1", "column10"}, // assuming column1 and column10 are primary keys
 				RowKey:      "test-text\x00\x01column10",     // assuming row key format
@@ -378,7 +350,6 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 			name: "with keyspace in query, without default keyspace",
 			args: args{
 				queryStr:        "INSERT INTO test_keyspace.test_table (column1, column10) VALUES ('abc', 'pkval')",
-				protocolV:       protocolV,
 				isPreparedQuery: false,
 			},
 			fields: fields{
@@ -403,7 +374,6 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 			name: "insert a map with special characters",
 			args: args{
 				queryStr:        "INSERT INTO test_keyspace.test_table (column1, column10, map_text_text) VALUES ('abc', 'pkval', {'foo': 'bar', 'key:': ':value', 'k}': '{v:k}'})",
-				protocolV:       protocolV,
 				isPreparedQuery: false,
 			},
 			fields: fields{
@@ -437,9 +407,9 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 					},
 				},
 				Values: []interface{}{
-					formatValueUnsafe(t, "bar", datatype.Varchar, primitive.ProtocolVersion4),
-					formatValueUnsafe(t, ":value", datatype.Varchar, primitive.ProtocolVersion4),
-					formatValueUnsafe(t, "{v:k}", datatype.Varchar, primitive.ProtocolVersion4),
+					formatValueOrDie(t, "bar", datatype.Varchar, qctx),
+					formatValueOrDie(t, ":value", datatype.Varchar, qctx),
+					formatValueOrDie(t, "{v:k}", datatype.Varchar, qctx),
 				},
 				DeleteColumnFamilies: []string{
 					"map_text_text",
@@ -454,7 +424,6 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 			name: "with keyspace in query, with default keyspace",
 			args: args{
 				queryStr:        "INSERT INTO test_keyspace.test_table (column1, column10) VALUES ('abc', 'pkval')",
-				protocolV:       protocolV,
 				isPreparedQuery: false,
 			},
 			fields: fields{
@@ -480,7 +449,6 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 			name: "with double single quotes in a literal",
 			args: args{
 				queryStr:        "INSERT INTO test_keyspace.test_table (column1, column10, text_col) VALUES ('abc', 'pkval''s', 'text''s')",
-				protocolV:       protocolV,
 				isPreparedQuery: false,
 			},
 			fields: fields{
@@ -504,7 +472,7 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 					},
 				},
 				Values: []interface{}{
-					formatValueUnsafe(t, "text's", datatype.Varchar, primitive.ProtocolVersion4),
+					formatValueOrDie(t, "text's", datatype.Varchar, qctx),
 				},
 				PrimaryKeys: []string{"column1", "column10"},
 				ParamKeys:   []string{"column1", "column10", "text_col"},
@@ -516,7 +484,6 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 			name: "with empty key value",
 			args: args{
 				queryStr:        "INSERT INTO test_keyspace.test_table (column1, column10, text_col) VALUES ('', 'pkval''s', 'text''s')",
-				protocolV:       protocolV,
 				isPreparedQuery: false,
 			},
 			fields: fields{
@@ -540,7 +507,7 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 					},
 				},
 				Values: []interface{}{
-					formatValueUnsafe(t, "text's", datatype.Varchar, primitive.ProtocolVersion4),
+					formatValueOrDie(t, "text's", datatype.Varchar, qctx),
 				},
 				PrimaryKeys: []string{"column1", "column10"},
 				ParamKeys:   []string{"column1", "column10", "text_col"},
@@ -552,7 +519,6 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 			name: "without keyspace in query, with default keyspace",
 			args: args{
 				queryStr:        "INSERT INTO test_table (column1, column10) VALUES ('abc', 'pkval')",
-				protocolV:       protocolV,
 				isPreparedQuery: false,
 			},
 			fields: fields{
@@ -574,10 +540,43 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "timestamp row key",
+			args: args{
+				queryStr:        "INSERT INTO timestamp_row_keys (event_time, event_type) VALUES (toTimeStamp(now()), 'click')",
+				isPreparedQuery: false,
+			},
+			fields: fields{
+				SchemaMappingConfig: GetSchemaMappingConfig(types.OrderedCodeEncoding),
+			},
+			want: &InsertQueryMapping{
+				Query:     "INSERT INTO timestamp_row_keys (event_time, event_type) VALUES (toTimeStamp(now()), 'click')",
+				QueryType: "INSERT",
+				Table:     "timestamp_row_keys",
+				Keyspace:  "test_keyspace",
+				Params: map[string]interface{}{
+					"event_type": []byte("click"),
+					"event_time": formatValueOrDie(t, "toTimeStamp(now())", datatype.Timestamp, qctx),
+				},
+				Columns: []*types.Column{
+					{
+						Name:         "event_type",
+						ColumnFamily: "cf1",
+						CQLType:      types.TypeText,
+					},
+				},
+				Values: []interface{}{
+					formatValueOrDie(t, "click", datatype.Varchar, qctx),
+				},
+				PrimaryKeys: []string{"event_time"},
+				ParamKeys:   []string{"event_time", "event_type"},
+				RowKey:      createOrderedCodeKeyFromSliceOrDie([]interface{}{qctx.Now}, types.OrderedCodeEncoding),
+			},
+			wantErr: false,
+		},
+		{
 			name: "without keyspace in query, without default keyspace (should error)",
 			args: args{
 				queryStr:        "INSERT INTO test_table (column1) VALUES ('abc')",
-				protocolV:       protocolV,
 				isPreparedQuery: false,
 			},
 			fields: fields{
@@ -590,7 +589,6 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 			name: "invalid query syntax (should error)",
 			args: args{
 				queryStr:        "INSERT INTO test_keyspace.test_table",
-				protocolV:       protocolV,
 				isPreparedQuery: false,
 			},
 			fields: fields{
@@ -603,7 +601,6 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 			name: "parser returns empty table (should error)",
 			args: args{
 				queryStr:        "INSERT INTO test_keyspace. VALUES ('abc')",
-				protocolV:       protocolV,
 				isPreparedQuery: false,
 			},
 			fields: fields{
@@ -616,7 +613,6 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 			name: "parser returns empty keyspace (should error)",
 			args: args{
 				queryStr:        "INSERT INTO .test_table VALUES ('abc')",
-				protocolV:       protocolV,
 				isPreparedQuery: false,
 			},
 			fields: fields{
@@ -629,7 +625,6 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 			name: "parser returns empty columns/values (should error)",
 			args: args{
 				queryStr:        "INSERT INTO test_keyspace.test_table () VALUES ()",
-				protocolV:       protocolV,
 				isPreparedQuery: false,
 			},
 			fields: fields{
@@ -642,7 +637,6 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 			name: "keyspace does not exist (should error)",
 			args: args{
 				queryStr:        "INSERT INTO invalid_keyspace.test_table (column1) VALUES ('abc')",
-				protocolV:       protocolV,
 				isPreparedQuery: false,
 			},
 			fields: fields{
@@ -655,7 +649,6 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 			name: "table does not exist (should error)",
 			args: args{
 				queryStr:        "INSERT INTO test_keyspace.invalid_table (column1) VALUES ('abc')",
-				protocolV:       protocolV,
 				isPreparedQuery: false,
 			},
 			fields: fields{
@@ -672,7 +665,7 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 				Logger:              zap.NewNop(),
 				SchemaMappingConfig: tt.fields.SchemaMappingConfig,
 			}
-			got, err := tr.TranslateInsertQuerytoBigtable(tt.args.queryStr, tt.args.protocolV, tt.args.isPreparedQuery, "test_keyspace")
+			got, err := tr.TranslateInsertQuerytoBigtable(tt.args.queryStr, tt.args.isPreparedQuery, "test_keyspace", qctx)
 			if tt.wantErr {
 				require.Error(t, err)
 				return
@@ -691,6 +684,8 @@ func TestTranslator_TranslateInsertQuerytoBigtable(t *testing.T) {
 }
 
 func TestTranslator_BuildInsertPrepareQuery(t *testing.T) {
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	type fields struct {
 		Logger              *zap.Logger
 		SchemaMappingConfig *schemaMapping.SchemaMappingConfig
@@ -796,7 +791,7 @@ func TestTranslator_BuildInsertPrepareQuery(t *testing.T) {
 				Logger:              tt.fields.Logger,
 				SchemaMappingConfig: tt.fields.SchemaMappingConfig,
 			}
-			got, err := tr.BuildInsertPrepareQuery(tt.args.columnsResponse, tt.args.values, tt.args.st, tt.args.protocolV)
+			got, err := tr.BuildInsertPrepareQuery(tt.args.columnsResponse, tt.args.values, tt.args.st, qctx)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Translator.BuildInsertPrepareQuery() error = %v, wantErr %v", err, tt.wantErr)
 				return

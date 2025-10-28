@@ -117,6 +117,15 @@ CREATE TABLE IF NOT EXISTS bigtabledevinstance.compound_key_table (
 	PRIMARY KEY ((org, id), email)
 );
 `,
+		`
+CREATE TABLE IF NOT EXISTS bigtabledevinstance.timestamp_key (
+	region text,
+	event_time timestamp,
+	measurement int,
+	end_time timestamp,
+	PRIMARY KEY (region, event_time)
+);
+`,
 	}
 
 	if testTarget == TestTargetProxy {

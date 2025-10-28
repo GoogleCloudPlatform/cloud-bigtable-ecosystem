@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"reflect"
 	"slices"
+	"time"
 
 	"cloud.google.com/go/bigtable"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
@@ -128,7 +129,9 @@ func createBigtableRowKeyField(col types.CreateColumn, intRowKeyEncoding types.I
 	switch col.TypeInfo.DataType() {
 	case datatype.Varchar:
 		return bigtable.StructField{FieldName: col.Name, FieldType: bigtable.StringType{Encoding: bigtable.StringUtf8BytesEncoding{}}}, nil
-	case datatype.Int, datatype.Bigint, datatype.Timestamp:
+	case datatype.Timestamp:
+		return bigtable.StructField{FieldName: col.Name, FieldType: bigtable.TimestampType{Encoding: bigtable.TimestampUnixMicrosInt64Encoding{UnixMicrosInt64Encoding: bigtable.Int64OrderedCodeBytesEncoding{}}}}, nil
+	case datatype.Int, datatype.Bigint:
 		switch intRowKeyEncoding {
 		case types.OrderedCodeEncoding:
 			return bigtable.StructField{FieldName: col.Name, FieldType: bigtable.Int64Type{Encoding: bigtable.Int64OrderedCodeBytesEncoding{}}}, nil
@@ -149,6 +152,8 @@ func inferSQLType(value interface{}) (bigtable.SQLType, error) {
 		return bigtable.StringSQLType{}, nil
 	case []byte:
 		return bigtable.BytesSQLType{}, nil
+	case time.Time:
+		return bigtable.TimestampSQLType{}, nil
 	case int, int8, int16, int32, int64:
 		return bigtable.Int64SQLType{}, nil
 	case float32:

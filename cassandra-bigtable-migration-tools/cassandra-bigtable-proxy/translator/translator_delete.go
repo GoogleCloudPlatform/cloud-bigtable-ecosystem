@@ -75,7 +75,7 @@ func parseTableFromDelete(input cql.IFromSpecContext) (*TableObj, error) {
 //   - schemaMapping - JSON Config which maintains column and its datatypes info.
 //
 // Returns: QueryClauses and an error if any.
-func parseClauseFromDelete(input cql.IWhereSpecContext, tableConfig *schemaMapping.TableConfig) (*QueryClauses, error) {
+func parseClauseFromDelete(input cql.IWhereSpecContext, tableConfig *schemaMapping.TableConfig, qctx *types.QueryContext) (*QueryClauses, error) {
 	if input == nil {
 		return nil, errors.New("no input parameters found for clauses")
 	}
@@ -89,7 +89,7 @@ func parseClauseFromDelete(input cql.IWhereSpecContext, tableConfig *schemaMappi
 		return &QueryClauses{}, nil
 	}
 
-	clauses, params, paramKeys, err := processElements(tableConfig, elements)
+	clauses, params, paramKeys, err := processElements(tableConfig, elements, qctx)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +131,7 @@ func getRelationElements(input cql.IWhereSpecContext) ([]cql.IRelationElementCon
 //   - A map of parameters to use for prepared statements.
 //   - A slice of strings representing parameter keys.
 //   - An error if parsing column names, values, or column types fails.
-func processElements(tableConfig *schemaMapping.TableConfig, elements []cql.IRelationElementContext) ([]types.Clause, map[string]interface{}, []string, error) {
+func processElements(tableConfig *schemaMapping.TableConfig, elements []cql.IRelationElementContext, qctx *types.QueryContext) ([]types.Clause, map[string]interface{}, []string, error) {
 	var clauses []types.Clause
 	params := make(map[string]interface{})
 	var paramKeys []string
@@ -154,7 +154,7 @@ func processElements(tableConfig *schemaMapping.TableConfig, elements []cql.IRel
 			return nil, nil, nil, err
 		}
 
-		actualVal, err := handleColumnType(val, column, placeholder, params)
+		actualVal, err := handleColumnType(val, column, placeholder, params, qctx)
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -229,7 +229,7 @@ func getOperator(val cql.IRelationElementContext) (string, error) {
 // Returns:
 //   - A string representing the actual value.
 //   - An error if parsing or formatting the value fails.
-func handleColumnType(val cql.IRelationElementContext, columnType *types.Column, placeholder string, params map[string]interface{}) (string, error) {
+func handleColumnType(val cql.IRelationElementContext, columnType *types.Column, placeholder string, params map[string]interface{}, qctx *types.QueryContext) (string, error) {
 	if columnType == nil || columnType.CQLType == nil {
 		return "", nil
 	}
@@ -243,7 +243,7 @@ func handleColumnType(val cql.IRelationElementContext, columnType *types.Column,
 
 	actualVal := value
 	if value != "?" {
-		formattedVal, err := formatValues(value, columnType.CQLType.DataType(), 4)
+		formattedVal, err := formatValues(value, columnType.CQLType.DataType(), qctx)
 		if err != nil {
 			return "", err
 		}
@@ -259,7 +259,7 @@ func handleColumnType(val cql.IRelationElementContext, columnType *types.Column,
 //   - queryStr: CQL delete query with condition
 //
 // Returns: QueryClauses and an error if any.
-func (t *Translator) TranslateDeleteQuerytoBigtable(query string, isPreparedQuery bool, sessionKeyspace string) (*DeleteQueryMapping, error) {
+func (t *Translator) TranslateDeleteQuerytoBigtable(query string, isPreparedQuery bool, sessionKeyspace string, qctx *types.QueryContext) (*DeleteQueryMapping, error) {
 	lexer := cql.NewCqlLexer(antlr.NewInputStream(query))
 	stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
 	p := cql.NewCqlParser(stream)
@@ -309,7 +309,7 @@ func (t *Translator) TranslateDeleteQuerytoBigtable(query string, isPreparedQuer
 	var QueryClauses QueryClauses
 
 	if deleteObj.WhereSpec() != nil {
-		resp, err := parseClauseFromDelete(deleteObj.WhereSpec(), tableConfig)
+		resp, err := parseClauseFromDelete(deleteObj.WhereSpec(), tableConfig, qctx)
 		if err != nil {
 			return nil, errors.New("TranslateDeletetQuerytoBigtable: Invalid Where clause condition")
 		}
@@ -339,11 +339,10 @@ func (t *Translator) TranslateDeleteQuerytoBigtable(query string, isPreparedQuer
 
 	var rowKey string
 	if !isPreparedQuery {
-		rowKeyBytes, err := createOrderedCodeKey(tableConfig, pkValues)
+		rowKey, err = createOrderedCodeKey(tableConfig, pkValues, qctx)
 		if err != nil {
 			return nil, fmt.Errorf("key encoding failed. %w", err)
 		}
-		rowKey = string(rowKeyBytes)
 	}
 
 	deleteQueryData := &DeleteQueryMapping{
@@ -364,7 +363,7 @@ func (t *Translator) TranslateDeleteQuerytoBigtable(query string, isPreparedQuer
 }
 
 // BuildDeletePrepareQuery() Function to accept the values clause columns and form the rowKey and return the same
-func (t *Translator) BuildDeletePrepareQuery(values []*primitive.Value, st *DeleteQueryMapping, variableColumnMetadata []*message.ColumnMetadata, protocolV primitive.ProtocolVersion) (string, TimestampInfo, error) {
+func (t *Translator) BuildDeletePrepareQuery(values []*primitive.Value, st *DeleteQueryMapping, variableColumnMetadata []*message.ColumnMetadata, qctx *types.QueryContext) (string, TimestampInfo, error) {
 
 	timestamp, values, err := ProcessTimestampByDelete(st, values)
 	if err != nil {
@@ -373,7 +372,7 @@ func (t *Translator) BuildDeletePrepareQuery(values []*primitive.Value, st *Dele
 
 	valueMap := make(map[string]interface{})
 	for i, col := range variableColumnMetadata {
-		val, _ := utilities.DecodeBytesToCassandraColumnType(values[i].Contents, variableColumnMetadata[i].Type, protocolV)
+		val, _ := utilities.DecodeBytesToCassandraColumnType(values[i].Contents, variableColumnMetadata[i].Type, qctx)
 		valueMap[col.Name] = val
 	}
 
@@ -381,11 +380,10 @@ func (t *Translator) BuildDeletePrepareQuery(values []*primitive.Value, st *Dele
 	if err != nil {
 		return "", TimestampInfo{}, err
 	}
-	rowKeyBytes, err := createOrderedCodeKey(tableConfig, valueMap)
+	rowKey, err := createOrderedCodeKey(tableConfig, valueMap, qctx)
 	if err != nil {
 		return "", timestamp, fmt.Errorf("key encoding failed. %w", err)
 	}
-	rowKey := string(rowKeyBytes)
 	return rowKey, timestamp, nil
 }
 

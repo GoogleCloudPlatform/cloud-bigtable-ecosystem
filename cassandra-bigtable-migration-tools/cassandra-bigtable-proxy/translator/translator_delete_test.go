@@ -20,6 +20,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	schemaMapping "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/schema-mapping"
@@ -34,10 +35,11 @@ import (
 )
 
 func TestTranslator_TranslateDeleteQuerytoBigtable(t *testing.T) {
-	var protocalV primitive.ProtocolVersion = 4
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	params := make(map[string]interface{})
-	formattedValue, _ := formatValues("test", datatype.Varchar, protocalV)
-	formattedValue2, _ := formatValues("15", datatype.Int, protocalV)
+	formattedValue, _ := formatValues("test", datatype.Varchar, qctx)
+	formattedValue2, _ := formatValues("15", datatype.Int, qctx)
 	params["value1"] = formattedValue
 	params2 := make(map[string]interface{})
 	params2["value1"] = formattedValue
@@ -494,7 +496,7 @@ func TestTranslator_TranslateDeleteQuerytoBigtable(t *testing.T) {
 				Logger:              tt.fields.Logger,
 				SchemaMappingConfig: tt.fields.SchemaMappingConfig,
 			}
-			got, err := tr.TranslateDeleteQuerytoBigtable(tt.args.queryStr, false, tt.defaultKeyspace)
+			got, err := tr.TranslateDeleteQuerytoBigtable(tt.args.queryStr, false, tt.defaultKeyspace, qctx)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Translator.TranslateDeleteQuerytoBigtable() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -505,6 +507,8 @@ func TestTranslator_TranslateDeleteQuerytoBigtable(t *testing.T) {
 }
 
 func TestTranslator_BuildDeletePrepareQuery(t *testing.T) {
+	qctx := types.NewQueryContext(time.Now().UTC(), primitive.ProtocolVersion4)
+
 	type fields struct {
 		Logger              *zap.Logger
 		SchemaMappingConfig *schemaMapping.SchemaMappingConfig
@@ -670,9 +674,9 @@ func TestTranslator_BuildDeletePrepareQuery(t *testing.T) {
 				Logger:              tt.fields.Logger,
 				SchemaMappingConfig: tt.fields.SchemaMappingConfig,
 			}
-			got, got1, err := tr.BuildDeletePrepareQuery(tt.args.values, tt.args.st, tt.args.variableColumnMetadata, tt.args.protocolV)
+			got, got1, err := tr.BuildDeletePrepareQuery(tt.args.values, tt.args.st, tt.args.variableColumnMetadata, qctx)
 			if tt.wantErr {
-				assert.Error(t, err, "error expected")
+				assert.Error(t, err, "error want")
 			} else {
 				assert.NoErrorf(t, err, "unexpected error")
 			}
@@ -809,27 +813,27 @@ func TestParseDeleteColumns(t *testing.T) {
 			}
 			if tt.expectNil {
 				if cols != nil {
-					t.Fatalf("expected nil columns, got %v", cols)
+					t.Fatalf("want nil columns, got %v", cols)
 				}
 				return
 			}
 			if len(cols) != len(tt.expectedCols) {
-				t.Fatalf("expected %d columns, got %d", len(tt.expectedCols), len(cols))
+				t.Fatalf("want %d columns, got %d", len(tt.expectedCols), len(cols))
 			}
 			for i := range cols {
 				got := cols[i]
 				exp := tt.expectedCols[i]
 				if got.Name != exp.Name {
-					t.Errorf("expected column name '%s', got '%s'", exp.Name, got.Name)
+					t.Errorf("want column name '%s', got '%s'", exp.Name, got.Name)
 				}
 				// Normalize values: remove any quotes from map keys.
 				gotMapKey := strings.Trim(got.MapKey, "'")
 				expMapKey := strings.Trim(exp.MapKey, "'")
 				if gotMapKey != expMapKey {
-					t.Errorf("expected map key '%s', got '%s'", expMapKey, gotMapKey)
+					t.Errorf("want map key '%s', got '%s'", expMapKey, gotMapKey)
 				}
 				if got.ListIndex != exp.ListIndex {
-					t.Errorf("expected list index '%s', got '%s'", exp.ListIndex, got.ListIndex)
+					t.Errorf("want list index '%s', got '%s'", exp.ListIndex, got.ListIndex)
 				}
 			}
 		})

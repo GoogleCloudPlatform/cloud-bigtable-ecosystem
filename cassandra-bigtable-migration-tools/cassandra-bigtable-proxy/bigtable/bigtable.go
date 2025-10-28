@@ -179,9 +179,6 @@ func (btc *BigtableClient) mutateRow(ctx context.Context, tableName, rowKey stri
 	}
 
 	tbl := client.Open(tableName)
-	if timestamp == 0 {
-		timestamp = bigtable.Timestamp(bigtable.Now().Time().UnixMicro())
-	}
 
 	var mutationCount = 0
 	// Delete column families
@@ -1059,7 +1056,7 @@ func (btc *BigtableClient) PrepareStatement(ctx context.Context, query rh.QueryM
 	}
 	preparedStatement, err := client.PrepareStatement(ctx, query.Query, paramTypes)
 	if err != nil {
-		btc.Logger.Error("Failed to prepare statement", zap.String("query", query.Query), zap.Error(err))
+		btc.Logger.Error("Failed to prepare statement", zap.String("query", query.Query), zap.Any("params", paramTypes), zap.Error(err))
 		return nil, fmt.Errorf("failed to prepare statement: %w", err)
 	}
 

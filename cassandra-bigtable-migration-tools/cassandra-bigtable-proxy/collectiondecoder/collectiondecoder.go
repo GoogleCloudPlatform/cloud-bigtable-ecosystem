@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/third_party/datastax/proxycore"
 	"github.com/datastax/go-cassandra-native-protocol/datatype"
 	"github.com/datastax/go-cassandra-native-protocol/primitive"
@@ -36,7 +37,7 @@ import (
 // Returns:
 // - An interface{} containing the decoded collection as a slice or map of the appropriate type.
 // - An error if any decoding step fails.
-func DecodeCollection(dt datatype.DataType, version primitive.ProtocolVersion, encoded []byte) (interface{}, error) {
+func DecodeCollection(dt datatype.DataType, encoded []byte, qctx *types.QueryContext) (interface{}, error) {
 	reader := bytes.NewReader(encoded)
 	var length int32
 
@@ -49,13 +50,13 @@ func DecodeCollection(dt datatype.DataType, version primitive.ProtocolVersion, e
 	switch dt.GetDataTypeCode() {
 	case primitive.DataTypeCodeList:
 		listType := dt.(datatype.ListType)
-		return decodeListOrSet(listType.GetElementType(), version, reader, length)
+		return decodeListOrSet(listType.GetElementType(), qctx, reader, length)
 	case primitive.DataTypeCodeSet:
 		setType := dt.(datatype.SetType)
-		return decodeListOrSet(setType.GetElementType(), version, reader, length)
+		return decodeListOrSet(setType.GetElementType(), qctx, reader, length)
 	case primitive.DataTypeCodeMap:
 		mapType := dt.(datatype.MapType)
-		return decodeMap(mapType.GetValueType(), version, reader, mapType.GetKeyType(), length)
+		return decodeMap(mapType.GetValueType(), qctx, reader, mapType.GetKeyType(), length)
 	default:
 		return nil, fmt.Errorf("unsupported collection type: %v", dt.GetDataTypeCode())
 	}
@@ -71,7 +72,7 @@ func DecodeCollection(dt datatype.DataType, version primitive.ProtocolVersion, e
 // Returns:
 // - An interface{} containing the decoded elements as a slice of the appropriate type.
 // - An error if any decoding step fails.
-func decodeListOrSet(elementType datatype.DataType, version primitive.ProtocolVersion, reader *bytes.Reader, length int32) (interface{}, error) {
+func decodeListOrSet(elementType datatype.DataType, qctx *types.QueryContext, reader *bytes.Reader, length int32) (interface{}, error) {
 	decodedElements := make([]interface{}, length)
 	for i := int32(0); i < length; i++ {
 		var elementLength int32
@@ -84,7 +85,7 @@ func decodeListOrSet(elementType datatype.DataType, version primitive.ProtocolVe
 		if err != nil {
 			return nil, err
 		}
-		decodedValue, err := proxycore.DecodeType(elementType, version, elementValue)
+		decodedValue, err := proxycore.DecodeType(elementType, qctx.ProtocolV, elementValue)
 		if err != nil {
 			return nil, err
 		}
@@ -104,7 +105,7 @@ func decodeListOrSet(elementType datatype.DataType, version primitive.ProtocolVe
 // Returns:
 // - An interface{} containing the decoded map as a map[interface{}]interface{} with keys and values of the appropriate types.
 // - An error if any decoding step fails.
-func decodeMap(valueType datatype.DataType, version primitive.ProtocolVersion, reader *bytes.Reader, keyType datatype.DataType, length int32) (interface{}, error) {
+func decodeMap(valueType datatype.DataType, qctx *types.QueryContext, reader *bytes.Reader, keyType datatype.DataType, length int32) (interface{}, error) {
 	decodedMap := make(map[interface{}]interface{}, length)
 	for i := int32(0); i < length; i++ {
 		var keyLength int32
@@ -117,7 +118,7 @@ func decodeMap(valueType datatype.DataType, version primitive.ProtocolVersion, r
 		if err != nil {
 			return nil, err
 		}
-		decodedKey, err := proxycore.DecodeType(keyType, version, keyValue)
+		decodedKey, err := proxycore.DecodeType(keyType, qctx.ProtocolV, keyValue)
 		if err != nil {
 			return nil, err
 		}
@@ -132,7 +133,7 @@ func decodeMap(valueType datatype.DataType, version primitive.ProtocolVersion, r
 		if err != nil {
 			return nil, err
 		}
-		decodedValue, err := proxycore.DecodeType(valueType, version, value)
+		decodedValue, err := proxycore.DecodeType(valueType, qctx.ProtocolV, value)
 		if err != nil {
 			return nil, err
 		}

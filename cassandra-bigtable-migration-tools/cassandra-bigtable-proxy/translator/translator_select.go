@@ -685,7 +685,7 @@ func getBigtableSelectQuery(t *Translator, data *SelectQueryMap) (string, error)
 //   - query: CQL Select statement
 //
 // Returns: SelectQueryMap struct and error if any
-func (t *Translator) TranslateSelectQuerytoBigtable(query, sessionKeyspace string) (*SelectQueryMap, error) {
+func (t *Translator) TranslateSelectQuerytoBigtable(query, sessionKeyspace string, qctx *types.QueryContext) (*SelectQueryMap, error) {
 	p, err := NewCqlParser(query, false)
 	if err != nil {
 		return nil, err
@@ -727,7 +727,7 @@ func (t *Translator) TranslateSelectQuerytoBigtable(query, sessionKeyspace strin
 	var QueryClauses QueryClauses
 
 	if selectObj.WhereSpec() != nil {
-		resp, err := parseWhereByClause(selectObj.WhereSpec(), tableConfig)
+		resp, err := parseWhereByClause(selectObj.WhereSpec(), tableConfig, qctx)
 		if err != nil {
 			return nil, err
 		}
