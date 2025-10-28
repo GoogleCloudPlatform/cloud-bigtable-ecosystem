@@ -121,7 +121,7 @@ CREATE TABLE IF NOT EXISTS bigtabledevinstance.compound_key_table (
 CREATE TABLE IF NOT EXISTS bigtabledevinstance.timestamp_key (
 	region text,
 	event_time timestamp,
-	measurement float,
+	measurement int,
 	end_time timestamp,
 	PRIMARY KEY (region, event_time)
 );
