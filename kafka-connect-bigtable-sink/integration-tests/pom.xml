@@ -32,8 +32,8 @@
         <maven.clean.version>3.4.1</maven.clean.version>
 
         <integration.test.plugin.path>${project.basedir}/integration_test_plugins</integration.test.plugin.path>
-        <google.sink.package.path>${project.basedir}/../sink/target/sink-${project.version}-package</google.sink.package.path>
-        <google.sink.package.plugin.dir>${integration.test.plugin.path}/google-sink</google.sink.package.plugin.dir>
+        <google.sink.jar.path>${project.basedir}/../sink/target/sink-${project.version}-jar-with-dependencies.jar</google.sink.jar.path>
+        <google.sink.jar.plugin.dir>${integration.test.plugin.path}/google-sink</google.sink.jar.plugin.dir>
     </properties>
     <dependencies>
         <dependency>
@@ -217,10 +217,8 @@
                         </goals>
                         <configuration>
                             <target>
-                                <mkdir dir="${google.sink.package.plugin.dir}"/>
-                                <copy todir="${google.sink.package.plugin.dir}">
-                                    <fileset dir="${google.sink.package.path}"/>
-                                </copy>
+                                <mkdir dir="${google.sink.jar.plugin.dir}"/>
+                                <copy file="${google.sink.jar.path}" tofile="${google.sink.jar.plugin.dir}/sink.jar"/>
                             </target>
                         </configuration>
                     </execution>

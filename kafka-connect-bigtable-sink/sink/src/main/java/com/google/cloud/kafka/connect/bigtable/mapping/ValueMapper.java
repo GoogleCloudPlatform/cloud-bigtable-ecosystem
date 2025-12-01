@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import com.google.cloud.bigtable.data.v2.models.Range;
 import com.google.cloud.kafka.connect.bigtable.config.ConfigInterpolation;
 import com.google.cloud.kafka.connect.bigtable.config.NullValueMode;
+import com.google.cloud.kafka.connect.bigtable.utils.ByteUtils;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.ByteString;
 import java.io.IOException;
