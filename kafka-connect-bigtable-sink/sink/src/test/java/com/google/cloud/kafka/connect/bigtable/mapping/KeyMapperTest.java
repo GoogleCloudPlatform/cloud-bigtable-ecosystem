@@ -596,7 +596,7 @@ public class KeyMapperTest {
   @Test
   public void testBytes() {
     final String fieldName = "Bytes";
-    final byte[] fieldBytes = new byte[]{42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54};
+    final byte[] fieldBytes = new byte[] {42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54};
     final ByteBuffer fieldValueKafkaConnect = ByteBuffer.wrap(fieldBytes);
     Schema kafkaConnectSchema =
         SchemaBuilder.struct().field(fieldName, Schema.BYTES_SCHEMA).build();
@@ -788,25 +788,25 @@ public class KeyMapperTest {
         List.of(
             // Default key definition and all kinds of types.
             // Note that logical types cannot be used without schema.
-            new Object[]{List.of(), "2.130", "2.13"},
-            new Object[]{List.of(), "7", "7"},
-            new Object[]{List.of(), "\"x\"", "x"},
-            new Object[]{List.of(), "true", "true"},
-            new Object[]{List.of(), "[]", "[]"},
-            new Object[]{List.of(), "[1,\"s\",true]", "[1, s, true]"},
+            new Object[] {List.of(), "2.130", "2.13"},
+            new Object[] {List.of(), "7", "7"},
+            new Object[] {List.of(), "\"x\"", "x"},
+            new Object[] {List.of(), "true", "true"},
+            new Object[] {List.of(), "[]", "[]"},
+            new Object[] {List.of(), "[1,\"s\",true]", "[1, s, true]"},
             // Default key definition when using on a map (schemaless data is converted into a Map
             // rather than a Struct, so its fields are not accessed when serializing!).
-            new Object[]{List.of(), "{\"a\":1,\"b\":true,\"c\":\"str\"}", "{a=1, b=true, c=str}"},
-            new Object[]{List.of(), "{\"b\":1,\"a\":3}", "{a=3, b=1}"},
-            new Object[]{
-                List.of(),
-                "{\"b\":[1,2],\"a\":3,\"c\":{\"x\":\"D\",\"y\":2137}}",
-                "{a=3, b=[1, 2], c={x=D, y=2137}}"
+            new Object[] {List.of(), "{\"a\":1,\"b\":true,\"c\":\"str\"}", "{a=1, b=true, c=str}"},
+            new Object[] {List.of(), "{\"b\":1,\"a\":3}", "{a=3, b=1}"},
+            new Object[] {
+              List.of(),
+              "{\"b\":[1,2],\"a\":3,\"c\":{\"x\":\"D\",\"y\":2137}}",
+              "{a=3, b=[1, 2], c={x=D, y=2137}}"
             }
             // Note that there are no tests for accessing fields of the values. Maps, to which
             // schemaless JSON data deserializes when using JsonConverter, does not support
             // accessing its values by keys.
-        )) {
+            )) {
       KeyMapper mapper = new KeyMapper(delimiter, (List<String>) testCase[0]);
       SchemaAndValue connectData =
           jsonConverter.toConnectData(

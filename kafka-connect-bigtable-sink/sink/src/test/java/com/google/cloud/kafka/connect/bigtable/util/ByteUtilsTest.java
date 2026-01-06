@@ -1,17 +1,30 @@
+/*
+ * Copyright 2025 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.google.cloud.kafka.connect.bigtable.util;
 
 import static org.junit.Assert.assertArrayEquals;
 
-import com.google.cloud.kafka.connect.bigtable.mapping.ByteUtils;
+import com.google.cloud.kafka.connect.bigtable.utils.ByteUtils;
 import java.math.BigDecimal;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-/**
- * Ensures compatability with hbase-common Bytes
- */
+/** Ensures compatability with hbase-common Bytes */
 @RunWith(JUnit4.class)
 public class ByteUtilsTest {
 
@@ -71,10 +84,10 @@ public class ByteUtilsTest {
   @Test
   public void testString() {
     assertArrayEquals(Bytes.toBytes(""), ByteUtils.toBytes(""));
-    assertArrayEquals(Bytes.toBytes("https://www.Google.com"),
-        ByteUtils.toBytes("https://www.Google.com"));
-    assertArrayEquals(Bytes.toBytes("https://www.google.com"),
-        ByteUtils.toBytes("https://www.google.com"));
+    assertArrayEquals(
+        Bytes.toBytes("https://www.Google.com"), ByteUtils.toBytes("https://www.Google.com"));
+    assertArrayEquals(
+        Bytes.toBytes("https://www.google.com"), ByteUtils.toBytes("https://www.google.com"));
     assertArrayEquals(Bytes.toBytes("this is a string"), ByteUtils.toBytes("this is a string"));
   }
 
@@ -93,20 +106,18 @@ public class ByteUtilsTest {
   public void testBigDecimal() {
     assertArrayEquals(Bytes.toBytes(BigDecimal.ZERO), ByteUtils.toBytes(BigDecimal.ZERO));
     assertArrayEquals(Bytes.toBytes(BigDecimal.ONE), ByteUtils.toBytes(BigDecimal.ONE));
-    assertArrayEquals(Bytes.toBytes(BigDecimal.valueOf(-1)),
-        ByteUtils.toBytes(BigDecimal.valueOf(-1)));
-    assertArrayEquals(Bytes.toBytes(BigDecimal.valueOf(1)),
-        ByteUtils.toBytes(BigDecimal.valueOf(1)));
-    assertArrayEquals(Bytes.toBytes(BigDecimal.valueOf(-100)),
-        ByteUtils.toBytes(BigDecimal.valueOf(-100)));
-    assertArrayEquals(Bytes.toBytes(BigDecimal.valueOf(100)),
-        ByteUtils.toBytes(BigDecimal.valueOf(100)));
-    assertArrayEquals(Bytes.toBytes(BigDecimal.valueOf(100)),
-        ByteUtils.toBytes(BigDecimal.valueOf(100)));
+    assertArrayEquals(
+        Bytes.toBytes(BigDecimal.valueOf(-1)), ByteUtils.toBytes(BigDecimal.valueOf(-1)));
+    assertArrayEquals(
+        Bytes.toBytes(BigDecimal.valueOf(1)), ByteUtils.toBytes(BigDecimal.valueOf(1)));
+    assertArrayEquals(
+        Bytes.toBytes(BigDecimal.valueOf(-100)), ByteUtils.toBytes(BigDecimal.valueOf(-100)));
+    assertArrayEquals(
+        Bytes.toBytes(BigDecimal.valueOf(100)), ByteUtils.toBytes(BigDecimal.valueOf(100)));
+    assertArrayEquals(
+        Bytes.toBytes(BigDecimal.valueOf(100)), ByteUtils.toBytes(BigDecimal.valueOf(100)));
     assertArrayEquals(
         Bytes.toBytes(new BigDecimal("0.300000000000000000000000000000001")),
-        ByteUtils.toBytes(new BigDecimal("0.300000000000000000000000000000001"))
-    );
+        ByteUtils.toBytes(new BigDecimal("0.300000000000000000000000000000001")));
   }
-
 }

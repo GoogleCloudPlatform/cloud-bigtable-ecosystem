@@ -22,8 +22,6 @@ import static com.google.cloud.kafka.connect.bigtable.util.MockUtil.assertTotalN
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.argThat;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
@@ -36,8 +34,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.google.api.core.ApiFuture;
-import com.google.bigtable.admin.v2.GcRule;
-import com.google.cloud.bigtable.admin.v2.models.ColumnFamily;
 import com.google.cloud.bigtable.admin.v2.models.CreateTableRequest;
 import com.google.cloud.bigtable.admin.v2.models.GCRules;
 import com.google.cloud.bigtable.admin.v2.models.ModifyColumnFamiliesRequest;
@@ -442,15 +438,15 @@ public class BigtableSchemaManagerTest {
     int expectedBigtableInteractions =
         1 // listTables()
             + tablesAndColumnFamilies.values().stream()
-            .mapToInt(Set::size)
-            .sum() // modifyColumnFamily()
+                .mapToInt(Set::size)
+                .sum() // modifyColumnFamily()
             + tablesAndColumnFamilies.keySet().size(); // getTable()
     assertTotalNumberOfInvocations(bigtable, expectedBigtableInteractions);
   }
 
   @Test
   public void
-  testEnsureColumnFamiliesExistSomeCreatedSuccessfullySomeErrorsDueToRacesOrInvalidRequests() {
+      testEnsureColumnFamiliesExistSomeCreatedSuccessfullySomeErrorsDueToRacesOrInvalidRequests() {
     String successTable = "table1";
     String bigtableErrorTable = "table2";
     String dataErrorTable = "table3";
@@ -516,8 +512,8 @@ public class BigtableSchemaManagerTest {
     int expectedBigtableInteractions =
         1 // listTables()
             + tablesAndColumnFamilies.values().stream()
-            .mapToInt(Set::size)
-            .sum() // modifyColumnFamily()
+                .mapToInt(Set::size)
+                .sum() // modifyColumnFamily()
             + tablesAndColumnFamilies.keySet().size(); // getTable()
     assertTotalNumberOfInvocations(bigtable, expectedBigtableInteractions);
   }
@@ -570,8 +566,8 @@ public class BigtableSchemaManagerTest {
     int expectedBigtableInteractions =
         1 // listTables()
             + tablesAndColumnFamilies.values().stream()
-            .mapToInt(Set::size)
-            .sum() // modifyColumnFamily()
+                .mapToInt(Set::size)
+                .sum() // modifyColumnFamily()
             + tablesAndColumnFamilies.keySet().size(); // getTable()
     assertTotalNumberOfInvocations(bigtable, expectedBigtableInteractions);
   }
@@ -628,8 +624,8 @@ public class BigtableSchemaManagerTest {
     int expectedBigtableInteractions =
         1 // listTables()
             + tablesAndColumnFamilies.values().stream()
-            .mapToInt(Set::size)
-            .sum() // modifyColumnFamily()
+                .mapToInt(Set::size)
+                .sum() // modifyColumnFamily()
             + 1; // getTable()
     assertTotalNumberOfInvocations(bigtable, expectedBigtableInteractions);
   }
@@ -652,8 +648,10 @@ public class BigtableSchemaManagerTest {
 
     Map<ApiFuture<Void>, ResourceAndRecords<String>> input =
         Map.of(
-            completedApiFuture(null), ok,
-            failedApiFuture(ApiExceptionFactory.create(Status.Code.INVALID_ARGUMENT)), dataError,
+            completedApiFuture(null),
+            ok,
+            failedApiFuture(ApiExceptionFactory.create(Status.Code.INVALID_ARGUMENT)),
+            dataError,
             failedApiFuture(ApiExceptionFactory.create(Status.Code.RESOURCE_EXHAUSTED)),
             bigtableError);
 
@@ -700,13 +698,14 @@ public class BigtableSchemaManagerTest {
         mcfr.toProto("unused", "unused").getModificationsList();
     return refersTable
         && modifications.stream()
-        .filter(
-            com.google.bigtable.admin.v2.ModifyColumnFamiliesRequest.Modification::hasCreate)
-        .anyMatch(m -> columnFamily.equals(m.getId()));
+            .filter(
+                com.google.bigtable.admin.v2.ModifyColumnFamiliesRequest.Modification::hasCreate)
+            .anyMatch(m -> columnFamily.equals(m.getId()));
   }
 
   private void mockCreateTableSuccess(
-      BigtableTableAdminClientInterface bigtable, String tableName,
+      BigtableTableAdminClientInterface bigtable,
+      String tableName,
       Set<String> tableColumnFamilies) {
     Table table = mockTable(tableName, tableColumnFamilies);
     doAnswer(ignored -> completedApiFuture(table))
@@ -715,7 +714,8 @@ public class BigtableSchemaManagerTest {
   }
 
   private void mockCreateColumnFamilySuccess(
-      BigtableTableAdminClientInterface bigtable, String tableName,
+      BigtableTableAdminClientInterface bigtable,
+      String tableName,
       Set<String> tableColumnFamilies) {
     Table table = mockTable(tableName, tableColumnFamilies);
     doAnswer(ignored -> completedApiFuture(table))
@@ -724,7 +724,8 @@ public class BigtableSchemaManagerTest {
   }
 
   private void mockGetTableSuccess(
-      BigtableTableAdminClientInterface bigtable, String tableName,
+      BigtableTableAdminClientInterface bigtable,
+      String tableName,
       Set<String> tableColumnFamilies) {
     Table table = mockTable(tableName, tableColumnFamilies);
     doAnswer(ignored -> completedApiFuture(table)).when(bigtable).getTableAsync(tableName);
@@ -733,11 +734,13 @@ public class BigtableSchemaManagerTest {
   private Table mockTable(String tableName, Set<String> tableColumnFamilies) {
     com.google.bigtable.admin.v2.Table.Builder builder =
         com.google.bigtable.admin.v2.Table.newBuilder()
-            .setName("projects/unused/instances/unused/tables/"+tableName);
+            .setName("projects/unused/instances/unused/tables/" + tableName);
     for (String tableColumnFamily : tableColumnFamilies) {
       GCRules.GCRule gcRule = GCRULES.maxVersions(1);
-      com.google.bigtable.admin.v2.ColumnFamily columnFamily = com.google.bigtable.admin.v2.ColumnFamily.newBuilder()
-          .setGcRule(gcRule.toProto()).build();
+      com.google.bigtable.admin.v2.ColumnFamily columnFamily =
+          com.google.bigtable.admin.v2.ColumnFamily.newBuilder()
+              .setGcRule(gcRule.toProto())
+              .build();
       builder.putColumnFamilies(tableColumnFamily, columnFamily);
     }
 
