@@ -25,7 +25,9 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import com.google.cloud.bigtable.data.v2.models.Range;
 import com.google.cloud.kafka.connect.bigtable.config.ConfigInterpolation;
+import com.google.cloud.kafka.connect.bigtable.config.InsertMode;
 import com.google.cloud.kafka.connect.bigtable.config.NullValueMode;
+import com.google.cloud.kafka.connect.bigtable.utils.ByteUtils;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.ByteString;
 import java.io.IOException;
@@ -90,11 +92,15 @@ public class ValueMapper {
    * @param timestampMicros The timestamp the mutations will be created at in microseconds.
    */
   public MutationDataBuilder getRecordMutationDataBuilder(
-      SchemaAndValue kafkaValueAndSchema, String topic, long timestampMicros) {
+      SchemaAndValue kafkaValueAndSchema,
+      String topic,
+      InsertMode insertMode,
+      long timestampMicros) {
     Object rootKafkaValue = kafkaValueAndSchema.value();
     Optional<Schema> rootKafkaSchema = Optional.ofNullable(kafkaValueAndSchema.schema());
     logIfLogicalTypeUnsupported(rootKafkaSchema);
-    MutationDataBuilder mutationDataBuilder = createMutationDataBuilder();
+    MutationDataBuilder mutationDataBuilder =
+        createMutationDataBuilder(insertMode, timestampMicros);
     if (rootKafkaValue == null && nullMode == NullValueMode.IGNORE) {
       // Do nothing
     } else if (rootKafkaValue == null && nullMode == NullValueMode.DELETE) {
@@ -130,7 +136,6 @@ public class ValueMapper {
               mutationDataBuilder.setCell(
                   kafkaFieldName,
                   kafkaSubfieldName,
-                  timestampMicros,
                   ByteString.copyFrom(serialize(kafkaSubfieldValue, kafkaSubfieldSchema)));
             }
           }
@@ -139,7 +144,6 @@ public class ValueMapper {
             mutationDataBuilder.setCell(
                 getDefaultColumnFamily(topic),
                 ByteString.copyFrom(kafkaFieldName.getBytes(StandardCharsets.UTF_8)),
-                timestampMicros,
                 ByteString.copyFrom(serialize(kafkaFieldValue, kafkaFieldSchema)));
           }
         }
@@ -149,7 +153,6 @@ public class ValueMapper {
         mutationDataBuilder.setCell(
             getDefaultColumnFamily(topic),
             defaultColumnQualifier,
-            timestampMicros,
             ByteString.copyFrom(serialize(rootKafkaValue, rootKafkaSchema)));
       }
     }
@@ -157,9 +160,17 @@ public class ValueMapper {
   }
 
   @VisibleForTesting
-  // Method only needed for use in tests. It could be inlined otherwise.
-  protected MutationDataBuilder createMutationDataBuilder() {
-    return new MutationDataBuilder();
+  protected MutationDataBuilder createMutationDataBuilder(
+      InsertMode insertMode, long timestampMicros) {
+    MutationDataBuilder builder = new MutationDataBuilder(timestampMicros);
+    // Note that we call the method on the builder instead of passing it a set up mutation via
+    // a constructor. This way we ensure that even for an empty (empty Struct, `null` when
+    // the mapper is configured to ignore nulls) input value, the row is deleted, which
+    // is needed for cleaner semantics of the REPLACE_IF_NEWEST mode.
+    if (insertMode == InsertMode.REPLACE_IF_NEWEST) {
+      builder.deleteRow();
+    }
+    return builder;
   }
 
   protected String getDefaultColumnFamily(String topic) {

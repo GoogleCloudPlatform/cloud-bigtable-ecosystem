@@ -17,6 +17,7 @@ package com.google.cloud.kafka.connect.bigtable.mapping;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.*;
 
 import com.google.cloud.bigtable.data.v2.models.Mutation;
 import com.google.cloud.bigtable.data.v2.models.Range;
@@ -40,17 +41,18 @@ public class MutationDataBuilderTest {
       ByteString.copyFrom("COLUMN".getBytes(StandardCharsets.UTF_8));
   private static final ByteString VALUE =
       ByteString.copyFrom("VALUE".getBytes(StandardCharsets.UTF_8));
-  private static final Long TIMESTAMP = 2024L;
+  private static final Long TIMESTAMP = 100000L;
+  private static final Long TIMESTAMP_END = 2024L;
   private static final Range.TimestampRange TIMESTAMP_RANGE =
-      Range.TimestampRange.create(0, TIMESTAMP);
+      Range.TimestampRange.create(0, TIMESTAMP_END);
 
   Mutation mutation;
   MutationDataBuilder mutationDataBuilder;
 
   @Before
   public void setUp() {
-    mutation = Mutation.create();
-    mutationDataBuilder = new MutationDataBuilder(mutation);
+    mutation = spy(Mutation.create());
+    mutationDataBuilder = new MutationDataBuilder(mutation, TIMESTAMP);
   }
 
   @Test
@@ -66,6 +68,7 @@ public class MutationDataBuilderTest {
         mutationDataBuilder.maybeBuild(TARGET_TABLE_NAME, ROW_KEY);
     assertTrue(mutationData.isPresent());
     assertTrue(mutationData.get().getRequiredColumnFamilies().isEmpty());
+    verify(mutation, times(1)).deleteRow();
   }
 
   @Test
@@ -76,6 +79,7 @@ public class MutationDataBuilderTest {
         mutationDataBuilder.maybeBuild(TARGET_TABLE_NAME, ROW_KEY);
     assertTrue(mutationData.isPresent());
     assertEquals(Set.of(COLUMN_FAMILY), mutationData.get().getRequiredColumnFamilies());
+    verify(mutation, times(1)).deleteCells(COLUMN_FAMILY, COLUMN_QUALIFIER, TIMESTAMP_RANGE);
   }
 
   @Test
@@ -87,15 +91,17 @@ public class MutationDataBuilderTest {
 
     assertTrue(mutationData.isPresent());
     assertEquals(Set.of(COLUMN_FAMILY), mutationData.get().getRequiredColumnFamilies());
+    verify(mutation, times(1)).deleteFamily(COLUMN_FAMILY);
   }
 
   @Test
   public void testSetCell() {
-    mutationDataBuilder.setCell(COLUMN_FAMILY, COLUMN_QUALIFIER, TIMESTAMP, VALUE);
+    mutationDataBuilder.setCell(COLUMN_FAMILY, COLUMN_QUALIFIER, VALUE);
 
     Optional<MutationData> mutationData =
         mutationDataBuilder.maybeBuild(TARGET_TABLE_NAME, ROW_KEY);
     assertTrue(mutationData.isPresent());
     assertEquals(Set.of(COLUMN_FAMILY), mutationData.get().getRequiredColumnFamilies());
+    verify(mutation, times(1)).setCell(COLUMN_FAMILY, COLUMN_QUALIFIER, TIMESTAMP, VALUE);
   }
 }

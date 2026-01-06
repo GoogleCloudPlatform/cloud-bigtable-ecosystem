@@ -190,6 +190,15 @@ public abstract class BaseKafkaConnectIT extends BaseIT {
       Collection<Map.Entry<SchemaAndValue, SchemaAndValue>> keysAndValues,
       Converter keyConverter,
       Converter valueConverter) {
+    sendRecords(topic, keysAndValues, keyConverter, valueConverter, null);
+  }
+
+  public void sendRecords(
+      String topic,
+      Collection<Map.Entry<SchemaAndValue, SchemaAndValue>> keysAndValues,
+      Converter keyConverter,
+      Converter valueConverter,
+      Long timestamp) {
     try (KafkaProducer<byte[], byte[]> producer = getKafkaProducer()) {
       List<Future<RecordMetadata>> produceFutures = new ArrayList<>();
       for (Map.Entry<SchemaAndValue, SchemaAndValue> keyAndValue : keysAndValues) {
@@ -199,7 +208,7 @@ public abstract class BaseKafkaConnectIT extends BaseIT {
         byte[] serializedValue =
             valueConverter.fromConnectData(topic, value.schema(), value.value());
         ProducerRecord<byte[], byte[]> msg =
-            new ProducerRecord<>(topic, serializedKey, serializedValue);
+            new ProducerRecord<>(topic, null, timestamp, serializedKey, serializedValue);
         Future<RecordMetadata> produceFuture = producer.send(msg);
         produceFutures.add(produceFuture);
       }
@@ -281,8 +290,8 @@ public abstract class BaseKafkaConnectIT extends BaseIT {
                   h ->
                       h.key().equals(DeadLetterQueueReporter.ERROR_HEADER_EXCEPTION)
                           && Arrays.equals(
-                          h.value(),
-                          exceptionClass.getName().getBytes(StandardCharsets.UTF_8))));
+                              h.value(),
+                              exceptionClass.getName().getBytes(StandardCharsets.UTF_8))));
     }
   }
 }
