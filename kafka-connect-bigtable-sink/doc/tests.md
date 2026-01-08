@@ -57,6 +57,8 @@ Alternatively, you could point it to [the service account key created before](#o
 ```xml
 <environmentVariables>
 	<GOOGLE_APPLICATION_CREDENTIALS>${user.home}/.config/gcloud/application_default_credentials.json</GOOGLE_APPLICATION_CREDENTIALS>
+	<GOOGLE_APPLICATION_CREDENTIALS>${user.home}/.config/gcloud/application_default_credentials.json</GOOGLE_APPLICATION_CREDENTIALS>
+	<GOOGLE_APPLICATION_CREDENTIALS>${user.home}/.config/gcloud/application_default_credentials.json</GOOGLE_APPLICATION_CREDENTIALS>
 </environmentVariables>
 ```
 <!-- TODO: update this section when transitioning to kokoro -->
