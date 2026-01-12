@@ -336,8 +336,8 @@ loggerConfig:
 * If you have created application profile then you can specify otherwise comment
   out it in `config.yaml` so that it will pick `default` column family
   automatically
-* When using multiple bigtable instances, ensure that the schema mapping table
-  is available in all the bigtable instances.
+* When using multiple Bigtable instances, ensure that the schema mapping table
+  is available in all the Bigtable instances.
 * When using OTEL, ensure that the OTEL collector service is configured
   correctly.
 * If you modify any value in the config.yaml file, you must restart the proxy
