@@ -35,7 +35,7 @@ limitations under the License.
       <dependency>
         <groupId>com.google.cloud</groupId>
         <artifactId>cassandra-bigtable-java-client-bom</artifactId>
-        <version>0.1.7</version><!-- {x-version-update:cassandra-bigtable-java-client-parent:current} -->
+        <version>0.1.8-SNAPSHOT</version><!-- {x-version-update:cassandra-bigtable-java-client-parent:current} -->
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -46,7 +46,7 @@ limitations under the License.
     <dependency>
       <groupId>com.google.cloud</groupId>
       <artifactId>cassandra-bigtable-java-client-lib</artifactId>
-      <version>0.1.7</version><!-- {x-version-update:cassandra-bigtable-java-client-parent:current} -->
+      <version>0.1.8-SNAPSHOT</version><!-- {x-version-update:cassandra-bigtable-java-client-parent:current} -->
       <classifier>linux-amd64</classifier>
     </dependency>
     <dependency>
