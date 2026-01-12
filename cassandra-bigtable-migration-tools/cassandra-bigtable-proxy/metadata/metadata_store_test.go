@@ -6,6 +6,7 @@ import (
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/testing/bt_server_wrapper"
 	"github.com/datastax/go-cassandra-native-protocol/datatype"
 	"github.com/datastax/go-cassandra-native-protocol/message"
+	"github.com/datastax/go-cassandra-native-protocol/primitive"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -85,8 +86,10 @@ func TestCreateTable(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, exists)
 
-	err = store.CreateTable(t.Context(), createTableStatement)
+	response, err := store.CreateTable(t.Context(), createTableStatement)
 	require.NoError(t, err)
+	assert.Equal(t, "ks1", response.Keyspace)
+	assert.Equal(t, primitive.SchemaChangeType("CREATED"), response.ChangeType)
 
 	table, err := store.Schemas().GetTableSchema(createTableStatement.Keyspace(), createTableStatement.Table())
 	require.NoError(t, err)
@@ -275,7 +278,7 @@ func TestCreateTableWithEncodeIntRowKeysWithBigEndian(t *testing.T) {
 
 	tableName := types.TableName("big_endian_table")
 	createTableStmt := types.NewCreateTableStatementMap(ks1, tableName, "ignored", false, createTableStatement.Columns, createTableStatement.PrimaryKeys, types.BigEndianEncoding)
-	err = store.CreateTable(t.Context(), createTableStmt)
+	_, err = store.CreateTable(t.Context(), createTableStmt)
 	require.NoError(t, err)
 
 	lastCreateTableReq := bts.LastCreateTableReq()
@@ -294,7 +297,7 @@ func TestCreateTableWithEncodeIntRowKeysWithOrderedCode(t *testing.T) {
 
 	tableName := types.TableName("ordered_code_table")
 	createTableStmt := types.NewCreateTableStatementMap(ks1, tableName, "ignored", false, createTableStatement.Columns, createTableStatement.PrimaryKeys, types.OrderedCodeEncoding)
-	err = store.CreateTable(t.Context(), createTableStmt)
+	_, err = store.CreateTable(t.Context(), createTableStmt)
 	require.NoError(t, err)
 
 	lastCreateTableReq := bts.LastCreateTableReq()
@@ -317,7 +320,7 @@ func TestAlterTable(t *testing.T) {
 	require.False(t, exists)
 
 	createTable := types.NewCreateTableStatementMap(createTableStatement.Keyspace(), tableName, "ignored", false, createTableStatement.Columns, createTableStatement.PrimaryKeys, createTableStatement.IntRowKeyEncoding)
-	err = store.CreateTable(t.Context(), createTable)
+	_, err = store.CreateTable(t.Context(), createTable)
 	require.NoError(t, err)
 
 	addColumns := []types.CreateColumn{
@@ -330,8 +333,9 @@ func TestAlterTable(t *testing.T) {
 	alter := types.NewAlterTableStatementMap(createTableStatement.Keyspace(), tableName, "ignored", false, addColumns, []types.ColumnName{
 		"zipcode",
 	})
-	err = store.AlterTable(t.Context(), alter)
+	response, err := store.AlterTable(t.Context(), alter)
 	require.NoError(t, err)
+	assert.Equal(t, primitive.SchemaChangeType("UPDATED"), response.ChangeType)
 
 	require.NoError(t, err)
 	table, err := store.Schemas().GetTableSchema(alter.Keyspace(), alter.Table())

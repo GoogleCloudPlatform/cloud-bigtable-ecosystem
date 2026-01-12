@@ -18,6 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -70,10 +71,17 @@ public class SmokeTestIT {
 
       // Create table
       String createTableQuery = String.format(
-          "CREATE TABLE IF NOT EXISTS %s (column1 varchar PRIMARY KEY, column2 float, column3 int, column4 double, column5 bigint);",
+          "CREATE TABLE IF NOT EXISTS %s (column1 varchar PRIMARY KEY, column2 float, column3 int, column4 double)",
           qualifiedTestTableName);
       LOGGER.info("creating table with query: " + createTableQuery);
       session.execute(createTableQuery);
+
+      // Add a column
+      String alterTableQuery = String.format(
+          "ALTER TABLE %s ADD column5 bigint",
+          qualifiedTestTableName);
+      LOGGER.info("altering table with query: " + alterTableQuery);
+      session.execute(alterTableQuery);
 
       // Prepare an insert statement
       String insertQuery = String.format(
@@ -104,7 +112,7 @@ public class SmokeTestIT {
       session.execute(boundInsert2);
 
       // Query for all entries
-      String selectQuery = String.format("SELECT * FROM %s;", qualifiedTestTableName);
+      String selectQuery = String.format("SELECT * FROM %s", qualifiedTestTableName);
       LOGGER.info("Selecting data with query: " + selectQuery);
       ResultSet resultSet = session.execute(selectQuery);
 
@@ -129,6 +137,11 @@ public class SmokeTestIT {
       assertEquals(67890, rows.get(1).getInt("column3"));
       assertEquals(6789.0d, rows.get(1).getDouble("column4"));
       assertEquals(67890L, rows.get(1).getLong("column5"));
+
+      // Drop the table
+      String dropTableQuery = String.format("DROP TABLE %s", qualifiedTestTableName);
+      LOGGER.info("dropping table with query: " + dropTableQuery);
+      session.execute(dropTableQuery);
     }
   }
 

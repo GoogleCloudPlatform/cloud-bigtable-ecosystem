@@ -12,11 +12,17 @@ import (
 
 func TestCreateIfNotExist(t *testing.T) {
 	t.Parallel()
-	// dropping a random table that definitely doesn't exist should be ok
+	var schemaVersion1 string
+	require.NoError(t, session.Query("SELECT schema_version FROM system.local").Scan(&schemaVersion1))
+	// creating a random table that definitely doesn't exist should be ok
 	table := uniqueTableName("create_table_")
 	defer cleanupTable(t, table)
 	err := session.Query(fmt.Sprintf("CREATE TABLE %s (id TEXT PRIMARY KEY, name TEXT)", table)).Exec()
 	assert.NoError(t, err)
+
+	var schemaVersion2 string
+	require.NoError(t, session.Query("SELECT schema_version FROM system.local").Scan(&schemaVersion2))
+	assert.NotEqual(t, schemaVersion1, schemaVersion2, "schema version should change after successful DDL operations")
 
 	// confirm system tables are updated
 	systemTablesResult := make(map[string]any)

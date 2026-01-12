@@ -18,6 +18,7 @@ package metadata
 import (
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"reflect"
 	"testing"
 )
@@ -499,4 +500,67 @@ func Test_SyncTablesDrop(t *testing.T) {
 			Table:     "other",
 		},
 	}, listener.values)
+}
+
+func Test_CalculateSchemaVersion(t *testing.T) {
+	schemas := getSchemaMappingConfig()
+	v1, err := schemas.CalculateSchemaVersion()
+	require.NoError(t, err)
+
+	v2, err := schemas.CalculateSchemaVersion()
+	require.NoError(t, err)
+
+	// no changes happened, so we should have the same schema version
+	assert.Equal(t, v1, v2)
+
+	schemas.AddTables(
+		[]*TableSchema{
+			NewTableConfig(
+				"keyspace",
+				"table2",
+				"cf1",
+				types.OrderedCodeEncoding,
+				[]*types.Column{
+					{
+						Name:         "column1",
+						CQLType:      types.TypeVarchar,
+						KeyType:      types.KeyTypeRegular,
+						ColumnFamily: "cf1",
+					},
+					{
+						Name:         "column2",
+						CQLType:      types.TypeInt,
+						KeyType:      types.KeyTypeRegular,
+						ColumnFamily: "cf1",
+					},
+				},
+			),
+		},
+	)
+
+	v3, err := schemas.CalculateSchemaVersion()
+	require.NoError(t, err)
+
+	// we added a table, so the schema should be changed
+	assert.NotEqual(t, v1, v3)
+
+	// sync keyspace which will effectively drop the table we just added
+	schemas.SyncKeyspace("keyspace", getSchemaMappingConfig().Tables())
+
+	v4, err := schemas.CalculateSchemaVersion()
+	require.NoError(t, err)
+
+	// we dropped a table, so the schema should be changed
+	assert.NotEqual(t, v3, v4)
+	// we are back to v1 because we dropped the new table
+	assert.Equal(t, v1, v4)
+
+	// sync keyspace with the same schemas, so nothing should change
+	schemas.SyncKeyspace("keyspace", getSchemaMappingConfig().Tables())
+
+	v5, err := schemas.CalculateSchemaVersion()
+	require.NoError(t, err)
+
+	// we synced but no schemas changed so we should be back to the v1 version
+	assert.Equal(t, v1, v5)
 }

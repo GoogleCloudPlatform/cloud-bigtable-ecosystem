@@ -13,10 +13,6 @@ import (
 	"net"
 )
 
-var (
-	schemaVersion, _ = primitive.ParseUuid("4f2b29e6-59b5-4e2d-8fd6-01e32e67f0d7")
-)
-
 const (
 	dseVersion = "5.1.21"
 )
@@ -26,6 +22,7 @@ type SystemTableManager struct {
 	db             *mem_table.InMemEngine
 	logger         *zap.Logger
 	configProvider SystemTableConfigProvider
+	schemaVersion  primitive.UUID
 }
 
 type SystemTableConfigProvider interface {
@@ -103,8 +100,15 @@ func (s *SystemTableManager) initializeSystemTables() error {
 }
 
 func (s *SystemTableManager) ReloadSystemTables() error {
-	config := s.configProvider.GetSystemTableConfig()
 	var err error
+
+	schemaVersion, err := s.metadataStore.Schemas().CalculateSchemaVersion()
+	if err != nil {
+		return err
+	}
+	s.schemaVersion = primitive.UUID(schemaVersion)
+
+	config := s.configProvider.GetSystemTableConfig()
 	err = s.db.SetData(SystemSchemaTableKeyspace, s.getKeyspaceMetadata())
 	if err != nil {
 		return err
@@ -130,7 +134,7 @@ func (s *SystemTableManager) ReloadSystemTables() error {
 		return err
 	}
 
-	err = s.db.SetData(SystemTablePeersV2, s.getPeerMetadata(config))
+	err = s.db.SetData(SystemTablePeersV2, s.getPeerV2Metadata(config))
 	if err != nil {
 		return err
 	}
@@ -203,12 +207,13 @@ func (s *SystemTableManager) getLocalMetadata(config SystemTableConfig) []types.
 			"partitioner":             config.Partitioner,
 			"cluster_name":            fmt.Sprintf("cassandra-bigtable-proxy-%s", constants.ProxyReleaseVersion),
 			"cql_version":             config.CqlVersion,
-			"schema_version":          *schemaVersion,
+			"schema_version":          s.schemaVersion,
 			"native_protocol_version": config.NativeProtocolVersion,
 			"dse_version":             dseVersion,
 		},
 	}
 }
+
 func (s *SystemTableManager) getPeerMetadata(config SystemTableConfig) []types.GoRow {
 	var rows []types.GoRow
 	for _, peer := range config.Peers {
@@ -220,8 +225,31 @@ func (s *SystemTableManager) getPeerMetadata(config SystemTableConfig) []types.G
 			"rack":            "rack1",
 			"tokens":          peer.Tokens,
 			"release_version": config.ReleaseVersion,
-			"schema_version":  *schemaVersion,
+			"schema_version":  s.schemaVersion,
 			"host_id":         nameBasedUUID(peer.Addr),
+		})
+	}
+	return rows
+}
+
+func (s *SystemTableManager) getPeerV2Metadata(config SystemTableConfig) []types.GoRow {
+	var rows []types.GoRow
+	for _, peer := range config.Peers {
+		rows = append(rows, types.GoRow{
+			"peer":            peer.Addr,
+			"peer_port":       9042,
+			"rpc_address":     peer.Addr,
+			"data_center":     peer.Dc,
+			"dse_version":     dseVersion,
+			"rack":            "rack1",
+			"tokens":          peer.Tokens,
+			"release_version": config.ReleaseVersion,
+			"schema_version":  s.schemaVersion,
+			"host_id":         nameBasedUUID(peer.Addr),
+			"native_address":  peer.Addr,
+			"native_port":     9042,
+			"preferred_ip":    peer.Addr,
+			"preferred_port":  9042,
 		})
 	}
 	return rows

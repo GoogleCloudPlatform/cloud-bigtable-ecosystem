@@ -77,11 +77,16 @@ func (t *SelectTranslator) Translate(query *types.RawQuery, sessionKeyspace type
 
 	st := types.NewPreparedSelectQuery(keyspaceName, tableName, query.RawCql(), "", selectClause, conditions, params, orderBy, groupBy, limitValue, resultColumns)
 
-	translatedResult, err := createBigtableSql(t, st)
-	if err != nil {
-		return nil, err
+	if !keyspaceName.IsSystemKeyspace() {
+		translatedResult, err := createBigtableSql(t, st)
+		if err != nil {
+			return nil, err
+		}
+		st.TranslatedQuery = translatedResult
+	} else {
+		// we don't translate system queries because they aren't run against bigtable, and we don't have Bigtable SQL support for all the system queries that are run.
+		st.TranslatedQuery = "system query"
 	}
-	st.TranslatedQuery = translatedResult
 	return st, nil
 }
 
