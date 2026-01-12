@@ -134,7 +134,7 @@ func (s *SystemTableManager) ReloadSystemTables() error {
 		return err
 	}
 
-	err = s.db.SetData(SystemTablePeersV2, s.getPeerMetadata(config))
+	err = s.db.SetData(SystemTablePeersV2, s.getPeerV2Metadata(config))
 	if err != nil {
 		return err
 	}
@@ -213,6 +213,7 @@ func (s *SystemTableManager) getLocalMetadata(config SystemTableConfig) []types.
 		},
 	}
 }
+
 func (s *SystemTableManager) getPeerMetadata(config SystemTableConfig) []types.GoRow {
 	var rows []types.GoRow
 	for _, peer := range config.Peers {
@@ -226,6 +227,29 @@ func (s *SystemTableManager) getPeerMetadata(config SystemTableConfig) []types.G
 			"release_version": config.ReleaseVersion,
 			"schema_version":  s.schemaVersion,
 			"host_id":         nameBasedUUID(peer.Addr),
+		})
+	}
+	return rows
+}
+
+func (s *SystemTableManager) getPeerV2Metadata(config SystemTableConfig) []types.GoRow {
+	var rows []types.GoRow
+	for _, peer := range config.Peers {
+		rows = append(rows, types.GoRow{
+			"peer":            peer.Addr,
+			"peer_port":       9042,
+			"rpc_address":     peer.Addr,
+			"data_center":     peer.Dc,
+			"dse_version":     dseVersion,
+			"rack":            "rack1",
+			"tokens":          peer.Tokens,
+			"release_version": config.ReleaseVersion,
+			"schema_version":  s.schemaVersion,
+			"host_id":         nameBasedUUID(peer.Addr),
+			"native_address":  peer.Addr,
+			"native_port":     9042,
+			"preferred_ip":    peer.Addr,
+			"preferred_port":  9042,
 		})
 	}
 	return rows
