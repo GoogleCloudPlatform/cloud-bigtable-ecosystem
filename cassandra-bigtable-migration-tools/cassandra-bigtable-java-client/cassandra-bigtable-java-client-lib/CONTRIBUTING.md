@@ -51,7 +51,6 @@ Pre-requisites:
 - A Bigtable Instance
 - Go v1.21
 - Java 8+
-- Bigtable cbt client
 - gcloud client
 
 First, obtain gcloud credentials if needed:
