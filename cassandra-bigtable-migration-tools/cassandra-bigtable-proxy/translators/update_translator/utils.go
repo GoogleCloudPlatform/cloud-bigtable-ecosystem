@@ -22,7 +22,7 @@ func parseUpdateValues(assignments []cql.IAssignmentElementContext, tableConfig 
 			if err != nil {
 				return nil, err
 			}
-			value, err := common.ParseValueAny(assignment.ValueAny(), col.CQLType, params)
+			value, err := common.ParseValueAny(assignment.ValueAny(), col.CQLType, params, col)
 			if err != nil {
 				return nil, err
 			}
@@ -53,7 +53,7 @@ func parseUpdateValues(assignments []cql.IAssignmentElementContext, tableConfig 
 				if err != nil {
 					return nil, fmt.Errorf("failed to parse map key: %w", err)
 				}
-				value, err := common.ParseConstantValue(assignment.Constant(), mt.ValueType(), params)
+				value, err := common.ParseConstantValue(assignment.Constant(), mt.ValueType(), params, col)
 				if err != nil {
 					return nil, err
 				}
@@ -65,7 +65,7 @@ func parseUpdateValues(assignments []cql.IAssignmentElementContext, tableConfig 
 				if err != nil {
 					return nil, fmt.Errorf("failed to parse list collection index: %w", err)
 				}
-				value, err := common.ParseConstantValue(assignment.Constant(), lt.ElementType(), params)
+				value, err := common.ParseConstantValue(assignment.Constant(), lt.ElementType(), params, col)
 				if err != nil {
 					return nil, err
 				}
@@ -108,7 +108,7 @@ func ParseAppend(columnContext cql.IColumnContext, op cql.IArithmeticOperatorCon
 		return nil, fmt.Errorf("cannot append on column type: %s", col.CQLType.String())
 	}
 
-	value, err := common.ParseValueAny(valueAny, valueType, params)
+	value, err := common.ParseValueAny(valueAny, valueType, params, col)
 	if err != nil {
 		return nil, err
 	}

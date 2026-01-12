@@ -12,10 +12,12 @@ type Placeholder string
 type PlaceholderMetadata struct {
 	Key  Placeholder
 	Type CqlDataType
+	// can be null if the placeholder is not related to a specific column
+	Column *Column
 }
 
-func newPlaceholderMetadata(key Placeholder, tpe CqlDataType) PlaceholderMetadata {
-	return PlaceholderMetadata{Key: key, Type: tpe}
+func newPlaceholderMetadata(key Placeholder, tpe CqlDataType, column *Column) PlaceholderMetadata {
+	return PlaceholderMetadata{Key: key, Type: tpe, Column: column}
 }
 
 type QueryParameters struct {
@@ -61,20 +63,20 @@ func (q *QueryParameters) getNextParameter() Placeholder {
 	return Placeholder(fmt.Sprintf("@value%d", len(q.ordered)))
 }
 
-func (q *QueryParameters) BuildParameter(dataType CqlDataType) *QueryParameters {
-	_ = q.PushParameter(dataType)
+func (q *QueryParameters) BuildParameter(dataType CqlDataType, c *Column) *QueryParameters {
+	_ = q.PushParameter(dataType, c)
 	return q
 }
 
-func (q *QueryParameters) PushParameter(dataType CqlDataType) Placeholder {
+func (q *QueryParameters) PushParameter(dataType CqlDataType, c *Column) Placeholder {
 	p := q.getNextParameter()
-	q.AddParameter(p, dataType)
+	q.AddParameter(p, dataType, c)
 	return p
 }
 
-func (q *QueryParameters) AddParameter(p Placeholder, dt CqlDataType) {
+func (q *QueryParameters) AddParameter(p Placeholder, dt CqlDataType, c *Column) {
 	q.ordered = append(q.ordered, p)
-	q.metadata[p] = newPlaceholderMetadata(p, dt)
+	q.metadata[p] = newPlaceholderMetadata(p, dt, c)
 }
 
 func (q *QueryParameters) GetMetadata(p Placeholder) PlaceholderMetadata {
