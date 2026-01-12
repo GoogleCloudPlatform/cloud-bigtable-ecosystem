@@ -95,21 +95,6 @@ func (c *SchemaMetadata) Tables() []*TableSchema {
 	return tables
 }
 
-func (c *SchemaMetadata) TablesForKeyspace(keyspace types.Keyspace) []*TableSchema {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	var tableSchemas []*TableSchema
-	for k, tables := range c.tables {
-		if k != keyspace {
-			continue
-		}
-		for _, t := range tables {
-			tableSchemas = append(tableSchemas, t)
-		}
-	}
-	return tableSchemas
-}
-
 // CalculateSchemaVersion creates a deterministic UUID based on all keyspace and table schema information to be used
 // for Cassandra schema_version. Schema Version must be consistent across all Proxy nodes. Most Cassandra clients care
 // about all nodes achieving the same schema version.

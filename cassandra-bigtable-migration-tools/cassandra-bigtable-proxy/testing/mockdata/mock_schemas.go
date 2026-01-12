@@ -113,7 +113,7 @@ func CreateQueryParams(values []*types.TypedGoValue) (*types.QueryParameterValue
 	result := types.NewQueryParameterValues(params, time.Now())
 
 	for _, v := range values {
-		p := params.PushParameter(v.Type)
+		p := params.PushParameter(v.Type, nil)
 		err := result.SetValue(p, v.Value)
 		if err != nil {
 			return nil, err
