@@ -51,7 +51,6 @@ Pre-requisites:
 - A Bigtable Instance
 - Go v1.21
 - Java 8+
-- Bigtable cbt client
 - gcloud client
 
 First, obtain gcloud credentials if needed:
@@ -88,7 +87,7 @@ SMOKE_TEST_TABLE=<YOUR-SMOKE-TEST-TABLE-NAME-HERE>
 SCHEMA_MAPPING_TABLE=<YOUR-SCHEMA-MAPPING-TABLE-NAME-HERE>
 ```
 
-And run:
+And then run:
 
 ```shell
 mvn verify \

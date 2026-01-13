@@ -90,14 +90,14 @@ func TestSelectTranslator_Translate(t *testing.T) {
 		},
 		{
 			name:  "success with adhoc query and USING TIMESTAMP",
-			query: "INSERT INTO test_keyspace.test_table (pk2, col_blob, col_bool, list_text, col_int, col_bigint, pk1) VALUES ('u123', '0x0000003', true, ['item1', 'item2', 'item1'], 3, 8242842848, 'org1') USING TIMESTAMP 234242424",
+			query: "INSERT INTO test_keyspace.test_table (pk2, col_blob, col_bool, list_text, col_int, col_bigint, pk1) VALUES ('u123', 0x0003, true, ['item1', 'item2', 'item1'], 3, 8242842848, 'org1') USING TIMESTAMP 234242424",
 			want: &Want{
 				Keyspace:    "test_keyspace",
 				Table:       "test_table",
 				IfNotExists: false,
 				Assignments: []types.Assignment{
 					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk2"), types.NewLiteralValue("u123")),
-					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"), types.NewLiteralValue("0x0000003")),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"), types.NewLiteralValue([]byte{0x00, 0x03})),
 					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_bool"), types.NewLiteralValue(true)),
 					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "list_text"), types.NewLiteralValue([]types.GoValue{"item1", "item2", "item1"})),
 					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_int"), types.NewLiteralValue(int32(3))),
@@ -106,6 +106,11 @@ func TestSelectTranslator_Translate(t *testing.T) {
 				},
 				UsingTimestamp: types.NewLiteralValue(int64(234242424)),
 			},
+		},
+		{
+			name:    "fails if blob value a string",
+			query:   "INSERT INTO test_keyspace.test_table (pk2, col_blob, pk1) VALUES ('u123', '0x0003', 'org1')",
+			wantErr: "invalid literal for type blob:",
 		},
 		{
 			name:  "session keyspace",

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	schemaMapping "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/metadata"
+	"time"
 )
 
 var kOrderedCodeEmptyField = []byte("\x00\x00")
@@ -47,6 +48,24 @@ func BindRowKey(tableConfig *schemaMapping.TableSchema, rowKeyValues []types.Dyn
 			if err != nil {
 				return "", err
 			}
+		case time.Time:
+			// always use Ordered Code encoding because we don't have to worry about backwards compatability, like with Int64/32 row key types.
+			// truncate to Milliseconds because Bigtable uses microseconds for keys but Cassandra uses milliseconds
+			orderEncodedField, err = encodeInt64Key(v.Truncate(time.Millisecond).UnixMicro(), types.OrderedCodeEncoding)
+			if err != nil {
+				return "", err
+			}
+		case []uint8: // blobs
+			if len(v) == 0 {
+				// Cassandra does not allow empty blobs
+				return "", errors.New("key may not be empty")
+			}
+			orderEncodedField, err = Append(nil, string(v))
+			if err != nil {
+				return "", err
+			}
+			// the ordered code library always appends a delimiter to strings, but we have custom delimiter logic so remove it
+			orderEncodedField = orderEncodedField[:len(orderEncodedField)-2]
 		case string:
 			orderEncodedField, err = Append(nil, v)
 			if err != nil {

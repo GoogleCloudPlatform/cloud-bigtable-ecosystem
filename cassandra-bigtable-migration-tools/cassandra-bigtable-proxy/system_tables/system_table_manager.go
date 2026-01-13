@@ -17,6 +17,10 @@ var (
 	schemaVersion, _ = primitive.ParseUuid("4f2b29e6-59b5-4e2d-8fd6-01e32e67f0d7")
 )
 
+const (
+	dseVersion = "5.1.21"
+)
+
 type SystemTableManager struct {
 	metadataStore  *schemaMapping.MetadataStore
 	db             *mem_table.InMemEngine
@@ -35,7 +39,6 @@ type SystemTableConfig struct {
 	Partitioner           string
 	CqlVersion            string
 	NativeProtocolVersion string
-	DseVersion            string
 	Peers                 []PeerConfig
 }
 
@@ -202,7 +205,7 @@ func (s *SystemTableManager) getLocalMetadata(config SystemTableConfig) []types.
 			"cql_version":             config.CqlVersion,
 			"schema_version":          *schemaVersion,
 			"native_protocol_version": config.NativeProtocolVersion,
-			"dse_version":             config.DseVersion,
+			"dse_version":             dseVersion,
 		},
 	}
 }
@@ -213,7 +216,7 @@ func (s *SystemTableManager) getPeerMetadata(config SystemTableConfig) []types.G
 			"peer":            peer.Addr,
 			"rpc_address":     peer.Addr,
 			"data_center":     peer.Dc,
-			"dse_version":     config.DseVersion,
+			"dse_version":     dseVersion,
 			"rack":            "rack1",
 			"tokens":          peer.Tokens,
 			"release_version": config.ReleaseVersion,

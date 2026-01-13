@@ -7,4 +7,4 @@ one of the .g4 files and then regenerate the golang parsers with:
    jar: `curl -O https://www.antlr.org/download/antlr-4.13.2-complete.jar`
 2. `cd` into `third_party/cqlparser/`
 3.
-Run `java -jar ~/Downloads/antlr-4.13.2-complete.jar -Dlanguage=Go -no-visitor -package parser CqlParser.g4`
+Run `java -jar ~/Downloads/antlr-4.13.2-complete.jar -Dlanguage=Go -no-visitor -package parser CqlLexer.g4 CqlParser.g4`

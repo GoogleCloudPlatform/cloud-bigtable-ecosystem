@@ -151,7 +151,6 @@ func (btc *BigtableAdapter) convertResultRow(resultRow bigtable.ResultRow, query
 func rowValueToGoValue(val any, expectedType types.CqlDataType) (types.GoValue, error) {
 	switch v := val.(type) {
 	case string:
-		// do we need to decode base64?
 		goVal, err := utilities.StringToGo(v, expectedType)
 		if err != nil {
 			return nil, err

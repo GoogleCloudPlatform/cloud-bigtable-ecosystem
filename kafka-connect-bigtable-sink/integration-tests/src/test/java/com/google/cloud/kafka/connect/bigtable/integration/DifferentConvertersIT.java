@@ -19,12 +19,14 @@ import io.confluent.connect.avro.AvroConverter;
 import io.confluent.connect.json.JsonSchemaConverter;
 import io.confluent.connect.protobuf.ProtobufConverter;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
+
 import org.apache.kafka.connect.json.JsonConverter;
 import org.apache.kafka.connect.json.JsonConverterConfig;
 import org.apache.kafka.connect.runtime.ConnectorConfig;
@@ -42,20 +44,20 @@ public class DifferentConvertersIT extends BaseDataGeneratorIT {
   @Parameterized.Parameters
   public static Collection testCases() {
     return Arrays.asList(
-        new Object[][] {
-          {(Supplier<Converter>) AvroConverter::new, Map.of(), true},
-          {(Supplier<Converter>) ProtobufConverter::new, Map.of(), true},
-          {(Supplier<Converter>) JsonSchemaConverter::new, Map.of(), true},
-          {
-            (Supplier<Converter>) JsonConverter::new,
-            Map.of(JsonConverterConfig.SCHEMAS_ENABLE_CONFIG, String.valueOf(false)),
-            false
-          },
-          {
-            (Supplier<Converter>) JsonConverter::new,
-            Map.of(JsonConverterConfig.SCHEMAS_ENABLE_CONFIG, String.valueOf(true)),
-            false
-          },
+        new Object[][]{
+            {(Supplier<Converter>) AvroConverter::new, Map.of(), true},
+            {(Supplier<Converter>) ProtobufConverter::new, Map.of(), true},
+            {(Supplier<Converter>) JsonSchemaConverter::new, Map.of(), true},
+            {
+                (Supplier<Converter>) JsonConverter::new,
+                Map.of(JsonConverterConfig.SCHEMAS_ENABLE_CONFIG, String.valueOf(false)),
+                false
+            },
+            {
+                (Supplier<Converter>) JsonConverter::new,
+                Map.of(JsonConverterConfig.SCHEMAS_ENABLE_CONFIG, String.valueOf(true)),
+                false
+            },
         });
   }
 

@@ -26,15 +26,19 @@ import com.google.cloud.bigtable.data.v2.BigtableDataClient;
 import com.google.cloud.kafka.connect.bigtable.config.BigtableSinkConfig;
 import com.google.cloud.kafka.connect.bigtable.util.TestId;
 import com.google.cloud.kafka.connect.bigtable.wrappers.BigtableTableAdminClientInterface;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.connect.runtime.ConnectorConfig;
 import org.apache.kafka.connect.storage.StringConverter;
 
 public abstract class BaseIT {
   public static final String CREDENTIALS_PATH_ENV_VAR = "GOOGLE_APPLICATION_CREDENTIALS";
+  public static final String GCP_PROJECT_ID = "PROJECT_ID";
+  public static final String BIGTABLE_INSTANCE_ID = "INSTANCE_ID";
   public static final String CONNECTOR_CLASS_NAME =
       "com.google.cloud.kafka.connect.bigtable.BigtableSinkConnector";
 
@@ -59,10 +63,8 @@ public abstract class BaseIT {
             + ProducerConfig.BUFFER_MEMORY_CONFIG,
         String.valueOf(maxKafkaMessageSizeBytes));
 
-    // TODO: get it from environment variables after migrating to kokoro.
-    result.put(GCP_PROJECT_ID_CONFIG, "todotodo");
-    result.put(BIGTABLE_INSTANCE_ID_CONFIG, "todotodo");
-    // TODO: fix it when transitioning to kokoro.
+    result.put(GCP_PROJECT_ID_CONFIG, Objects.requireNonNull(System.getenv(GCP_PROJECT_ID)));
+    result.put(BIGTABLE_INSTANCE_ID_CONFIG, Objects.requireNonNull(System.getenv(BIGTABLE_INSTANCE_ID)));
     result.put(
         BigtableSinkConfig.GCP_CREDENTIALS_PATH_CONFIG,
         Objects.requireNonNull(System.getenv(CREDENTIALS_PATH_ENV_VAR)));

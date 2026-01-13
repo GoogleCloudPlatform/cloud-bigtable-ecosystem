@@ -15,6 +15,8 @@
  */
 package com.google.cloud.kafka.connect.bigtable.integration;
 
+import com.google.cloud.kafka.connect.bigtable.util.NestedNullStructFactory;
+
 import static com.google.cloud.kafka.connect.bigtable.util.NestedNullStructFactory.NESTED_NULL_STRUCT_FIELD_NAME;
 import static com.google.cloud.kafka.connect.bigtable.util.NestedNullStructFactory.NESTED_NULL_STRUCT_FIELD_NAME_BYTES;
 import static com.google.cloud.kafka.connect.bigtable.util.NestedNullStructFactory.getStructWithNullOnNthNestingLevel;
@@ -28,6 +30,7 @@ import com.google.cloud.kafka.connect.bigtable.config.BigtableSinkConfig;
 import com.google.cloud.kafka.connect.bigtable.config.InsertMode;
 import com.google.cloud.kafka.connect.bigtable.config.NullValueMode;
 import com.google.protobuf.ByteString;
+
 import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -37,6 +40,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
+
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -238,9 +242,9 @@ public class NullHandlingIT extends BaseKafkaConnectBigtableIT {
         SchemaBuilder.struct().field(deletedColumn.getValue(), Schema.OPTIONAL_INT8_SCHEMA);
     Struct deleteColumn =
         new Struct(
-                SchemaBuilder.struct()
-                    .field(deletedColumn.getKey(), innerDeleteColumnSchema)
-                    .build())
+            SchemaBuilder.struct()
+                .field(deletedColumn.getKey(), innerDeleteColumnSchema)
+                .build())
             .put(
                 deletedColumn.getKey(),
                 new Struct(innerDeleteColumnSchema).put(deletedColumn.getValue(), null));
@@ -322,9 +326,9 @@ public class NullHandlingIT extends BaseKafkaConnectBigtableIT {
                 c ->
                     !(c.getFamily().equals(deletedColumn.getKey())
                         && c.getQualifier()
-                            .equals(
-                                ByteString.copyFrom(
-                                    deletedColumn.getValue().getBytes(StandardCharsets.UTF_8)))))
+                        .equals(
+                            ByteString.copyFrom(
+                                deletedColumn.getValue().getBytes(StandardCharsets.UTF_8)))))
             .collect(Collectors.toSet()),
         new HashSet<>(rowDeletedColumn.getCells()));
   }

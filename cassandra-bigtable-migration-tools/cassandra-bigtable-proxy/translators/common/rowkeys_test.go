@@ -10,6 +10,21 @@ import (
 	"time"
 )
 
+func TestBindRowKeyTimestampPrecision(t *testing.T) {
+	micro := time.UnixMicro(1767727307246309)
+	millis := time.UnixMilli(1767727307246)
+	table := mockdata.GetTableOrDie("test_keyspace", "timestamp_key")
+
+	rowKeyMicro, err := BindRowKey(table, []types.DynamicValue{types.NewLiteralValue(micro)}, types.NewQueryParameterValues(types.NewQueryParameters(), time.Now()))
+	require.NoError(t, err)
+
+	rowKeyMillis, err := BindRowKey(table, []types.DynamicValue{types.NewLiteralValue(millis)}, types.NewQueryParameterValues(types.NewQueryParameters(), time.Now()))
+	require.NoError(t, err)
+
+	// ensure microseconds are truncated because Bigtable uses microseconds for keys but Cassandra uses milliseconds
+	assert.Equal(t, rowKeyMillis, rowKeyMicro)
+}
+
 func TestBindRowKey(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -44,6 +59,14 @@ func TestBindRowKey(t *testing.T) {
 			},
 			want: "",
 			err:  "wrong number of primary keys: want 2 got 1",
+		},
+		{
+			name:  "timestamp key",
+			table: mockdata.GetTableOrDie("test_keyspace", "timestamp_key"),
+			values: []types.GoValue{
+				time.UnixMicro(1767727307246309),
+			},
+			want: "\xff\x06G\xbd\x165I\xb0",
 		},
 	}
 	for _, tt := range tests {

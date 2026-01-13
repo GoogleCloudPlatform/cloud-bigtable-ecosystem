@@ -1,1 +1,0 @@
-../../../../../../../../../../../sink/src/test/java/com/google/cloud/kafka/connect/bigtable/util/NestedNullStructFactory.java

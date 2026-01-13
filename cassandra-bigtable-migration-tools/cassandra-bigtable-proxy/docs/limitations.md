@@ -13,19 +13,22 @@ simply because certain features haven't been fully implemented yet in the proxy.
 
 ## 1. Supported data types
 
-| CQL Type              | Supported | Cloud Bigtable Mapping                                                             |
-|-----------------------|-----------|------------------------------------------------------------------------------------|
-| text                  | ✓         | RAW BYTES                                                                          |
-| timestamp             | ✓         | RAW BYTES                                                                          |
-| int                   | ✓         | RAW BYTES                                                                          |
-| bigint                | ✓         | RAW BYTES                                                                          |
-| float                 | ✓         | RAW BYTES                                                                          |
-| double                | ✓         | RAW BYTES                                                                          |
-| boolean               | ✓         | RAW BYTES                                                                          |
-| counter               | ✓         | Col name as col family, values stored in a 'v' column.                             |
-| map&lt;key, value&gt; | ✓         | Col name as col family, MAP key as column qualifier, value as value                |
-| set&lt;item&gt;       | ✓         | Col name as col family, SET item as column qualifier, value remain empty           |
-| list&lt;item&gt;      | ✓         | Col name as col family, current timestamp as column qualifier, list items as value |
+| CQL Type              | Supported | Primary Key | Cloud Bigtable Mapping                                                             |
+|-----------------------|-----------|-------------|------------------------------------------------------------------------------------|
+| text                  | yes       | yes         | RAW BYTES                                                                          |
+| varchar               | yes       | yes         | RAW BYTES                                                                          |
+| timestamp             | yes       | yes         | RAW BYTES                                                                          |
+| int                   | yes       | yes         | RAW BYTES                                                                          |
+| bigint                | yes       | yes         | RAW BYTES                                                                          |
+| blob                  | yes       | yes         | RAW BYTES                                                                          |
+| ascii                 | yes       | yes         | RAW BYTES                                                                          |
+| float                 | yes       | no          | RAW BYTES                                                                          |
+| double                | yes       | no          | RAW BYTES                                                                          |
+| boolean               | yes       | no          | RAW BYTES                                                                          |
+| counter               | yes       | no          | Col name as col family, values stored in a 'v' column.                             |
+| map&lt;key, value&gt; | yes       | n/a         | Col name as col family, MAP key as column qualifier, value as value                |
+| set&lt;item&gt;       | yes       | n/a         | Col name as col family, SET item as column qualifier, value remain empty           |
+| list&lt;item&gt;      | yes       | n/a         | Col name as col family, current timestamp as column qualifier, list items as value |
 
 All list types follow the same storage pattern:  
 **Col name as col family, current timestamp (with nanosecond precision) as
@@ -33,7 +36,7 @@ column qualifier, list items as column value.**
 
 ### Non-supported data types
 
-The proxy currently doesn't support the following data types: US-ASCII, blob, 
+The proxy currently doesn't support the following data types: 
 date, decimal, duration, inet, smallint, time, timeuuid, tinyint, uuid,
 varint, frozen and user-defined types (UDT).
 
@@ -47,6 +50,7 @@ We are only supporting these functions as of now.
 - **min** - `"select min(colx) from keyspacex.tablex.keyspaceX.tablex`
 - **max** - `"select max(colx) from keyspacex.tablex.keyspaceX.tablex`
 - **writetime** - `select writetime(colx)  from keyspacex.tablex`
+- **toTimestamp(now())** - `insert into keyspacex.tablex (event_time) values (toTimestamp(now()))`
 
 ## 3. Queries with Literals
 
@@ -68,10 +72,14 @@ For example:
 
 ```sql
 -- Supported:
-SELECT column1, COUNT(*) FROM keyspace.table GROUP BY column1;
+SELECT column1, COUNT(*)
+FROM keyspace.table
+GROUP BY column1;
 
 -- Not Supported:
-SELECT column1, COUNT(*) FROM keyspace.table GROUP BY collection_column;  -- Collection columns not supported
+SELECT column1, COUNT(*)
+FROM keyspace.table
+GROUP BY collection_column; -- Collection columns not supported
 ```
 
 ## 5. Partial Prepared Queries
@@ -163,17 +171,39 @@ For example:
 
 ```sql
 -- Supported:
-SELECT * FROM table WHERE id = 123;
-SELECT * FROM table WHERE name IN ('John', 'Jane', 'Bob');
-SELECT * FROM table WHERE col1 > 18;
-SELECT * FROM table WHERE col1 BETWEEN 10 AND 20;
-SELECT * FROM table WHERE name LIKE 'John%';
-SELECT * FROM table WHERE col1 >= 18;
-SELECT * FROM table WHERE col1 <= 18;
-SELECT * FROM table WHERE col1 < 18;
-SELECT col1 FROM table WHERE col1 CONTAINS 'name'
-SELECT col1 FROM table WHERE col1 CONTAINS KEY 'name'
-SELECT col1 FROM table WHERE col1 CONTAINS VALUE 'name'
+SELECT *
+FROM table
+WHERE id = 123;
+SELECT *
+FROM table
+WHERE name IN ('John', 'Jane', 'Bob');
+SELECT *
+FROM table
+WHERE col1 > 18;
+SELECT *
+FROM table
+WHERE col1 BETWEEN 10 AND 20;
+SELECT *
+FROM table
+WHERE name LIKE 'John%';
+SELECT *
+FROM table
+WHERE col1 >= 18;
+SELECT *
+FROM table
+WHERE col1 <= 18;
+SELECT *
+FROM table
+WHERE col1 < 18;
+SELECT col1
+FROM table
+WHERE col1 CONTAINS 'name'
+SELECT col1
+FROM table
+WHERE col1 CONTAINS KEY 'name'
+SELECT col1
+FROM table
+WHERE col1 CONTAINS VALUE 'name'
 ```
 
 If your queries use unsupported operators, you'll need to modify them to use

@@ -122,17 +122,14 @@ Returns:
 	An updated slice of strings with the new formatted column reference appended.
 */
 func processRegularColumn(selectedColumn types.SelectedColumn, col *types.Column) (string, error) {
-	if !col.CQLType.IsCollection() {
-		return castScalarColumn(col)
+	if col.CQLType.DataType().GetDataTypeCode() == primitive.DataTypeCodeList {
+		return fmt.Sprintf("MAP_VALUES(`%s`)", selectedColumn.Sql), nil
+	} else if selectedColumn.MapKey != "" {
+		return fmt.Sprintf("`%s`['%s']", selectedColumn.ColumnName, selectedColumn.MapKey), nil
+	} else if col.CQLType.IsCollection() {
+		return fmt.Sprintf("`%s`", selectedColumn.Sql), nil
 	} else {
-		if col.CQLType.DataType().GetDataTypeCode() == primitive.DataTypeCodeList {
-			return fmt.Sprintf("MAP_VALUES(`%s`)", selectedColumn.Sql), nil
-		} else {
-			if selectedColumn.MapKey != "" {
-				return fmt.Sprintf("`%s`['%s']", selectedColumn.ColumnName, selectedColumn.MapKey), nil
-			}
-			return fmt.Sprintf("`%s`", selectedColumn.Sql), nil
-		}
+		return castScalarColumn(col)
 	}
 }
 
@@ -342,8 +339,8 @@ func castScalarColumn(colMeta *types.Column) (string, error) {
 	case datatype.Counter:
 		return fmt.Sprintf("`%s`['']", colMeta.Name), nil
 	case datatype.Blob:
-		return fmt.Sprintf("TO_BLOB(`%s`['%s'])", colMeta.ColumnFamily, colMeta.Name), nil
-	case datatype.Varchar:
+		return fmt.Sprintf("`%s`['%s']", colMeta.ColumnFamily, colMeta.Name), nil
+	case datatype.Varchar, datatype.Ascii:
 		return fmt.Sprintf("`%s`['%s']", colMeta.ColumnFamily, colMeta.Name), nil
 	default:
 		return "", fmt.Errorf("unsupported CQL type: %s", colMeta.CQLType.DataType().String())

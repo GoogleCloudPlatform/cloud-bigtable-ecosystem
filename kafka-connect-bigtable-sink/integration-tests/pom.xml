@@ -30,7 +30,8 @@
         -->
         <protobuf3.version>3.25.6</protobuf3.version>
         <maven.clean.version>3.4.1</maven.clean.version>
-
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
         <integration.test.plugin.path>${project.basedir}/integration_test_plugins</integration.test.plugin.path>
         <google.sink.package.path>${project.basedir}/../sink/target/sink-${project.version}-package</google.sink.package.path>
         <google.sink.package.plugin.dir>${integration.test.plugin.path}/google-sink</google.sink.package.plugin.dir>
@@ -173,6 +174,19 @@
             <artifactId>jetty-client</artifactId>
             <version>${jetty.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.google.cloud.kafka.connect.bigtable</groupId>
+            <artifactId>sink</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.google.cloud.kafka.connect.bigtable</groupId>
+            <artifactId>sink</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
@@ -188,10 +202,6 @@
                     <parallel>classes</parallel>
                     <useUnlimitedThreads>true</useUnlimitedThreads>
                     <environmentVariables>
-                        <!-- TODO: remove it when transitioning to kokoro. -->
-                        <GOOGLE_APPLICATION_CREDENTIALS>target/test-classes/fake_service_key.json</GOOGLE_APPLICATION_CREDENTIALS>
-                        <!-- TODO: remove it when transitioning to kokoro, use a real Cloud Bigtable instance instead -->
-                        <BIGTABLE_EMULATOR_HOST>localhost:8086</BIGTABLE_EMULATOR_HOST>
                         <INTEGRATION_TEST_PLUGINS_PATH>${integration.test.plugin.path}</INTEGRATION_TEST_PLUGINS_PATH>
                     </environmentVariables>
                 </configuration>

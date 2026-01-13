@@ -27,9 +27,11 @@ import static java.util.Objects.requireNonNull;
 
 import io.confluent.kafka.schemaregistry.CompatibilityLevel;
 import io.confluent.kafka.schemaregistry.RestApp;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.Properties;
+
 import org.apache.kafka.test.TestUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

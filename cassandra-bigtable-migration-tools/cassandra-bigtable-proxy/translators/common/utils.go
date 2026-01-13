@@ -475,22 +475,45 @@ func ParseCqlConstant(c cql.IConstantContext, dt types.CqlDataType) (types.GoVal
 	if c.QUESTION_MARK() != nil {
 		return nil, fmt.Errorf("cannot get constant from prepared query")
 	}
-	if c.StringLiteral() != nil {
-		return utilities.StringToGo(TrimQuotes(c.StringLiteral().GetText()), dt)
-	}
-	if c.DecimalLiteral() != nil {
-		return utilities.StringToGo(c.DecimalLiteral().GetText(), dt)
-	}
-	if c.FloatLiteral() != nil {
-		return utilities.StringToGo(c.FloatLiteral().GetText(), dt)
-	}
-	if c.BooleanLiteral() != nil {
-		return utilities.StringToGo(c.BooleanLiteral().GetText(), dt)
-	}
+
 	if c.KwNull() != nil {
 		return nil, nil
 	}
-	return nil, fmt.Errorf("unhandled constant: %s", c.GetText())
+
+	switch dt.Code() {
+	case types.TIMESTAMP:
+		if c.StringLiteral() != nil {
+			return parseStringLiteral(c.StringLiteral(), dt)
+		}
+		if c.DecimalLiteral() != nil {
+			return utilities.StringToGo(c.DecimalLiteral().GetText(), dt)
+		}
+	case types.VARCHAR, types.TEXT, types.ASCII:
+		if c.StringLiteral() != nil {
+			return parseStringLiteral(c.StringLiteral(), dt)
+		}
+	case types.INT, types.BIGINT, types.DECIMAL, types.FLOAT, types.COUNTER:
+		if c.DecimalLiteral() != nil {
+			return utilities.StringToGo(c.DecimalLiteral().GetText(), dt)
+		}
+		if c.FloatLiteral() != nil {
+			return utilities.StringToGo(c.FloatLiteral().GetText(), dt)
+		}
+	case types.BOOLEAN:
+		if c.BooleanLiteral() != nil {
+			return utilities.StringToGo(c.BooleanLiteral().GetText(), dt)
+		}
+	case types.BLOB:
+		if c.HexadecimalLiteral() != nil {
+			return utilities.StringToGo(c.HexadecimalLiteral().GetText(), dt)
+		}
+	}
+
+	return nil, fmt.Errorf("invalid literal for type %s: '%s'", dt.String(), c.GetText())
+}
+
+func parseStringLiteral(s cql.IStringLiteralContext, dt types.CqlDataType) (types.GoValue, error) {
+	return utilities.StringToGo(TrimQuotes(s.GetText()), dt)
 }
 
 const (
@@ -507,8 +530,6 @@ func EncodeScalarForBigtable(value types.GoValue, cqlType types.CqlDataType) (ty
 		return nil, nil
 	}
 
-	var iv interface{}
-	var dt datatype.DataType
 	switch cqlType.DataType() {
 	case datatype.Int, datatype.Bigint:
 		return encodeBigIntForBigtable(value)
@@ -521,20 +542,27 @@ func EncodeScalarForBigtable(value types.GoValue, cqlType types.CqlDataType) (ty
 	case datatype.Timestamp:
 		return encodeTimestampForBigtable(value)
 	case datatype.Blob:
-		iv = value
-		dt = datatype.Blob
-	case datatype.Varchar:
-		iv = value
-		dt = datatype.Varchar
+		return encodeBlobForBigtable(value)
+	case datatype.Varchar, datatype.Ascii:
+		return encodeStringForBigtable(value)
 	default:
 		return nil, fmt.Errorf("unsupported CQL type: %s", cqlType.String())
 	}
+}
 
-	bd, err := proxycore.EncodeType(dt, bigtableEncodingVersion, iv)
+func encodeBlobForBigtable(value types.GoValue) (types.BigtableValue, error) {
+	bd, err := proxycore.EncodeType(datatype.Blob, bigtableEncodingVersion, value)
 	if err != nil {
-		return nil, fmt.Errorf("error encoding value: %w", err)
+		return nil, fmt.Errorf("error encoding blob: %w", err)
 	}
+	return bd, nil
+}
 
+func encodeStringForBigtable(value types.GoValue) (types.BigtableValue, error) {
+	bd, err := proxycore.EncodeType(datatype.Varchar, bigtableEncodingVersion, value)
+	if err != nil {
+		return nil, fmt.Errorf("error encoding string: %w", err)
+	}
 	return bd, nil
 }
 
@@ -547,6 +575,10 @@ func cassandraValueToGoValue(dt types.CqlDataType, value *primitive.Value, pv pr
 	// the proxy codec returns []*string/whatever type which isn't quite what we're expecting downstream
 	if dt.Code() == types.LIST || dt.Code() == types.SET {
 		goValue = dereferenceSlice(goValue)
+	}
+
+	if err := utilities.ValidateData(goValue, dt); err != nil {
+		return nil, err
 	}
 
 	return goValue, nil

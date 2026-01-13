@@ -20,12 +20,14 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.kafka.connect.bigtable.version.PackageMetadata;
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.Arrays;
+
 import org.apache.kafka.connect.runtime.rest.entities.PluginInfo;
 import org.junit.Test;
 import org.junit.runner.RunWith;

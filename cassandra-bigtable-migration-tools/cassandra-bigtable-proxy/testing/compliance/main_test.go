@@ -51,9 +51,15 @@ func (target TestTarget) String() string {
 var session *gocql.Session
 
 var testTarget TestTarget
+var hostAddress string
 
 func createSession(keyspace string) (*gocql.Session, error) {
-	cluster := gocql.NewCluster("127.0.0.1") // Assumes Cassandra is running locally
+	hostAddress = os.Getenv("CASSANDRA_HOST")
+	if hostAddress == "" {
+		hostAddress = "127.0.0.1"
+	}
+	log.Printf("connecting to cluster at %s...\n", hostAddress)
+	cluster := gocql.NewCluster(hostAddress) // Assumes Cassandra is running locally
 	cluster.Timeout = 20 * time.Second
 	if keyspace != "" {
 		cluster.Keyspace = keyspace
@@ -118,22 +124,24 @@ func setUpTests() {
 	log.Println(fmt.Sprintf("determined test target to be %s from the cluster name '%s'", testTarget.String(), clusterName))
 
 	log.Println("Creating test tables...")
-	err = runCqlshAsync(getSchemas())
+	err = runCqlshAsync(getSchemas(), testTarget != TestTargetCassandra)
 	if err != nil {
 		log.Fatalf("could not create table: %v", err)
 	}
 
-	tableNames := []string{
-		"bigtabledevinstance.user_info",
-		"bigtabledevinstance.orders",
-		"bigtabledevinstance.aggregation_grouping_test",
-		"bigtabledevinstance.multiple_int_keys",
-		"bigtabledevinstance.test_int_key",
-		"bigtabledevinstance.social_posts",
+	tables, err := cqlshScanToMap("select * from system_schema.tables")
+	if err != nil {
+		log.Fatalf("could not read system tables: %v", err)
 	}
-
-	if testTarget == TestTargetProxy {
-		tableNames = append(tableNames, "bigtabledevinstance.orders_big_endian_encoded")
+	var tableNames []string
+	for _, tableRow := range tables {
+		keyspace := tableRow["keyspace_name"]
+		table := tableRow["table_name"]
+		// don't truncate system tables
+		if keyspace != "bigtabledevinstance" {
+			continue
+		}
+		tableNames = append(tableNames, table)
 	}
 
 	var truncateStatements []string
@@ -141,9 +149,9 @@ func setUpTests() {
 		truncateStatements = append(truncateStatements, fmt.Sprintf("TRUNCATE TABLE %s", table))
 	}
 
-	err = runCqlshAsync(truncateStatements)
+	err = runCqlshAsync(truncateStatements, testTarget != TestTargetCassandra)
 	if err != nil {
-		log.Fatalf("could not create table: %v", err)
+		log.Fatalf("could not truncate table: %v", err)
 	}
 
 	log.Println("All test tables successfully created!")

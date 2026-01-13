@@ -97,8 +97,8 @@ func (q *QueryParameterValues) Time() time.Time {
 	return q.time
 }
 
-func NewQueryParameterValues(params *QueryParameters, time time.Time) *QueryParameterValues {
-	return &QueryParameterValues{params: params, values: make(map[Placeholder]GoValue), time: time}
+func NewQueryParameterValues(params *QueryParameters, t time.Time) *QueryParameterValues {
+	return &QueryParameterValues{params: params, values: make(map[Placeholder]GoValue), time: t}
 }
 
 func (q *QueryParameterValues) Has(p Placeholder) bool {

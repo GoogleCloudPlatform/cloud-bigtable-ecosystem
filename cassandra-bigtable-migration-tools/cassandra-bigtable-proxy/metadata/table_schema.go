@@ -34,7 +34,8 @@ type TableSchema struct {
 	Columns            map[types.ColumnName]*types.Column
 	PrimaryKeys        []*types.Column
 	SystemColumnFamily types.ColumnFamily
-	IntRowKeyEncoding  types.IntRowKeyEncodingType
+	// this is for backwards compatability. We had to launch with only big endian encoding, but we prefer ordered code encoding (added in a later version) because it allows negatives.
+	IntRowKeyEncoding types.IntRowKeyEncodingType
 }
 
 // NewTableConfig is a constructor for TableSchema. Please use this instead of direct initialization.

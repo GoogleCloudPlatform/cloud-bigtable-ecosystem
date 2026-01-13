@@ -125,7 +125,7 @@ func (s ScalarType) IsFrozen() bool {
 
 // Pre-defined constants for common scalar types for convenience.
 var (
-	TypeAscii     CqlDataType = newScalarType("ascii", ASCII, datatype.Varchar, reflect.TypeOf(""), bigtable.StringSQLType{})
+	TypeAscii     CqlDataType = newScalarType("ascii", ASCII, datatype.Ascii, reflect.TypeOf(""), bigtable.StringSQLType{})
 	TypeVarchar   CqlDataType = newScalarType("varchar", VARCHAR, datatype.Varchar, reflect.TypeOf(""), bigtable.StringSQLType{})
 	TypeBigInt    CqlDataType = newScalarType("bigint", BIGINT, datatype.Bigint, reflect.TypeOf(int64(0)), bigtable.Int64SQLType{})
 	TypeBlob      CqlDataType = newScalarType("blob", BLOB, datatype.Blob, reflect.TypeOf(""), bigtable.BytesSQLType{})

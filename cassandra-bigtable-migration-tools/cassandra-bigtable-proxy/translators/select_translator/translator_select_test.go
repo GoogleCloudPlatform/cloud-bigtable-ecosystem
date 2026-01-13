@@ -52,7 +52,7 @@ func TestTranslator_TranslateSelectQuerytoBigtable(t *testing.T) {
 		{
 			name: "Select query with list contains key clause",
 			query: `select pk1, col_int, col_bool from  test_keyspace.test_table
- where pk1 = 'test' AND col_bool='true'
+ where pk1 = 'test' AND col_bool=true
  AND col_ts <= '2015-05-03 13:30:54.234' AND col_int >= 123
  AND col_bigint > -10000000 LIMIT 20;`,
 			want: &Want{
@@ -453,7 +453,7 @@ func TestTranslator_TranslateSelectQuerytoBigtable(t *testing.T) {
 			name:  "IN operator with prepared statement placeholder for Blob",
 			query: `select pk1 from test_keyspace.test_table where col_blob IN ?;`,
 			want: &Want{
-				TranslatedQuery: "SELECT pk1 FROM test_table WHERE TO_BLOB(`cf1`['col_blob']) IN UNNEST(@value0);",
+				TranslatedQuery: "SELECT pk1 FROM test_table WHERE `cf1`['col_blob'] IN UNNEST(@value0);",
 				Table:           "test_table",
 				Keyspace:        "test_keyspace",
 				SelectClause: &types.SelectClause{
@@ -1068,6 +1068,111 @@ func TestTranslator_TranslateSelectQuerytoBigtable(t *testing.T) {
 						Column:   mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_ts"),
 						Operator: types.LT,
 						Value:    types.NewLiteralValue(time.Date(2025, 12, 2, 10, 30, 0, 0, time.UTC)),
+					},
+				},
+				OrderBy:        types.OrderBy{},
+				GroupByColumns: nil,
+				AllParams:      nil,
+			},
+			sessionKeyspace: "test_keyspace",
+		},
+		{
+			name:  "literal blob",
+			query: `SELECT pk, name, val FROM blob_table WHERE pk=0x39383233666A61732C766D3266 AND val=0x706B6A787A ALLOW FILTERING`,
+			want: &Want{
+				Keyspace:        "test_keyspace",
+				Table:           "blob_table",
+				TranslatedQuery: "SELECT pk, name, `cf1`['val'] FROM blob_table WHERE pk = FROM_BASE64('OTgyM2ZqYXMsdm0yZg==') AND `cf1`['val'] = FROM_BASE64('cGtqeHo=');",
+				SelectClause: &types.SelectClause{
+					Columns: []types.SelectedColumn{
+						*types.NewSelectedColumn("pk", "pk", "", types.TypeBlob),
+						*types.NewSelectedColumn("name", "name", "", types.TypeVarchar),
+						*types.NewSelectedColumn("val", "val", "", types.TypeBlob),
+					},
+				},
+				Conditions: []types.Condition{
+					{
+						Column:   mockdata.GetColumnOrDie("test_keyspace", "blob_table", "pk"),
+						Operator: types.EQ,
+						Value:    types.NewLiteralValue([]byte{0x39, 0x38, 0x32, 0x33, 0x66, 0x6a, 0x61, 0x73, 0x2c, 0x76, 0x6d, 0x32, 0x66}),
+					},
+					{
+						Column:   mockdata.GetColumnOrDie("test_keyspace", "blob_table", "val"),
+						Operator: types.EQ,
+						Value:    types.NewLiteralValue([]byte{0x70, 0x6b, 0x6a, 0x78, 0x7a}),
+					},
+				},
+				OrderBy:        types.OrderBy{},
+				GroupByColumns: nil,
+				AllParams:      nil,
+			},
+			sessionKeyspace: "test_keyspace",
+		},
+		{
+			name:  "literal ascii",
+			query: `SELECT col_ascii FROM test_table WHERE pk1='foo' AND pk2='bar' AND col_ascii='fizz' ALLOW FILTERING`,
+			want: &Want{
+				Keyspace:        "test_keyspace",
+				Table:           "test_table",
+				TranslatedQuery: "SELECT `cf1`['col_ascii'] FROM test_table WHERE pk1 = 'foo' AND pk2 = 'bar' AND `cf1`['col_ascii'] = 'fizz';",
+				SelectClause: &types.SelectClause{
+					Columns: []types.SelectedColumn{
+						*types.NewSelectedColumn("col_ascii", "col_ascii", "", types.TypeAscii),
+					},
+				},
+				Conditions: []types.Condition{
+					{
+						Column:   mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk1"),
+						Operator: types.EQ,
+						Value:    types.NewLiteralValue("foo"),
+					},
+					{
+						Column:   mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk2"),
+						Operator: types.EQ,
+						Value:    types.NewLiteralValue("bar"),
+					},
+					{
+						Column:   mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_ascii"),
+						Operator: types.EQ,
+						Value:    types.NewLiteralValue("fizz"),
+					},
+				},
+				OrderBy:        types.OrderBy{},
+				GroupByColumns: nil,
+				AllParams:      nil,
+			},
+			sessionKeyspace: "test_keyspace",
+		},
+		{
+			name:            "invalid ascii",
+			query:           `SELECT col_ascii FROM test_table WHERE pk1='foo' AND pk2='bar' AND col_ascii='éàöñ' ALLOW FILTERING`,
+			wantErr:         "string is not valid ascii",
+			sessionKeyspace: "test_keyspace",
+		},
+		{
+			name:  "literal blob lte",
+			query: `SELECT pk, name, val FROM blob_table where pk <= 0x02 AND name='blob-comparison-operators' ALLOW FILTERING`,
+			want: &Want{
+				Keyspace:        "test_keyspace",
+				Table:           "blob_table",
+				TranslatedQuery: "SELECT pk, name, `cf1`['val'] FROM blob_table WHERE pk <= FROM_BASE64('Ag==') AND name = 'blob-comparison-operators';",
+				SelectClause: &types.SelectClause{
+					Columns: []types.SelectedColumn{
+						*types.NewSelectedColumn("pk", "pk", "", types.TypeBlob),
+						*types.NewSelectedColumn("name", "name", "", types.TypeVarchar),
+						*types.NewSelectedColumn("val", "val", "", types.TypeBlob),
+					},
+				},
+				Conditions: []types.Condition{
+					{
+						Column:   mockdata.GetColumnOrDie("test_keyspace", "blob_table", "pk"),
+						Operator: types.LTE,
+						Value:    types.NewLiteralValue([]byte{0x02}),
+					},
+					{
+						Column:   mockdata.GetColumnOrDie("test_keyspace", "blob_table", "name"),
+						Operator: types.EQ,
+						Value:    types.NewLiteralValue("blob-comparison-operators"),
 					},
 				},
 				OrderBy:        types.OrderBy{},

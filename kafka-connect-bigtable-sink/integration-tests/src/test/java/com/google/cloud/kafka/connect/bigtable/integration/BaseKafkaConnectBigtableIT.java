@@ -28,6 +28,7 @@ import com.google.cloud.bigtable.data.v2.models.Row;
 import com.google.cloud.kafka.connect.bigtable.wrappers.BigtableTableAdminClientInterface;
 import com.google.common.util.concurrent.Futures;
 import com.google.protobuf.ByteString;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -35,6 +36,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+
 import org.apache.kafka.test.TestCondition;
 import org.junit.After;
 import org.junit.Before;
