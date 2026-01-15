@@ -5,7 +5,7 @@
     "cassandra-bigtable-migration-tools/cassandra-bigtable-java-client": {
       "release-type": "java-yoshi",
       "extra-files": [
-        "cassandra-bigtable-migration-tools/cassandra-bigtable-java-client/cassandra-bigtable-java-client-lib/README.md"
+        "cassandra-bigtable-java-client-lib/README.md"
       ]
     }
   }
