@@ -32,15 +32,13 @@ import com.google.cloud.kafka.connect.bigtable.config.ConfigInterpolation;
 import com.google.cloud.kafka.connect.bigtable.exception.BatchException;
 import com.google.cloud.kafka.connect.bigtable.exception.BigtableSinkLogicError;
 import com.google.cloud.kafka.connect.bigtable.exception.InvalidBigtableSchemaModificationException;
-import com.google.cloud.kafka.connect.bigtable.mapping.KeyMapper;
-import com.google.cloud.kafka.connect.bigtable.mapping.MutationData;
-import com.google.cloud.kafka.connect.bigtable.mapping.MutationDataBuilder;
-import com.google.cloud.kafka.connect.bigtable.mapping.ValueMapper;
+import com.google.cloud.kafka.connect.bigtable.mapping.*;
 import com.google.cloud.kafka.connect.bigtable.version.PackageMetadata;
 import com.google.cloud.kafka.connect.bigtable.wrappers.BigtableTableAdminClientInterface;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.protobuf.ByteString;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -52,6 +50,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
+
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.errors.DataException;
@@ -73,8 +72,10 @@ public class BigtableSinkTask extends SinkTask {
   private KeyMapper keyMapper;
   private ValueMapper valueMapper;
   private BigtableSchemaManager schemaManager;
-  @VisibleForTesting protected final Map<String, Batcher<RowMutationEntry, Void>> batchers;
-  @VisibleForTesting protected Logger logger = LoggerFactory.getLogger(BigtableSinkTask.class);
+  @VisibleForTesting
+  protected final Map<String, Batcher<RowMutationEntry, Void>> batchers;
+  @VisibleForTesting
+  protected Logger logger = LoggerFactory.getLogger(BigtableSinkTask.class);
 
   /**
    * A default empty constructor. Initialization methods such as {@link BigtableSinkTask#start(Map)}
@@ -117,12 +118,14 @@ public class BigtableSinkTask extends SinkTask {
     keyMapper =
         new KeyMapper(
             config.getString(BigtableSinkTaskConfig.ROW_KEY_DELIMITER_CONFIG),
-            config.getList(BigtableSinkTaskConfig.ROW_KEY_DEFINITION_CONFIG));
+            config.getList(BigtableSinkTaskConfig.ROW_KEY_DEFINITION_CONFIG)
+        );
     valueMapper =
         new ValueMapper(
             config.getString(BigtableSinkTaskConfig.DEFAULT_COLUMN_FAMILY_CONFIG),
             config.getString(BigtableSinkTaskConfig.DEFAULT_COLUMN_QUALIFIER_CONFIG),
-            config.getNullValueMode());
+            config.getNullValueMode(),
+            config.getBoolean(BigtableSinkTaskConfig.EXPAND_ROOT_LEVEL_ARRAYS));
     schemaManager = new BigtableSchemaManager(bigtableAdmin);
   }
 
@@ -194,7 +197,7 @@ public class BigtableSinkTask extends SinkTask {
    *
    * @param records Input records.
    * @return {@link Map} containing input records and corresponding mutations that need to be
-   *     applied.
+   * applied.
    */
   @VisibleForTesting
   Map<SinkRecord, MutationData> prepareRecords(Collection<SinkRecord> records) {
@@ -219,8 +222,8 @@ public class BigtableSinkTask extends SinkTask {
    *
    * @param record Input record.
    * @return {@link Optional#empty()} if the input record requires no write to Cloud Bigtable,
-   *     {@link Optional} containing mutation that it needs to be written to Cloud Bigtable
-   *     otherwise.
+   * {@link Optional} containing mutation that it needs to be written to Cloud Bigtable
+   * otherwise.
    */
   @VisibleForTesting
   Optional<MutationData> createRecordMutationData(SinkRecord record) {
@@ -235,7 +238,6 @@ public class BigtableSinkTask extends SinkTask {
     long timestamp = getTimestampMicros(record);
     MutationDataBuilder mutationDataBuilder =
         valueMapper.getRecordMutationDataBuilder(kafkaValue, record.topic(), timestamp);
-
     return mutationDataBuilder.maybeBuild(recordTableId, rowKey);
   }
 
@@ -277,7 +279,7 @@ public class BigtableSinkTask extends SinkTask {
   /**
    * Report error as described in {@link BigtableSinkConfig#getDefinition()}.
    *
-   * @param record Input record whose processing caused an error.
+   * @param record    Input record whose processing caused an error.
    * @param throwable The error.
    */
   @VisibleForTesting
@@ -312,11 +314,11 @@ public class BigtableSinkTask extends SinkTask {
   /**
    * Generates a {@link Map} with desired key ordering.
    *
-   * @param map A {@link Map} to be sorted.
+   * @param map   A {@link Map} to be sorted.
    * @param order A {@link Collection} defining desired order of the output {@link Map}. Must be a
-   *     superset of {@code mutations}'s key set.
+   *              superset of {@code mutations}'s key set.
    * @return A {@link Map} with the same keys and corresponding values as {@code map} with the same
-   *     key ordering as {@code order}.
+   * key ordering as {@code order}.
    */
   @VisibleForTesting
   // It is generic so that we can test it with naturally ordered values easily.
@@ -341,7 +343,7 @@ public class BigtableSinkTask extends SinkTask {
    *
    * @param mutations Input records and corresponding mutations.
    * @return Subset of the input argument containing only those record for which the target Cloud
-   *     Bigtable tables exist.
+   * Bigtable tables exist.
    */
   @VisibleForTesting
   Map<SinkRecord, MutationData> autoCreateTablesAndHandleErrors(
@@ -366,7 +368,7 @@ public class BigtableSinkTask extends SinkTask {
    *
    * @param mutations Input records and corresponding mutations.
    * @return Subset of the input argument containing only those record for which the target Cloud
-   *     Bigtable column families exist.
+   * Bigtable column families exist.
    */
   @VisibleForTesting
   Map<SinkRecord, MutationData> autoCreateColumnFamiliesAndHandleErrors(
@@ -389,7 +391,7 @@ public class BigtableSinkTask extends SinkTask {
   /**
    * Applies the mutations using upserts.
    *
-   * @param mutations Mutations to be applied.
+   * @param mutations        Mutations to be applied.
    * @param perRecordResults {@link Map} the per-record results will be written to.
    */
   @VisibleForTesting
@@ -418,7 +420,7 @@ public class BigtableSinkTask extends SinkTask {
   /**
    * Applies a single mutation batch using upserts.
    *
-   * @param batch Batch of mutations to be applied.
+   * @param batch            Batch of mutations to be applied.
    * @param perRecordResults A {@link Map} the per-record results will be written to.
    */
   @VisibleForTesting
@@ -447,7 +449,7 @@ public class BigtableSinkTask extends SinkTask {
    *
    * <p>Note that no batching is used.
    *
-   * @param mutations Mutations to be applied.
+   * @param mutations        Mutations to be applied.
    * @param perRecordResults {@link Map} the per-record results will be written to.
    */
   @VisibleForTesting
@@ -480,8 +482,8 @@ public class BigtableSinkTask extends SinkTask {
           insertSuccessful
               ? CompletableFuture.completedFuture(null)
               : CompletableFuture.failedFuture(
-                  exceptionThrown.orElse(
-                      new ConnectException("Insert failed since the row already existed."))));
+              exceptionThrown.orElse(
+                  new ConnectException("Insert failed since the row already existed."))));
     }
   }
 
