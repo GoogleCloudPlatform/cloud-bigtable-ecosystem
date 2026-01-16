@@ -19,11 +19,14 @@ import com.google.cloud.bigtable.data.v2.models.Mutation;
 import com.google.cloud.bigtable.data.v2.models.Range;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.ByteString;
+
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
-/** A builder class for {@link MutationData}. */
+/**
+ * A builder class for {@link MutationData}.
+ */
 public class MutationDataBuilder {
   private final Mutation mutation;
   private boolean mutationIsEmpty;
@@ -44,16 +47,16 @@ public class MutationDataBuilder {
    * Tries to convert this object into {@link MutationData}.
    *
    * @param targetTable - Cloud Bigtable {@link com.google.cloud.bigtable.admin.v2.models.Table}
-   *     this mutation is to be written to.
-   * @param rowKey - Cloud Bigtable row key this mutation is to be written to.
+   *                    this mutation is to be written to.
+   * @param rowKey      - Cloud Bigtable row key this mutation is to be written to.
    * @return {@link Optional#empty()} if this mutation is empty, an {@link Optional} containing this
-   *     mutation ready to be written to Cloud Bigtable otherwise.
+   * mutation ready to be written to Cloud Bigtable otherwise.
    */
   public Optional<MutationData> maybeBuild(String targetTable, ByteString rowKey) {
     return this.mutationIsEmpty
         ? Optional.empty()
         : Optional.of(
-            new MutationData(targetTable, rowKey, this.mutation, this.requiredColumnFamilies));
+        new MutationData(targetTable, rowKey, this.mutation, this.requiredColumnFamilies));
   }
 
   public void deleteRow() {
@@ -95,5 +98,6 @@ public class MutationDataBuilder {
     mutationIsEmpty = false;
     requiredColumnFamilies.add(columnFamily);
     mutation.setCell(columnFamily, columnQualifier, timestampMicros, value);
+    System.out.printf("cf=%s cq=%s v=%s\n", columnFamily, columnQualifier, value);
   }
 }
