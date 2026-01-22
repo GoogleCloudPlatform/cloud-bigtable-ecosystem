@@ -122,7 +122,8 @@ public class BigtableSinkTask extends SinkTask {
         new ValueMapper(
             config.getString(BigtableSinkTaskConfig.DEFAULT_COLUMN_FAMILY_CONFIG),
             config.getString(BigtableSinkTaskConfig.DEFAULT_COLUMN_QUALIFIER_CONFIG),
-            config.getNullValueMode());
+            config.getNullValueMode(),
+            config.getBoolean(BigtableSinkTaskConfig.EXPAND_ROOT_LEVEL_ARRAYS));
     schemaManager = new BigtableSchemaManager(bigtableAdmin);
   }
 
