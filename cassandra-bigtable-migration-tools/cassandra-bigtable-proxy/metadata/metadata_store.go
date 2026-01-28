@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/utilities"
+	"github.com/datastax/go-cassandra-native-protocol/message"
+	"github.com/datastax/go-cassandra-native-protocol/primitive"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -284,21 +286,21 @@ func (b *MetadataStore) updateTableSchema(ctx context.Context, keyspace types.Ke
 	return nil
 }
 
-func (b *MetadataStore) AlterTable(ctx context.Context, data *types.AlterTableStatementMap) error {
+func (b *MetadataStore) AlterTable(ctx context.Context, data *types.AlterTableStatementMap) (*message.SchemaChangeResult, error) {
 	adminClient, err := b.clients.GetAdmin(data.Keyspace())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// passing nil in as pmks because we don't have access to them here and because primary keys can't be altered
 	err = b.updateTableSchema(ctx, data.Keyspace(), data.Table(), nil, data.AddColumns, data.DropColumns)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	columnFamilies, err := b.addColumnFamilies(data.AddColumns)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	for family, config := range columnFamilies {
@@ -309,31 +311,37 @@ func (b *MetadataStore) AlterTable(ctx context.Context, data *types.AlterTableSt
 		}
 
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	b.logger.Info("reloading schema mappings")
 	err = b.ReloadKeyspaceSchemas(ctx, data.Keyspace())
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return &message.SchemaChangeResult{
+		ChangeType: primitive.SchemaChangeTypeUpdated,
+		Target:     primitive.SchemaChangeTargetTable,
+		Keyspace:   string(data.Keyspace()),
+		Object:     string(data.Table()),
+		Arguments:  nil,
+	}, nil
 }
 
-func (b *MetadataStore) DropTable(ctx context.Context, data *types.DropTableQuery) error {
+func (b *MetadataStore) DropTable(ctx context.Context, data *types.DropTableQuery) (*message.SchemaChangeResult, error) {
 	_, err := b.schemas.GetTableSchema(data.Keyspace(), data.Table())
 	if err != nil && !data.IfExists {
-		return err
+		return nil, err
 	}
 
 	client, err := b.clients.GetClient(data.Keyspace())
 	if err != nil {
-		return err
+		return nil, err
 	}
 	adminClient, err := b.clients.GetAdmin(data.Keyspace())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// first clean up table from schema mapping table because that'b the SoT
@@ -349,31 +357,31 @@ func (b *MetadataStore) DropTable(ctx context.Context, data *types.DropTableQuer
 	})
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	b.logger.Info("drop table: deleting schema rows")
 	_, err = tbl.ApplyBulk(ctx, rowKeysToDelete, deleteMuts)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// do a read to check if the table exists to save on admin API write quota
 	exists, err := b.tableResourceExists(ctx, data.Keyspace(), data.Table())
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if exists {
 		b.logger.Info("drop table: deleting bigtable table")
 		err = adminClient.DeleteTable(ctx, string(data.Table()))
 	}
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// this error behavior is done independently of the table resource existing or not because the schema mapping table is the SoT, not the table resource
 	if len(rowKeysToDelete) == 0 && !data.IfExists {
-		return fmt.Errorf("cannot delete table %s because it does not exist", data.Table())
+		return nil, fmt.Errorf("cannot delete table %s because it does not exist", data.Table())
 	}
 
 	// only reload schema mapping table if this operation changed it
@@ -381,10 +389,16 @@ func (b *MetadataStore) DropTable(ctx context.Context, data *types.DropTableQuer
 		b.logger.Info("reloading schema mappings")
 		err = b.ReloadKeyspaceSchemas(ctx, data.Keyspace())
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
+	return &message.SchemaChangeResult{
+		ChangeType: primitive.SchemaChangeTypeDropped,
+		Target:     primitive.SchemaChangeTargetTable,
+		Keyspace:   string(data.Keyspace()),
+		Object:     string(data.Table()),
+		Arguments:  nil,
+	}, nil
 }
 
 func (b *MetadataStore) createSchemaMappingTableMaybe(ctx context.Context, keyspace types.Keyspace) error {
@@ -422,24 +436,24 @@ func (b *MetadataStore) createSchemaMappingTableMaybe(ctx context.Context, keysp
 	return nil
 }
 
-func (b *MetadataStore) CreateTable(ctx context.Context, data *types.CreateTableStatementMap) error {
+func (b *MetadataStore) CreateTable(ctx context.Context, data *types.CreateTableStatementMap) (*message.SchemaChangeResult, error) {
 	client, err := b.clients.GetClient(data.Keyspace())
 	if err != nil {
-		return err
+		return nil, err
 	}
 	adminClient, err := b.clients.GetAdmin(data.Keyspace())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	rowKeySchema, err := createBigtableRowKeySchema(data.PrimaryKeys, data.Columns, data.IntRowKeyEncoding)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	columnFamilies, err := b.addColumnFamilies(data.Columns)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// add default column family
@@ -459,31 +473,37 @@ func (b *MetadataStore) CreateTable(ctx context.Context, data *types.CreateTable
 		err = nil
 	} else if err != nil {
 		b.logger.Error("failed to create bigtable table", zap.Error(err))
-		return err
+		return nil, err
 	}
 
 	exists, err := b.tableSchemaExists(ctx, client, data.Table())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if exists && !data.IfNotExists {
-		return fmt.Errorf("cannot create table %s because it already exists", data.Table())
+		return nil, fmt.Errorf("cannot create table %s because it already exists", data.Table())
 	}
 
 	if !exists {
 		b.logger.Info("updating table schema")
 		err = b.updateTableSchema(ctx, data.Keyspace(), data.Table(), data.PrimaryKeys, data.Columns, nil)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		err = b.ReloadKeyspaceSchemas(ctx, data.Keyspace())
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return nil
+	return &message.SchemaChangeResult{
+		ChangeType: primitive.SchemaChangeTypeCreated,
+		Target:     primitive.SchemaChangeTargetTable,
+		Keyspace:   string(data.Keyspace()),
+		Object:     string(data.Table()),
+		Arguments:  nil,
+	}, nil
 }
 
 func (b *MetadataStore) addColumnFamilies(columns []types.CreateColumn) (map[string]bigtable.Family, error) {

@@ -94,8 +94,10 @@ func createBigtableRowKeySchema(primaryKeys []types.CreateTablePrimaryKeyConfig,
 
 func createBigtableRowKeyField(col types.CreateColumn, intRowKeyEncoding types.IntRowKeyEncodingType) (bigtable.StructField, error) {
 	switch col.TypeInfo.DataType() {
-	case datatype.Varchar:
+	case datatype.Varchar, datatype.Ascii:
 		return bigtable.StructField{FieldName: string(col.Name), FieldType: bigtable.StringType{Encoding: bigtable.StringUtf8BytesEncoding{}}}, nil
+	case datatype.Blob:
+		return bigtable.StructField{FieldName: string(col.Name), FieldType: bigtable.BytesType{Encoding: bigtable.RawBytesEncoding{}}}, nil
 	case datatype.Timestamp:
 		return bigtable.StructField{FieldName: string(col.Name), FieldType: bigtable.TimestampType{Encoding: bigtable.TimestampUnixMicrosInt64Encoding{UnixMicrosInt64Encoding: bigtable.Int64OrderedCodeBytesEncoding{}}}}, nil
 	case datatype.Int, datatype.Bigint:

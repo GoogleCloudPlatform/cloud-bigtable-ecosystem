@@ -81,7 +81,7 @@ func TestCastColumns(t *testing.T) {
 				ColumnFamily: "cf1",
 				CQLType:      types.TypeBlob,
 			},
-			want:    "TO_BLOB(`cf1`['data'])",
+			want:    "`cf1`['data']",
 			wantErr: false,
 		},
 		{

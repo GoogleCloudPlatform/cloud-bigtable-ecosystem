@@ -20,8 +20,10 @@ import (
 	"fmt"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/utilities"
+	"github.com/google/uuid"
 	"golang.org/x/exp/maps"
 	"slices"
+	"sort"
 	"strings"
 	"sync"
 )
@@ -91,6 +93,71 @@ func (c *SchemaMetadata) Tables() []*TableSchema {
 		}
 	}
 	return tables
+}
+
+// CalculateSchemaVersion creates a deterministic UUID based on all keyspace and table schema information to be used
+// for Cassandra schema_version. Schema Version must be consistent across all Proxy nodes. Most Cassandra clients care
+// about all nodes achieving the same schema version.
+func (c *SchemaMetadata) CalculateSchemaVersion() (uuid.UUID, error) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	var builder strings.Builder
+
+	sortedKeyspaces := make([]string, 0, len(c.tables))
+	for k := range c.tables {
+		if k.IsSystemKeyspace() {
+			// we only care about user entities
+			continue
+		}
+		sortedKeyspaces = append(sortedKeyspaces, string(k))
+	}
+	sort.Strings(sortedKeyspaces)
+
+	for _, k := range sortedKeyspaces {
+		keyspace := types.Keyspace(k)
+		tables, ok := c.tables[keyspace]
+		if !ok {
+			return uuid.UUID{}, fmt.Errorf("failed to next schema version")
+		}
+		builder.WriteString(fmt.Sprintf("KS:%s|", k))
+
+		sortedTableNames := make([]string, 0, len(tables))
+		for _, t := range tables {
+			sortedTableNames = append(sortedTableNames, string(t.Name))
+		}
+		sort.Strings(sortedTableNames)
+
+		for _, t := range sortedTableNames {
+			table, err := c.GetTableSchema(keyspace, types.TableName(t))
+			if err != nil {
+				return uuid.UUID{}, err
+			}
+			builder.WriteString(fmt.Sprintf("TBL:%s(", table.Name))
+
+			sortedColumnNames := make([]string, 0, len(table.Columns))
+			for name := range table.Columns {
+				sortedColumnNames = append(sortedColumnNames, string(name))
+			}
+			sort.Strings(sortedColumnNames)
+
+			for i, c := range sortedColumnNames {
+				col := table.Columns[types.ColumnName(c)]
+				builder.WriteString(fmt.Sprintf("%s:%s", col.Name, col.CQLType.String()))
+				if i < len(sortedColumnNames)-1 {
+					builder.WriteString(",")
+				}
+			}
+			builder.WriteString(")")
+		}
+	}
+
+	// Generate a Version 3 UUID (MD5-based)
+	// We use a fixed Namespace UUID (like Cassandra)
+	namespace, err := uuid.Parse("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
+	if err != nil {
+		return uuid.UUID{}, err
+	}
+	return uuid.NewMD5(namespace, []byte(builder.String())), nil
 }
 
 func (c *SchemaMetadata) ValidateKeyspace(keyspace types.Keyspace) error {

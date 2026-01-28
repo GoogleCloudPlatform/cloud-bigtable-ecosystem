@@ -55,6 +55,17 @@ func BindRowKey(tableConfig *schemaMapping.TableSchema, rowKeyValues []types.Dyn
 			if err != nil {
 				return "", err
 			}
+		case []uint8: // blobs
+			if len(v) == 0 {
+				// Cassandra does not allow empty blobs
+				return "", errors.New("key may not be empty")
+			}
+			orderEncodedField, err = Append(nil, string(v))
+			if err != nil {
+				return "", err
+			}
+			// the ordered code library always appends a delimiter to strings, but we have custom delimiter logic so remove it
+			orderEncodedField = orderEncodedField[:len(orderEncodedField)-2]
 		case string:
 			orderEncodedField, err = Append(nil, v)
 			if err != nil {

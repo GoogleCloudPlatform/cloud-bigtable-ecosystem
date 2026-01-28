@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.8](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/compare/v0.1.7...v0.1.8) (2026-01-13)
+
+
+### Bug Fixes
+
+* response metadata ([#135](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/issues/135)) ([1be548a](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/commit/1be548a35ab8c7d0446293ce2f4bc91fb4380a3c))
+
+## [0.1.7](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/compare/v0.1.6...v0.1.7) (2026-01-12)
+
+
+### Documentation
+
+* fix typo in readme ([#129](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/issues/129)) ([60dfc97](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/commit/60dfc974c67a6bbec95f7da7e148ebb2e7fb8d56))
+
 ## [0.1.6](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/compare/v0.1.5...v0.1.6) (2025-09-24)
 
 

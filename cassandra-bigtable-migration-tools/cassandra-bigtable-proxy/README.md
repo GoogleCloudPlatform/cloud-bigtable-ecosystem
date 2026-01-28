@@ -163,7 +163,7 @@ recommended approach for setting up your schema.
     - Create a Bigtable instance manually through the Google Cloud Console or
       using `gcloud` commands.
     - [Creating a Cloud Bigtable instance](https://cloud.google.com/bigtable/docs/creating-instance)
-    - Make sure to create an app profile in the bigtable instance if needed.
+    - Make sure to create an app profile in the Bigtable instance if needed.
 
 2. **Configure Proxy:**
     - Update `config.yaml` with your Bigtable instance details and other
@@ -336,8 +336,8 @@ loggerConfig:
 * If you have created application profile then you can specify otherwise comment
   out it in `config.yaml` so that it will pick `default` column family
   automatically
-* When using multiple bigtable instances, ensure that the schema mapping table
-  is available in all the bigtable instances.
+* When using multiple Bigtable instances, ensure that the schema mapping table
+  is available in all the Bigtable instances.
 * When using OTEL, ensure that the OTEL collector service is configured
   correctly.
 * If you modify any value in the config.yaml file, you must restart the proxy

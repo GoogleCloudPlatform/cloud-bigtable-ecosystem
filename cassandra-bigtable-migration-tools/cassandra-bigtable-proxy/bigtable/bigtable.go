@@ -53,7 +53,7 @@ func NewBigtableClient(clients *types.BigtableClientManager, logger *zap.Logger,
 	}
 }
 
-func (btc *BigtableAdapter) Execute(ctx context.Context, query types.IExecutableQuery) (*message.RowsResult, error) {
+func (btc *BigtableAdapter) Execute(ctx context.Context, query types.IExecutableQuery) (message.Message, error) {
 	switch q := query.(type) {
 	case *types.BoundDeleteQuery:
 		return btc.DeleteRow(ctx, q)
@@ -62,17 +62,14 @@ func (btc *BigtableAdapter) Execute(ctx context.Context, query types.IExecutable
 	case *types.ExecutableSelectQuery:
 		return btc.ExecutePreparedStatement(ctx, q)
 	case *types.CreateTableStatementMap:
-		err := btc.schemaManager.CreateTable(ctx, q)
-		return emptyRowsResult(), err
+		return btc.schemaManager.CreateTable(ctx, q)
 	case *types.AlterTableStatementMap:
-		err := btc.schemaManager.AlterTable(ctx, q)
-		return emptyRowsResult(), err
+		return btc.schemaManager.AlterTable(ctx, q)
 	case *types.TruncateTableStatementMap:
 		err := btc.DropAllRows(ctx, q)
 		return emptyRowsResult(), err
 	case *types.DropTableQuery:
-		err := btc.schemaManager.DropTable(ctx, q)
-		return emptyRowsResult(), err
+		return btc.schemaManager.DropTable(ctx, q)
 	default:
 		return nil, fmt.Errorf("unhandled prepared query type: %T", query)
 	}

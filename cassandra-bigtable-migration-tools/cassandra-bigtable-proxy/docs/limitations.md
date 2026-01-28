@@ -20,6 +20,8 @@ simply because certain features haven't been fully implemented yet in the proxy.
 | timestamp             | yes       | yes         | RAW BYTES                                                                          |
 | int                   | yes       | yes         | RAW BYTES                                                                          |
 | bigint                | yes       | yes         | RAW BYTES                                                                          |
+| blob                  | yes       | yes         | RAW BYTES                                                                          |
+| ascii                 | yes       | yes         | RAW BYTES                                                                          |
 | float                 | yes       | no          | RAW BYTES                                                                          |
 | double                | yes       | no          | RAW BYTES                                                                          |
 | boolean               | yes       | no          | RAW BYTES                                                                          |
@@ -32,10 +34,9 @@ All list types follow the same storage pattern:
 **Col name as col family, current timestamp (with nanosecond precision) as
 column qualifier, list items as column value.**
 
-
 ### Non-supported data types
 
-The proxy currently doesn't support the following data types: US-ASCII, blob, 
+The proxy currently doesn't support the following data types: 
 date, decimal, duration, inet, smallint, time, timeuuid, tinyint, uuid,
 varint, frozen and user-defined types (UDT).
 
@@ -71,10 +72,14 @@ For example:
 
 ```sql
 -- Supported:
-SELECT column1, COUNT(*) FROM keyspace.table GROUP BY column1;
+SELECT column1, COUNT(*)
+FROM keyspace.table
+GROUP BY column1;
 
 -- Not Supported:
-SELECT column1, COUNT(*) FROM keyspace.table GROUP BY collection_column;  -- Collection columns not supported
+SELECT column1, COUNT(*)
+FROM keyspace.table
+GROUP BY collection_column; -- Collection columns not supported
 ```
 
 ## 5. Partial Prepared Queries
@@ -166,17 +171,39 @@ For example:
 
 ```sql
 -- Supported:
-SELECT * FROM table WHERE id = 123;
-SELECT * FROM table WHERE name IN ('John', 'Jane', 'Bob');
-SELECT * FROM table WHERE col1 > 18;
-SELECT * FROM table WHERE col1 BETWEEN 10 AND 20;
-SELECT * FROM table WHERE name LIKE 'John%';
-SELECT * FROM table WHERE col1 >= 18;
-SELECT * FROM table WHERE col1 <= 18;
-SELECT * FROM table WHERE col1 < 18;
-SELECT col1 FROM table WHERE col1 CONTAINS 'name'
-SELECT col1 FROM table WHERE col1 CONTAINS KEY 'name'
-SELECT col1 FROM table WHERE col1 CONTAINS VALUE 'name'
+SELECT *
+FROM table
+WHERE id = 123;
+SELECT *
+FROM table
+WHERE name IN ('John', 'Jane', 'Bob');
+SELECT *
+FROM table
+WHERE col1 > 18;
+SELECT *
+FROM table
+WHERE col1 BETWEEN 10 AND 20;
+SELECT *
+FROM table
+WHERE name LIKE 'John%';
+SELECT *
+FROM table
+WHERE col1 >= 18;
+SELECT *
+FROM table
+WHERE col1 <= 18;
+SELECT *
+FROM table
+WHERE col1 < 18;
+SELECT col1
+FROM table
+WHERE col1 CONTAINS 'name'
+SELECT col1
+FROM table
+WHERE col1 CONTAINS KEY 'name'
+SELECT col1
+FROM table
+WHERE col1 CONTAINS VALUE 'name'
 ```
 
 If your queries use unsupported operators, you'll need to modify them to use

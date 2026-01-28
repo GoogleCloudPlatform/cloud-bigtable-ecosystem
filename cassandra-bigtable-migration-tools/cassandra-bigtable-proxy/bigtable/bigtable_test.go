@@ -74,7 +74,7 @@ func TestMain(m *testing.M) {
 	btc = NewBigtableClient(bts.Clients(), zap.NewNop(), &bigtableConfig, mdStore)
 
 	ctx := context.Background()
-	err = mdStore.CreateTable(ctx, types.NewCreateTableStatementMap(ks1, tableName, "ignored", false, []types.CreateColumn{
+	_, err = mdStore.CreateTable(ctx, types.NewCreateTableStatementMap(ks1, tableName, "ignored", false, []types.CreateColumn{
 		{
 			Name:     "pk1",
 			Index:    0,
@@ -206,13 +206,11 @@ func TestApplyBulkMutation(t *testing.T) {
 	tbl, err := btc.clients.GetTableClient(ks1, tableName)
 	require.NoError(t, err)
 
-
 	// Verify mutations
 	row1, err := tbl.ReadRow(t.Context(), "bulk1")
 	assert.NoError(t, err)
 	assert.NotEmpty(t, row1)
 	assert.Equal(t, []byte("buddy-2"), row1["cf1"][0].Value)
-
 
 	row2, err := tbl.ReadRow(t.Context(), "bulk2")
 	assert.NoError(t, err)
@@ -361,7 +359,6 @@ func TestMutateRowIfNotExists(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, wasApplied(res))
 
-
 	// Verify the row is created
 	tbl := client.Open(testTable)
 	row, err := tbl.ReadRow(t.Context(), "row1", bigtable.RowFilter(bigtable.FamilyFilter("cf1")))
@@ -372,7 +369,6 @@ func TestMutateRowIfNotExists(t *testing.T) {
 	res, err = localBtc.InsertRow(t.Context(), insertData)
 	require.NoError(t, err)
 	assert.False(t, wasApplied(res))
-
 
 	// Verify the row is not updated
 	row, err = tbl.ReadRow(t.Context(), "row1", bigtable.RowFilter(bigtable.FamilyFilter("cf1")))

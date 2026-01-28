@@ -290,7 +290,7 @@ the [REST API](http://kafka.apache.org/documentation.html#connect_running).
 
 1. Build the Jar with `mvn clean package -Dmaven.test.skip` from the `sink/`
    folder.
-2. Copy the `target/sink...-jar-with-dependencies.jar` JAR file into your
+2. Copy the `target/sink-1.0.0-SNAPSHOT.jar` JAR file into your
    **plugin directory**. The plugin directory can be any of the directories
    specified by
    the [plugin.path](https://kafka.apache.org/documentation/#connectconfigs_plugin.path)

@@ -42,6 +42,24 @@ func TestMapOperationAdditionTextText(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, map[string]string{"key1": "value1", "key2": "value2"}, extraInfo)
 }
+func TestMapOperationAdditionAscii(t *testing.T) {
+	t.Parallel()
+	// 1. Initialize with an empty map
+	err := session.Query(`INSERT INTO bigtabledevinstance.user_info (name, age, map_ascii) VALUES (?, ?, ?)`,
+		"map_ascii", int64(25), map[string]string{"key1": "old"}).Exec()
+	require.NoError(t, err)
+
+	// 2. Add key-value pairs
+	err = session.Query(`UPDATE bigtabledevinstance.user_info SET map_ascii = map_ascii + ? WHERE name = ? AND age = ?`,
+		map[string]string{"key1": "value1", "key2": "value2"}, "map_ascii", int64(25)).Exec()
+	require.NoError(t, err)
+
+	// 3. Verify the result
+	var extraInfo map[string]string
+	err = session.Query(`SELECT map_ascii FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?`, "map_ascii", int64(25)).Scan(&extraInfo)
+	require.NoError(t, err)
+	assert.Equal(t, map[string]string{"key1": "value1", "key2": "value2"}, extraInfo)
+}
 
 func TestMapOperationAdditionTimestampText(t *testing.T) {
 	t.Parallel()

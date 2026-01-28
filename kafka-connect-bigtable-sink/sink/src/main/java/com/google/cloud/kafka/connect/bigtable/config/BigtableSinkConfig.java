@@ -45,6 +45,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.Config;
 import org.apache.kafka.common.config.ConfigDef;
@@ -62,6 +64,7 @@ import org.threeten.bp.temporal.ChronoUnit;
  * <p>It's responsible for the validation and parsing of the user-provided values.
  */
 public class BigtableSinkConfig extends AbstractConfig {
+  private static final Logger log = LoggerFactory.getLogger(BigtableSinkConfig.class);
   public static final String GCP_PROJECT_ID_CONFIG = "gcp.bigtable.project.id";
   public static final String GCP_CREDENTIALS_PATH_CONFIG = "gcp.bigtable.credentials.path";
   public static final String GCP_CREDENTIALS_JSON_CONFIG = "gcp.bigtable.credentials.json";
@@ -606,6 +609,7 @@ public class BigtableSinkConfig extends AbstractConfig {
       bigtable.listTables();
       return true;
     } catch (Throwable t) {
+      log.warn("Failed to validate Bigtable configuration. This may be a transient issue.", t);
       return false;
     } finally {
       if (bigtable != null) {

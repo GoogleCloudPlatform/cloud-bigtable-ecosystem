@@ -125,7 +125,7 @@ func TestStringToPrimitives(t *testing.T) {
 		{"true", types.TypeBoolean, true, false},
 		{"false", types.TypeBoolean, false, false},
 		{"not_a_boolean", types.TypeBoolean, nil, true},
-		{"blob_data", types.TypeBlob, "blob_data", false},
+		{"0x013A", types.TypeBlob, []byte{0x1, 0x3a}, false},
 		{"hello", types.TypeVarchar, "hello", false},
 	}
 
@@ -153,7 +153,6 @@ func TestIsSupportedPrimaryKeyType(t *testing.T) {
 		{"Supported CQLType - Varchar", ParseCqlTypeOrDie("varchar"), true},
 		{"Unsupported CQLType - Boolean", ParseCqlTypeOrDie("boolean"), false},
 		{"Unsupported CQLType - Float", ParseCqlTypeOrDie("float"), false},
-		{"Unsupported CQLType - Blob", ParseCqlTypeOrDie("blob"), false},
 		{"Unsupported CQLType - List", ParseCqlTypeOrDie("list<int>"), false},
 		{"Unsupported CQLType - Frozen", ParseCqlTypeOrDie("frozen<list<int>>"), false},
 	}

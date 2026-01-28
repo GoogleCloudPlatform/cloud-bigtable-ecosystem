@@ -17,12 +17,15 @@
 package utilities
 
 import (
+	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"reflect"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	cql "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/third_party/cqlparser"
@@ -245,7 +248,7 @@ func IsSupportedPrimaryKeyType(dt types.CqlDataType) bool {
 	}
 
 	switch dt.DataType() {
-	case datatype.Int, datatype.Bigint, datatype.Varchar, datatype.Timestamp:
+	case datatype.Int, datatype.Bigint, datatype.Varchar, datatype.Timestamp, datatype.Blob, datatype.Ascii:
 		return true
 	default:
 		return false
@@ -285,6 +288,10 @@ func GoToString(value types.GoValue) (string, error) {
 		}
 	case time.Time:
 		return fmt.Sprintf("TIMESTAMP_FROM_UNIX_MILLIS(%d)", v.UnixMilli()), nil
+	case []uint8:
+		encoded := base64.StdEncoding.EncodeToString(v)
+		// note: Bigtable limits SQL strings to 1,024k characters while Cassandra has no official limit. We only encode blobs to base64 when a literal is used. Placeholders will not have this issue.
+		return fmt.Sprintf("FROM_BASE64('%s')", encoded), nil
 	case []interface{}:
 		var values []string
 		for _, vi := range v {
@@ -301,33 +308,31 @@ func GoToString(value types.GoValue) (string, error) {
 }
 
 func StringToGo(value string, cqlType types.CqlDataType) (types.GoValue, error) {
-	var iv interface{}
-
 	switch cqlType.DataType() {
 	case datatype.Int:
 		val, err := strconv.ParseInt(value, 10, 32)
 		if err != nil {
 			return nil, fmt.Errorf("error converting string to int32: %w", err)
 		}
-		iv = int32(val)
+		return int32(val), nil
 	case datatype.Bigint, datatype.Counter:
 		val, err := ParseBigInt(value)
 		if err != nil {
 			return nil, err
 		}
-		iv = val
+		return val, nil
 	case datatype.Float:
 		val, err := strconv.ParseFloat(value, 32)
 		if err != nil {
 			return nil, fmt.Errorf("error converting string to float32: %w", err)
 		}
-		iv = float32(val)
+		return float32(val), nil
 	case datatype.Double:
 		val, err := strconv.ParseFloat(value, 64)
 		if err != nil {
 			return nil, fmt.Errorf("error converting string to float64: %w", err)
 		}
-		iv = val
+		return val, nil
 	case datatype.Boolean:
 		val, err := strconv.ParseBool(value)
 		if err != nil {
@@ -339,16 +344,52 @@ func StringToGo(value string, cqlType types.CqlDataType) (types.GoValue, error) 
 		if err != nil {
 			return nil, fmt.Errorf("error converting string to timestamp: %w", err)
 		}
-		iv = val
+		return val, nil
 	case datatype.Blob:
-		iv = value
+		// remove the '0x' prefix that CQL requires for blob literals
+		if strings.HasPrefix(value, "0x") || strings.HasPrefix(value, "0X") {
+			value = value[2:]
+		}
+		hexBytes, err := hex.DecodeString(value)
+		if err != nil {
+			return nil, err
+		}
+		return hexBytes, nil
+	case datatype.Ascii:
+		if err := ValidateData(value, cqlType); err != nil {
+			return nil, err
+		}
+		return value, nil
 	case datatype.Varchar:
-		iv = value
+		return value, nil
 	default:
 		return nil, fmt.Errorf("unsupported CQL type: %s", cqlType.String())
 
 	}
-	return iv, nil
+}
+
+func ValidateData(value types.GoValue, dt types.CqlDataType) error {
+	switch dt.Code() {
+	case types.ASCII:
+		s, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("invalid data type for ascii: %T", value)
+		}
+		if err := validateASCII(s); err != nil {
+			return err
+		}
+		return nil
+	}
+	return nil
+}
+
+func validateASCII(s string) error {
+	for i := 0; i < len(s); i++ {
+		if s[i] >= utf8.RuneSelf {
+			return fmt.Errorf("string is not valid ascii")
+		}
+	}
+	return nil
 }
 
 func CreateKeyOrderedValueSlice[T any](data map[string]T) []T {
@@ -403,7 +444,7 @@ func parseCqlTimestamp(timestampStr string) (time.Time, error) {
 
 func isSupportedCollectionElementType(dt datatype.DataType) bool {
 	switch dt {
-	case datatype.Int, datatype.Bigint, datatype.Varchar, datatype.Float, datatype.Double, datatype.Timestamp, datatype.Boolean:
+	case datatype.Int, datatype.Bigint, datatype.Varchar, datatype.Float, datatype.Double, datatype.Timestamp, datatype.Boolean, datatype.Ascii:
 		return true
 	default:
 		return false
@@ -416,7 +457,7 @@ func IsSupportedColumnType(dt types.CqlDataType) bool {
 	}
 
 	switch dt.DataType().GetDataTypeCode() {
-	case primitive.DataTypeCodeInt, primitive.DataTypeCodeBigint, primitive.DataTypeCodeBlob, primitive.DataTypeCodeBoolean, primitive.DataTypeCodeDouble, primitive.DataTypeCodeFloat, primitive.DataTypeCodeTimestamp, primitive.DataTypeCodeText, primitive.DataTypeCodeVarchar, primitive.DataTypeCodeCounter:
+	case primitive.DataTypeCodeInt, primitive.DataTypeCodeBigint, primitive.DataTypeCodeBlob, primitive.DataTypeCodeBoolean, primitive.DataTypeCodeDouble, primitive.DataTypeCodeFloat, primitive.DataTypeCodeTimestamp, primitive.DataTypeCodeText, primitive.DataTypeCodeVarchar, primitive.DataTypeCodeCounter, primitive.DataTypeCodeAscii:
 		return true
 	case primitive.DataTypeCodeMap:
 		mapType := dt.DataType().(datatype.MapType)

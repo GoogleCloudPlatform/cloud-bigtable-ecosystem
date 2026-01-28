@@ -30,6 +30,16 @@ func TestSystemTables(t *testing.T) {
 	}
 }
 
+func TestDseVersion(t *testing.T) {
+	t.Parallel()
+
+	mapResults, err := cqlshScanToMap("SELECT * FROM system.local;")
+	require.NoError(t, err)
+
+	require.True(t, len(mapResults) > 0)
+	assert.Equal(t, "5.1.21", mapResults[0]["dse_version"])
+}
+
 // note: gocql doesn't support querying these tables
 func TestSystemColumns(t *testing.T) {
 	t.Parallel()

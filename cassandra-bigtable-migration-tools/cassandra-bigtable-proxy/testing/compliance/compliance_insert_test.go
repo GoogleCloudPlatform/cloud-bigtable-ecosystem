@@ -148,6 +148,97 @@ func TestInsertWithIfNotExists(t *testing.T) {
 	assert.Equal(t, 3445.0, credited, "Data from the first insert should be preserved")
 }
 
+func TestAscii(t *testing.T) {
+	t.Parallel()
+
+	t.Run("literal", func(t *testing.T) {
+		t.Parallel()
+
+		require.NoError(t, session.Query("INSERT INTO all_columns (name, ascii_col) VALUES ('ascii-literal', 'valid-ascii-value')").Exec())
+
+		var got string
+		require.NoError(t, session.Query(`SELECT ascii_col FROM all_columns WHERE name ='ascii-literal'`).Scan(&got))
+		assert.Equal(t, "valid-ascii-value", got)
+
+		require.NoError(t, session.Query("UPDATE all_columns SET ascii_col='valid-ascii-value-2' WHERE name='ascii-literal'").Exec())
+
+		require.NoError(t, session.Query(`SELECT ascii_col FROM all_columns WHERE name ='ascii-literal'`).Scan(&got))
+		assert.Equal(t, "valid-ascii-value-2", got)
+	})
+
+	t.Run("placeholder", func(t *testing.T) {
+		t.Parallel()
+		require.NoError(t, session.Query("INSERT INTO all_columns (name, ascii_col) VALUES ( ?, ?)", "ascii-placeholder", "valid-ascii-value").Exec())
+
+		var got string
+		require.NoError(t, session.Query(`SELECT ascii_col FROM all_columns WHERE name = ?`, "ascii-placeholder").Scan(&got))
+		assert.Equal(t, "valid-ascii-value", got)
+
+		require.NoError(t, session.Query("UPDATE all_columns SET ascii_col=? WHERE name= ?", "valid-ascii-value-2", "ascii-placeholder").Exec())
+
+		require.NoError(t, session.Query(`SELECT ascii_col FROM all_columns WHERE name = ?`, "ascii-placeholder").Scan(&got))
+		assert.Equal(t, "valid-ascii-value-2", got)
+	})
+
+	t.Run("primary key placeholder", func(t *testing.T) {
+		t.Parallel()
+		require.NoError(t, session.Query("INSERT INTO ascii_key (id, measurement) VALUES ( ?, ?)", "ascii-key-placeholder", 1).Exec())
+
+		var got int32
+		require.NoError(t, session.Query(`SELECT measurement FROM ascii_key WHERE id = ?`, "ascii-key-placeholder").Scan(&got))
+		assert.Equal(t, int32(1), got)
+
+		require.NoError(t, session.Query("UPDATE ascii_key SET measurement=? WHERE id= ?", 2, "ascii-key-placeholder").Exec())
+
+		require.NoError(t, session.Query(`SELECT measurement FROM ascii_key WHERE id = ?`, "ascii-key-placeholder").Scan(&got))
+		assert.Equal(t, int32(2), got)
+	})
+
+	t.Run("primary key literal", func(t *testing.T) {
+		t.Parallel()
+		require.NoError(t, session.Query("INSERT INTO ascii_key (id, measurement) VALUES ('ascii-key-literal', 1)").Exec())
+
+		var got int32
+		require.NoError(t, session.Query(`SELECT measurement FROM ascii_key WHERE id = 'ascii-key-literal'`).Scan(&got))
+		assert.Equal(t, int32(1), got)
+
+		require.NoError(t, session.Query("UPDATE ascii_key SET measurement=2 WHERE id= 'ascii-key-literal'").Exec())
+
+		require.NoError(t, session.Query(`SELECT measurement FROM ascii_key WHERE id = 'ascii-key-literal'`).Scan(&got))
+		assert.Equal(t, int32(2), got)
+	})
+
+	t.Run("primary key invalid literal", func(t *testing.T) {
+		t.Parallel()
+		err := session.Query("INSERT INTO ascii_key (id, measurement) VALUES ('éàöñ', 1)").Exec()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "string is not valid ascii")
+	})
+
+	t.Run("primary key invalid placeholder", func(t *testing.T) {
+		t.Parallel()
+		err := session.Query("INSERT INTO ascii_key (id, measurement) VALUES (?, ?)", "éàöñ", 1).Exec()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "string is not valid ascii")
+	})
+
+	t.Run("invalid value ascii literal", func(t *testing.T) {
+		t.Parallel()
+
+		err := session.Query("INSERT INTO all_columns (name, ascii_col) VALUES ('ascii-invalid', 'éàöñ')").Exec()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "string is not valid ascii")
+	})
+
+	t.Run("invalid value ascii placeholder", func(t *testing.T) {
+		t.Parallel()
+
+		err := session.Query("INSERT INTO all_columns (name, ascii_col) VALUES ('ascii-invalid', ?)", "éàöñ").Exec()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "string is not valid ascii")
+	})
+}
+
 func TestInsertWithSpecialCharacters(t *testing.T) {
 	t.Parallel()
 	t.Run("Special Chars", func(t *testing.T) {

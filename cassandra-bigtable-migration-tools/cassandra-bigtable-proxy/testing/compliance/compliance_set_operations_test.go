@@ -27,6 +27,26 @@ func TestSetOperationAdditionSetText(t *testing.T) {
 
 	assert.ElementsMatch(t, []string{"tag0", "tag1", "tag2"}, tags, "The set did not contain all expected elements")
 }
+func TestSetOperationAdditionSetAscii(t *testing.T) {
+	t.Parallel()
+	// 1. Initialize a user with a starting set
+	err := session.Query(`INSERT INTO bigtabledevinstance.user_info (name, age, set_ascii) VALUES (?, ?, ?)`,
+		"set_ascii_row", int64(25), []string{"tag0"}).Exec()
+	require.NoError(t, err, "Failed to insert initial record")
+
+	// 2. Add new elements to the set
+	err = session.Query(`UPDATE bigtabledevinstance.user_info SET set_ascii = set_ascii + ? WHERE name = ? AND age = ?`,
+		[]string{"tag1", "tag2"}, "set_ascii_row", int64(25)).Exec()
+	require.NoError(t, err, "Failed to add elements to the set")
+
+	// 3. Verify the final state of the set
+	var set_ascii []string
+	err = session.Query(`SELECT set_ascii FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?`,
+		"set_ascii_row", int64(25)).Scan(&set_ascii)
+	require.NoError(t, err, "Failed to select the updated record")
+
+	assert.ElementsMatch(t, []string{"tag0", "tag1", "tag2"}, set_ascii, "The set did not contain all expected elements")
+}
 
 func TestSetOperationSubtractionSetInt(t *testing.T) {
 	t.Parallel()

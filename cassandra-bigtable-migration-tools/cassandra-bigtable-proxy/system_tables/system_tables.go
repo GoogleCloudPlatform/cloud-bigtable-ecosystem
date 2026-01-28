@@ -155,14 +155,19 @@ var (
 	})
 	SystemTablePeersV2 = metadata.NewTableConfig("system", "peers_v2", "na", types.OrderedCodeEncoding, []*types.Column{
 		{Name: "peer", CQLType: types.TypeInet, KeyType: types.KeyTypePartition},
+		{Name: "peer_port", CQLType: types.TypeInt, KeyType: types.KeyTypeClustering},
 		{Name: "rpc_address", CQLType: types.TypeInet},
-		{Name: "data_center", CQLType: types.TypeVarchar},
+		{Name: "data_center", CQLType: types.TypeText},
 		{Name: "dse_version", CQLType: types.TypeVarchar},
 		{Name: "rack", CQLType: types.TypeVarchar},
 		{Name: "tokens", CQLType: types.NewSetType(types.TypeVarchar)},
-		{Name: "release_version", CQLType: types.TypeVarchar},
+		{Name: "release_version", CQLType: types.TypeText},
 		{Name: "schema_version", CQLType: types.TypeUuid},
 		{Name: "host_id", CQLType: types.TypeUuid},
+		{Name: "native_address", CQLType: types.TypeInet},
+		{Name: "native_port", CQLType: types.TypeInt},
+		{Name: "preferred_ip", CQLType: types.TypeInet},
+		{Name: "preferred_port", CQLType: types.TypeInt},
 	})
 	SystemTableSchemaKeyspaces = metadata.NewTableConfig("system", "schema_keyspaces", "na", types.OrderedCodeEncoding, []*types.Column{
 		{Name: "keyspace_name", CQLType: types.TypeVarchar, KeyType: types.KeyTypePartition},

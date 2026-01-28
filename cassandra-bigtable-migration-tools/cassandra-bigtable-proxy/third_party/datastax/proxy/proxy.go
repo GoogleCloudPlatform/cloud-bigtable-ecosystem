@@ -271,12 +271,6 @@ func (p *Proxy) GetSystemTableConfig() system_tables.SystemTableConfig {
 		})
 	}
 
-	var dseVersion string
-	// nil during proxy initialization
-	if p.cluster != nil {
-		dseVersion = p.cluster.Info.DSEVersion
-	}
-
 	systemTableConfig := system_tables.SystemTableConfig{
 		RpcAddress:            p.config.RPCAddr,
 		Datacenter:            p.config.DC,
@@ -284,7 +278,6 @@ func (p *Proxy) GetSystemTableConfig() system_tables.SystemTableConfig {
 		Partitioner:           p.config.Options.Partitioner,
 		CqlVersion:            p.config.Options.CQLVersion,
 		NativeProtocolVersion: p.config.Options.ProtocolVersion.String(),
-		DseVersion:            dseVersion,
 		Peers:                 peers,
 	}
 	return systemTableConfig

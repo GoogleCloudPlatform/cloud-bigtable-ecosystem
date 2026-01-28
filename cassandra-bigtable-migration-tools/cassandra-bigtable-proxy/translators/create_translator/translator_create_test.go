@@ -244,6 +244,28 @@ func TestTranslateCreateTableToBigtable(t *testing.T) {
 			defaultKeyspace: "test_keyspace",
 		},
 		{
+			name:                     "with ascii",
+			query:                    "CREATE TABLE test_keyspace.test_table (column1 ascii, column10 int, test_col ascii, PRIMARY KEY (column1, column10))",
+			defaultIntRowKeyEncoding: types.OrderedCodeEncoding,
+			want: &Want{
+				Table:             "test_table",
+				Keyspace:          "test_keyspace",
+				IntRowKeyEncoding: types.OrderedCodeEncoding,
+				IfNotExists:       false,
+				Columns: []types.CreateColumn{
+					{Name: "column1", Index: 0, TypeInfo: types.TypeAscii},
+					{Name: "column10", Index: 1, TypeInfo: types.TypeInt},
+					{Name: "test_col", Index: 2, TypeInfo: types.TypeAscii},
+				},
+				PrimaryKeys: []types.CreateTablePrimaryKeyConfig{
+					{Name: "column1", KeyType: "partition_key"},
+					{Name: "column10", KeyType: "clustering"},
+				},
+			},
+			error:           "",
+			defaultKeyspace: "test_keyspace",
+		},
+		{
 			name:                     "without keyspace in query, with default keyspace",
 			query:                    "CREATE TABLE test_table (column1 varchar, column10 int, PRIMARY KEY (column1, column10))",
 			defaultIntRowKeyEncoding: types.OrderedCodeEncoding,

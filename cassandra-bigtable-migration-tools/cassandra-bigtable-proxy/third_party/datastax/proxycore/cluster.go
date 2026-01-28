@@ -108,7 +108,6 @@ type ClusterInfo struct {
 	ReleaseVersion string
 	CQLVersion     string
 	LocalDC        string
-	DSEVersion     string
 }
 
 // Cluster defines a downstream cluster that is being proxied to.

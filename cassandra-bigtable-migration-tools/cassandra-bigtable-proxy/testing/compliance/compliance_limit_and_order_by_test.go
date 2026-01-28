@@ -102,11 +102,15 @@ func TestLimitAndOrderByOperations(t *testing.T) {
 		t.Parallel()
 		err := session.Query(`SELECT name, age FROM user_info WHERE age = ? LIMIT ?`, 10, -3).Exec()
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "limit must be positive")
+		if testTarget == TestTargetProxy {
+			assert.Contains(t, err.Error(), "limit must be positive")
+		}
 
 		err = session.Query(`SELECT name, age FROM user_info WHERE age = ? LIMIT ?`, 10, 0).Exec()
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "limit must be positive")
+		if testTarget == TestTargetProxy {
+			assert.Contains(t, err.Error(), "limit must be positive")
+		}
 	})
 
 	t.Run("Invalid ORDER BY syntax", func(t *testing.T) {
@@ -123,7 +127,9 @@ func TestLimitAndOrderByOperations(t *testing.T) {
 		// ORDER BY a non-existent column
 		err = session.Query(`SELECT name, age FROM user_info WHERE age = ? ORDER BY xyz`, 10).Exec()
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "unknown column name 'xyz'")
+		if testTarget == TestTargetProxy {
+			assert.Contains(t, err.Error(), "unknown column name 'xyz'")
+		}
 	})
 }
 

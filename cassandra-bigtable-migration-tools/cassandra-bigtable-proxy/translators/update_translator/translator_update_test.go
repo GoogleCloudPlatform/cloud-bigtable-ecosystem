@@ -46,13 +46,13 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 	}{
 		{
 			name:  "update blob column",
-			query: "UPDATE test_keyspace.test_table SET col_blob = '0x0000000000000003' WHERE pk1 = 'testText' AND pk2 = 'pk2';",
+			query: "UPDATE test_keyspace.test_table SET col_blob = 0x00000000000003 WHERE pk1 = 'testText' AND pk2 = 'pk2';",
 			want: &Want{
 				Keyspace: "test_keyspace",
 				Table:    "test_table",
 				IfExists: false,
 				Values: []types.Assignment{
-					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"), types.NewLiteralValue("0x0000000000000003")),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"), types.NewLiteralValue([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03})),
 				},
 				RowKeys: []types.DynamicValue{
 					types.NewLiteralValue("testText"),
@@ -62,13 +62,13 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 		},
 		{
 			name:  "if exists",
-			query: "UPDATE test_keyspace.test_table SET col_blob = '0x0000000000000003' WHERE pk1 = 'testText' AND pk2 = 'pk2' IF EXISTS;",
+			query: "UPDATE test_keyspace.test_table SET col_blob = 0x00000000000003 WHERE pk1 = 'testText' AND pk2 = 'pk2' IF EXISTS;",
 			want: &Want{
 				Keyspace: "test_keyspace",
 				Table:    "test_table",
 				IfExists: true,
 				Values: []types.Assignment{
-					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"), types.NewLiteralValue("0x0000000000000003")),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"), types.NewLiteralValue([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03})),
 				},
 				RowKeys: []types.DynamicValue{
 					types.NewLiteralValue("testText"),
@@ -203,12 +203,12 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 		},
 		{
 			name:  "with keyspace in query, without default keyspace",
-			query: "UPDATE test_keyspace.test_table SET col_blob = 'abc' WHERE pk2 = 'pkval' AND pk1 = 'abc';",
+			query: "UPDATE test_keyspace.test_table SET col_blob = 0x01 WHERE pk2 = 'pkval' AND pk1 = 'abc';",
 			want: &Want{
 				Keyspace: "test_keyspace",
 				Table:    "test_table",
 				Values: []types.Assignment{
-					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"), types.NewLiteralValue("abc")),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"), types.NewLiteralValue([]byte{0x01})),
 				},
 				RowKeys: []types.DynamicValue{
 					types.NewLiteralValue("abc"),
@@ -298,12 +298,12 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 		},
 		{
 			name:  "with keyspace in query, with default keyspace",
-			query: "UPDATE test_keyspace.test_table SET col_blob = 'abc' WHERE pk2 = 'pkval' AND pk1 = 'abc';",
+			query: "UPDATE test_keyspace.test_table SET col_blob = 0x01 WHERE pk2 = 'pkval' AND pk1 = 'abc';",
 			want: &Want{
 				Keyspace: "test_keyspace",
 				Table:    "test_table",
 				Values: []types.Assignment{
-					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"), types.NewLiteralValue("abc")),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"), types.NewLiteralValue([]byte{0x01})),
 				},
 				RowKeys: []types.DynamicValue{
 					types.NewLiteralValue("abc"),
@@ -378,14 +378,14 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 		},
 		{
 			name:            "without keyspace in query, with default keyspace",
-			query:           "UPDATE test_table SET col_blob = 'abc' WHERE pk2 = 'pkval' AND pk1 = 'abc';",
+			query:           "UPDATE test_table SET col_blob = 0x01 WHERE pk2 = 'pkval' AND pk1 = 'abc';",
 			sessionKeyspace: "test_keyspace",
 			wantErr:         "",
 			want: &Want{
 				Keyspace: "test_keyspace",
 				Table:    "test_table",
 				Values: []types.Assignment{
-					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"), types.NewLiteralValue("abc")),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"), types.NewLiteralValue([]byte{0x01})),
 				},
 				RowKeys: []types.DynamicValue{
 					types.NewLiteralValue("abc"),
@@ -435,13 +435,13 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 		},
 		{
 			name:    "missing primary key in where clause (should error)",
-			query:   "UPDATE test_keyspace.test_table SET col_blob = 'abc' WHERE pk1 = 'testText'", // Missing pk2
+			query:   "UPDATE test_keyspace.test_table SET col_blob = 0x01 WHERE pk1 = 'testText'", // Missing pk2
 			wantErr: "all primary keys must be included in the where clause. missing `pk2`",
 			want:    nil,
 		},
 		{
 			name:    "missing all primary keys in where clause (should error)",
-			query:   "UPDATE test_keyspace.test_table SET col_blob = 'abc' WHERE column3 = true", // No PK columns
+			query:   "UPDATE test_keyspace.test_table SET col_blob = 0x01 WHERE column3 = true", // No PK columns
 			wantErr: "unknown column 'column3' in table test_keyspace.test_table",
 			want:    nil,
 		},
