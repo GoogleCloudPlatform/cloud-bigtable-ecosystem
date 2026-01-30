@@ -18,7 +18,7 @@ func (a *AlterTableStatementMap) InitialValues() map[Placeholder]GoValue {
 	return nil
 }
 
-func (a *AlterTableStatementMap) Parameters() *QueryParameters {
+func (a *AlterTableStatementMap) Parameters() IQueryParameters {
 	return nil
 }
 

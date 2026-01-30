@@ -78,8 +78,8 @@ func TestTranslator_TranslateDeleteQuerytoBigtable(t *testing.T) {
 				Table:    "user_info",
 				IfExists: false,
 				RowKey: []types.DynamicValue{
-					types.NewParameterizedValue("@value0"),
-					types.NewParameterizedValue("@value1"),
+					types.NewParameterizedValue("value0"),
+					types.NewParameterizedValue("value1"),
 				},
 				SelectedColumns: nil,
 			},

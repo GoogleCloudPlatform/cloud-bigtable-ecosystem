@@ -40,6 +40,36 @@ func TestBasicInsertUpdateDeleteValidation(t *testing.T) {
 	assert.Equal(t, gocql.ErrNotFound, err, "Expected error to be 'not found' after deletion")
 }
 
+func TestBasicInsertUpdateDeleteValidationWithNamedMarkers(t *testing.T) {
+	t.Parallel()
+	rowName := uuid.New().String()
+	err := session.Query(`INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (:nm, :ag, :cd)`, rowName, int64(30), 123).Exec()
+	require.NoError(t, err, "Failed to insert record")
+
+	var name string
+	var age int64
+	var code int
+	err = session.Query(`SELECT name, age, code FROM bigtabledevinstance.user_info WHERE name = :name AND age = :age`, rowName, int64(30)).Scan(&name, &age, &code)
+	require.NoError(t, err, "Failed to select newly inserted record")
+	assert.Equal(t, rowName, name)
+	assert.Equal(t, int64(30), age)
+	assert.Equal(t, 123, code)
+
+	err = session.Query(`UPDATE bigtabledevinstance.user_info SET code = ? WHERE "name" = ? AND age = ?`, 456, rowName, int64(30)).Exec()
+	require.NoError(t, err, "Failed to update record")
+
+	err = session.Query(`SELECT code FROM bigtabledevinstance.user_info WHERE "name" = ? AND age = ?`, rowName, int64(30)).Scan(&code)
+	require.NoError(t, err, "Failed to select updated record")
+	assert.Equal(t, 456, code)
+
+	err = session.Query(`DELETE FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?`, rowName, int64(30)).Exec()
+	require.NoError(t, err, "Failed to delete record")
+
+	err = session.Query(`SELECT name FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?`, rowName, int64(30)).Scan(&name)
+	require.Error(t, err, "Expected an error when selecting a deleted record")
+	assert.Equal(t, gocql.ErrNotFound, err, "Expected error to be 'not found' after deletion")
+}
+
 func TestUpsertOperation(t *testing.T) {
 	t.Parallel()
 	pkName, pkAge := uuid.New().String(), int64(33)

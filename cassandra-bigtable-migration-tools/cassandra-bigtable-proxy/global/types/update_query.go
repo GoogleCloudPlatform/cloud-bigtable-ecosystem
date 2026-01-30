@@ -12,7 +12,7 @@ type PreparedUpdateQuery struct {
 	cqlQuery       string
 	Values         []Assignment
 	RowKeys        []DynamicValue
-	params         *QueryParameters
+	params         IQueryParameters
 	UsingTimestamp DynamicValue
 }
 
@@ -26,7 +26,7 @@ func (p *PreparedUpdateQuery) IsIdempotent() bool {
 	return true
 }
 
-func NewPreparedUpdateQuery(keyspace Keyspace, table TableName, ifExists bool, cqlQuery string, values []Assignment, rowKeys []DynamicValue, params *QueryParameters, usingTimestamp DynamicValue) *PreparedUpdateQuery {
+func NewPreparedUpdateQuery(keyspace Keyspace, table TableName, ifExists bool, cqlQuery string, values []Assignment, rowKeys []DynamicValue, params IQueryParameters, usingTimestamp DynamicValue) *PreparedUpdateQuery {
 	return &PreparedUpdateQuery{keyspace: keyspace, table: table, IfExists: ifExists, cqlQuery: cqlQuery, Values: values, RowKeys: rowKeys, params: params, UsingTimestamp: usingTimestamp}
 }
 
@@ -34,7 +34,7 @@ func (p *PreparedUpdateQuery) BigtableQuery() string {
 	return ""
 }
 
-func (p *PreparedUpdateQuery) Parameters() *QueryParameters {
+func (p *PreparedUpdateQuery) Parameters() IQueryParameters {
 	return p.params
 }
 

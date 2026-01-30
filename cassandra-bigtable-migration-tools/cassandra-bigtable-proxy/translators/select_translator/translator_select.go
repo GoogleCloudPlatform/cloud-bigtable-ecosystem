@@ -46,7 +46,7 @@ func (t *SelectTranslator) Translate(query *types.RawQuery, sessionKeyspace type
 		return nil, err
 	}
 
-	params := types.NewQueryParameters()
+	params := types.NewQueryParameterBuilder()
 
 	conditions, err := common.ParseWhereClause(selectObj.WhereSpec(), tableConfig, params)
 	if err != nil {
@@ -75,7 +75,12 @@ func (t *SelectTranslator) Translate(query *types.RawQuery, sessionKeyspace type
 
 	resultColumns := selectedColumnsToMetadata(tableConfig, selectClause)
 
-	st := types.NewPreparedSelectQuery(keyspaceName, tableName, query.RawCql(), "", selectClause, conditions, params, orderBy, groupBy, limitValue, resultColumns)
+	builtParams, err := params.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	st := types.NewPreparedSelectQuery(keyspaceName, tableName, query.RawCql(), "", selectClause, conditions, builtParams, orderBy, groupBy, limitValue, resultColumns)
 
 	if !keyspaceName.IsSystemKeyspace() {
 		translatedResult, err := createBigtableSql(t, st)

@@ -11,7 +11,7 @@ type PreparedInsertQuery struct {
 	table          TableName
 	IfNotExists    bool
 	cqlQuery       string
-	params         *QueryParameters
+	params         IQueryParameters
 	Assignments    []Assignment
 	RowKeys        []DynamicValue
 	UsingTimestamp DynamicValue
@@ -25,7 +25,7 @@ func (p *PreparedInsertQuery) QueryType() QueryType {
 	return QueryTypeInsert
 }
 
-func (p *PreparedInsertQuery) Parameters() *QueryParameters {
+func (p *PreparedInsertQuery) Parameters() IQueryParameters {
 	return p.params
 }
 
@@ -40,7 +40,7 @@ func (p *PreparedInsertQuery) BigtableQuery() string {
 	return ""
 }
 
-func NewPreparedInsertQuery(keyspace Keyspace, table TableName, ifNotExists bool, cqlQuery string, params *QueryParameters, assignments []Assignment, rowKeys []DynamicValue, usingTimestamp DynamicValue) *PreparedInsertQuery {
+func NewPreparedInsertQuery(keyspace Keyspace, table TableName, ifNotExists bool, cqlQuery string, params IQueryParameters, assignments []Assignment, rowKeys []DynamicValue, usingTimestamp DynamicValue) *PreparedInsertQuery {
 	return &PreparedInsertQuery{keyspace: keyspace, table: table, IfNotExists: ifNotExists, cqlQuery: cqlQuery, params: params, Assignments: assignments, RowKeys: rowKeys, UsingTimestamp: usingTimestamp}
 }
 

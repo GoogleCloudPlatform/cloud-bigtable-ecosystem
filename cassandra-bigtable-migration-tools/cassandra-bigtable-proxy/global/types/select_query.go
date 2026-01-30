@@ -45,7 +45,7 @@ type PreparedSelectQuery struct {
 	TranslatedQuery      string        // btql
 	SelectClause         *SelectClause // Translator generated Metadata about the columns involved
 	Conditions           []Condition
-	Params               *QueryParameters // Parameters for the query
+	Params               IQueryParameters // Parameters for the query
 	LimitValue           DynamicValue
 	CachedBTPrepare      *bigtable.PreparedStatement // prepared statement object for bigtable
 	OrderBy              OrderBy                     // Order by clause details
@@ -63,7 +63,7 @@ func (p *PreparedSelectQuery) IsIdempotent() bool {
 	return true
 }
 
-func NewPreparedSelectQuery(keyspace Keyspace, table TableName, cqlQuery string, translatedQuery string, selectClause *SelectClause, conditions []Condition, params *QueryParameters, orderBy OrderBy, groupByColumns []string, limitValue DynamicValue, resultColumnMetadata []*message.ColumnMetadata) *PreparedSelectQuery {
+func NewPreparedSelectQuery(keyspace Keyspace, table TableName, cqlQuery string, translatedQuery string, selectClause *SelectClause, conditions []Condition, params IQueryParameters, orderBy OrderBy, groupByColumns []string, limitValue DynamicValue, resultColumnMetadata []*message.ColumnMetadata) *PreparedSelectQuery {
 	return &PreparedSelectQuery{
 		keyspace:             keyspace,
 		table:                table,
@@ -79,7 +79,7 @@ func NewPreparedSelectQuery(keyspace Keyspace, table TableName, cqlQuery string,
 	}
 }
 
-func (p *PreparedSelectQuery) Parameters() *QueryParameters {
+func (p *PreparedSelectQuery) Parameters() IQueryParameters {
 	return p.Params
 }
 

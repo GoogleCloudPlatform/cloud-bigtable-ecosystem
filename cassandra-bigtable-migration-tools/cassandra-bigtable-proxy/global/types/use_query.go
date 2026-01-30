@@ -14,7 +14,7 @@ func (u *UseTableStatementMap) InitialValues() map[Placeholder]GoValue {
 	return nil
 }
 
-func (u *UseTableStatementMap) Parameters() *QueryParameters {
+func (u *UseTableStatementMap) Parameters() IQueryParameters {
 	return nil
 }
 

@@ -514,6 +514,9 @@ type CqlParserListener interface {
 	// EnterRelationLike is called when entering the relationLike production.
 	EnterRelationLike(c *RelationLikeContext)
 
+	// EnterMarker is called when entering the marker production.
+	EnterMarker(c *MarkerContext)
+
 	// EnterTupleValue is called when entering the tupleValue production.
 	EnterTupleValue(c *TupleValueContext)
 
@@ -1449,6 +1452,9 @@ type CqlParserListener interface {
 
 	// ExitRelationLike is called when exiting the relationLike production.
 	ExitRelationLike(c *RelationLikeContext)
+
+	// ExitMarker is called when exiting the marker production.
+	ExitMarker(c *MarkerContext)
 
 	// ExitTupleValue is called when exiting the tupleValue production.
 	ExitTupleValue(c *TupleValueContext)

@@ -16,7 +16,7 @@ func (d *DropTableQuery) InitialValues() map[Placeholder]GoValue {
 	return nil
 }
 
-func (d *DropTableQuery) Parameters() *QueryParameters {
+func (d *DropTableQuery) Parameters() IQueryParameters {
 	return nil
 }
 

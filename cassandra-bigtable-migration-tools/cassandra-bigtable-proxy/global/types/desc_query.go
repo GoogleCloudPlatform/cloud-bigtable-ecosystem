@@ -52,7 +52,7 @@ func (a *DescribeQuery) QueryType() QueryType {
 	return QueryTypeDescribe
 }
 
-func (a *DescribeQuery) Parameters() *QueryParameters {
+func (a *DescribeQuery) Parameters() IQueryParameters {
 	return nil
 }
 

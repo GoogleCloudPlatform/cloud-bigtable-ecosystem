@@ -108,7 +108,7 @@ func parseOrderByFromSelect(input cql.IOrderSpecContext) (types.OrderBy, error) 
 	return response, nil
 }
 
-func parseLimitClause(input cql.ILimitSpecContext, params *types.QueryParameters) (types.DynamicValue, error) {
+func parseLimitClause(input cql.ILimitSpecContext, params *types.QueryParameterBuilder) (types.DynamicValue, error) {
 	if input == nil {
 		return nil, nil
 	}

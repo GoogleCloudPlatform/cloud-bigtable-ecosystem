@@ -11,7 +11,7 @@ type PreparedDeleteQuery struct {
 	table           TableName // Table involved in the query
 	IfExists        bool
 	cqlQuery        string // Original query string
-	params          *QueryParameters
+	params          IQueryParameters
 	RowKey          []DynamicValue
 	SelectedColumns []SelectedColumn
 }
@@ -24,7 +24,7 @@ func (p *PreparedDeleteQuery) QueryType() QueryType {
 	return QueryTypeDelete
 }
 
-func (p *PreparedDeleteQuery) Parameters() *QueryParameters {
+func (p *PreparedDeleteQuery) Parameters() IQueryParameters {
 	return p.params
 }
 
@@ -39,7 +39,7 @@ func (p *PreparedDeleteQuery) BigtableQuery() string {
 	return ""
 }
 
-func NewPreparedDeleteQuery(keyspace Keyspace, table TableName, ifExists bool, cqlQuery string, rowKey []DynamicValue, params *QueryParameters, selectedColumns []SelectedColumn) *PreparedDeleteQuery {
+func NewPreparedDeleteQuery(keyspace Keyspace, table TableName, ifExists bool, cqlQuery string, rowKey []DynamicValue, params IQueryParameters, selectedColumns []SelectedColumn) *PreparedDeleteQuery {
 	return &PreparedDeleteQuery{keyspace: keyspace, table: table, cqlQuery: cqlQuery, RowKey: rowKey, params: params, IfExists: ifExists, SelectedColumns: selectedColumns}
 }
 

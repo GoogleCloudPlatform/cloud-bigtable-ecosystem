@@ -15,7 +15,7 @@ func (c *TruncateTableStatementMap) InitialValues() map[Placeholder]GoValue {
 	return nil
 }
 
-func (c *TruncateTableStatementMap) Parameters() *QueryParameters {
+func (c *TruncateTableStatementMap) Parameters() IQueryParameters {
 	return nil
 }
 

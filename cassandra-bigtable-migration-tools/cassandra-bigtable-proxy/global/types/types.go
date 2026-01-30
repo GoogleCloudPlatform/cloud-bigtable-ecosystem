@@ -210,7 +210,7 @@ type IPreparedQuery interface {
 	Table() TableName // empty string if no table involved e.g. "USE keyspace;"
 	CqlQuery() string
 	QueryType() QueryType
-	Parameters() *QueryParameters
+	Parameters() IQueryParameters
 	ResponseColumns() []*message.ColumnMetadata
 	// SetBigtablePreparedQuery - only implemented for "select" queries for now because Bigtable SQL only supports reads
 	SetBigtablePreparedQuery(s *bigtable.PreparedStatement)

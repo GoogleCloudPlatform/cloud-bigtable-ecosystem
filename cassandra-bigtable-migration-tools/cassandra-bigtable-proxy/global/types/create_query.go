@@ -19,7 +19,7 @@ func (c *CreateTableStatementMap) InitialValues() map[Placeholder]GoValue {
 	return nil
 }
 
-func (c *CreateTableStatementMap) Parameters() *QueryParameters {
+func (c *CreateTableStatementMap) Parameters() IQueryParameters {
 	return nil
 }
 

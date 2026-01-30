@@ -55,10 +55,38 @@ func BuildRowsResultResponse(st *types.ExecutableSelectQuery, rows []types.GoRow
 
 func BuildPreparedResultResponse(id [16]byte, query types.IPreparedQuery) (*message.PreparedResult, error) {
 	var variableMetadata []*message.ColumnMetadata
-	params := query.Parameters()
 	var pkIndices []uint16
-	for i, p := range params.AllKeys() {
-		md := params.GetMetadata(p)
+
+	switch v := query.Parameters().(type) {
+	case *types.PositionalQueryParameters:
+		variableMetadata, pkIndices = buildPreparedResult(query, v)
+	case *types.NamedQueryParameters:
+		variableMetadata, pkIndices = buildPreparedResultForNamed(query, v)
+	default:
+		return nil, fmt.Errorf("unhandled params type %T", v)
+	}
+	resultColumns := query.ResponseColumns()
+	var resultMetadata *message.RowsMetadata = nil
+	if query.QueryType() == types.QueryTypeSelect {
+		resultMetadata = &message.RowsMetadata{
+			ColumnCount: int32(len(resultColumns)),
+			Columns:     resultColumns,
+		}
+	}
+	return &message.PreparedResult{
+		PreparedQueryId: id[:],
+		ResultMetadata:  resultMetadata,
+		VariablesMetadata: &message.VariablesMetadata{
+			PkIndices: pkIndices,
+			Columns:   variableMetadata,
+		},
+	}, nil
+}
+
+func buildPreparedResult(query types.IPreparedQuery, params *types.PositionalQueryParameters) ([]*message.ColumnMetadata, []uint16) {
+	var variableMetadata []*message.ColumnMetadata
+	var pkIndices []uint16
+	for i, md := range params.Ordered() {
 		columnName := ""
 		if md.Column != nil {
 			columnName = string(md.Column.Name)
@@ -76,22 +104,23 @@ func BuildPreparedResultResponse(id [16]byte, query types.IPreparedQuery) (*mess
 			pkIndices = append(pkIndices, uint16(i))
 		}
 	}
-	resultColumns := query.ResponseColumns()
+	return variableMetadata, pkIndices
+}
 
-	var resultMetadata *message.RowsMetadata = nil
-	if query.QueryType() == types.QueryTypeSelect {
-		resultMetadata = &message.RowsMetadata{
-			ColumnCount: int32(len(resultColumns)),
-			Columns:     resultColumns,
+func buildPreparedResultForNamed(query types.IPreparedQuery, params *types.NamedQueryParameters) ([]*message.ColumnMetadata, []uint16) {
+	variableMetadata := make([]*message.ColumnMetadata, params.Count())
+	var pkIndices []uint16
+	for _, md := range params.Params() {
+		variableMetadata[md.Order] = &message.ColumnMetadata{
+			Keyspace: string(query.Keyspace()),
+			Table:    string(query.Table()),
+			Name:     string(md.Key),
+			Index:    int32(md.Order),
+			Type:     md.Type.DataType(),
+		}
+		if md.Column != nil && md.Column.IsPrimaryKey {
+			pkIndices = append(pkIndices, uint16(md.Order))
 		}
 	}
-
-	return &message.PreparedResult{
-		PreparedQueryId: id[:],
-		ResultMetadata:  resultMetadata,
-		VariablesMetadata: &message.VariablesMetadata{
-			PkIndices: pkIndices,
-			Columns:   variableMetadata,
-		},
-	}, nil
+	return variableMetadata, pkIndices
 }
