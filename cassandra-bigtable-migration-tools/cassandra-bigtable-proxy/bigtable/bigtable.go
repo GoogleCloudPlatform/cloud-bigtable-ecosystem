@@ -30,7 +30,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	btpb "cloud.google.com/go/bigtable/apiv2/bigtablepb"
-	metadata "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/metadata"
+	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/metadata"
 	otelgo "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/otel"
 	"github.com/datastax/go-cassandra-native-protocol/message"
 	"go.uber.org/zap"
@@ -87,7 +87,7 @@ func (btc *BigtableAdapter) Execute(ctx context.Context, query types.IExecutable
 //
 // Returns:
 //   - error: Error if the mutation fails.
-func (btc *BigtableAdapter) mutateRow(ctx context.Context, input *types.BigtableWriteMutation) (*message.RowsResult, error) {
+func (btc *BigtableAdapter) mutateRow(ctx context.Context, input *types.BigtableWriteMutation) (message.Message, error) {
 	otelgo.AddAnnotation(ctx, applyingBigtableMutation)
 	mut := bigtable.NewMutation()
 
@@ -124,11 +124,7 @@ func (btc *BigtableAdapter) mutateRow(ctx context.Context, input *types.Bigtable
 
 	// no-op just return
 	if mutationCount == 0 {
-		return &message.RowsResult{
-			Metadata: &message.RowsMetadata{
-				LastContinuousPage: true,
-			},
-		}, nil
+		return &message.VoidResult{}, nil
 	}
 
 	// If no conditions, apply the mutation directly
@@ -138,11 +134,7 @@ func (btc *BigtableAdapter) mutateRow(ctx context.Context, input *types.Bigtable
 		return nil, err
 	}
 
-	return &message.RowsResult{
-		Metadata: &message.RowsMetadata{
-			LastContinuousPage: true,
-		},
-	}, nil
+	return &message.VoidResult{}, nil
 }
 
 func emptyRowsResult() *message.RowsResult {
@@ -226,7 +218,7 @@ func (btc *BigtableAdapter) DropAllRows(ctx context.Context, data *types.Truncat
 //
 // Returns:
 //   - error: Error if the insertion fails.
-func (btc *BigtableAdapter) InsertRow(ctx context.Context, input *types.BigtableWriteMutation) (*message.RowsResult, error) {
+func (btc *BigtableAdapter) InsertRow(ctx context.Context, input *types.BigtableWriteMutation) (message.Message, error) {
 	return btc.mutateRow(ctx, input)
 }
 
@@ -238,11 +230,11 @@ func (btc *BigtableAdapter) InsertRow(ctx context.Context, input *types.Bigtable
 //
 // Returns:
 //   - error: Error if the update fails.
-func (btc *BigtableAdapter) UpdateRow(ctx context.Context, input *types.BigtableWriteMutation) (*message.RowsResult, error) {
+func (btc *BigtableAdapter) UpdateRow(ctx context.Context, input *types.BigtableWriteMutation) (message.Message, error) {
 	return btc.mutateRow(ctx, input)
 }
 
-func (btc *BigtableAdapter) DeleteRow(ctx context.Context, deleteQueryData *types.BoundDeleteQuery) (*message.RowsResult, error) {
+func (btc *BigtableAdapter) DeleteRow(ctx context.Context, deleteQueryData *types.BoundDeleteQuery) (message.Message, error) {
 	otelgo.AddAnnotation(ctx, applyingDeleteMutation)
 	client, err := btc.clients.GetClient(deleteQueryData.Keyspace())
 	if err != nil {
@@ -276,12 +268,7 @@ func (btc *BigtableAdapter) DeleteRow(ctx context.Context, deleteQueryData *type
 		}
 	}
 	otelgo.AddAnnotation(ctx, deleteMutationApplied)
-	var response = message.RowsResult{
-		Metadata: &message.RowsMetadata{
-			LastContinuousPage: true,
-		},
-	}
-	return &response, nil
+	return &message.VoidResult{}, nil
 }
 
 func (btc *BigtableAdapter) buildDeleteMutation(ctx context.Context, table *bigtable.Table, deleteQueryData *types.BoundDeleteQuery, mut *bigtable.Mutation) error {
@@ -485,7 +472,11 @@ func (btc *BigtableAdapter) PrepareStatement(ctx context.Context, query types.IP
 		return nil, err
 	}
 
-	paramTypes := BuildParamTypes(selectQuery)
+	paramTypes, err := BuildParamTypes(selectQuery)
+	if err != nil {
+		btc.Logger.Error("Failed to prepare statement", zap.String("query", query.BigtableQuery()), zap.Error(err))
+		return nil, err
+	}
 	preparedStatement, err := client.PrepareStatement(ctx, query.BigtableQuery(), paramTypes)
 	if err != nil {
 		btc.Logger.Error("Failed to prepare statement", zap.String("query", query.BigtableQuery()), zap.Error(err))

@@ -14,7 +14,7 @@ type AlterTableStatementMap struct {
 	DropColumns []ColumnName
 }
 
-func (a *AlterTableStatementMap) InitialValues() map[Placeholder]GoValue {
+func (a *AlterTableStatementMap) InitialValues() map[Parameter]GoValue {
 	return nil
 }
 

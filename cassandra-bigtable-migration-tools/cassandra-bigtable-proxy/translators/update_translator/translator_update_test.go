@@ -33,7 +33,7 @@ type Want struct {
 	IfExists  bool
 	Values    []types.Assignment
 	RowKeys   []types.DynamicValue
-	AllParams []types.Placeholder
+	AllParams []*types.ParameterMetadata
 }
 
 func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
@@ -58,6 +58,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 					types.NewLiteralValue("testText"),
 					types.NewLiteralValue("pk2"),
 				},
+				AllParams: []*types.ParameterMetadata{},
 			},
 		},
 		{
@@ -74,22 +75,78 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 					types.NewLiteralValue("testText"),
 					types.NewLiteralValue("pk2"),
 				},
+				AllParams: []*types.ParameterMetadata{},
 			},
 		},
 		{
 			name:  "prepared update blob column",
 			query: "UPDATE test_keyspace.test_table SET col_blob = ? WHERE pk1 = ? AND pk2 = ?;",
 			want: &Want{
-				Keyspace:  "test_keyspace",
-				Table:     "test_table",
-				IfExists:  false,
-				AllParams: []types.Placeholder{"@value0", "@value1", "@value2"},
+				Keyspace: "test_keyspace",
+				Table:    "test_table",
+				IfExists: false,
+				AllParams: []*types.ParameterMetadata{
+					{
+						Key:    "value0",
+						Order:  0,
+						Type:   types.TypeBlob,
+						Column: mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"),
+					},
+					{
+						Key:    "value1",
+						Order:  1,
+						Type:   types.TypeVarchar,
+						Column: mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk1"),
+					},
+					{
+						Key:    "value2",
+						Order:  2,
+						Type:   types.TypeVarchar,
+						Column: mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk2"),
+					},
+				},
 				Values: []types.Assignment{
-					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"), types.NewParameterizedValue("@value0")),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"), types.NewParameterizedValue("value0")),
 				},
 				RowKeys: []types.DynamicValue{
-					types.NewParameterizedValue("@value1"),
-					types.NewParameterizedValue("@value2"),
+					types.NewParameterizedValue("value1"),
+					types.NewParameterizedValue("value2"),
+				},
+			},
+		},
+		{
+			name:  "prepared update with named markers",
+			query: "UPDATE test_keyspace.test_table SET col_blob = :v1 WHERE pk1 = :v2 AND pk2 = :v3;",
+			want: &Want{
+				Keyspace: "test_keyspace",
+				Table:    "test_table",
+				IfExists: false,
+				AllParams: []*types.ParameterMetadata{
+					{
+						Key:     "v1",
+						Order:   0,
+						Type:    types.TypeBlob,
+						IsNamed: true,
+					},
+					{
+						Key:     "v2",
+						Order:   1,
+						Type:    types.TypeVarchar,
+						IsNamed: true,
+					},
+					{
+						Key:     "v3",
+						Order:   2,
+						Type:    types.TypeVarchar,
+						IsNamed: true,
+					},
+				},
+				Values: []types.Assignment{
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"), types.NewParameterizedValue("v1")),
+				},
+				RowKeys: []types.DynamicValue{
+					types.NewParameterizedValue("v2"),
+					types.NewParameterizedValue("v3"),
 				},
 			},
 		},
@@ -97,16 +154,35 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 			name:  "prepared update blob column with reverse pk order",
 			query: "UPDATE test_keyspace.test_table SET col_blob = ? WHERE pk2 = ? AND pk1 = ?;",
 			want: &Want{
-				Keyspace:  "test_keyspace",
-				Table:     "test_table",
-				IfExists:  false,
-				AllParams: []types.Placeholder{"@value0", "@value1", "@value2"},
+				Keyspace: "test_keyspace",
+				Table:    "test_table",
+				IfExists: false,
+				AllParams: []*types.ParameterMetadata{
+					{
+						Key:    "value0",
+						Order:  0,
+						Type:   types.TypeBlob,
+						Column: mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"),
+					},
+					{
+						Key:    "value1",
+						Order:  1,
+						Type:   types.TypeVarchar,
+						Column: mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk2"),
+					},
+					{
+						Key:    "value2",
+						Order:  2,
+						Type:   types.TypeVarchar,
+						Column: mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk1"),
+					},
+				},
 				Values: []types.Assignment{
-					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"), types.NewParameterizedValue("@value0")),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"), types.NewParameterizedValue("value0")),
 				},
 				RowKeys: []types.DynamicValue{
-					types.NewParameterizedValue("@value2"),
-					types.NewParameterizedValue("@value1"),
+					types.NewParameterizedValue("value2"),
+					types.NewParameterizedValue("value1"),
 				},
 			},
 		},
@@ -124,6 +200,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 					types.NewLiteralValue("testText"),
 					types.NewLiteralValue("pk2"),
 				},
+				AllParams: []*types.ParameterMetadata{},
 			},
 		},
 		{
@@ -139,6 +216,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 					types.NewLiteralValue("testText"),
 					types.NewLiteralValue("pk2"),
 				},
+				AllParams: []*types.ParameterMetadata{},
 			},
 		},
 		{
@@ -154,6 +232,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 					types.NewLiteralValue("testText"),
 					types.NewLiteralValue("pk2"),
 				},
+				AllParams: []*types.ParameterMetadata{},
 			},
 		},
 		{
@@ -169,6 +248,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 					types.NewLiteralValue("testText"),
 					types.NewLiteralValue("pk2"),
 				},
+				AllParams: []*types.ParameterMetadata{},
 			},
 		},
 		{
@@ -184,6 +264,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 					types.NewLiteralValue("testText"),
 					types.NewLiteralValue("pk2"),
 				},
+				AllParams: []*types.ParameterMetadata{},
 			},
 		},
 		{
@@ -199,6 +280,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 					types.NewLiteralValue("testText"),
 					types.NewLiteralValue("pk2"),
 				},
+				AllParams: []*types.ParameterMetadata{},
 			},
 		},
 		{
@@ -214,6 +296,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 					types.NewLiteralValue("abc"),
 					types.NewLiteralValue("pkval"),
 				},
+				AllParams: []*types.ParameterMetadata{},
 			},
 		},
 		{
@@ -229,6 +312,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 					types.NewLiteralValue("testText"),
 					types.NewLiteralValue("pk2"),
 				},
+				AllParams: []*types.ParameterMetadata{},
 			},
 		},
 		{
@@ -244,6 +328,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 					types.NewLiteralValue("testText"),
 					types.NewLiteralValue("pk2"),
 				},
+				AllParams: []*types.ParameterMetadata{},
 			},
 		},
 		{
@@ -259,6 +344,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 					types.NewLiteralValue("testText"),
 					types.NewLiteralValue("pk2"),
 				},
+				AllParams: []*types.ParameterMetadata{},
 			},
 		},
 		{
@@ -279,6 +365,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 					types.NewLiteralValue("testText"),
 					types.NewLiteralValue("pk2"),
 				},
+				AllParams: []*types.ParameterMetadata{},
 			},
 		},
 		{
@@ -294,6 +381,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 					types.NewLiteralValue("testText"),
 					types.NewLiteralValue("pk2"),
 				},
+				AllParams: []*types.ParameterMetadata{},
 			},
 		},
 		{
@@ -309,6 +397,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 					types.NewLiteralValue("abc"),
 					types.NewLiteralValue("pkval"),
 				},
+				AllParams: []*types.ParameterMetadata{},
 			},
 		},
 		{
@@ -329,6 +418,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 					types.NewLiteralValue("testText"),
 					types.NewLiteralValue("pk2"),
 				},
+				AllParams: []*types.ParameterMetadata{},
 			},
 		},
 		{
@@ -344,6 +434,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 					types.NewLiteralValue("testText"),
 					types.NewLiteralValue("pk2"),
 				},
+				AllParams: []*types.ParameterMetadata{},
 			},
 		},
 		{
@@ -359,6 +450,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 					types.NewLiteralValue("testText"),
 					types.NewLiteralValue("pk2"),
 				},
+				AllParams: []*types.ParameterMetadata{},
 			},
 		},
 		{
@@ -391,6 +483,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 					types.NewLiteralValue("abc"),
 					types.NewLiteralValue("pkval"),
 				},
+				AllParams: []*types.ParameterMetadata{},
 			},
 		},
 		{
@@ -464,7 +557,7 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 			assert.Equal(t, tt.want.IfExists, gotUpdate.IfExists)
 			assert.Equal(t, tt.want.Values, gotUpdate.Values)
 			assert.Equal(t, tt.want.RowKeys, gotUpdate.RowKeys)
-			assert.Equal(t, tt.want.AllParams, gotUpdate.Parameters().AllKeys())
+			assert.ElementsMatch(t, tt.want.AllParams, gotUpdate.Parameters().Ordered())
 		})
 	}
 }

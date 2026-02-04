@@ -28,7 +28,7 @@ func NewDescribeQuery(cqlQuery string, desc IDescribeQueryVariant) *DescribeQuer
 	return &DescribeQuery{cqlQuery: cqlQuery, desc: desc}
 }
 
-func (a *DescribeQuery) InitialValues() map[Placeholder]GoValue {
+func (a *DescribeQuery) InitialValues() map[Parameter]GoValue {
 	return nil
 }
 

@@ -587,7 +587,7 @@ func (c *client) handleExecute(raw *frame.RawFrame, msg *partialExecute) {
 		return
 	}
 
-	boundQuery, err := c.proxy.translator.BindQuery(preparedStmt, msg.PositionalValues, raw.Header.Version)
+	boundQuery, err := c.proxy.translator.BindQuery(preparedStmt, msg.PositionalValues, msg.NamedValues, raw.Header.Version)
 	if err != nil {
 		c.proxy.logger.Error(errorWhileDecoding, zap.String(Query, preparedStmt.CqlQuery()), zap.Error(err))
 		c.sender.Send(raw.Header, &message.ConfigError{ErrorMessage: err.Error()})
@@ -658,7 +658,8 @@ func (c *client) bindBulkOperations(msg *partialBatch, pv primitive.ProtocolVers
 			keyspace = preparedStmt.Keyspace()
 		}
 
-		executableQuery, err := c.proxy.translator.BindQuery(preparedStmt, msg.BatchPositionalValues[index], pv)
+		// note: we don't support batch named queries at this time
+		executableQuery, err := c.proxy.translator.BindQuery(preparedStmt, msg.BatchPositionalValues[index], nil, pv)
 		if err != nil {
 			return nil, "", err
 		}

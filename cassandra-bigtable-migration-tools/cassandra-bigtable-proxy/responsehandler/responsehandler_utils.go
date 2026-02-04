@@ -54,19 +54,33 @@ func BuildRowsResultResponse(st *types.ExecutableSelectQuery, rows []types.GoRow
 }
 
 func BuildPreparedResultResponse(id [16]byte, query types.IPreparedQuery) (*message.PreparedResult, error) {
-	var variableMetadata []*message.ColumnMetadata
-	params := query.Parameters()
-	var pkIndices []uint16
-	for i, p := range params.AllKeys() {
-		md := params.GetMetadata(p)
-		columnName := ""
-		if md.Column != nil {
-			columnName = string(md.Column.Name)
+	resultColumns := query.ResponseColumns()
+	var resultMetadata *message.RowsMetadata = nil
+	if query.QueryType() == types.QueryTypeSelect {
+		resultMetadata = &message.RowsMetadata{
+			ColumnCount: int32(len(resultColumns)),
+			Columns:     resultColumns,
 		}
+	}
+	variableMetadata, pkIndices := buildPreparedResult(query)
+	return &message.PreparedResult{
+		PreparedQueryId: id[:],
+		ResultMetadata:  resultMetadata,
+		VariablesMetadata: &message.VariablesMetadata{
+			PkIndices: pkIndices,
+			Columns:   variableMetadata,
+		},
+	}, nil
+}
+
+func buildPreparedResult(query types.IPreparedQuery) ([]*message.ColumnMetadata, []uint16) {
+	var variableMetadata []*message.ColumnMetadata
+	var pkIndices []uint16
+	for i, md := range query.Parameters().Ordered() {
 		var col = message.ColumnMetadata{
 			Keyspace: string(query.Keyspace()),
 			Table:    string(query.Table()),
-			Name:     columnName,
+			Name:     getPreparedColumnName(md),
 			Index:    int32(i),
 			Type:     md.Type.DataType(),
 		}
@@ -76,22 +90,18 @@ func BuildPreparedResultResponse(id [16]byte, query types.IPreparedQuery) (*mess
 			pkIndices = append(pkIndices, uint16(i))
 		}
 	}
-	resultColumns := query.ResponseColumns()
+	return variableMetadata, pkIndices
+}
 
-	var resultMetadata *message.RowsMetadata = nil
-	if query.QueryType() == types.QueryTypeSelect {
-		resultMetadata = &message.RowsMetadata{
-			ColumnCount: int32(len(resultColumns)),
-			Columns:     resultColumns,
-		}
+func getPreparedColumnName(md *types.ParameterMetadata) string {
+	// if this is a named parameter, we must use the provided name
+	if md.IsNamed {
+		return string(md.Key)
 	}
-
-	return &message.PreparedResult{
-		PreparedQueryId: id[:],
-		ResultMetadata:  resultMetadata,
-		VariablesMetadata: &message.VariablesMetadata{
-			PkIndices: pkIndices,
-			Columns:   variableMetadata,
-		},
-	}, nil
+	// if this positional parameter is associated with a column, we must use the column name. It's possible to not be
+	// associated with a column, such as for LIMIT or USING TIMESTAMP clauses.
+	if md.Column != nil {
+		return string(md.Column.Name)
+	}
+	return ""
 }

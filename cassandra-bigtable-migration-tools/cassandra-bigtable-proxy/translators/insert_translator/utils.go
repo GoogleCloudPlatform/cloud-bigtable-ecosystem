@@ -17,7 +17,7 @@ import (
 //   - schemaMapping: JSON Config which maintains column and its datatypes info.
 //
 // Returns: ColumnsResponse struct and error if any
-func parseInsertColumns(input cql.IInsertColumnSpecContext, tableConfig *schemaMapping.TableSchema, params *types.QueryParameters) ([]*types.Column, error) {
+func parseInsertColumns(input cql.IInsertColumnSpecContext, tableConfig *schemaMapping.TableSchema, params *types.QueryParameterBuilder) ([]*types.Column, error) {
 
 	if input == nil {
 		return nil, errors.New("parseInsertColumns: No Input paramaters found for columns")
@@ -49,7 +49,7 @@ func parseInsertColumns(input cql.IInsertColumnSpecContext, tableConfig *schemaM
 	return result, nil
 }
 
-func parseInsertValues(input cql.IInsertValuesSpecContext, columns []*types.Column, params *types.QueryParameters) ([]types.Assignment, error) {
+func parseInsertValues(input cql.IInsertValuesSpecContext, columns []*types.Column, params *types.QueryParameterBuilder) ([]types.Assignment, error) {
 	if input == nil {
 		return nil, errors.New("insert values clause missing or malformed")
 	}

@@ -6,7 +6,7 @@ type DynamicValue interface {
 }
 
 type ParameterizedValue struct {
-	Placeholder Placeholder
+	Parameter Parameter
 }
 
 func (p *ParameterizedValue) IsIdempotent() bool {
@@ -14,11 +14,11 @@ func (p *ParameterizedValue) IsIdempotent() bool {
 }
 
 func (p *ParameterizedValue) GetValue(values *QueryParameterValues) (GoValue, error) {
-	return values.GetValue(p.Placeholder)
+	return values.GetValue(p.Parameter)
 }
 
-func NewParameterizedValue(placeholder Placeholder) DynamicValue {
-	return &ParameterizedValue{Placeholder: placeholder}
+func NewParameterizedValue(parameter Parameter) DynamicValue {
+	return &ParameterizedValue{Parameter: parameter}
 }
 
 type TimestampNowValue struct {

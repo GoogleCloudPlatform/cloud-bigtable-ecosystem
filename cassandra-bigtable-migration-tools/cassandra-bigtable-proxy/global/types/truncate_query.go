@@ -11,7 +11,7 @@ type TruncateTableStatementMap struct {
 	table    TableName
 }
 
-func (c *TruncateTableStatementMap) InitialValues() map[Placeholder]GoValue {
+func (c *TruncateTableStatementMap) InitialValues() map[Parameter]GoValue {
 	return nil
 }
 

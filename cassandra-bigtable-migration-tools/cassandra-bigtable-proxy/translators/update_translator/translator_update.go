@@ -55,7 +55,7 @@ func (t *UpdateTranslator) Translate(query *types.RawQuery, sessionKeyspace type
 		return nil, errors.New("error parsing all the assignment object")
 	}
 
-	params := types.NewQueryParameters()
+	params := types.NewQueryParameterBuilder()
 
 	// update query USING TIMESTAMP clauses are before the VALUES clause
 	var usingTimestamp types.DynamicValue
@@ -82,7 +82,12 @@ func (t *UpdateTranslator) Translate(query *types.RawQuery, sessionKeyspace type
 		return nil, err
 	}
 
-	st := types.NewPreparedUpdateQuery(keyspaceName, tableName, ifExist, query.RawCql(), assignments, rowKeys, params, usingTimestamp)
+	builtParams, err := params.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	st := types.NewPreparedUpdateQuery(keyspaceName, tableName, ifExist, query.RawCql(), assignments, rowKeys, builtParams, usingTimestamp)
 	return st, nil
 }
 

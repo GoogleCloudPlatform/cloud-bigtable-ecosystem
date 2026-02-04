@@ -108,11 +108,14 @@ func parseOrderByFromSelect(input cql.IOrderSpecContext) (types.OrderBy, error) 
 	return response, nil
 }
 
-func parseLimitClause(input cql.ILimitSpecContext, params *types.QueryParameters) (types.DynamicValue, error) {
+func parseLimitClause(input cql.ILimitSpecContext, params *types.QueryParameterBuilder) (types.DynamicValue, error) {
 	if input == nil {
 		return nil, nil
 	}
-	return common.ExtractDecimalLiteral(input.DecimalLiteral(), types.TypeInt, params, nil)
+	if input.Marker() != nil {
+		return common.ParseMarker(input.Marker(), types.TypeInt, params, nil)
+	}
+	return common.ExtractDecimalLiteral(input.DecimalLiteral(), types.TypeInt)
 }
 
 func parseGroupByColumn(input cql.IGroupSpecContext) []string {
