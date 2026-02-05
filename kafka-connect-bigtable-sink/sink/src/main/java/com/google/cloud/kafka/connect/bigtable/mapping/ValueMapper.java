@@ -28,6 +28,7 @@ import com.google.cloud.kafka.connect.bigtable.config.ConfigInterpolation;
 import com.google.cloud.kafka.connect.bigtable.config.NullValueMode;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.ByteString;
+
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
@@ -39,6 +40,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
+
+import com.google.protobuf.MapEntry;
 import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.connect.data.Decimal;
 import org.apache.kafka.connect.data.Field;
@@ -63,10 +66,10 @@ public class ValueMapper {
   /**
    * The main constructor.
    *
-   * @param defaultColumnFamily Default column family as per {@link
-   *     com.google.cloud.kafka.connect.bigtable.config.BigtableSinkConfig#DEFAULT_COLUMN_FAMILY_CONFIG}.
+   * @param defaultColumnFamily    Default column family as per {@link
+   *                               com.google.cloud.kafka.connect.bigtable.config.BigtableSinkConfig#DEFAULT_COLUMN_FAMILY_CONFIG}.
    * @param defaultColumnQualifier Default column as per {@link
-   *     com.google.cloud.kafka.connect.bigtable.config.BigtableSinkConfig#ROW_KEY_DELIMITER_CONFIG}.
+   *                               com.google.cloud.kafka.connect.bigtable.config.BigtableSinkConfig#ROW_KEY_DELIMITER_CONFIG}.
    */
   public ValueMapper(
       String defaultColumnFamily, String defaultColumnQualifier, @Nonnull NullValueMode nullMode) {
@@ -84,10 +87,10 @@ public class ValueMapper {
    * representing the input Kafka Connect value as Cloud Bigtable mutations that need to be applied.
    *
    * @param kafkaValueAndSchema The value to be converted into Cloud Bigtable {@link
-   *     com.google.cloud.bigtable.data.v2.models.Mutation Mutation(s)} and its optional {@link
-   *     Schema}.
-   * @param topic The name of Kafka topic this value originates from.
-   * @param timestampMicros The timestamp the mutations will be created at in microseconds.
+   *                            com.google.cloud.bigtable.data.v2.models.Mutation Mutation(s)} and its optional {@link
+   *                            Schema}.
+   * @param topic               The name of Kafka topic this value originates from.
+   * @param timestampMicros     The timestamp the mutations will be created at in microseconds.
    */
   public MutationDataBuilder getRecordMutationDataBuilder(
       SchemaAndValue kafkaValueAndSchema, String topic, long timestampMicros) {
@@ -131,7 +134,7 @@ public class ValueMapper {
                   kafkaFieldName,
                   kafkaSubfieldName,
                   timestampMicros,
-                  ByteString.copyFrom(serialize(kafkaSubfieldValue, kafkaSubfieldSchema)));
+                  ByteString.copyFrom(serialize(kafkaSubfieldValue)));
             }
           }
         } else {
@@ -140,7 +143,7 @@ public class ValueMapper {
                 getDefaultColumnFamily(topic),
                 ByteString.copyFrom(kafkaFieldName.getBytes(StandardCharsets.UTF_8)),
                 timestampMicros,
-                ByteString.copyFrom(serialize(kafkaFieldValue, kafkaFieldSchema)));
+                ByteString.copyFrom(serialize(kafkaFieldValue)));
           }
         }
       }
@@ -150,7 +153,7 @@ public class ValueMapper {
             getDefaultColumnFamily(topic),
             defaultColumnQualifier,
             timestampMicros,
-            ByteString.copyFrom(serialize(rootKafkaValue, rootKafkaSchema)));
+            ByteString.copyFrom(serialize(rootKafkaValue)));
       }
     }
     return mutationDataBuilder;
@@ -169,7 +172,7 @@ public class ValueMapper {
   /**
    * @param struct {@link Struct} whose children we want to list
    * @return {@link List} of pairs of field names and values (with optional schemas) of {@code
-   *     struct}'s fields.
+   * struct}'s fields.
    */
   private static List<Map.Entry<Object, SchemaAndValue>> getChildren(
       Struct struct, Optional<Schema> schema) {
@@ -187,17 +190,16 @@ public class ValueMapper {
 
   /**
    * @param value Input value.
-   * @param schema An optional schema of {@code value}.
    * @return Input value's serialization's bytes that will be written to Cloud Bigtable as a cell's
-   *     value.
+   * value.
    */
-  private static byte[] serialize(Object value, Optional<Schema> schema) {
+  private static byte[] serialize(Object value) {
     if (value == null) {
       return new byte[0];
     } else if (value instanceof byte[]) {
       return (byte[]) value;
     } else if (value instanceof ByteBuffer) {
-      return serialize(((ByteBuffer) value).array(), Optional.empty());
+      return serialize(((ByteBuffer) value).array());
     } else if (value instanceof Integer) {
       return ByteUtils.toBytes((Integer) value);
     } else if (value instanceof Long) {
@@ -215,10 +217,10 @@ public class ValueMapper {
     } else if (value instanceof String) {
       return ByteUtils.toBytes((String) value);
     } else if (value instanceof Character) {
-      return serialize(Character.toString((Character) value), Optional.empty());
+      return serialize(Character.toString((Character) value));
     } else if (value instanceof Date) {
       // Note that the value might have different Kafka Connect schema: Date, Time or Timestamp.
-      return serialize(((Date) value).getTime(), Optional.empty());
+      return serialize(((Date) value).getTime());
     } else if (value instanceof BigDecimal) {
       return ByteUtils.toBytes((BigDecimal) value);
     } else if (value instanceof Map || value instanceof Struct || value instanceof List) {

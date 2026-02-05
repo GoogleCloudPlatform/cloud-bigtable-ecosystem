@@ -169,6 +169,7 @@ public abstract class BaseKafkaConnectIT extends BaseIT {
     if (topicNameSuffixes.isEmpty()) {
       configProps.put(SinkConnectorConfig.TOPICS_CONFIG, id);
       connect.kafka().createTopic(id, numTasks);
+      logger.info("Created topic: " + id);
     } else {
       configProps.put(SinkConnectorConfig.TOPICS_REGEX_CONFIG, id + ".*");
       for (String suffix : topicNameSuffixes) {

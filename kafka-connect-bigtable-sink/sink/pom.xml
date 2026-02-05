@@ -10,17 +10,11 @@
     <description>
         Google Bigtable sink connector for Apache Kafka Connect
     </description>
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>com.google.cloud</groupId>
-                <artifactId>libraries-bom</artifactId>
-                <version>26.41.0</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
+    <parent>
+        <groupId>com.google.cloud.kafka.connect.bigtable</groupId>
+        <artifactId>sink-parent</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
     <dependencies>
         <dependency>
             <groupId>org.apache.kafka</groupId>

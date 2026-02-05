@@ -23,14 +23,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.AbstractMap;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.kafka.connect.data.Field;
@@ -149,6 +142,10 @@ public class KeyMapper {
     if (value instanceof Struct) {
       // Note that getWithoutDefault() throws if such a field does not exist.
       Object fieldValue = ((Struct) value).getWithoutDefault(field);
+      Schema fieldSchema = SchemaUtils.maybeExtractFieldSchema(schema, field).orElse(null);
+      return extractField(new SchemaAndValue(fieldSchema, fieldValue), fields);
+    } else if (value instanceof Map<?, ?>) {
+      Object fieldValue = ((Map<?, ?>) value).get(field);
       Schema fieldSchema = SchemaUtils.maybeExtractFieldSchema(schema, field).orElse(null);
       return extractField(new SchemaAndValue(fieldSchema, fieldValue), fields);
     } else {

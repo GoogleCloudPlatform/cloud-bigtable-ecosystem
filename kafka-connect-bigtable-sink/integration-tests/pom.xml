@@ -33,7 +33,7 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <integration.test.plugin.path>${project.basedir}/integration_test_plugins</integration.test.plugin.path>
-        <google.sink.package.path>${project.basedir}/../sink/target/sink-${project.version}-package</google.sink.package.path>
+        <google.sink.package.path>${project.basedir}/../sink/target/</google.sink.package.path>
         <google.sink.package.plugin.dir>${integration.test.plugin.path}/google-sink</google.sink.package.plugin.dir>
     </properties>
     <dependencies>
