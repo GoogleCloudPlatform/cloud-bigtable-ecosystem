@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.3.0](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/compare/v0.2.0...v0.3.0) (2026-02-06)
+
+
+### Features
+
+* set session keyspace on cassandra java client ([#152](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/issues/152)) ([0d5750e](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/commit/0d5750e951e289e5b7c5c3a6398879aa94a30788))
+
+
+### Bug Fixes
+
+* response metadata ([#135](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/issues/135)) ([1be548a](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/commit/1be548a35ab8c7d0446293ce2f4bc91fb4380a3c))
+
+
+### Documentation
+
+* updating cassandra-bigtable-java-client-lib README ([#141](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/issues/141)) ([3da8491](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/commit/3da8491e0182cf81f0285c1d69010b107d5db320))
+
 ## [0.2.0](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/compare/v0.1.8...v0.2.0) (2026-02-06)
 
 
