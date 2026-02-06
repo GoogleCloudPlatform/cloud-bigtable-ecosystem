@@ -18,6 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -53,21 +54,45 @@ public class SmokeTestIT {
   @Test
   public void smokeTest() {
     // Create BigtableCqlConfiguration
-    BigtableCqlConfiguration bigtableCqlConfiguration = createBigtableCqlConfiguration();
+    BigtableCqlConfiguration bigtableCqlConfiguration = BigtableCqlConfiguration.builder()
+        .setProjectId(projectId)
+        .setInstanceId(instanceId)
+        .setSchemaMappingTable(schemaMappingTable)
+        // no default keyspace - explicitly specify with each query
+        .build();
 
-    LOGGER.info("Creating BigtableCqlSessionFactory with bigtableCqlConfiguration: "
-        + bigtableCqlConfiguration.toString());
+    String tableName = instanceId + "." + "default_keyspace_test";
+    runSmokeTest(bigtableCqlConfiguration, tableName);
+  }
 
+  @Test
+  public void withDefaultKeyspaceTest() {
+    // Create BigtableCqlConfiguration
+    BigtableCqlConfiguration bigtableCqlConfiguration = BigtableCqlConfiguration.builder()
+        .setProjectId(projectId)
+        .setInstanceId(instanceId)
+        .setSchemaMappingTable(schemaMappingTable)
+        .setDefaultKeyspace(instanceId) // set a default keyspace
+        .build();
+
+    // don't specify the keyspace here - the default keyspace should be used
+    String tableName = "default_keyspace_test";
+
+    runSmokeTest(bigtableCqlConfiguration, tableName);
+  }
+
+  private void runSmokeTest(BigtableCqlConfiguration config, String qualifiedTestTableName) {
     // Create CqlSession with BigtableCqlConfiguration
     BigtableCqlSessionFactory bigtableCqlSessionFactory = new BigtableCqlSessionFactory(
-        bigtableCqlConfiguration);
+        config);
 
     LOGGER.info("Creating CqlSession");
 
     // Create CqlSession
     try (CqlSession session = bigtableCqlSessionFactory.newSession()) {
-
-      String qualifiedTestTableName = instanceId + "." + smokeTestTable;
+      // Reset environment
+      String dropIfExistsTableQuery = String.format("DROP TABLE IF EXISTS %s", qualifiedTestTableName);
+      session.execute(dropIfExistsTableQuery);
 
       // Create table
       String createTableQuery = String.format(
@@ -162,13 +187,4 @@ public class SmokeTestIT {
         row -> resultSetString.append(row.getFormattedContents()).append(System.lineSeparator()));
     LOGGER.info(resultSetString.toString());
   }
-
-  private BigtableCqlConfiguration createBigtableCqlConfiguration() {
-    return BigtableCqlConfiguration.builder()
-        .setProjectId(projectId)
-        .setInstanceId(instanceId)
-        .setSchemaMappingTable(schemaMappingTable)
-        .build();
-  }
-
 }

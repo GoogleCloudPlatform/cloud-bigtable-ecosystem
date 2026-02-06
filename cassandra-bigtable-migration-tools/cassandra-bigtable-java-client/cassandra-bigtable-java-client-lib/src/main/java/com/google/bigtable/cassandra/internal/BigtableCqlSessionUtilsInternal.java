@@ -57,6 +57,7 @@ public final class BigtableCqlSessionUtilsInternal {
           .addContactEndPoint(new UdsEndpoint(udsAddress))
           .withLocalDatacenter(BIGTABLE_PROXY_LOCAL_DATACENTER)
           .withNodeStateListener(nodeStateListener)
+          .withKeyspace(bigtableCqlConfiguration.getDefaultKeyspace().orElse(null))
           .build();
       Files.delete(Paths.get(udsAddress.path()));
 

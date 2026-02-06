@@ -19,6 +19,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.Optional;
+
 public class BigtableCqlConfigurationTest {
 
   @Test
@@ -30,6 +32,7 @@ public class BigtableCqlConfigurationTest {
         .setDefaultColumnFamily("someColumnFamily")
         .setSchemaMappingTable("someSchemaMappingTable")
         .setBigtableChannelPoolSize(4)
+        .setDefaultKeyspace("someKeyspace")
         .enableOpenTelemetry(OpenTelemetryCollectorConfiguration.builder()
             .setServiceName("someServiceName")
             .enableMetrics("someMetricsEndpoint")
@@ -43,6 +46,7 @@ public class BigtableCqlConfigurationTest {
     assertEquals("someAppProfileId", bigtableCqlConfiguration.getAppProfileId().get());
     assertEquals("someColumnFamily", bigtableCqlConfiguration.getDefaultColumnFamily().get());
     assertEquals("someSchemaMappingTable", bigtableCqlConfiguration.getSchemaMappingTable().get());
+    assertEquals("someKeyspace", bigtableCqlConfiguration.getDefaultKeyspace().get());
     assertEquals(4, bigtableCqlConfiguration.getBigtableChannelPoolSize().getAsInt());
     assertTrue(bigtableCqlConfiguration.getOpenTelemetryConfiguration().isPresent());
 
@@ -67,6 +71,7 @@ public class BigtableCqlConfigurationTest {
     assertEquals("default", bigtableCqlConfiguration.getAppProfileId().get());
     assertEquals("cf1", bigtableCqlConfiguration.getDefaultColumnFamily().get());
     assertEquals("someSchemaMappingTable", bigtableCqlConfiguration.getSchemaMappingTable().get());
+    assertEquals(Optional.empty(), bigtableCqlConfiguration.getDefaultKeyspace());
     assertEquals(4, bigtableCqlConfiguration.getBigtableChannelPoolSize().getAsInt());
   }
 

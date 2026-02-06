@@ -77,6 +77,7 @@ class MyClass {
             .setInstanceId("someInstanceId")
             .setDefaultColumnFamily("someDefaultColumnFamily")
             .setBigtableChannelPoolSize(4)
+            .setDefaultKeyspace("myKeyspace")
             .disableOpenTelemetry()
             .build();
 
