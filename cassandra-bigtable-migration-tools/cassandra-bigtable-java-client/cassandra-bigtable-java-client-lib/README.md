@@ -7,7 +7,7 @@ The **Cassandra Bigtable Java Client** allows your Cassandra-based Java applicat
 Add the following dependency to your Maven `pom.xml`, replacing `VERSION-HERE` with the latest version.
 
 <!-- x-release-please-start-version -->
-> **The latest version is: ` 0.2.0 `**
+> **The latest version is: ` 0.2.1-SNAPSHOT `**
 <!-- x-release-please-end-version -->
 
 ```xml
