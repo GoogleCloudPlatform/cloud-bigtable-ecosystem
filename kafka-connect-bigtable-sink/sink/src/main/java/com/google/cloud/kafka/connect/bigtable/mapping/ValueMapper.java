@@ -171,7 +171,7 @@ public class ValueMapper {
       Object o = listValue.get(i);
       mutationDataBuilder.setCell(
           columnFamily,
-          ByteString.copyFrom(Integer.toString(i).getBytes(StandardCharsets.UTF_8)),
+          ByteString.copyFrom(String.format("%09d", i).getBytes(StandardCharsets.UTF_8)),
           timestampMicros,
           ByteString.copyFrom(serialize(o)));
     }
