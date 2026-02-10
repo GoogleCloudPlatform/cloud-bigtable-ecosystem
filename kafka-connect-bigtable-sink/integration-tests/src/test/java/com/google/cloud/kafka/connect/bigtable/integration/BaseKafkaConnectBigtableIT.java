@@ -23,12 +23,16 @@ import com.google.cloud.bigtable.admin.v2.models.ColumnFamily;
 import com.google.cloud.bigtable.admin.v2.models.CreateTableRequest;
 import com.google.cloud.bigtable.admin.v2.models.Table;
 import com.google.cloud.bigtable.data.v2.BigtableDataClient;
+import com.google.cloud.bigtable.data.v2.models.Filters;
 import com.google.cloud.bigtable.data.v2.models.Query;
 import com.google.cloud.bigtable.data.v2.models.Row;
+import com.google.cloud.bigtable.data.v2.models.TableId;
 import com.google.cloud.kafka.connect.bigtable.wrappers.BigtableTableAdminClientInterface;
 import com.google.common.util.concurrent.Futures;
 import com.google.protobuf.ByteString;
 
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -94,7 +98,7 @@ public abstract class BaseKafkaConnectBigtableIT extends BaseKafkaConnectIT {
   public Map<ByteString, Row> readAllRows(BigtableDataClient bigtable, String table) {
     Integer numRecords = null;
     try {
-      Query query = Query.create(table);
+      Query query = Query.create(TableId.of(table));
       Map<ByteString, Row> result =
           bigtable.readRows(query).stream().collect(Collectors.toMap(Row::getKey, r -> r));
       numRecords = result.size();
@@ -103,6 +107,17 @@ public abstract class BaseKafkaConnectBigtableIT extends BaseKafkaConnectIT {
       throw t;
     } finally {
       logger.info("readAllRows({}): #records={}", table, numRecords);
+    }
+  }
+
+  public String[] readAllRowKeys(BigtableDataClient bigtable, String table) {
+    try {
+      Query query = Query.create(TableId.of(table));
+      String[] result =
+          bigtable.readRows(query).stream().map(r -> r.getKey().toString(StandardCharsets.UTF_8)).toList().toArray(String[]::new);
+      return result;
+    } catch (Throwable t) {
+      throw t;
     }
   }
 
@@ -117,6 +132,18 @@ public abstract class BaseKafkaConnectBigtableIT extends BaseKafkaConnectIT {
             () -> readAllRows(bigtableData, tableId).size() == numberOfRows),
         DEFAULT_BIGTABLE_RETRY_TIMEOUT_MILLIS,
         "Records not consumed in time.");
+  }
+
+  public void waitUntilBigtableWriteTime(String tableId, Instant time)
+      throws InterruptedException {
+    long start = System.currentTimeMillis();
+    waitForCondition(
+        testConditionIgnoringTransientErrors(
+            () -> readAllRows(bigtableData, tableId).values().stream().anyMatch(r -> r.getCells().stream().anyMatch(c -> c.getTimestamp() >= time.toEpochMilli() * 1000))),
+        DEFAULT_BIGTABLE_RETRY_TIMEOUT_MILLIS,
+        "Records not consumed in time.");
+    long elapsed = System.currentTimeMillis() - start;
+    System.out.printf("Bigtable rows found in table %s after %dms\n", tableId, elapsed);
   }
 
   public void waitUntilBigtableContainsNumberOfCells(String tableId, long numberOfCells)

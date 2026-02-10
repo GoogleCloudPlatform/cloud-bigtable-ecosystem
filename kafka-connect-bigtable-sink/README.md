@@ -309,6 +309,19 @@ together directly.
 * Valid Values:
 * Importance: low
 
+`expand.root.level.arrays`
+
+Determines whether root level arrays should be expanded to a column family 
+or serialized to a single column. If true, root level array fields will 
+be mapped to a Bigtable column family where each element is stored in 
+an individual column. If false, root level array fields will be serialized
+as a JSON string to a single column.
+
+* Type: boolean
+* Default: false
+* Valid Values: true, false
+* Important: medium
+
 `table.name.format`
 
 Name of the destination table. Use `${topic}` within the table name to specify

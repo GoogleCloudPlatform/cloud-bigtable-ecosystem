@@ -189,7 +189,7 @@ public class BigtableSinkTaskTest {
     SinkRecord emptyRecord = new SinkRecord("topic", 1, null, "key", null, null, 1);
     SinkRecord okRecord = new SinkRecord("topic", 1, null, "key", null, "value", 2);
     keyMapper = new KeyMapper("#", List.of());
-    valueMapper = new ValueMapper("default", "KAFKA_VALUE", NullValueMode.IGNORE);
+    valueMapper = new ValueMapper("default", "KAFKA_VALUE", NullValueMode.IGNORE, false);
     task = new TestBigtableSinkTask(config, null, null, keyMapper, valueMapper, null, null);
 
     assertTrue(task.createRecordMutationData(emptyRecord).isEmpty());

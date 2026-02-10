@@ -29,33 +29,24 @@ import com.google.cloud.bigtable.data.v2.BigtableDataClient;
 import com.google.cloud.bigtable.data.v2.BigtableDataSettings;
 import com.google.cloud.bigtable.data.v2.stub.EnhancedBigtableStubSettings;
 import com.google.cloud.kafka.connect.bigtable.version.PackageMetadata;
-import com.google.cloud.kafka.connect.bigtable.wrappers.BigtableTableAdminClientWrapper;
 import com.google.cloud.kafka.connect.bigtable.wrappers.BigtableTableAdminClientInterface;
+import com.google.cloud.kafka.connect.bigtable.wrappers.BigtableTableAdminClientWrapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
+import org.apache.kafka.common.config.*;
+import org.apache.kafka.common.utils.Utils;
+import org.apache.kafka.connect.errors.RetriableException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.threeten.bp.Duration;
+import org.threeten.bp.temporal.ChronoUnit;
+
 import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.apache.kafka.common.config.AbstractConfig;
-import org.apache.kafka.common.config.Config;
-import org.apache.kafka.common.config.ConfigDef;
-import org.apache.kafka.common.config.ConfigException;
-import org.apache.kafka.common.config.ConfigValue;
-import org.apache.kafka.common.utils.Utils;
-import org.apache.kafka.connect.errors.RetriableException;
-import org.threeten.bp.Duration;
-import org.threeten.bp.temporal.ChronoUnit;
 
 /**
  * A class defining the configuration of {@link
@@ -77,6 +68,7 @@ public class BigtableSinkConfig extends AbstractConfig {
   public static final String TABLE_NAME_FORMAT_CONFIG = "table.name.format";
   public static final String ROW_KEY_DEFINITION_CONFIG = "row.key.definition";
   public static final String ROW_KEY_DELIMITER_CONFIG = "row.key.delimiter";
+  public static final String EXPAND_ROOT_LEVEL_ARRAYS = "expand.root.level.arrays";
   public static final String AUTO_CREATE_TABLES_CONFIG = "auto.create.tables";
   public static final String AUTO_CREATE_COLUMN_FAMILIES_CONFIG = "auto.create.column.families";
   public static final String DEFAULT_COLUMN_FAMILY_CONFIG = "default.column.family";
@@ -358,6 +350,15 @@ public class BigtableSinkConfig extends AbstractConfig {
             "The delimiter used in concatenating Kafka key fields in the row key. If this"
                 + " configuration is empty or unspecified, the key fields will be concatenated"
                 + " together directly.")
+        .define(
+            EXPAND_ROOT_LEVEL_ARRAYS,
+            ConfigDef.Type.BOOLEAN,
+            false,
+            ConfigDef.Importance.MEDIUM,
+            "Determines whether root level arrays should be expanded to a column family or serialized to " +
+                "a single column. If true, root level array fields will be mapped to a Bigtable column family where " +
+                "each element is stored in an individual column. If false, root level array fields will be serialized " +
+                "as a JSON string to a single column.")
         .define(
             AUTO_CREATE_TABLES_CONFIG,
             ConfigDef.Type.BOOLEAN,
