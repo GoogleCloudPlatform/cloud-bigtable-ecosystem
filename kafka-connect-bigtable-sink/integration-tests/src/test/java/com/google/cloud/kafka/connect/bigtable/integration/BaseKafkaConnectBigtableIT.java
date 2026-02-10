@@ -23,16 +23,14 @@ import com.google.cloud.bigtable.admin.v2.models.ColumnFamily;
 import com.google.cloud.bigtable.admin.v2.models.CreateTableRequest;
 import com.google.cloud.bigtable.admin.v2.models.Table;
 import com.google.cloud.bigtable.data.v2.BigtableDataClient;
-import com.google.cloud.bigtable.data.v2.models.Filters;
-import com.google.cloud.bigtable.data.v2.models.Query;
-import com.google.cloud.bigtable.data.v2.models.Row;
-import com.google.cloud.bigtable.data.v2.models.TableId;
+import com.google.cloud.bigtable.data.v2.models.*;
 import com.google.cloud.kafka.connect.bigtable.wrappers.BigtableTableAdminClientInterface;
 import com.google.common.util.concurrent.Futures;
 import com.google.protobuf.ByteString;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -123,16 +121,30 @@ public abstract class BaseKafkaConnectBigtableIT extends BaseKafkaConnectIT {
         "Records not consumed in time.");
   }
 
-  public void waitUntilBigtableWriteTime(String tableId, Instant time)
+  public void waitUntilBigtableWriteTimeLaterThan(String tableId, Instant time)
       throws InterruptedException {
     long start = System.currentTimeMillis();
     waitForCondition(
         testConditionIgnoringTransientErrors(
-            () -> readAllRows(bigtableData, tableId).values().stream().anyMatch(r -> r.getCells().stream().anyMatch(c -> c.getTimestamp() >= time.toEpochMilli() * 1000))),
+            () -> {
+              Collection<Row> rows = readAllRows(bigtableData, tableId).values();
+              return hasWriteTimeLaterThan(rows, time);
+            }),
         DEFAULT_BIGTABLE_RETRY_TIMEOUT_MILLIS,
         "Records not consumed in time.");
     long elapsed = System.currentTimeMillis() - start;
     System.out.printf("Bigtable rows found in table %s after %dms\n", tableId, elapsed);
+  }
+
+  private static boolean hasWriteTimeLaterThan(Collection<Row> rows, Instant time) {
+    for (Row row : rows) {
+      for (RowCell cell : row.getCells()) {
+        if (cell.getTimestamp() >= time.toEpochMilli() * 1000) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   public void waitUntilBigtableContainsNumberOfCells(String tableId, long numberOfCells)
