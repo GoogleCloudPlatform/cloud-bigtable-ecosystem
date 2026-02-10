@@ -320,7 +320,7 @@ as a JSON string to a single column.
 * Type: boolean
 * Default: false
 * Valid Values: true, false
-* Important: medium
+* Importance: medium
 
 `table.name.format`
 
