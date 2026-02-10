@@ -843,7 +843,33 @@ public class ValueMapperTest {
         .put("id", "PROD-789")
         .put("quantity", 2);
 
-    List<Struct> productList = Arrays.stream(new Struct[]{productElement1, productElement2, productElement3}).toList();
+    // use more than 9 elements to we can see what happens when the column qualifier is > 1 digits
+    List<Struct> productList = Arrays.stream(new Struct[]{
+        // 1
+        productElement1,
+        // 2
+        productElement2,
+        // 3
+        productElement3,
+        // 4
+        productElement3,
+        // 5
+        productElement3,
+        // 6
+        productElement3,
+        // 7
+        productElement3,
+        // 8
+        productElement3,
+        // 9
+        productElement3,
+        // 10
+        productElement3,
+        // 11
+        productElement3,
+        // 12
+        productElement2
+    }).toList();
 
     Struct value = new Struct(schema)
         .put("orderId", "ORD-999")
@@ -861,7 +887,7 @@ public class ValueMapperTest {
     assertEquals("projects/project/instances/instance/tables/my_table", actual.get("tableName").asText());
     assertEquals(ROW_KEY.toString(StandardCharsets.UTF_8), ProtoUtil.fromBase64(actual.get("rowKey").asText()));
     ArrayNode mutations = (ArrayNode) actual.get("mutations");
-    assertEquals(6, mutations.size());
+    assertEquals(15, mutations.size());
     assertEquals("cf", mutations.get(0).get("setCell").get("familyName").textValue());
     assertEquals("orderId", ProtoUtil.fromBase64(mutations.get(0).get("setCell").get("columnQualifier").textValue()));
     assertEquals(ProtoUtil.toBase64("ORD-999"), mutations.get(0).get("setCell").get("value").textValue());
@@ -874,7 +900,7 @@ public class ValueMapperTest {
     assertEquals("products", mutations.get(2).get("deleteFromFamily").get("familyName").textValue());
 
     assertEquals("products", mutations.get(3).get("setCell").get("familyName").textValue());
-    assertEquals("0", ProtoUtil.fromBase64(mutations.get(3).get("setCell").get("columnQualifier").textValue()));
+    assertEquals("000000", ProtoUtil.fromBase64(mutations.get(3).get("setCell").get("columnQualifier").textValue()));
     JsonMapper jsonMapper = new JsonMapper();
 
     JsonNode product1Json = jsonMapper.readTree(ProtoUtil.fromBase64(mutations.get(3).get("setCell").get("value").textValue()));
@@ -882,17 +908,23 @@ public class ValueMapperTest {
     assertEquals("PROD-123", product1Json.get("id").asText());
     assertEquals(5, product1Json.get("quantity").asInt());
 
-    assertEquals("1", ProtoUtil.fromBase64(mutations.get(4).get("setCell").get("columnQualifier").textValue()));
+    assertEquals("000001", ProtoUtil.fromBase64(mutations.get(4).get("setCell").get("columnQualifier").textValue()));
     JsonNode product2Json = jsonMapper.readTree(ProtoUtil.fromBase64(mutations.get(4).get("setCell").get("value").textValue()));
     assertEquals("Car", product2Json.get("name").asText());
     assertEquals("PROD-456", product2Json.get("id").asText());
     assertEquals(1, product2Json.get("quantity").asInt());
 
-    assertEquals("2", ProtoUtil.fromBase64(mutations.get(5).get("setCell").get("columnQualifier").textValue()));
+    assertEquals("000002", ProtoUtil.fromBase64(mutations.get(5).get("setCell").get("columnQualifier").textValue()));
     JsonNode product3Json = jsonMapper.readTree(ProtoUtil.fromBase64(mutations.get(5).get("setCell").get("value").textValue()));
     assertEquals("Tambourine", product3Json.get("name").asText());
     assertEquals("PROD-789", product3Json.get("id").asText());
     assertEquals(2, product3Json.get("quantity").asInt());
+
+    assertEquals("000011", ProtoUtil.fromBase64(mutations.get(14).get("setCell").get("columnQualifier").textValue()));
+    JsonNode product12Json = jsonMapper.readTree(ProtoUtil.fromBase64(mutations.get(5).get("setCell").get("value").textValue()));
+    assertEquals("Tambourine", product12Json.get("name").asText());
+    assertEquals("PROD-789", product12Json.get("id").asText());
+    assertEquals(2, product12Json.get("quantity").asInt());
   }
 
   private MutationDataBuilder getRecordMutationDataBuilder(ValueMapper mapper, Object kafkaValue) {

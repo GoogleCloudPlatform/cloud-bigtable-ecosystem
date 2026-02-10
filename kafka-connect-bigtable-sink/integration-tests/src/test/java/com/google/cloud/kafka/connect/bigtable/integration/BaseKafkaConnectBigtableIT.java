@@ -110,17 +110,6 @@ public abstract class BaseKafkaConnectBigtableIT extends BaseKafkaConnectIT {
     }
   }
 
-  public String[] readAllRowKeys(BigtableDataClient bigtable, String table) {
-    try {
-      Query query = Query.create(TableId.of(table));
-      String[] result =
-          bigtable.readRows(query).stream().map(r -> r.getKey().toString(StandardCharsets.UTF_8)).toList().toArray(String[]::new);
-      return result;
-    } catch (Throwable t) {
-      throw t;
-    }
-  }
-
   public long cellCount(Map<ByteString, Row> rows) {
     return rows.values().stream().mapToLong(r -> r.getCells().size()).sum();
   }
