@@ -314,9 +314,9 @@ together directly.
 Determines whether root level arrays should be expanded to a column family 
 or serialized to a single column. If true, root level array fields will 
 be mapped to a Bigtable column family where each element is stored in 
-an individual column with its index as column qualifier, padded with 6 
-zeros. If false, root level array fields will be serialized
-as a JSON string to a single column.
+an individual column with its index as column qualifier, padded with 
+zeros to a length of 6. If false, root level array fields will be
+serialized as a JSON string to a single column.
 
 * Type: boolean
 * Default: false

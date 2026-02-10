@@ -58,6 +58,8 @@ import org.apache.kafka.connect.errors.DataException;
  * Mutation(s)}.
  */
 public class ValueMapper {
+  private static final int ROOT_LEVEL_ARRAY_INDEX_PADDING_WIDTH = 6;
+  private static final String ROOT_LEVEL_ARRAY_INDEX_FORMAT = "%0" + ROOT_LEVEL_ARRAY_INDEX_PADDING_WIDTH + "d";
   public final String defaultColumnFamilyTemplate;
   public final ByteString defaultColumnQualifier;
   private final NullValueMode nullMode;
@@ -171,8 +173,8 @@ public class ValueMapper {
       Object o = listValue.get(i);
       mutationDataBuilder.setCell(
           columnFamily,
-          // pad element names with leading zeros for easier sorting: '0000001'
-          ByteString.copyFrom(String.format("%06d", i).getBytes(StandardCharsets.UTF_8)),
+          // pad element names with leading zeros for easier sorting: '000001'
+          ByteString.copyFrom(String.format(ROOT_LEVEL_ARRAY_INDEX_FORMAT, i).getBytes(StandardCharsets.UTF_8)),
           timestampMicros,
           ByteString.copyFrom(serialize(o)));
     }
