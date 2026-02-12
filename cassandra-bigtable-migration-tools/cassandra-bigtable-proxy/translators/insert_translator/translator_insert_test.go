@@ -275,6 +275,20 @@ func TestSelectTranslator_Translate(t *testing.T) {
 			},
 		},
 		{
+			name:  "success with NULL literal",
+			query: "INSERT INTO test_keyspace.test_table (pk1, pk2, col_int) VALUES ('abc', 'pkval', NULL)",
+			want: &Want{
+				Table:    "test_table",
+				Keyspace: "test_keyspace",
+				Assignments: []types.Assignment{
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk1"), types.NewLiteralValue("abc")),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk2"), types.NewLiteralValue("pkval")),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_int"), types.NewLiteralValue(nil)),
+				},
+				AllParams: []*types.ParameterMetadata{},
+			},
+		},
+		{
 			name:    "no keyspace",
 			query:   "INSERT INTO test_table (pk1, pk2, col_int) VALUES ('abc', 'pkva''l', 3)",
 			want:    nil,
@@ -338,6 +352,26 @@ func TestSelectTranslator_Translate(t *testing.T) {
 			query:   "INSERT INTO test_keyspace.test_table (col_ts, col_int, pk1) VALUES (?, ?, ?)",
 			want:    nil,
 			wantErr: "missing value for primary key `pk2`",
+		},
+		{
+			name:    "insert list with null element (should error)",
+			query:   "INSERT INTO test_keyspace.test_table (pk1, pk2, list_text) VALUES ('pk1', 'pk2', ['a', null])",
+			wantErr: "collection items are not allowed to be null",
+		},
+		{
+			name:    "insert set with null element (should error)",
+			query:   "INSERT INTO test_keyspace.test_table (pk1, pk2, set_text) VALUES ('pk1', 'pk2', {'a', null})",
+			wantErr: "collection items are not allowed to be null",
+		},
+		{
+			name:    "insert map with null value (should error)",
+			query:   "INSERT INTO test_keyspace.test_table (pk1, pk2, map_text_bool) VALUES ('pk1', 'pk2', {'a': null})",
+			wantErr: "map values cannot be null",
+		},
+		{
+			name:    "insert map with null key (should error)",
+			query:   "INSERT INTO test_keyspace.test_table (pk1, pk2, map_text_bool) VALUES ('pk1', 'pk2', {null: true})",
+			wantErr: "map keys cannot be null",
 		},
 	}
 

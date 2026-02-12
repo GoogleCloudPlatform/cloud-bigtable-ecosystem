@@ -257,7 +257,7 @@ func (c *SchemaMetadata) GetTableSchema(k types.Keyspace, t types.TableName) (*T
 	}
 	tableConfig, ok := keyspace[t]
 	if !ok {
-		return nil, fmt.Errorf("table '%s' does not exist", t)
+		return nil, fmt.Errorf("table '%s' does not exist in keyspace '%s'", t, k)
 	}
 	return tableConfig, nil
 }
