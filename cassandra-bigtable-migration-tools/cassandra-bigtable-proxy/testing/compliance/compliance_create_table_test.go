@@ -93,6 +93,67 @@ func TestCreateWhereBigtableTableExists(t *testing.T) {
 	assert.Equal(t, "foo", name)
 }
 
+func TestCreateTableWithOnlyPrimaryKeys(t *testing.T) {
+	t.Parallel()
+	table := uniqueTableName("only_two_pk_")
+	defer cleanupTable(t, table)
+
+	// Create table with only primary key columns (partition key and clustering key)
+	require.NoError(t, session.Query(fmt.Sprintf("CREATE TABLE %s (pk TEXT, ck INT, PRIMARY KEY (pk, ck))", table)).Exec())
+
+	// Insert data
+	require.NoError(t, session.Query(fmt.Sprintf("INSERT INTO %s (pk, ck) VALUES (?, ?)", table), "row1", 1).Exec())
+
+	require.NoError(t, session.Query(fmt.Sprintf("INSERT INTO %s (pk, ck) VALUES (?, ?)", table), "row1", 2).Exec())
+
+	require.NoError(t, session.Query(fmt.Sprintf("INSERT INTO %s (pk, ck) VALUES (?, ?)", table), "row2", 1).Exec())
+
+	// Read data
+	var pk string
+	var ck int
+	iter := session.Query(fmt.Sprintf("SELECT pk, ck FROM %s WHERE pk = ? ORDER BY ck ASC", table), "row1").Iter()
+
+	require.True(t, iter.Scan(&pk, &ck))
+	assert.Equal(t, "row1", pk)
+	assert.Equal(t, 1, ck)
+
+	require.True(t, iter.Scan(&pk, &ck))
+	assert.Equal(t, "row1", pk)
+	assert.Equal(t, 2, ck)
+
+	assert.False(t, iter.Scan(&pk, &ck))
+	assert.NoError(t, iter.Close())
+
+	// Read all data
+	count := 0
+	iter = session.Query(fmt.Sprintf("SELECT * FROM %s", table)).Iter()
+	resultMap := make(map[string]interface{})
+	for iter.MapScan(resultMap) {
+		count++
+		// clear the results
+		resultMap = make(map[string]interface{})
+	}
+	require.NoError(t, iter.Close())
+	assert.Equal(t, 3, count)
+}
+
+func TestCreateTableWithOnlyPartitionKey(t *testing.T) {
+	t.Parallel()
+	table := uniqueTableName("only_one_pk_")
+	defer cleanupTable(t, table)
+
+	// Create table with only partition key column
+	assert.NoError(t, session.Query(fmt.Sprintf("CREATE TABLE %s (pk TEXT PRIMARY KEY)", table)).Exec())
+
+	// Insert data
+	assert.NoError(t, session.Query(fmt.Sprintf("INSERT INTO %s (pk) VALUES (?)", table), "row1").Exec())
+
+	// Read data
+	var pk string
+	assert.NoError(t, session.Query(fmt.Sprintf("SELECT pk FROM %s WHERE pk = ?", table), "row1").Scan(&pk))
+	assert.Equal(t, "row1", pk)
+}
+
 func TestNegativeTestCasesForCreateTable(t *testing.T) {
 	t.Parallel()
 	testCases := []struct {

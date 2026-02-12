@@ -100,7 +100,12 @@ func (btc *BigtableAdapter) mutateRow(ctx context.Context, input *types.Bigtable
 
 	tbl := client.Open(string(input.Table()))
 
-	mutationCount, err := btc.buildMutation(ctx, tbl, input, mut)
+	schema, err := btc.schemaManager.Schemas().GetTableSchema(input.Keyspace(), input.Table())
+	if err != nil {
+		return nil, err
+	}
+
+	err = btc.buildMutation(ctx, tbl, input, mut, schema)
 	if err != nil {
 		return nil, err
 	}
@@ -122,11 +127,6 @@ func (btc *BigtableAdapter) mutateRow(ctx context.Context, input *types.Bigtable
 		return GenerateAppliedRowsResult(input.Keyspace(), input.Table(), input.IfSpec.IfExists == matched), nil
 	}
 
-	// no-op just return
-	if mutationCount == 0 {
-		return &message.VoidResult{}, nil
-	}
-
 	// If no conditions, apply the mutation directly
 	err = tbl.Apply(ctx, string(input.RowKey()), mut)
 	otelgo.AddAnnotation(ctx, bigtableMutationApplied)
@@ -145,9 +145,7 @@ func emptyRowsResult() *message.RowsResult {
 	}
 }
 
-func (btc *BigtableAdapter) buildMutation(ctx context.Context, table *bigtable.Table, input *types.BigtableWriteMutation, mut *bigtable.Mutation) (int, error) {
-	var mutationCount = 0
-
+func (btc *BigtableAdapter) buildMutation(ctx context.Context, table *bigtable.Table, input *types.BigtableWriteMutation, mut *bigtable.Mutation, schema *metadata.TableSchema) error {
 	var timestamp bigtable.Timestamp
 	if input.UsingTimestamp != nil && input.UsingTimestamp.HasUsingTimestamp {
 		timestamp = bigtable.Time(input.UsingTimestamp.Timestamp)
@@ -155,39 +153,58 @@ func (btc *BigtableAdapter) buildMutation(ctx context.Context, table *bigtable.T
 		timestamp = bigtable.Time(time.Now())
 	}
 
+	anyWriteOps := false
 	for _, mutationOp := range input.Mutations() {
 		switch m := mutationOp.(type) {
 		case *types.WriteCellOp:
+			anyWriteOps = true
 			mut.Set(string(m.Family), string(m.Column), timestamp, m.Bytes)
 		case *types.DeleteColumnOp:
 			mut.DeleteCellsInColumn(string(m.Column.Family), string(m.Column.Column))
 		case *types.BigtableCounterOp:
+			anyWriteOps = true
 			mut.AddIntToCell(string(m.Family), "", counterTimestamp, m.Value)
 		case *types.DeleteCellsOp:
 			mut.DeleteCellsInFamily(string(m.Family))
 		case *types.BigtableSetIndexOp:
+			anyWriteOps = true
 			reqTimestamp, err := btc.getIndexOpTimestamp(ctx, table, input.RowKey(), m.Family, int(m.Index))
 			if err != nil {
-				return 0, err
+				return err
 			}
 			mut.Set(string(m.Family), reqTimestamp, timestamp, m.Value)
 		case *types.BigtableDeleteListElementsOp:
 			err := btc.setMutationForListDelete(ctx, table, input.RowKey(), m.Family, m.Values, mut)
 			if err != nil {
-				return 0, err
+				return err
 			}
 		default:
-			return 0, fmt.Errorf("unhandled mutation type %T", mutationOp)
+			return fmt.Errorf("unhandled mutation type %T", mutationOp)
 		}
-		mutationCount++
 	}
-	return mutationCount, nil
+
+	if !anyWriteOps {
+		// write empty bytes to an empty column qualifier in the default to allow for empty rows (Bigtable doesn't allow us to write rows with just a row key, but Cassandra does)
+		// we only need to write this empty string to protect against empty rows when our mutation is potentially creating an empty row (like an insert with no columns, or an update that deletes column values)
+		mut.Set(string(schema.SystemColumnFamily), "", timestamp, []byte{})
+	}
+
+	return nil
 }
 
 func (btc *BigtableAdapter) DropAllRows(ctx context.Context, data *types.TruncateTableStatementMap) error {
 	_, err := btc.schemaManager.Schemas().GetTableSchema(data.Keyspace(), data.Table())
 	if err != nil {
 		return err
+	}
+
+	// performance optimization because DropAllRows can be slow
+	hasRows, err := btc.hasAnyRows(ctx, data.Keyspace(), data.Table())
+	if err != nil {
+		return err
+	}
+	if !hasRows {
+		return nil
 	}
 
 	adminClient, err := btc.clients.GetAdmin(data.Keyspace())
@@ -208,6 +225,37 @@ func (btc *BigtableAdapter) DropAllRows(ctx context.Context, data *types.Truncat
 	}
 	btc.Logger.Info("truncate table: complete")
 	return nil
+}
+
+func (btc *BigtableAdapter) hasAnyRows(ctx context.Context, keyspace types.Keyspace, tableName types.TableName) (bool, error) {
+	dataClient, err := btc.clients.GetClient(keyspace)
+	if err != nil {
+		return false, err
+	}
+
+	tbl := dataClient.Open(string(tableName))
+
+	found := false
+	err = tbl.ReadRows(
+		ctx,
+		bigtable.InfiniteRange(""),
+		func(row bigtable.Row) bool {
+			found = true
+			return false
+		},
+		bigtable.LimitRows(1),
+		// Payload optimization: returns only the row key, no values or extra cols
+		bigtable.RowFilter(
+			bigtable.ChainFilters(
+				bigtable.CellsPerRowLimitFilter(1),
+				bigtable.StripValueFilter(),
+			),
+		),
+	)
+	if err != nil {
+		return false, fmt.Errorf("could not check for rows in table '%s': %w", tableName, err)
+	}
+	return found, nil
 }
 
 // InsertRow - Inserts a row into the specified bigtable table.
@@ -313,6 +361,13 @@ func (btc *BigtableAdapter) ApplyBulkMutation(ctx context.Context, keyspace type
 
 	table := client.Open(string(tableName))
 
+	schema, err := btc.schemaManager.Schemas().GetTableSchema(keyspace, tableName)
+	if err != nil {
+		return BulkOperationResponse{
+			FailedRows: "All Rows are failed",
+		}, err
+	}
+
 	rowKeyToMutationMap := make(map[types.RowKey]*bigtable.Mutation)
 	for _, md := range mutationData {
 		rowKey := md.RowKey()
@@ -323,7 +378,7 @@ func (btc *BigtableAdapter) ApplyBulkMutation(ctx context.Context, keyspace type
 		mut := rowKeyToMutationMap[rowKey]
 		switch v := md.(type) {
 		case *types.BigtableWriteMutation:
-			_, err := btc.buildMutation(ctx, table, v, mut)
+			err := btc.buildMutation(ctx, table, v, mut, schema)
 			if err != nil {
 				return BulkOperationResponse{
 					FailedRows: fmt.Sprintf("All Rows are failed because: %s", err.Error()),
