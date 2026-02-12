@@ -67,6 +67,9 @@ listeners:
       # [Optional] The number of GRPC channels used by the Bigtable client. The default is 1.
       grpcChannels: 4
 
+    # [Optional] The interval in seconds to automatically refresh metadata from Bigtable. The default is 30. Setting -1 disables it.
+    metadataRefreshInterval: 30
+
 otel:
   # Set enabled to true or false for OTEL metrics/traces/logs.
   enabled: False

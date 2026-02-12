@@ -31,6 +31,7 @@ listeners:
     appProfileID: my-bigtable-app-profile
     Session:
       grpcChannels: 4
+    metadataRefreshInterval: 30
 
 otel:
   enabled: False

@@ -24,14 +24,15 @@ import (
 
 var (
 	// todo ensure this is a reasonable default
-	DefaultBigtableGrpcChannels   = 1
-	BigtableMinSession            = 100
-	BigtableMaxSession            = 400
-	DefaultSchemaMappingTableName = "schema_mapping"
-	ErrorAuditTable               = "error_audit"
-	DefaultColumnFamily           = "cf1"
-	DefaultAppProfileId           = "default"
-	TimestampColumnName           = "ts_column"
+	DefaultBigtableGrpcChannels    = 1
+	DefaultMetadataRefreshInterval = 30 // seconds
+	BigtableMinSession             = 100
+	BigtableMaxSession             = 400
+	DefaultSchemaMappingTableName  = "schema_mapping"
+	ErrorAuditTable                = "error_audit"
+	DefaultColumnFamily            = "cf1"
+	DefaultAppProfileId            = "default"
+	TimestampColumnName            = "ts_column"
 )
 
 func validateCliArgs(args *types.CliArgs) error {
@@ -66,6 +67,9 @@ func validateAndApplyDefaults(cfg *yamlProxyConfig) error {
 		}
 		if cfg.Listeners[i].Bigtable.DefaultColumnFamily == "" {
 			cfg.Listeners[i].Bigtable.DefaultColumnFamily = DefaultColumnFamily
+		}
+		if cfg.Listeners[i].Bigtable.MetadataRefreshInterval == 0 {
+			cfg.Listeners[i].Bigtable.MetadataRefreshInterval = DefaultMetadataRefreshInterval
 		}
 
 		if cfg.Listeners[i].Bigtable.SchemaMappingTable == "" {

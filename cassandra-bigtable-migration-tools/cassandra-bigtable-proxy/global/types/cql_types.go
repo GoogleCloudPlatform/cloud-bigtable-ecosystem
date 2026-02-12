@@ -374,3 +374,40 @@ func NewFrozenType(inner CqlDataType) *FrozenType {
 		innerType: inner,
 	}
 }
+
+// CqlTypesEqual checks if two CqlDataType instances are equal.
+func CqlTypesEqual(a, b CqlDataType) bool {
+	if a == b {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	if a.Code() != b.Code() {
+		// TEXT and VARCHAR are equivalent in Cassandra
+		if (a.Code() == TEXT && b.Code() == VARCHAR) || (a.Code() == VARCHAR && b.Code() == TEXT) {
+			return true
+		}
+		return false
+	}
+
+	switch ta := a.(type) {
+	case *ScalarType:
+		// Codes match, and for scalars that's enough (except for the varchar/text alias handled above)
+		return true
+	case *MapType:
+		tb := b.(*MapType)
+		return CqlTypesEqual(ta.keyType, tb.keyType) && CqlTypesEqual(ta.valueType, tb.valueType)
+	case *ListType:
+		tb := b.(*ListType)
+		return CqlTypesEqual(ta.elementType, tb.elementType)
+	case *SetType:
+		tb := b.(*SetType)
+		return CqlTypesEqual(ta.elementType, tb.elementType)
+	case *FrozenType:
+		tb := b.(*FrozenType)
+		return CqlTypesEqual(ta.innerType, tb.innerType)
+	}
+
+	return false
+}

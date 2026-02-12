@@ -133,6 +133,7 @@ func loadListenerConfig(args *types.CliArgs, l *yamlListener, config *yamlProxyC
 		},
 		DefaultColumnFamily:      types.ColumnFamily(l.Bigtable.DefaultColumnFamily),
 		DefaultIntRowKeyEncoding: intRowKeyEncoding,
+		MetadataRefreshInterval:  l.Bigtable.MetadataRefreshInterval,
 	}
 
 	result := NewProxyInstanceConfig(args, l.Port, otel, bigtableConfig)

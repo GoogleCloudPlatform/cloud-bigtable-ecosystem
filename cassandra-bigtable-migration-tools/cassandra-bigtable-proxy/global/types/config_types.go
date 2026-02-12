@@ -33,6 +33,7 @@ type CliArgs struct {
 	QuickStartAppProfile          string
 	QuickStartSchemaMappingTable  string
 	QuickStartDefaultColumnFamily string
+	MetadataRefreshInterval       int
 }
 
 type OtelConfig struct {
@@ -66,6 +67,7 @@ type BigtableConfig struct {
 	Session                  *Session
 	DefaultColumnFamily      ColumnFamily
 	DefaultIntRowKeyEncoding IntRowKeyEncodingType
+	MetadataRefreshInterval  int
 }
 
 type Session struct {
