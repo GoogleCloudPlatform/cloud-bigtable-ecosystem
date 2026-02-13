@@ -10,6 +10,7 @@ import (
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/utilities"
 	"github.com/datastax/go-cassandra-native-protocol/datatype"
 	"github.com/datastax/go-cassandra-native-protocol/primitive"
+	"github.com/google/uuid"
 	"regexp"
 	"strings"
 	"time"
@@ -312,6 +313,9 @@ func ParseValueAny(v cql.IValueAnyContext, dt types.CqlDataType, params *types.Q
 				}
 			}
 		}
+		if functionName == "now" && dt.Code() == types.TIMEUUID {
+			return types.NewTimeuuidNowValue(), nil
+		}
 		return nil, fmt.Errorf("unsupported function call: `%s`", v.GetText())
 	}
 	return nil, fmt.Errorf("unhandled value set `%s`", v.GetText())
@@ -502,6 +506,10 @@ func ParseCqlConstant(c cql.IConstantContext, dt types.CqlDataType) (types.GoVal
 		if c.HexadecimalLiteral() != nil {
 			return utilities.StringToGo(c.HexadecimalLiteral().GetText(), dt)
 		}
+	case types.UUID, types.TIMEUUID:
+		if c.UUID() != nil {
+			return utilities.StringToGo(c.UUID().GetText(), dt)
+		}
 	}
 
 	return nil, fmt.Errorf("invalid literal for type %s: '%s'", dt.String(), c.GetText())
@@ -540,9 +548,34 @@ func EncodeScalarForBigtable(value types.GoValue, cqlType types.CqlDataType) (ty
 		return encodeBlobForBigtable(value)
 	case datatype.Varchar, datatype.Ascii:
 		return encodeStringForBigtable(value)
+	case datatype.Uuid, datatype.Timeuuid:
+		return encodeUuidForBigtable(value, cqlType.DataType())
 	default:
 		return nil, fmt.Errorf("unsupported CQL type: %s", cqlType.String())
 	}
+}
+
+func encodeUuidForBigtable(value interface{}, dt datatype.DataType) (types.BigtableValue, error) {
+	var valToEncode interface{} = value
+	switch v := value.(type) {
+	case uuid.UUID:
+		valToEncode = primitive.UUID(v)
+	case *uuid.UUID:
+		if v != nil {
+			valToEncode = primitive.UUID(*v)
+		}
+	case []byte:
+		if len(v) == 16 {
+			var u primitive.UUID
+			copy(u[:], v)
+			valToEncode = u
+		}
+	}
+	result, err := proxycore.EncodeType(dt, bigtableEncodingVersion, valToEncode)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode uuid/timeuuid: %w", err)
+	}
+	return result, err
 }
 
 func encodeBlobForBigtable(value types.GoValue) (types.BigtableValue, error) {
@@ -614,6 +647,12 @@ func dereferenceSlice(goValue types.GoValue) types.GoValue {
 		return s
 	case []*float64:
 		var s = make([]float64, len(v))
+		for i, ps := range v {
+			s[i] = *ps
+		}
+		return s
+	case []*primitive.UUID:
+		var s = make([]primitive.UUID, len(v))
 		for i, ps := range v {
 			s[i] = *ps
 		}
@@ -867,6 +906,18 @@ func ParseSelectFunction(sf cql.ISelectFunctionContext, alias string, table *sch
 		// example: system.avg(price)
 		sql := fmt.Sprintf("system.%s(%s)", strings.ToLower(f.String()), col.Name)
 		return *types.NewSelectedColumnFunction(sql, col.Name, alias, resultType, f), nil
+	case types.FuncCodeNow:
+		return *types.NewSelectedColumnFunction("now()", "", alias, types.TypeTimeuuid, f), nil
+	case types.FuncCodeToTimestamp:
+		col, err := parseSingleColumnFunctionArg(sf.FunctionCall(), table)
+		if err != nil {
+			return types.SelectedColumn{}, err
+		}
+		if col.CQLType.Code() != types.TIMEUUID {
+			return types.SelectedColumn{}, fmt.Errorf("totimestamp() argument must be a timeuuid, not %s", col.CQLType.String())
+		}
+		sql := string(col.Name)
+		return *types.NewSelectedColumnFunction(sql, col.Name, alias, types.TypeTimestamp, f), nil
 	default:
 		return types.SelectedColumn{}, fmt.Errorf("unhandled function type `%s`", sf.FunctionCall().GetText())
 	}

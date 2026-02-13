@@ -121,6 +121,7 @@ func TestGroupByAndOrderByCounters(t *testing.T) {
 			require.NoError(t, err)
 			results = append(results, likes)
 		}
+		require.NoError(t, scanner.Err())
 		assert.ElementsMatch(t, []int32{2, 2, 3, 5}, results)
 	})
 
@@ -135,6 +136,7 @@ func TestGroupByAndOrderByCounters(t *testing.T) {
 			require.NoError(t, err)
 			results = append(results, likes)
 		}
+		require.NoError(t, scanner.Err())
 		assert.ElementsMatch(t, []int32{5, 3, 2, 2}, results)
 	})
 
@@ -149,6 +151,7 @@ func TestGroupByAndOrderByCounters(t *testing.T) {
 			require.NoError(t, err)
 			results = append(results, likes)
 		}
+		require.NoError(t, scanner.Err())
 		assert.ElementsMatch(t, []int32{2, 3, 5}, results)
 	})
 }

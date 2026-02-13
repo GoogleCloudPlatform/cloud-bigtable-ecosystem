@@ -410,9 +410,9 @@ func TestTranslateCreateTableToBigtable(t *testing.T) {
 		},
 		{
 			name:            "parser returns error when invalid column type is used",
-			query:           "CREATE TABLE test_keyspace.table1 (column1 int, column10 UUID, column11 int, PRIMARY KEY (column1))",
+			query:           "CREATE TABLE test_keyspace.table1 (column1 int, column10 TUPLE, column11 int, PRIMARY KEY (column1))",
 			want:            nil,
-			error:           "column type 'uuid' is not supported",
+			error:           "unknown data type name: 'TUPLE'",
 			defaultKeyspace: "test_keyspace",
 		},
 		{

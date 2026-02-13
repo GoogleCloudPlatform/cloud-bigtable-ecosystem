@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/utilities"
+	"github.com/datastax/go-cassandra-native-protocol/primitive"
 	"github.com/google/uuid"
 	"golang.org/x/exp/maps"
 	"slices"
@@ -98,7 +99,7 @@ func (c *SchemaMetadata) Tables() []*TableSchema {
 // CalculateSchemaVersion creates a deterministic UUID based on all keyspace and table schema information to be used
 // for Cassandra schema_version. Schema Version must be consistent across all Proxy nodes. Most Cassandra clients care
 // about all nodes achieving the same schema version.
-func (c *SchemaMetadata) CalculateSchemaVersion() (uuid.UUID, error) {
+func (c *SchemaMetadata) CalculateSchemaVersion() (primitive.UUID, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	var builder strings.Builder
@@ -117,7 +118,7 @@ func (c *SchemaMetadata) CalculateSchemaVersion() (uuid.UUID, error) {
 		keyspace := types.Keyspace(k)
 		tables, ok := c.tables[keyspace]
 		if !ok {
-			return uuid.UUID{}, fmt.Errorf("failed to next schema version")
+			return primitive.UUID{}, fmt.Errorf("failed to next schema version")
 		}
 		builder.WriteString(fmt.Sprintf("KS:%s|", k))
 
@@ -130,7 +131,7 @@ func (c *SchemaMetadata) CalculateSchemaVersion() (uuid.UUID, error) {
 		for _, t := range sortedTableNames {
 			table, err := c.GetTableSchema(keyspace, types.TableName(t))
 			if err != nil {
-				return uuid.UUID{}, err
+				return primitive.UUID{}, err
 			}
 			builder.WriteString(fmt.Sprintf("TBL:%s(", table.Name))
 
@@ -155,9 +156,9 @@ func (c *SchemaMetadata) CalculateSchemaVersion() (uuid.UUID, error) {
 	// We use a fixed Namespace UUID (like Cassandra)
 	namespace, err := uuid.Parse("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
 	if err != nil {
-		return uuid.UUID{}, err
+		return primitive.UUID{}, err
 	}
-	return uuid.NewMD5(namespace, []byte(builder.String())), nil
+	return primitive.UUID(uuid.NewMD5(namespace, []byte(builder.String()))), nil
 }
 
 func (c *SchemaMetadata) ValidateKeyspace(keyspace types.Keyspace) error {

@@ -105,6 +105,8 @@ CREATE TABLE IF NOT EXISTS bigtabledevinstance.all_columns (
 	list_double list<double>,
 	list_boolean list<boolean>,
 	list_timestamp list<timestamp>,
+	uuid_col uuid,
+	timeuuid_col timeuuid,
 	PRIMARY KEY (name)
 );
 `,
@@ -179,6 +181,20 @@ CREATE TABLE IF NOT EXISTS bigtabledevinstance.timestamp_key (
 	measurement int,
 	end_time timestamp,
 	PRIMARY KEY (region, event_time)
+);
+		`,
+		`
+CREATE TABLE IF NOT EXISTS bigtabledevinstance.uuid_key (
+	id uuid PRIMARY KEY,
+	val text
+);
+		`,
+		`
+CREATE TABLE IF NOT EXISTS bigtabledevinstance.timeuuid_key (
+	pk text,
+	id timeuuid,
+	val text,
+	PRIMARY KEY (pk, id)
 );
 		`,
 		`

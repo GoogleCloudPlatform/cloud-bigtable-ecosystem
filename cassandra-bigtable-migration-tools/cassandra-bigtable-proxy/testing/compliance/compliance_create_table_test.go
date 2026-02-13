@@ -135,8 +135,8 @@ func TestNegativeTestCasesForCreateTable(t *testing.T) {
 		},
 		{
 			name:          "Create table with invalid column type",
-			query:         "CREATE TABLE fail_invalid_col_type (num INT, big_num UUID, PRIMARY KEY (num))",
-			expectedError: "column type 'uuid' is not supported",
+			query:         "CREATE TABLE fail_invalid_col_type (num INT, big_num TUPLE, PRIMARY KEY (num))",
+			expectedError: "unknown data type name: 'TUPLE'",
 			skipCassandra: true,
 		},
 		{

@@ -32,6 +32,7 @@ import (
 	"github.com/antlr4-go/antlr/v4"
 	"github.com/datastax/go-cassandra-native-protocol/datatype"
 	"github.com/datastax/go-cassandra-native-protocol/primitive"
+	"github.com/google/uuid"
 )
 
 // from https://cassandra.apache.org/doc/4.0/cassandra/cql/appendices.html#appendix-A
@@ -248,7 +249,7 @@ func IsSupportedPrimaryKeyType(dt types.CqlDataType) bool {
 	}
 
 	switch dt.DataType() {
-	case datatype.Int, datatype.Bigint, datatype.Varchar, datatype.Timestamp, datatype.Blob, datatype.Ascii:
+	case datatype.Int, datatype.Bigint, datatype.Varchar, datatype.Timestamp, datatype.Blob, datatype.Ascii, datatype.Uuid, datatype.Timeuuid:
 		return true
 	default:
 		return false
@@ -288,6 +289,12 @@ func GoToString(value types.GoValue) (string, error) {
 		}
 	case time.Time:
 		return fmt.Sprintf("TIMESTAMP_FROM_UNIX_MILLIS(%d)", v.UnixMilli()), nil
+	case uuid.UUID:
+		encoded := base64.StdEncoding.EncodeToString(v[:])
+		return fmt.Sprintf("FROM_BASE64('%s')", encoded), nil
+	case primitive.UUID:
+		encoded := base64.StdEncoding.EncodeToString(v[:])
+		return fmt.Sprintf("FROM_BASE64('%s')", encoded), nil
 	case []uint8:
 		encoded := base64.StdEncoding.EncodeToString(v)
 		// note: Bigtable limits SQL strings to 1,024k characters while Cassandra has no official limit. We only encode blobs to base64 when a literal is used. Placeholders will not have this issue.
@@ -345,6 +352,18 @@ func StringToGo(value string, cqlType types.CqlDataType) (types.GoValue, error) 
 			return nil, fmt.Errorf("error converting string to timestamp: %w", err)
 		}
 		return val, nil
+	case datatype.Uuid:
+		u, err := uuid.Parse(value)
+		if err != nil {
+			return nil, err
+		}
+		return primitive.UUID(u), nil
+	case datatype.Timeuuid:
+		u, err := uuid.Parse(value)
+		if err != nil {
+			return nil, err
+		}
+		return primitive.UUID(u), nil
 	case datatype.Blob:
 		// remove the '0x' prefix that CQL requires for blob literals
 		if strings.HasPrefix(value, "0x") || strings.HasPrefix(value, "0X") {
@@ -444,7 +463,7 @@ func parseCqlTimestamp(timestampStr string) (time.Time, error) {
 
 func isSupportedCollectionElementType(dt datatype.DataType) bool {
 	switch dt {
-	case datatype.Int, datatype.Bigint, datatype.Varchar, datatype.Float, datatype.Double, datatype.Timestamp, datatype.Boolean, datatype.Ascii:
+	case datatype.Int, datatype.Bigint, datatype.Varchar, datatype.Float, datatype.Double, datatype.Timestamp, datatype.Boolean, datatype.Ascii, datatype.Uuid, datatype.Timeuuid:
 		return true
 	default:
 		return false
@@ -457,7 +476,7 @@ func IsSupportedColumnType(dt types.CqlDataType) bool {
 	}
 
 	switch dt.DataType().GetDataTypeCode() {
-	case primitive.DataTypeCodeInt, primitive.DataTypeCodeBigint, primitive.DataTypeCodeBlob, primitive.DataTypeCodeBoolean, primitive.DataTypeCodeDouble, primitive.DataTypeCodeFloat, primitive.DataTypeCodeTimestamp, primitive.DataTypeCodeText, primitive.DataTypeCodeVarchar, primitive.DataTypeCodeCounter, primitive.DataTypeCodeAscii:
+	case primitive.DataTypeCodeInt, primitive.DataTypeCodeBigint, primitive.DataTypeCodeBlob, primitive.DataTypeCodeBoolean, primitive.DataTypeCodeDouble, primitive.DataTypeCodeFloat, primitive.DataTypeCodeTimestamp, primitive.DataTypeCodeText, primitive.DataTypeCodeVarchar, primitive.DataTypeCodeCounter, primitive.DataTypeCodeAscii, primitive.DataTypeCodeUuid, primitive.DataTypeCodeTimeuuid:
 		return true
 	case primitive.DataTypeCodeMap:
 		mapType := dt.DataType().(datatype.MapType)
@@ -680,7 +699,7 @@ func ParseCqlType(dtc cql.IDataTypeContext) (types.CqlDataType, error) {
 		}
 		return types.TypeTinyint, nil
 	default:
-		return nil, fmt.Errorf("unknown data type name: '%s' in type '%s'", dataTypeName, dtc)
+		return nil, fmt.Errorf("unknown data type name: '%s'", dataTypeName)
 	}
 }
 

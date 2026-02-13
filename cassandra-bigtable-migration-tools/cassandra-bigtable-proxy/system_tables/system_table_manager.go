@@ -106,7 +106,7 @@ func (s *SystemTableManager) ReloadSystemTables() error {
 	if err != nil {
 		return err
 	}
-	s.schemaVersion = primitive.UUID(schemaVersion)
+	s.schemaVersion = schemaVersion
 
 	config := s.configProvider.GetSystemTableConfig()
 	err = s.db.SetData(SystemSchemaTableKeyspace, s.getKeyspaceMetadata())

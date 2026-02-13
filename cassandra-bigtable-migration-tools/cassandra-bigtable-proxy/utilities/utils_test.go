@@ -178,8 +178,9 @@ func TestIsSupportedCollectionElementType(t *testing.T) {
 		{"Supported CQLType - Double", datatype.Double, true},
 		{"Supported CQLType - Timestamp", datatype.Timestamp, true},
 		{"Supported CQLType - Boolean", datatype.Boolean, true},
+		{"Supported CQLType - UUID", datatype.Uuid, true},
+		{"Supported CQLType - TimeUUID", datatype.Timeuuid, true},
 		{"Unsupported CQLType - Blob", datatype.Blob, false},
-		{"Unsupported CQLType - UUID", datatype.Uuid, false},
 		{"Unsupported CQLType - Map", datatype.NewMapType(datatype.Varchar, datatype.Int), false},
 		{"Unsupported CQLType - Set", datatype.NewSetType(datatype.Varchar), false},
 	}
@@ -207,6 +208,8 @@ func TestIsSupportedColumnType(t *testing.T) {
 		{"Supported Primitive - Float", ParseCqlTypeOrDie("float"), true},
 		{"Supported Primitive - Timestamp", ParseCqlTypeOrDie("timestamp"), true},
 		{"Supported Primitive - Varchar", ParseCqlTypeOrDie("varchar"), true},
+		{"Supported Primitive - UUID", ParseCqlTypeOrDie("uuid"), true},
+		{"Supported Primitive - TimeUUID", ParseCqlTypeOrDie("timeuuid"), true},
 
 		// --- Positive Cases: Collection Types ---
 		{"Supported List", ParseCqlTypeOrDie("list<int>"), true},
@@ -215,15 +218,13 @@ func TestIsSupportedColumnType(t *testing.T) {
 		{"Supported Map with Text Key", ParseCqlTypeOrDie("map<text,bigint>"), true},
 
 		// --- Negative Cases: Primitive Types ---
-		{"Unsupported Primitive - UUID", ParseCqlTypeOrDie("uuid"), false},
-		{"Unsupported Primitive - TimeUUID", ParseCqlTypeOrDie("timeuuid"), false},
 
 		// --- Negative Cases: Collection Types ---
-		{"Unsupported List Element", ParseCqlTypeOrDie("list<uuid>"), false},
+		{"Unsupported List Element", ParseCqlTypeOrDie("list<varint>"), false},
 		{"Unsupported List Element", types.NewListType(types.NewListType(types.TypeInt)), false},
 		{"Unsupported Set Element", ParseCqlTypeOrDie("set<blob>"), false},
 		{"Unsupported Map Key", ParseCqlTypeOrDie("map<blob,text>"), false},
-		{"Unsupported Map Value", ParseCqlTypeOrDie("map<text,uuid>"), false},
+		{"Unsupported Map Value", ParseCqlTypeOrDie("map<text,varint>"), false},
 		{"Nested Collection - List of Maps", types.NewListType(types.NewMapType(types.TypeVarchar, types.TypeInt)), false},
 		// --- Negative Cases: Frozen Types ---
 		{"Frozen List", ParseCqlTypeOrDie("frozen<list<int>>"), false},

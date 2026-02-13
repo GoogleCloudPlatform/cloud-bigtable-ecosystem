@@ -61,6 +61,24 @@ func createBtqlFunc(col types.SelectedColumn, tableConfig *sm.TableSchema) (stri
 		return fmt.Sprintf("UNIX_MICROS(WRITE_TIMESTAMP(%s, '%s'))", colMeta.ColumnFamily, colMeta.Name), nil
 	}
 
+	if col.Func == types.FuncCodeToTimestamp {
+		castValue, err := castScalarColumn(colMeta)
+		if err != nil {
+			return "", err
+		}
+		if col.Alias != "" {
+			return fmt.Sprintf("%s AS %s", castValue, col.Alias), nil
+		}
+		return castValue, nil
+	}
+
+	if col.Func == types.FuncCodeNow {
+		if col.Alias != "" {
+			return "CURRENT_TIMESTAMP() AS " + col.Alias, nil // CURRENT_TIMESTAMP returns a timestamp, we'll convert it to UUID in result processor if needed, but it's better to return raw bits if we can.
+		}
+		return "CURRENT_TIMESTAMP()", nil
+	}
+
 	castValue, castErr := castScalarColumn(colMeta)
 	if castErr != nil {
 		return "", castErr
@@ -338,7 +356,7 @@ func castScalarColumn(colMeta *types.Column) (string, error) {
 		return fmt.Sprintf("TIMESTAMP_FROM_UNIX_MILLIS(TO_INT64(`%s`['%s']))", colMeta.ColumnFamily, colMeta.Name), nil
 	case datatype.Counter:
 		return fmt.Sprintf("`%s`['']", colMeta.Name), nil
-	case datatype.Blob:
+	case datatype.Blob, datatype.Uuid, datatype.Timeuuid:
 		return fmt.Sprintf("`%s`['%s']", colMeta.ColumnFamily, colMeta.Name), nil
 	case datatype.Varchar, datatype.Ascii:
 		return fmt.Sprintf("`%s`['%s']", colMeta.ColumnFamily, colMeta.Name), nil

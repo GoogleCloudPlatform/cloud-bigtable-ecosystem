@@ -7,6 +7,7 @@ import (
 	schemaMapping "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/metadata"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/utilities"
 	"github.com/datastax/go-cassandra-native-protocol/primitive"
+	"github.com/google/uuid"
 	"strconv"
 	"time"
 )
@@ -314,6 +315,12 @@ func scalarToColumnQualifier(val types.GoValue) (types.ColumnQualifier, error) {
 		return types.ColumnQualifier(strconv.FormatInt(v.UnixMilli(), 10)), nil
 	case time.Time:
 		return types.ColumnQualifier(strconv.FormatInt(v.UnixMilli(), 10)), nil
+	case uuid.UUID:
+		return types.ColumnQualifier(v.String()), nil
+	case [16]byte:
+		return types.ColumnQualifier(uuid.UUID(v).String()), nil
+	case primitive.UUID:
+		return types.ColumnQualifier(uuid.UUID(v).String()), nil
 	default:
 		return "", fmt.Errorf("unsupported type: %T", v)
 	}

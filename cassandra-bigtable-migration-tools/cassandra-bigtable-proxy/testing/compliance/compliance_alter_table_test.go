@@ -91,8 +91,8 @@ func TestNegativeTestCasesForAlterTable(t *testing.T) {
 		},
 		{
 			name:          "Add a column with an unsupported data type",
-			query:         "ALTER TABLE alter_test_table ADD new_col uuid",
-			expectedError: "column type 'uuid' is not supported",
+			query:         "ALTER TABLE alter_test_table ADD new_col TUPLE",
+			expectedError: "unknown data type name: 'TUPLE'",
 			skipCassandra: true,
 		},
 		{
