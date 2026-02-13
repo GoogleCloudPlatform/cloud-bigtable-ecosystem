@@ -41,7 +41,7 @@ func (t *InsertTranslator) Translate(query *types.RawQuery, sessionKeyspace type
 
 	ifNotExists := insertObj.IfNotExist() != nil
 
-	params := types.NewQueryParameters()
+	params := types.NewQueryParameterBuilder()
 
 	columns, err := parseInsertColumns(insertObj.InsertColumnSpec(), table, params)
 	if err != nil {
@@ -76,7 +76,12 @@ func (t *InsertTranslator) Translate(query *types.RawQuery, sessionKeyspace type
 		rowKeys = append(rowKeys, val)
 	}
 
-	st := types.NewPreparedInsertQuery(keyspaceName, tableName, ifNotExists, query.RawCql(), params, values, rowKeys, usingTimestamp)
+	builtParams, err := params.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	st := types.NewPreparedInsertQuery(keyspaceName, tableName, ifNotExists, query.RawCql(), builtParams, values, rowKeys, usingTimestamp)
 
 	return st, nil
 }

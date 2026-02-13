@@ -120,7 +120,7 @@ func (c *partialExecuteCodec) Decode(source io.Reader, protocolV primitive.Proto
 	execute.PositionalValues = options.PositionalValues
 	execute.NamedValues = options.NamedValues
 	if err != nil {
-		err = fmt.Errorf("error while decoding bytes for positionalvalues : %s ", err.Error())
+		err = fmt.Errorf("error while decoding bytes for values : %s ", err.Error())
 	}
 	return execute, err
 }

@@ -140,8 +140,7 @@ func addBindValueIfNeeded(dynamicValue types.DynamicValue, values *types.QueryPa
 			return err
 		}
 	}
-	// drop the leading '@' symbol
-	result[string(param.Placeholder)[1:]] = value
+	result[string(param.Parameter)] = value
 	return nil
 }
 
@@ -157,33 +156,46 @@ func needsByteConversion(condition types.Condition) bool {
 	return false
 }
 
-func BuildParamTypes(b *types.PreparedSelectQuery) map[string]bigtable.SQLType {
+func BuildParamTypes(b *types.PreparedSelectQuery) (map[string]bigtable.SQLType, error) {
+	var err error
 	result := make(map[string]bigtable.SQLType)
 	for _, condition := range b.Conditions {
-		addParamIfNeeded(condition.Value, b.Params, needsByteConversion(condition), result)
-		addParamIfNeeded(condition.Value2, b.Params, needsByteConversion(condition), result)
+		err = addParamIfNeeded(condition.Value, b.Params, needsByteConversion(condition), result)
+		if err != nil {
+			return nil, err
+		}
+		err = addParamIfNeeded(condition.Value2, b.Params, needsByteConversion(condition), result)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	addParamIfNeeded(b.LimitValue, b.Params, false, result)
-	return result
+	err = addParamIfNeeded(b.LimitValue, b.Params, false, result)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
-func addParamIfNeeded(value types.DynamicValue, params *types.QueryParameters, needsByteConversion bool, result map[string]bigtable.SQLType) {
+func addParamIfNeeded(value types.DynamicValue, params *types.QueryParameters, needsByteConversion bool, result map[string]bigtable.SQLType) error {
 	if value == nil {
-		return
+		return nil
 	}
 
 	param, ok := value.(*types.ParameterizedValue)
 	if !ok {
-		return
+		return nil
 	}
 
-	md := params.GetMetadata(param.Placeholder)
+	md, err := params.GetMetadata(param.Parameter)
+	if err != nil {
+		return err
+	}
 
 	bigtableType := md.Type.BigtableSqlType()
 	if needsByteConversion {
 		bigtableType = bigtable.BytesSQLType{}
 	}
-	// drop the leading '@' symbol
-	result[string(param.Placeholder)[1:]] = bigtableType
+	result[string(param.Parameter)] = bigtableType
+	return nil
 }

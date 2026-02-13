@@ -8,7 +8,6 @@ import (
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/utilities"
 	"github.com/datastax/go-cassandra-native-protocol/primitive"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -335,7 +334,7 @@ func removeSetElements(keys []types.GoValue, colFamily types.ColumnFamily, outpu
 }
 
 // addMapEntries adds key-value pairs to a map column in raw queries.
-// Handles type validation and conversion for both keys and values.
+// Handles type validation and conversion for both keys and positionalValues.
 // Returns error if key/value types don't match map types or conversion fails.
 func addMapEntries(mapValue map[types.GoValue]types.GoValue, mt *types.MapType, column *types.Column, output *types.BigtableWriteMutation) error {
 	for k, v := range mapValue {
@@ -377,34 +376,58 @@ func removeMapEntries(keys []types.GoValue, column *types.Column, output *types.
 // BindQueryParams handles collection operations in prepared queries.
 // Processes set, list, and map operations.
 // Returns error if collection type is invalid or value encoding fails.
-func BindQueryParams(params *types.QueryParameters, values []*primitive.Value, pv primitive.ProtocolVersion) (*types.QueryParameterValues, error) {
-	if params.Count() != len(values) {
-		return nil, fmt.Errorf("expected %d prepared values but got %d", params.Count(), len(values))
+func BindQueryParams(params *types.QueryParameters, positionalValues []*primitive.Value, namedValues map[string]*primitive.Value, pv primitive.ProtocolVersion) (*types.QueryParameterValues, error) {
+	if len(positionalValues) > 0 && len(namedValues) > 0 {
+		return nil, fmt.Errorf("cannot bind both named and positional parameters")
 	}
+	// determine binding function based on what we get, because clients may still send positional values, even if named values are used, to save on bandwidth
+	if len(positionalValues) > 0 {
+		return bindPositionalParams(params, positionalValues, pv)
+	} else {
+		return bindNamedParams(params, namedValues, pv)
+	}
+}
 
+func bindPositionalParams(params *types.QueryParameters, values []*primitive.Value, pv primitive.ProtocolVersion) (*types.QueryParameterValues, error) {
+	if params.Count() != len(values) {
+		return nil, fmt.Errorf("expected %d prepared positional values but got %d", params.Count(), len(values))
+	}
 	result := types.NewQueryParameterValues(params, time.Now())
+	for i, param := range params.Ordered() {
+		goVal, err := cassandraValueToGoValue(param.Type, values[i], pv)
+		if err != nil {
+			return nil, err
+		}
+		err = result.SetValue(param.Key, goVal)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return result, nil
+}
 
-	for i, param := range params.AllKeys() {
-		value := values[i]
-		md := params.GetMetadata(param)
+func bindNamedParams(params *types.QueryParameters, values map[string]*primitive.Value, pv primitive.ProtocolVersion) (*types.QueryParameterValues, error) {
+	if params.Count() != len(values) {
+		return nil, fmt.Errorf("expected %d prepared named values but got %d", params.Count(), len(values))
+	}
+	result := types.NewQueryParameterValues(params, time.Now())
+	for param, value := range values {
+		md, err := params.GetMetadata(types.Parameter(param))
+		if err != nil {
+			return nil, err
+		}
+		if !md.IsNamed {
+			return nil, fmt.Errorf("cannot bind named parameters to positional parameters")
+		}
 		goVal, err := cassandraValueToGoValue(md.Type, value, pv)
 		if err != nil {
 			return nil, err
 		}
-		err = result.SetValue(param, goVal)
+		err = result.SetValue(md.Key, goVal)
 		if err != nil {
 			return nil, err
 		}
 	}
-
-	// make sure the param counts match to prevent silent failures
-	if result.AllValuesSet() {
-		err := ValidateAllParamsSet(params, result.AsMap())
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	return result, nil
 }
 
@@ -426,21 +449,6 @@ func BindSelectColumns(table *schemaMapping.TableSchema, selectedColumns []types
 		boundColumns = append(boundColumns, bc)
 	}
 	return boundColumns, nil
-}
-
-func ValidateAllParamsSet(q *types.QueryParameters, values map[types.Placeholder]types.GoValue) error {
-	var missingParams []string
-	keys := q.AllKeys()
-	for _, p := range keys {
-		_, ok := values[p]
-		if !ok {
-			missingParams = append(missingParams, string(p))
-		}
-	}
-	if len(missingParams) > 0 {
-		return fmt.Errorf("missing %d/%d parameters: %s", len(keys)-len(missingParams), len(keys), strings.Join(missingParams, ", "))
-	}
-	return nil
 }
 
 func BindUsingTimestamp(value types.DynamicValue, values *types.QueryParameterValues) (*types.BoundTimestampInfo, error) {

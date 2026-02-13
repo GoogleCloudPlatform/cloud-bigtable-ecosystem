@@ -12,7 +12,7 @@ type DropTableQuery struct {
 	IfExists bool
 }
 
-func (d *DropTableQuery) InitialValues() map[Placeholder]GoValue {
+func (d *DropTableQuery) InitialValues() map[Parameter]GoValue {
 	return nil
 }
 

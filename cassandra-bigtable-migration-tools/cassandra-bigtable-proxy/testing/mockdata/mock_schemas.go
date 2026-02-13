@@ -22,6 +22,7 @@ import (
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/third_party/datastax/proxycore"
 	"github.com/datastax/go-cassandra-native-protocol/primitive"
 	"log"
+	"strconv"
 	"time"
 )
 
@@ -109,11 +110,20 @@ func GetSchemaMappingConfig() *schemaMapping.SchemaMetadata {
 }
 
 func CreateQueryParams(values []*types.TypedGoValue) (*types.QueryParameterValues, error) {
-	params := types.NewQueryParameters()
-	result := types.NewQueryParameterValues(params, time.Now())
+	params := types.NewQueryParameterBuilder()
 
 	for _, v := range values {
-		p := params.PushParameter(v.Type, nil)
+		_, _ = params.AddPositionalParam(v.Type, nil)
+	}
+
+	builtParams, err := params.Build()
+	if err != nil {
+		return nil, err
+	}
+	result := types.NewQueryParameterValues(builtParams, time.Now())
+
+	for i, v := range values {
+		p := types.Parameter("value" + strconv.Itoa(i))
 		err := result.SetValue(p, v.Value)
 		if err != nil {
 			return nil, err

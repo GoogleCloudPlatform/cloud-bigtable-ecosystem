@@ -387,10 +387,14 @@ func TestMutateRowInvalidKeyspace(t *testing.T) {
 	assert.Contains(t, err.Error(), "bigtable client not found for keyspace 'invalid-keyspace'")
 }
 
-func wasApplied(result *message.RowsResult) bool {
-	if len(result.Data) == 0 || len(result.Data[0]) == 0 {
+func wasApplied(result message.Message) bool {
+	rowsResult, ok := result.(*message.RowsResult)
+	if !ok {
+		return false
+	}
+	if len(rowsResult.Data) == 0 || len(rowsResult.Data[0]) == 0 {
 		return false
 	}
 	// The CQL boolean type is represented as a single byte, 0 for false, 1 for true.
-	return result.Data[0][0][0] == 0x01
+	return rowsResult.Data[0][0][0] == 0x01
 }

@@ -238,7 +238,7 @@ func ToBtql(dynamicValue types.DynamicValue) (string, error) {
 	case *types.LiteralValue:
 		return utilities.GoToString(v.Value)
 	case *types.ParameterizedValue:
-		return string(v.Placeholder), nil
+		return "@" + string(v.Parameter), nil
 	case *types.TimestampNowValue:
 		return "CURRENT_TIMESTAMP()", nil
 	default:

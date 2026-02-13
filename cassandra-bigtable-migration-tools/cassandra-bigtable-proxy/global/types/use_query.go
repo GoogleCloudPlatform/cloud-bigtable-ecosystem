@@ -10,7 +10,7 @@ type UseTableStatementMap struct {
 	keyspace Keyspace
 }
 
-func (u *UseTableStatementMap) InitialValues() map[Placeholder]GoValue {
+func (u *UseTableStatementMap) InitialValues() map[Parameter]GoValue {
 	return nil
 }
 

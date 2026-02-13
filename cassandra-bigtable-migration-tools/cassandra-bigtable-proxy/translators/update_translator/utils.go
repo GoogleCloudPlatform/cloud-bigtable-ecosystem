@@ -9,7 +9,7 @@ import (
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/translators/common"
 )
 
-func parseUpdateValues(assignments []cql.IAssignmentElementContext, tableConfig *schemaMapping.TableSchema, params *types.QueryParameters) ([]types.Assignment, error) {
+func parseUpdateValues(assignments []cql.IAssignmentElementContext, tableConfig *schemaMapping.TableSchema, params *types.QueryParameterBuilder) ([]types.Assignment, error) {
 	if len(assignments) == 0 {
 		return nil, errors.New("invalid input")
 	}
@@ -78,7 +78,7 @@ func parseUpdateValues(assignments []cql.IAssignmentElementContext, tableConfig 
 	return parsed, nil
 }
 
-func ParseAppend(columnContext cql.IColumnContext, op cql.IArithmeticOperatorContext, valueAny cql.IValueAnyContext, isPrepend bool, tableConfig *schemaMapping.TableSchema, params *types.QueryParameters) (types.Assignment, error) {
+func ParseAppend(columnContext cql.IColumnContext, op cql.IArithmeticOperatorContext, valueAny cql.IValueAnyContext, isPrepend bool, tableConfig *schemaMapping.TableSchema, params *types.QueryParameterBuilder) (types.Assignment, error) {
 	col, err := common.ParseColumnContext(tableConfig, columnContext)
 	if err != nil {
 		return nil, err

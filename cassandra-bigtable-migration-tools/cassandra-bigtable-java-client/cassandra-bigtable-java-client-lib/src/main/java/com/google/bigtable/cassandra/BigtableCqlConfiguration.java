@@ -16,6 +16,7 @@ package com.google.bigtable.cassandra;
 
 import com.google.auto.value.AutoValue;
 import com.google.common.base.Preconditions;
+
 import java.util.Optional;
 import java.util.OptionalInt;
 
@@ -33,53 +34,52 @@ public abstract class BigtableCqlConfiguration {
   private static final String DEFAULT_APP_PROFILE_ID = "default";
 
   /**
-   * @see BigtableCqlConfiguration.Builder#setProjectId(String)
-   *
    * @return The Google Cloud project ID.
+   * @see BigtableCqlConfiguration.Builder#setProjectId(String)
    */
   public abstract String getProjectId();
 
   /**
-   * @see BigtableCqlConfiguration.Builder#setInstanceId(String)
-   *
    * @return The Bigtable instance ID.
+   * @see BigtableCqlConfiguration.Builder#setInstanceId(String)
    */
   public abstract String getInstanceId();
 
   /**
-   * @see BigtableCqlConfiguration.Builder#setAppProfileId(String)
-   *
    * @return An {@link Optional} containing the Bigtable app profile ID.
+   * @see BigtableCqlConfiguration.Builder#setAppProfileId(String)
    */
   public abstract Optional<String> getAppProfileId();
 
   /**
-   * @see BigtableCqlConfiguration.Builder#setSchemaMappingTable
-   *
    * @return An {@link Optional} containing the schema mapping table name.
+   * @see BigtableCqlConfiguration.Builder#setSchemaMappingTable
    */
   public abstract Optional<String> getSchemaMappingTable();
 
   /**
-   * @see BigtableCqlConfiguration.Builder#setDefaultColumnFamily(String)
-   *
    * @return An {@link Optional} containing the default column family name.
+   * @see BigtableCqlConfiguration.Builder#setDefaultColumnFamily(String)
    */
   public abstract Optional<String> getDefaultColumnFamily();
 
   /**
-   * @see BigtableCqlConfiguration.Builder#setBigtableChannelPoolSize(int)
-   *
    * @return An {@link OptionalInt} containing the Bigtable channel pool size.
+   * @see BigtableCqlConfiguration.Builder#setBigtableChannelPoolSize(int)
    */
   public abstract OptionalInt getBigtableChannelPoolSize();
 
   /**
-   * @see BigtableCqlConfiguration.Builder#enableOpenTelemetry(OpenTelemetryConfiguration)
-   *
    * @return An {@link Optional} containing the {@link OpenTelemetryConfiguration}.
+   * @see BigtableCqlConfiguration.Builder#enableOpenTelemetry(OpenTelemetryConfiguration)
    */
   public abstract Optional<OpenTelemetryConfiguration> getOpenTelemetryConfiguration();
+
+  /**
+   * @return An {@link Optional} containing the default keyspace for the session.
+   * @see BigtableCqlConfiguration.Builder#setDefaultKeyspace
+   */
+  public abstract Optional<String> getDefaultKeyspace();
 
   /**
    * Creates a new {@link Builder} for {@link BigtableCqlConfiguration}.
@@ -94,7 +94,8 @@ public abstract class BigtableCqlConfiguration {
         .setSchemaMappingTable(DEFAULT_SCHEMA_MAPPING_TABLE)
         .setDefaultColumnFamily(DEFAULT_COLUMN_FAMILY)
         .setBigtableChannelPoolSize(DEFAULT_BIGTABLE_CHANNEL_POOL_SIZE)
-        .setAppProfileId(DEFAULT_APP_PROFILE_ID);
+        .setAppProfileId(DEFAULT_APP_PROFILE_ID)
+        .setDefaultKeyspace(Optional.empty());
   }
 
   /**
@@ -167,6 +168,19 @@ public abstract class BigtableCqlConfiguration {
      */
     public Builder setDefaultColumnFamily(String defaultColumnFamily) {
       this.setDefaultColumnFamily(Optional.of(defaultColumnFamily));
+      return this;
+    }
+
+    abstract Builder setDefaultKeyspace(Optional<String> keyspace);
+
+    /**
+     * Sets the default keyspace for the session.
+     *
+     * @param keyspace The default keyspace to use.
+     * @return This {@link Builder} instance.
+     */
+    public Builder setDefaultKeyspace(String keyspace) {
+      this.setDefaultKeyspace(Optional.of(keyspace));
       return this;
     }
 

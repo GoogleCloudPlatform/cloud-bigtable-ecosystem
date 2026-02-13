@@ -94,8 +94,8 @@ func (t *TranslatorManager) TranslateQuery(q *types.RawQuery, sessionKeyspace ty
 	return preparedQuery, err
 }
 
-func (t *TranslatorManager) BindQuery(st types.IPreparedQuery, cassandraValues []*primitive.Value, pv primitive.ProtocolVersion) (types.IExecutableQuery, error) {
-	values, err := common.BindQueryParams(st.Parameters(), cassandraValues, pv)
+func (t *TranslatorManager) BindQuery(st types.IPreparedQuery, cassandraValues []*primitive.Value, namedValues map[string]*primitive.Value, pv primitive.ProtocolVersion) (types.IExecutableQuery, error) {
+	values, err := common.BindQueryParams(st.Parameters(), cassandraValues, namedValues, pv)
 	if err != nil {
 		return nil, err
 	}

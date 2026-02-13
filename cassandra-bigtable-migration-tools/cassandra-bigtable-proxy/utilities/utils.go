@@ -772,7 +772,7 @@ func GetValueMap(value types.DynamicValue, values *types.QueryParameterValues) (
 	// 3. Iterate over the keys of the original map
 	iter := val.MapRange()
 	for iter.Next() {
-		// Get the reflection Placeholder for the key and the value
+		// Get the reflection Parameter for the key and the value
 		keyVal := iter.Key()
 		valueVal := iter.Value()
 

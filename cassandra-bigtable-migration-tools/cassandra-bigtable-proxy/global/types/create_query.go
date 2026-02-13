@@ -15,7 +15,7 @@ type CreateTableStatementMap struct {
 	IntRowKeyEncoding IntRowKeyEncodingType
 }
 
-func (c *CreateTableStatementMap) InitialValues() map[Placeholder]GoValue {
+func (c *CreateTableStatementMap) InitialValues() map[Parameter]GoValue {
 	return nil
 }
 

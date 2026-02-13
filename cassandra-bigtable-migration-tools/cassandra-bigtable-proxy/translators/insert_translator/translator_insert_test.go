@@ -31,7 +31,7 @@ type Want struct {
 	IfNotExists    bool
 	Assignments    []types.Assignment
 	UsingTimestamp types.DynamicValue
-	AllParams      []types.Placeholder
+	AllParams      []*types.ParameterMetadata
 }
 
 func TestSelectTranslator_Translate(t *testing.T) {
@@ -50,12 +50,77 @@ func TestSelectTranslator_Translate(t *testing.T) {
 				Table:       "test_table",
 				IfNotExists: false,
 				Assignments: []types.Assignment{
-					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk1"), types.NewParameterizedValue("@value0")),
-					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk2"), types.NewParameterizedValue("@value1")),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk1"), types.NewParameterizedValue("value0")),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk2"), types.NewParameterizedValue("value1")),
 				},
-				AllParams: []types.Placeholder{
-					"@value0",
-					"@value1",
+				AllParams: []*types.ParameterMetadata{
+					{
+						Key:    "value0",
+						Order:  0,
+						Type:   types.TypeVarchar,
+						Column: mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk1"),
+					},
+					{
+						Key:    "value1",
+						Order:  1,
+						Type:   types.TypeVarchar,
+						Column: mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk2"),
+					},
+				},
+			},
+		},
+		{
+			name:  "success with prepared query using named markers",
+			query: "INSERT INTO test_keyspace.test_table (pk1, pk2) VALUES (:v_1, :v_2)",
+			want: &Want{
+				Keyspace:    "test_keyspace",
+				Table:       "test_table",
+				IfNotExists: false,
+				Assignments: []types.Assignment{
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk1"), types.NewParameterizedValue("v_1")),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk2"), types.NewParameterizedValue("v_2")),
+				},
+				AllParams: []*types.ParameterMetadata{
+					{
+						Key:     "v_1",
+						Order:   0,
+						Type:    types.TypeVarchar,
+						IsNamed: true,
+					},
+					{
+						Key:     "v_2",
+						Order:   1,
+						Type:    types.TypeVarchar,
+						IsNamed: true,
+					},
+				},
+			},
+		},
+		{
+			name:  "duplicate named markers",
+			query: "INSERT INTO test_keyspace.test_table (pk1, pk2, col_int) VALUES (:pk, :pk, :i)",
+			want: &Want{
+				Keyspace:    "test_keyspace",
+				Table:       "test_table",
+				IfNotExists: false,
+				Assignments: []types.Assignment{
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk1"), types.NewParameterizedValue("pk")),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk2"), types.NewParameterizedValue("pk")),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_int"), types.NewParameterizedValue("i")),
+				},
+				AllParams: []*types.ParameterMetadata{
+					{
+						Key:     "pk",
+						Order:   0,
+						Type:    types.TypeVarchar,
+						IsNamed: true,
+					},
+					{
+						Key:     "i",
+						Order:   1,
+						Type:    types.TypeInt,
+						IsNamed: true,
+					},
 				},
 			},
 		},
@@ -67,24 +132,64 @@ func TestSelectTranslator_Translate(t *testing.T) {
 				Table:       "test_table",
 				IfNotExists: false,
 				Assignments: []types.Assignment{
-					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk2"), types.NewParameterizedValue("@value0")),
-					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"), types.NewParameterizedValue("@value1")),
-					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_bool"), types.NewParameterizedValue("@value2")),
-					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "list_text"), types.NewParameterizedValue("@value3")),
-					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_int"), types.NewParameterizedValue("@value4")),
-					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_bigint"), types.NewParameterizedValue("@value5")),
-					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk1"), types.NewParameterizedValue("@value6")),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk2"), types.NewParameterizedValue("value0")),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"), types.NewParameterizedValue("value1")),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_bool"), types.NewParameterizedValue("value2")),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "list_text"), types.NewParameterizedValue("value3")),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_int"), types.NewParameterizedValue("value4")),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_bigint"), types.NewParameterizedValue("value5")),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk1"), types.NewParameterizedValue("value6")),
 				},
-				UsingTimestamp: types.NewParameterizedValue("@value7"),
-				AllParams: []types.Placeholder{
-					"@value0",
-					"@value1",
-					"@value2",
-					"@value3",
-					"@value4",
-					"@value5",
-					"@value6",
-					"@value7",
+				UsingTimestamp: types.NewParameterizedValue("value7"),
+				AllParams: []*types.ParameterMetadata{
+					{
+						Key:    "value0",
+						Order:  0,
+						Type:   types.TypeVarchar,
+						Column: mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk2"),
+					},
+					{
+						Key:    "value1",
+						Order:  1,
+						Type:   types.TypeBlob,
+						Column: mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"),
+					},
+					{
+						Key:    "value2",
+						Order:  2,
+						Type:   types.TypeBoolean,
+						Column: mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_bool"),
+					},
+					{
+						Key:    "value3",
+						Order:  3,
+						Type:   types.NewListType(types.TypeText),
+						Column: mockdata.GetColumnOrDie("test_keyspace", "test_table", "list_text"),
+					},
+					{
+						Key:    "value4",
+						Order:  4,
+						Type:   types.TypeInt,
+						Column: mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_int"),
+					},
+					{
+						Key:    "value5",
+						Order:  5,
+						Type:   types.TypeBigInt,
+						Column: mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_bigint"),
+					},
+					{
+						Key:    "value6",
+						Order:  6,
+						Type:   types.TypeVarchar,
+						Column: mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk1"),
+					},
+					{
+						Key:    "value7",
+						Order:  7,
+						Type:   types.TypeBigInt,
+						Column: nil,
+					},
 				},
 			},
 		},
@@ -104,6 +209,7 @@ func TestSelectTranslator_Translate(t *testing.T) {
 					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_bigint"), types.NewLiteralValue(int64(8242842848))),
 					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk1"), types.NewLiteralValue("org1")),
 				},
+				AllParams:      []*types.ParameterMetadata{},
 				UsingTimestamp: types.NewLiteralValue(int64(234242424)),
 			},
 		},
@@ -120,12 +226,22 @@ func TestSelectTranslator_Translate(t *testing.T) {
 				Table:       "test_table",
 				IfNotExists: false,
 				Assignments: []types.Assignment{
-					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk1"), types.NewParameterizedValue("@value0")),
-					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk2"), types.NewParameterizedValue("@value1")),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk1"), types.NewParameterizedValue("value0")),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk2"), types.NewParameterizedValue("value1")),
 				},
-				AllParams: []types.Placeholder{
-					"@value0",
-					"@value1",
+				AllParams: []*types.ParameterMetadata{
+					{
+						Key:    "value0",
+						Order:  0,
+						Type:   types.TypeVarchar,
+						Column: mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk1"),
+					},
+					{
+						Key:    "value1",
+						Order:  1,
+						Type:   types.TypeVarchar,
+						Column: mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk2"),
+					},
 				},
 			},
 			sessionKeyspace: "test_keyspace",
@@ -141,6 +257,7 @@ func TestSelectTranslator_Translate(t *testing.T) {
 					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk2"), types.NewLiteralValue("pkval")),
 					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "map_text_text"), types.NewLiteralValue(map[types.GoValue]types.GoValue{"foo": "bar", "key:": ":value", "k}": "{v:k}"})),
 				},
+				AllParams: []*types.ParameterMetadata{},
 			},
 		},
 		{
@@ -154,6 +271,7 @@ func TestSelectTranslator_Translate(t *testing.T) {
 					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk2"), types.NewLiteralValue("pkva'l")),
 					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_int"), types.NewLiteralValue(int32(3))),
 				},
+				AllParams: []*types.ParameterMetadata{},
 			},
 		},
 		{
@@ -226,7 +344,7 @@ func TestSelectTranslator_Translate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tr := NewInsertTranslator(mockdata.GetSchemaMappingConfig())
-			got, err := tr.Translate(types.NewRawQuery(nil, tt.sessionKeyspace, tt.query, parser.NewParser(tt.query), types.QueryTypeDelete), tt.sessionKeyspace)
+			got, err := tr.Translate(types.NewRawQuery(nil, tt.sessionKeyspace, tt.query, parser.NewParser(tt.query), types.QueryTypeInsert), tt.sessionKeyspace)
 
 			if tt.wantErr != "" {
 				require.Error(t, err)
@@ -240,7 +358,7 @@ func TestSelectTranslator_Translate(t *testing.T) {
 			assert.Equal(t, tt.want.Table, gotInsert.Table())
 			assert.Equal(t, tt.want.IfNotExists, gotInsert.IfNotExists)
 			assert.Equal(t, tt.want.Assignments, gotInsert.Assignments)
-			assert.Equal(t, tt.want.AllParams, gotInsert.Parameters().AllKeys())
+			assert.ElementsMatch(t, tt.want.AllParams, gotInsert.Parameters().Ordered())
 		})
 	}
 }

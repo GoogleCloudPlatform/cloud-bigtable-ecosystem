@@ -15,10 +15,10 @@ func TestBindRowKeyTimestampPrecision(t *testing.T) {
 	millis := time.UnixMilli(1767727307246)
 	table := mockdata.GetTableOrDie("test_keyspace", "timestamp_key")
 
-	rowKeyMicro, err := BindRowKey(table, []types.DynamicValue{types.NewLiteralValue(micro)}, types.NewQueryParameterValues(types.NewQueryParameters(), time.Now()))
+	rowKeyMicro, err := BindRowKey(table, []types.DynamicValue{types.NewLiteralValue(micro)}, types.NewQueryParameterValues(types.NewEmptyQueryParameters(), time.Now()))
 	require.NoError(t, err)
 
-	rowKeyMillis, err := BindRowKey(table, []types.DynamicValue{types.NewLiteralValue(millis)}, types.NewQueryParameterValues(types.NewQueryParameters(), time.Now()))
+	rowKeyMillis, err := BindRowKey(table, []types.DynamicValue{types.NewLiteralValue(millis)}, types.NewQueryParameterValues(types.NewEmptyQueryParameters(), time.Now()))
 	require.NoError(t, err)
 
 	// ensure microseconds are truncated because Bigtable uses microseconds for keys but Cassandra uses milliseconds
@@ -75,7 +75,7 @@ func TestBindRowKey(t *testing.T) {
 			for _, v := range tt.values {
 				values = append(values, types.NewLiteralValue(v))
 			}
-			rowKey, err := BindRowKey(tt.table, values, types.NewQueryParameterValues(types.NewQueryParameters(), time.Now()))
+			rowKey, err := BindRowKey(tt.table, values, types.NewQueryParameterValues(types.NewEmptyQueryParameters(), time.Now()))
 			if tt.err != "" {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), tt.err)

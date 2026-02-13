@@ -669,7 +669,7 @@ usingTtlTimestamp
    ;
 
 timestamp
-   : kwTimestamp decimalLiteral
+   : kwTimestamp (marker | decimalLiteral)
    ;
 
 ttl
@@ -723,7 +723,7 @@ allowFilteringSpec
    ;
 
 limitSpec
-   : kwLimit decimalLiteral
+   : kwLimit (marker | decimalLiteral)
    ;
 kwLike
    : K_LIKE
@@ -822,8 +822,12 @@ relationLike
    : column kwLike constant
    ;
 
+marker
+  : QUESTION_MARK | NAMED_MARK
+  ;
+
 tupleValue
-  : QUESTION_MARK | '(' functionArgs ')'
+  : marker | '(' functionArgs ')'
   ;
 
 relationIn
@@ -850,7 +854,7 @@ functionArgs
    ;
 
 valueAny
-   : QUESTION_MARK
+   : marker
    | constant
    | functionCall
    | valueMap
@@ -860,7 +864,7 @@ valueAny
    ;
 
 constant
-   : QUESTION_MARK
+   : marker
    | kwNull
    | UUID
    | stringLiteral
@@ -873,7 +877,6 @@ constant
 
 decimalLiteral
    : DECIMAL_LITERAL
-   | QUESTION_MARK
    ;
 
 floatLiteral
@@ -909,6 +912,7 @@ table
 
 column
    : OBJECT_NAME
+   | kwType
    | K_KEY // hack to handle some queries to system.local with unquoted key column reference from cqlsh
    | DQUOTE OBJECT_NAME DQUOTE
    ;

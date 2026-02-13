@@ -41,7 +41,7 @@ func (t *DeleteTranslator) Translate(query *types.RawQuery, sessionKeyspace type
 
 	var ifExist = deleteObj.IfExist() != nil
 
-	params := types.NewQueryParameters()
+	params := types.NewQueryParameterBuilder()
 
 	selectedColumns, err := parseDeleteColumns(deleteObj.DeleteColumnList(), table)
 	if err != nil {
@@ -62,7 +62,12 @@ func (t *DeleteTranslator) Translate(query *types.RawQuery, sessionKeyspace type
 		return nil, err
 	}
 
-	st := types.NewPreparedDeleteQuery(keyspaceName, tableName, ifExist, query.RawCql(), rowKeys, params, selectedColumns)
+	builtParams, err := params.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	st := types.NewPreparedDeleteQuery(keyspaceName, tableName, ifExist, query.RawCql(), rowKeys, builtParams, selectedColumns)
 
 	return st, nil
 }
