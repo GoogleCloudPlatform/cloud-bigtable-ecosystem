@@ -1,0 +1,29 @@
+{
+  "orderId": "ORD-999",
+  "userId": "USER-42",
+  "products": {
+    "list": [
+      {
+        "element": {
+          "name": "Ball",
+          "id": "PROD-123",
+          "quantity": 5
+        }
+      },
+      {
+        "element": {
+          "name": "Car",
+          "id": "PROD-456",
+          "quantity": 1
+        }
+      },
+      {
+        "element": {
+          "name": "Tambourine",
+          "id": "PROD-789",
+          "quantity": 2
+        }
+      }
+    ]
+  }
+}
