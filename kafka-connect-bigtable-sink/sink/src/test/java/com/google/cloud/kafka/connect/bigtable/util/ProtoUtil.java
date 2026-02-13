@@ -16,8 +16,11 @@ public class ProtoUtil {
   public static String toProto(MutationData mutation) {
     try {
       RequestContext context = RequestContext.create("project", "instance", "profile");
+
       RowMutation rowMutation = RowMutation.create(TableId.of(mutation.getTargetTable()), mutation.getRowKey(), mutation.getInsertMutation());
+
       MutateRowRequest request = rowMutation.toProto(context);
+
       return JsonFormat.printer().print(request);
     } catch (Exception e) {
       return "Conversion failed: " + e.getMessage();

@@ -1,0 +1,12 @@
+{
+  "type": "struct",
+  "fields": [
+    { "field": "id", "type": "int32" },
+    { "field": "meta", "type": "struct", "fields": [
+        { "field": "source", "type": "string" },
+        { "field": "retry_count", "type": "int32", "optional": true }
+      ]
+    },
+    { "field": "tags", "type": "array", "items": { "type": "string" } }
+  ]
+}

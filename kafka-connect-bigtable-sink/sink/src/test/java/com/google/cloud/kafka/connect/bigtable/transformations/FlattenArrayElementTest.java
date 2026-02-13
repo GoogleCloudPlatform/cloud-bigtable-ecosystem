@@ -429,4 +429,49 @@ public class FlattenArrayElementTest {
     assertEquals("PROD-789", resultList.get(2).getString("id"));
     assertEquals(2, resultList.get(2).getInt32("quantity").intValue());
   }
+
+  @Test
+  public void testApplyMixedNulls() {
+    FlattenArrayElement<SourceRecord> smt = getTransformer();
+
+    Schema productSchema = SchemaBuilder.struct().optional()
+        .field("name", Schema.STRING_SCHEMA)
+        .build();
+
+    Schema elementSchema = SchemaBuilder.struct().field("element", productSchema).optional().build();
+
+    Schema schema = SchemaBuilder.struct()
+        .field("products",
+            SchemaBuilder.struct().field("list", SchemaBuilder.array(elementSchema)).build()
+        )
+        .build();
+
+    // 1. null element wrapper
+    // 2. element wrapper with null value
+    // 3. valid element
+    Struct productElement2 = new Struct(elementSchema).put("element", null);
+    Struct productElement3 = new Struct(elementSchema).put("element", new Struct(productSchema).put("name", "Ball"));
+
+    List<Struct> productList = Arrays.asList(null, productElement2, productElement3);
+
+    Struct productsWrapper = new Struct(schema.field("products").schema())
+        .put("list", productList);
+
+    Struct value = new Struct(schema).put("products", productsWrapper);
+
+    SourceRecord record = new SourceRecord(null, null, "test-topic", 0,
+        null, null, value.schema(), value);
+
+    SourceRecord transformedRecord = smt.apply(record);
+
+    assertNotNull(transformedRecord);
+    Struct resultValue = (Struct) transformedRecord.value();
+
+    List<Struct> resultList = resultValue.getArray("products");
+    assertEquals(3, resultList.size());
+
+    assertNull(resultList.get(0));
+    assertNull(resultList.get(1));
+    assertEquals("Ball", resultList.get(2).getString("name"));
+  }
 }
