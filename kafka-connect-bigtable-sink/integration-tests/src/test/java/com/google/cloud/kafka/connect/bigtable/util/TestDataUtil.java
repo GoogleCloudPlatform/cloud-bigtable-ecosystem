@@ -10,7 +10,10 @@ import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.json.JsonConverter;
 import org.apache.kafka.connect.util.clusters.EmbeddedConnectCluster;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
 public class TestDataUtil {
   private static final ObjectMapper objectMapper = new ObjectMapper();
