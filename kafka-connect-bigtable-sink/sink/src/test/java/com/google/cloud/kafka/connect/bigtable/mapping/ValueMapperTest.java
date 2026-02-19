@@ -15,6 +15,12 @@
  */
 package com.google.cloud.kafka.connect.bigtable.mapping;
 
+import static com.google.cloud.kafka.connect.bigtable.util.MockUtil.assertTotalNumberOfInvocations;
+import static com.google.cloud.kafka.connect.bigtable.util.NestedNullStructFactory.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.*;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -25,6 +31,11 @@ import com.google.cloud.kafka.connect.bigtable.config.ConfigInterpolation;
 import com.google.cloud.kafka.connect.bigtable.config.NullValueMode;
 import com.google.cloud.kafka.connect.bigtable.util.ProtoUtil;
 import com.google.protobuf.ByteString;
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -32,18 +43,6 @@ import org.apache.kafka.connect.data.Struct;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-
-import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.*;
-
-import static com.google.cloud.kafka.connect.bigtable.util.MockUtil.assertTotalNumberOfInvocations;
-import static com.google.cloud.kafka.connect.bigtable.util.NestedNullStructFactory.*;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.*;
 
 @RunWith(JUnit4.class)
 public class ValueMapperTest {
@@ -134,7 +133,7 @@ public class ValueMapperTest {
 
   @Test
   public void testBytes() {
-    byte[] value = new byte[]{(byte) 37, (byte) 21};
+    byte[] value = new byte[] {(byte) 37, (byte) 21};
     ByteString expected = ByteString.copyFrom(value);
     ValueMapper mapper =
         new TestValueMapper(DEFAULT_COLUMN_FAMILY, DEFAULT_COLUMN, NullValueMode.IGNORE, false);
@@ -254,7 +253,8 @@ public class ValueMapperTest {
     Struct struct = new Struct(SchemaBuilder.struct().field(key, Schema.INT64_SCHEMA));
     struct.put(key, value);
 
-    ValueMapper mapper = new TestValueMapper(DEFAULT_COLUMN_FAMILY, null, NullValueMode.WRITE, false);
+    ValueMapper mapper =
+        new TestValueMapper(DEFAULT_COLUMN_FAMILY, null, NullValueMode.WRITE, false);
     MutationDataBuilder mutationDataBuilder = getRecordMutationDataBuilder(mapper, struct);
     verify(mutationDataBuilder, times(1))
         .setCell(
@@ -270,7 +270,8 @@ public class ValueMapperTest {
   public void testDefaultColumnFamilyInterpolation() {
     String topic = "TOPIC";
     String value = "value";
-    ValueMapper mapper = new TestValueMapper("${topic}", DEFAULT_COLUMN, NullValueMode.WRITE, false);
+    ValueMapper mapper =
+        new TestValueMapper("${topic}", DEFAULT_COLUMN, NullValueMode.WRITE, false);
     MutationDataBuilder mutationDataBuilder = getRecordMutationDataBuilder(mapper, value, topic);
     verify(mutationDataBuilder, times(1))
         .setCell(
@@ -301,11 +302,11 @@ public class ValueMapperTest {
             .put(deleteColumn, null);
     Struct struct =
         new Struct(
-            SchemaBuilder.struct()
-                .field(setColumnFamily, createStruct.schema())
-                .field(setRoot, Schema.BOOLEAN_SCHEMA)
-                .field(deleteColumnFamily, deleteStruct.schema())
-                .field(deleteRoot, Schema.OPTIONAL_INT8_SCHEMA))
+                SchemaBuilder.struct()
+                    .field(setColumnFamily, createStruct.schema())
+                    .field(setRoot, Schema.BOOLEAN_SCHEMA)
+                    .field(deleteColumnFamily, deleteStruct.schema())
+                    .field(deleteRoot, Schema.OPTIONAL_INT8_SCHEMA))
             .put(setColumnFamily, createStruct)
             .put(setRoot, rootValue)
             .put(deleteColumnFamily, deleteStruct)
@@ -390,15 +391,15 @@ public class ValueMapperTest {
 
     Struct structToBeJsonified =
         new Struct(
-            SchemaBuilder.struct()
-                .field(dateFieldName, org.apache.kafka.connect.data.Date.SCHEMA)
-                .field(timestampFieldName, org.apache.kafka.connect.data.Timestamp.SCHEMA)
-                .field(timeFieldName, org.apache.kafka.connect.data.Timestamp.SCHEMA)
-                .field(
-                    decimalFieldName,
-                    org.apache.kafka.connect.data.Decimal.schema(decimalScale))
-                .field(bytesFieldName, Schema.BYTES_SCHEMA)
-                .build())
+                SchemaBuilder.struct()
+                    .field(dateFieldName, org.apache.kafka.connect.data.Date.SCHEMA)
+                    .field(timestampFieldName, org.apache.kafka.connect.data.Timestamp.SCHEMA)
+                    .field(timeFieldName, org.apache.kafka.connect.data.Timestamp.SCHEMA)
+                    .field(
+                        decimalFieldName,
+                        org.apache.kafka.connect.data.Decimal.schema(decimalScale))
+                    .field(bytesFieldName, Schema.BYTES_SCHEMA)
+                    .build())
             .put(dateFieldName, date)
             .put(timestampFieldName, timestamp)
             .put(timeFieldName, time)
@@ -583,7 +584,8 @@ public class ValueMapperTest {
     Struct struct =
         new Struct(SchemaBuilder.struct().field(field, Schema.INT32_SCHEMA)).put(field, value);
 
-    ValueMapper mapper = new TestValueMapper(DEFAULT_COLUMN_FAMILY, null, NullValueMode.IGNORE, false);
+    ValueMapper mapper =
+        new TestValueMapper(DEFAULT_COLUMN_FAMILY, null, NullValueMode.IGNORE, false);
     MutationDataBuilder mutationDataBuilder = getRecordMutationDataBuilder(mapper, struct);
     verify(mutationDataBuilder, times(1))
         .setCell(
@@ -612,26 +614,26 @@ public class ValueMapperTest {
 
     Struct innermostStruct =
         new Struct(
-            SchemaBuilder.struct()
-                .field(valueKey, Schema.STRING_SCHEMA)
-                .field(innermostNullKey, Schema.OPTIONAL_INT8_SCHEMA))
+                SchemaBuilder.struct()
+                    .field(valueKey, Schema.STRING_SCHEMA)
+                    .field(innermostNullKey, Schema.OPTIONAL_INT8_SCHEMA))
             .put(valueKey, value)
             .put(innermostNullKey, null);
     Struct innerStruct =
         new Struct(
-            SchemaBuilder.struct()
-                .field(innerStructKey, innermostStruct.schema())
-                .field(valueKey, Schema.STRING_SCHEMA)
-                .field(columnToBeDeleted, Schema.OPTIONAL_INT8_SCHEMA))
+                SchemaBuilder.struct()
+                    .field(innerStructKey, innermostStruct.schema())
+                    .field(valueKey, Schema.STRING_SCHEMA)
+                    .field(columnToBeDeleted, Schema.OPTIONAL_INT8_SCHEMA))
             .put(innerStructKey, innermostStruct)
             .put(valueKey, value)
             .put(columnToBeDeleted, null);
     Struct outerStruct =
         new Struct(
-            SchemaBuilder.struct()
-                .field(outerStructKey, innerStruct.schema())
-                .field(valueKey, Schema.STRING_SCHEMA)
-                .field(familyToBeDeleted, Schema.OPTIONAL_INT8_SCHEMA))
+                SchemaBuilder.struct()
+                    .field(outerStructKey, innerStruct.schema())
+                    .field(valueKey, Schema.STRING_SCHEMA)
+                    .field(familyToBeDeleted, Schema.OPTIONAL_INT8_SCHEMA))
             .put(outerStructKey, innerStruct)
             .put(valueKey, value)
             .put(familyToBeDeleted, null);
@@ -815,67 +817,68 @@ public class ValueMapperTest {
 
   @Test
   public void testExpandRootLevelArrays() throws JsonProcessingException {
-    ValueMapper mapper =
-        new TestValueMapper(
-            "cf", "", NullValueMode.WRITE, true);
+    ValueMapper mapper = new TestValueMapper("cf", "", NullValueMode.WRITE, true);
 
-    Schema productSchema = SchemaBuilder.struct()
-        .field("name", Schema.STRING_SCHEMA)
-        .field("id", Schema.STRING_SCHEMA)
-        .field("quantity", Schema.INT32_SCHEMA)
-        .build();
+    Schema productSchema =
+        SchemaBuilder.struct()
+            .field("name", Schema.STRING_SCHEMA)
+            .field("id", Schema.STRING_SCHEMA)
+            .field("quantity", Schema.INT32_SCHEMA)
+            .build();
 
-    Schema schema = SchemaBuilder.struct().optional()
-        .field("orderId", Schema.STRING_SCHEMA)
-        .field("userId", Schema.STRING_SCHEMA)
-        .field("products", SchemaBuilder.array(productSchema).build())
-        .build();
-    Struct productElement1 = new Struct(productSchema)
-        .put("name", "Ball")
-        .put("id", "PROD-123")
-        .put("quantity", 5);
-    Struct productElement2 = new Struct(productSchema)
-        .put("name", "Car")
-        .put("id", "PROD-456")
-        .put("quantity", 1);
-    Struct productElement3 = new Struct(productSchema)
-        .put("name", "Tambourine")
-        .put("id", "PROD-789")
-        .put("quantity", 2);
+    Schema schema =
+        SchemaBuilder.struct()
+            .optional()
+            .field("orderId", Schema.STRING_SCHEMA)
+            .field("userId", Schema.STRING_SCHEMA)
+            .field("products", SchemaBuilder.array(productSchema).build())
+            .build();
+    Struct productElement1 =
+        new Struct(productSchema).put("name", "Ball").put("id", "PROD-123").put("quantity", 5);
+    Struct productElement2 =
+        new Struct(productSchema).put("name", "Car").put("id", "PROD-456").put("quantity", 1);
+    Struct productElement3 =
+        new Struct(productSchema)
+            .put("name", "Tambourine")
+            .put("id", "PROD-789")
+            .put("quantity", 2);
 
     // use more than 9 elements to we can see what happens when the column qualifier is > 1 digits
-    List<Struct> productList = Arrays.stream(new Struct[]{
-        // 1
-        productElement1,
-        // 2
-        productElement2,
-        // 3
-        productElement3,
-        // 4
-        productElement3,
-        // 5
-        productElement3,
-        // 6
-        productElement3,
-        // 7
-        productElement3,
-        // 8
-        productElement3,
-        // 9
-        productElement3,
-        // 10
-        productElement3,
-        // 11
-        productElement3,
-        // 12
-        productElement2
-    }).toList();
+    List<Struct> productList =
+        Arrays.stream(
+                new Struct[] {
+                  // 1
+                  productElement1,
+                  // 2
+                  productElement2,
+                  // 3
+                  productElement3,
+                  // 4
+                  productElement3,
+                  // 5
+                  productElement3,
+                  // 6
+                  productElement3,
+                  // 7
+                  productElement3,
+                  // 8
+                  productElement3,
+                  // 9
+                  productElement3,
+                  // 10
+                  productElement3,
+                  // 11
+                  productElement3,
+                  // 12
+                  productElement2
+                })
+            .toList();
 
-    Struct value = new Struct(schema)
-        .put("orderId", "ORD-999")
-        .put("userId", "USER-42")
-        .put("products", productList);
-
+    Struct value =
+        new Struct(schema)
+            .put("orderId", "ORD-999")
+            .put("userId", "USER-42")
+            .put("products", productList);
 
     MutationDataBuilder mutationDataBuilder = getRecordMutationDataBuilder(mapper, value);
 
@@ -884,44 +887,70 @@ public class ValueMapperTest {
     String proto = ProtoUtil.toProto(mutationData.get()).replace("\n", "");
 
     JsonNode actual = new ObjectMapper().readTree(proto);
-    assertEquals("projects/project/instances/instance/tables/my_table", actual.get("tableName").asText());
-    assertEquals(ROW_KEY.toString(StandardCharsets.UTF_8), ProtoUtil.fromBase64(actual.get("rowKey").asText()));
+    assertEquals(
+        "projects/project/instances/instance/tables/my_table", actual.get("tableName").asText());
+    assertEquals(
+        ROW_KEY.toString(StandardCharsets.UTF_8),
+        ProtoUtil.fromBase64(actual.get("rowKey").asText()));
     ArrayNode mutations = (ArrayNode) actual.get("mutations");
     assertEquals(15, mutations.size());
     assertEquals("cf", mutations.get(0).get("setCell").get("familyName").textValue());
-    assertEquals("orderId", ProtoUtil.fromBase64(mutations.get(0).get("setCell").get("columnQualifier").textValue()));
-    assertEquals(ProtoUtil.toBase64("ORD-999"), mutations.get(0).get("setCell").get("value").textValue());
+    assertEquals(
+        "orderId",
+        ProtoUtil.fromBase64(mutations.get(0).get("setCell").get("columnQualifier").textValue()));
+    assertEquals(
+        ProtoUtil.toBase64("ORD-999"), mutations.get(0).get("setCell").get("value").textValue());
 
     assertEquals("cf", mutations.get(1).get("setCell").get("familyName").textValue());
-    assertEquals("userId", ProtoUtil.fromBase64(mutations.get(1).get("setCell").get("columnQualifier").textValue()));
-    assertEquals(ProtoUtil.toBase64("USER-42"), mutations.get(1).get("setCell").get("value").textValue());
+    assertEquals(
+        "userId",
+        ProtoUtil.fromBase64(mutations.get(1).get("setCell").get("columnQualifier").textValue()));
+    assertEquals(
+        ProtoUtil.toBase64("USER-42"), mutations.get(1).get("setCell").get("value").textValue());
 
     // products
-    assertEquals("products", mutations.get(2).get("deleteFromFamily").get("familyName").textValue());
+    assertEquals(
+        "products", mutations.get(2).get("deleteFromFamily").get("familyName").textValue());
 
     assertEquals("products", mutations.get(3).get("setCell").get("familyName").textValue());
-    assertEquals("000000", ProtoUtil.fromBase64(mutations.get(3).get("setCell").get("columnQualifier").textValue()));
+    assertEquals(
+        "000000",
+        ProtoUtil.fromBase64(mutations.get(3).get("setCell").get("columnQualifier").textValue()));
     JsonMapper jsonMapper = new JsonMapper();
 
-    JsonNode product1Json = jsonMapper.readTree(ProtoUtil.fromBase64(mutations.get(3).get("setCell").get("value").textValue()));
+    JsonNode product1Json =
+        jsonMapper.readTree(
+            ProtoUtil.fromBase64(mutations.get(3).get("setCell").get("value").textValue()));
     assertEquals("Ball", product1Json.get("name").asText());
     assertEquals("PROD-123", product1Json.get("id").asText());
     assertEquals(5, product1Json.get("quantity").asInt());
 
-    assertEquals("000001", ProtoUtil.fromBase64(mutations.get(4).get("setCell").get("columnQualifier").textValue()));
-    JsonNode product2Json = jsonMapper.readTree(ProtoUtil.fromBase64(mutations.get(4).get("setCell").get("value").textValue()));
+    assertEquals(
+        "000001",
+        ProtoUtil.fromBase64(mutations.get(4).get("setCell").get("columnQualifier").textValue()));
+    JsonNode product2Json =
+        jsonMapper.readTree(
+            ProtoUtil.fromBase64(mutations.get(4).get("setCell").get("value").textValue()));
     assertEquals("Car", product2Json.get("name").asText());
     assertEquals("PROD-456", product2Json.get("id").asText());
     assertEquals(1, product2Json.get("quantity").asInt());
 
-    assertEquals("000002", ProtoUtil.fromBase64(mutations.get(5).get("setCell").get("columnQualifier").textValue()));
-    JsonNode product3Json = jsonMapper.readTree(ProtoUtil.fromBase64(mutations.get(5).get("setCell").get("value").textValue()));
+    assertEquals(
+        "000002",
+        ProtoUtil.fromBase64(mutations.get(5).get("setCell").get("columnQualifier").textValue()));
+    JsonNode product3Json =
+        jsonMapper.readTree(
+            ProtoUtil.fromBase64(mutations.get(5).get("setCell").get("value").textValue()));
     assertEquals("Tambourine", product3Json.get("name").asText());
     assertEquals("PROD-789", product3Json.get("id").asText());
     assertEquals(2, product3Json.get("quantity").asInt());
 
-    assertEquals("000011", ProtoUtil.fromBase64(mutations.get(14).get("setCell").get("columnQualifier").textValue()));
-    JsonNode product12Json = jsonMapper.readTree(ProtoUtil.fromBase64(mutations.get(5).get("setCell").get("value").textValue()));
+    assertEquals(
+        "000011",
+        ProtoUtil.fromBase64(mutations.get(14).get("setCell").get("columnQualifier").textValue()));
+    JsonNode product12Json =
+        jsonMapper.readTree(
+            ProtoUtil.fromBase64(mutations.get(5).get("setCell").get("value").textValue()));
     assertEquals("Tambourine", product12Json.get("name").asText());
     assertEquals("PROD-789", product12Json.get("id").asText());
     assertEquals(2, product12Json.get("quantity").asInt());
@@ -942,7 +971,10 @@ public class ValueMapperTest {
   private static class TestValueMapper extends ValueMapper {
 
     public TestValueMapper(
-        String defaultColumnFamily, String defaultColumnQualifier, NullValueMode nullMode, boolean expandRootLevelArrays) {
+        String defaultColumnFamily,
+        String defaultColumnQualifier,
+        NullValueMode nullMode,
+        boolean expandRootLevelArrays) {
       super(defaultColumnFamily, defaultColumnQualifier, nullMode, expandRootLevelArrays);
     }
 

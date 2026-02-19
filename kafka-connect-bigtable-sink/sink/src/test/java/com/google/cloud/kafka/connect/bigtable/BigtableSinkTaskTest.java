@@ -50,13 +50,9 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.google.api.gax.batching.Batcher;
 import com.google.api.gax.rpc.ApiException;
 import com.google.bigtable.admin.v2.Table;
-import com.google.bigtable.v2.MutateRowRequest;
 import com.google.cloud.bigtable.data.v2.BigtableDataClient;
-import com.google.cloud.bigtable.data.v2.internal.RequestContext;
 import com.google.cloud.bigtable.data.v2.models.Mutation;
-import com.google.cloud.bigtable.data.v2.models.RowMutation;
 import com.google.cloud.bigtable.data.v2.models.RowMutationEntry;
-import com.google.cloud.bigtable.data.v2.models.TableId;
 import com.google.cloud.kafka.connect.bigtable.autocreate.BigtableSchemaManager;
 import com.google.cloud.kafka.connect.bigtable.autocreate.ResourceCreationResult;
 import com.google.cloud.kafka.connect.bigtable.config.*;
@@ -70,7 +66,6 @@ import com.google.cloud.kafka.connect.bigtable.util.ProtoUtil;
 import com.google.cloud.kafka.connect.bigtable.wrappers.BigtableTableAdminClientInterface;
 import com.google.common.collect.Collections2;
 import com.google.protobuf.ByteString;
-
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -78,14 +73,11 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
-import com.google.protobuf.util.JsonFormat;
 import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.errors.ConnectException;
-import org.apache.kafka.connect.errors.DataException;
 import org.apache.kafka.connect.sink.ErrantRecordReporter;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTaskContext;
@@ -101,20 +93,13 @@ public class BigtableSinkTaskTest {
 
   TestBigtableSinkTask task;
   BigtableSinkTaskConfig config;
-  @Mock
-  BigtableDataClient bigtableData;
-  @Mock
-  BigtableTableAdminClientInterface bigtableAdmin;
-  @Mock
-  KeyMapper keyMapper;
-  @Mock
-  ValueMapper valueMapper;
-  @Mock
-  BigtableSchemaManager schemaManager;
-  @Mock
-  SinkTaskContext context;
-  @Mock
-  ErrantRecordReporter errorReporter;
+  @Mock BigtableDataClient bigtableData;
+  @Mock BigtableTableAdminClientInterface bigtableAdmin;
+  @Mock KeyMapper keyMapper;
+  @Mock ValueMapper valueMapper;
+  @Mock BigtableSchemaManager schemaManager;
+  @Mock SinkTaskContext context;
+  @Mock ErrantRecordReporter errorReporter;
 
   @Before
   public void setUp() {
@@ -196,17 +181,16 @@ public class BigtableSinkTaskTest {
     assertTrue(task.createRecordMutationData(okRecord).isPresent());
   }
 
-  private final Schema valueSchema = SchemaBuilder.struct()
-      .name("com.example.User")
-      .field("id", Schema.INT32_SCHEMA)
-      .field("name", Schema.STRING_SCHEMA)
-      .build();
+  private final Schema valueSchema =
+      SchemaBuilder.struct()
+          .name("com.example.User")
+          .field("id", Schema.INT32_SCHEMA)
+          .field("name", Schema.STRING_SCHEMA)
+          .build();
 
   @Test
   public void testCreateRecordMutationData() throws JsonProcessingException {
-    Struct value = new Struct(valueSchema)
-        .put("id", 42)
-        .put("name", "John Doe");
+    Struct value = new Struct(valueSchema).put("id", 42).put("name", "John Doe");
     SinkRecord okRecord = new SinkRecord("topic", 1, null, "key", valueSchema, value, 2);
 
     keyMapper = new KeyMapper("#", List.of());
@@ -219,16 +203,22 @@ public class BigtableSinkTaskTest {
 
     ObjectMapper mapper = new ObjectMapper();
     JsonNode actual = mapper.readTree(proto);
-    assertEquals("projects/project/instances/instance/tables/topic", actual.get("tableName").asText());
+    assertEquals(
+        "projects/project/instances/instance/tables/topic", actual.get("tableName").asText());
     assertEquals("a2V5", actual.get("rowKey").asText());
     ArrayNode mutations = (ArrayNode) actual.get("mutations");
     assertEquals(2, mutations.size());
     assertEquals("default", mutations.get(0).get("setCell").get("familyName").textValue());
-    assertEquals("id", ProtoUtil.fromBase64(mutations.get(0).get("setCell").get("columnQualifier").textValue()));
+    assertEquals(
+        "id",
+        ProtoUtil.fromBase64(mutations.get(0).get("setCell").get("columnQualifier").textValue()));
     assertEquals(ProtoUtil.toBase64(42), mutations.get(0).get("setCell").get("value").textValue());
     assertEquals("default", mutations.get(1).get("setCell").get("familyName").textValue());
-    assertEquals("name", ProtoUtil.fromBase64(mutations.get(1).get("setCell").get("columnQualifier").textValue()));
-    assertEquals(ProtoUtil.toBase64("John Doe"), mutations.get(1).get("setCell").get("value").textValue());
+    assertEquals(
+        "name",
+        ProtoUtil.fromBase64(mutations.get(1).get("setCell").get("columnQualifier").textValue()));
+    assertEquals(
+        ProtoUtil.toBase64("John Doe"), mutations.get(1).get("setCell").get("value").textValue());
   }
 
   @Test
@@ -516,11 +506,11 @@ public class BigtableSinkTaskTest {
     String batcherTable = "batcherTable";
     Batcher<RowMutationEntry, Void> batcher = mock(Batcher.class);
     doAnswer(
-        invocation -> {
-          TestBigtableSinkTask task = (TestBigtableSinkTask) invocation.getMock();
-          task.getBatchers().computeIfAbsent(batcherTable, ignored -> batcher);
-          return null;
-        })
+            invocation -> {
+              TestBigtableSinkTask task = (TestBigtableSinkTask) invocation.getMock();
+              task.getBatchers().computeIfAbsent(batcherTable, ignored -> batcher);
+              return null;
+            })
         .when(task)
         .performUpsertBatch(any(), any());
 
@@ -621,11 +611,11 @@ public class BigtableSinkTaskTest {
       byte[] rowKey = "rowKey".getBytes(StandardCharsets.UTF_8);
       doReturn(rowKey).when(keyMapper).getKey(any());
       doAnswer(
-          i -> {
-            MutationDataBuilder builder = new MutationDataBuilder();
-            builder.deleteRow();
-            return builder;
-          })
+              i -> {
+                MutationDataBuilder builder = new MutationDataBuilder();
+                builder.deleteRow();
+                return builder;
+              })
           .when(valueMapper)
           .getRecordMutationDataBuilder(any(), anyString(), anyLong());
 

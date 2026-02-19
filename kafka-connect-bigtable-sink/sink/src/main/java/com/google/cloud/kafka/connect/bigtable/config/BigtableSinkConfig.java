@@ -33,6 +33,12 @@ import com.google.cloud.kafka.connect.bigtable.wrappers.BigtableTableAdminClient
 import com.google.cloud.kafka.connect.bigtable.wrappers.BigtableTableAdminClientWrapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
+import java.io.ByteArrayInputStream;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+import java.util.function.Function;
 import org.apache.kafka.common.config.*;
 import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.connect.errors.RetriableException;
@@ -40,13 +46,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.threeten.bp.Duration;
 import org.threeten.bp.temporal.ChronoUnit;
-
-import java.io.ByteArrayInputStream;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.*;
-import java.util.function.Function;
 
 /**
  * A class defining the configuration of {@link
@@ -113,10 +112,10 @@ public class BigtableSinkConfig extends AbstractConfig {
   /**
    * Validates that a valid {@link BigtableSinkConfig} can be created using the input properties.
    *
-   * @param props                                 The properties provided by the user.
+   * @param props The properties provided by the user.
    * @param accessBigtableToValidateConfiguration If set to true, validation includes checking
-   *                                              whether the Cloud Bigtable configuration is valid by connecting to Cloud Bigtable and
-   *                                              attempting to execute a simple read-only operation.
+   *     whether the Cloud Bigtable configuration is valid by connecting to Cloud Bigtable and
+   *     attempting to execute a simple read-only operation.
    * @return {@link Config} containing validation results.
    */
   @VisibleForTesting
@@ -214,7 +213,7 @@ public class BigtableSinkConfig extends AbstractConfig {
 
   /**
    * @return {@link ConfigDef} used by Kafka Connect to advertise configuration options to the user
-   * and by us to perform basic validation of the user-provided values.
+   *     and by us to perform basic validation of the user-provided values.
    */
   public static ConfigDef getDefinition() {
     return new ConfigDef()
@@ -355,11 +354,12 @@ public class BigtableSinkConfig extends AbstractConfig {
             ConfigDef.Type.BOOLEAN,
             false,
             ConfigDef.Importance.MEDIUM,
-            "Determines whether root level arrays should be expanded to a column family or serialized to " +
-                "a single column. If true, root level array fields will be mapped to a Bigtable column family where " +
-                "each element is stored in an individual column with its index as column qualifier, padded with " +
-                "zeros to a length of 6. If false, root level array fields will be serialized as a JSON string to " +
-                "a single column.")
+            "Determines whether root level arrays should be expanded to a column family or"
+                + " serialized to a single column. If true, root level array fields will be mapped"
+                + " to a Bigtable column family where each element is stored in an individual"
+                + " column with its index as column qualifier, padded with zeros to a length of 6."
+                + " If false, root level array fields will be serialized as a JSON string to a"
+                + " single column.")
         .define(
             AUTO_CREATE_TABLES_CONFIG,
             ConfigDef.Type.BOOLEAN,
@@ -420,9 +420,9 @@ public class BigtableSinkConfig extends AbstractConfig {
    * Adds a validation error in the format expected by {@link BigtableSinkConfig#validate(Map)}.
    *
    * @param validatedConfig Input/output parameter containing current validation result.
-   * @param name            Configuration parameter name.
-   * @param value           Configuration parameter value.
-   * @param errorMessage    Error message to be added.
+   * @param name Configuration parameter name.
+   * @param value Configuration parameter value.
+   * @param errorMessage Error message to be added.
    */
   private static void addErrorMessage(
       Map<String, ConfigValue> validatedConfig, String name, String value, String errorMessage) {
@@ -445,8 +445,8 @@ public class BigtableSinkConfig extends AbstractConfig {
   }
 
   /**
-   * @return {@link BigtableTableAdminClientInterface} connected to a Cloud Bigtable instance configured as
-   * described in {@link BigtableSinkConfig#getDefinition()}.
+   * @return {@link BigtableTableAdminClientInterface} connected to a Cloud Bigtable instance
+   *     configured as described in {@link BigtableSinkConfig#getDefinition()}.
    */
   public BigtableTableAdminClientInterface getBigtableAdminClient() {
     Duration totalTimeout = getTotalRetryTimeout();
@@ -502,7 +502,8 @@ public class BigtableSinkConfig extends AbstractConfig {
                     StatusCode.Code.FAILED_PRECONDITION)));
 
     try {
-      return new BigtableTableAdminClientWrapper(BigtableTableAdminClient.create(adminSettingsBuilder.build()));
+      return new BigtableTableAdminClientWrapper(
+          BigtableTableAdminClient.create(adminSettingsBuilder.build()));
     } catch (IOException e) {
       throw new RetriableException(e);
     }
@@ -510,7 +511,7 @@ public class BigtableSinkConfig extends AbstractConfig {
 
   /**
    * @return {@link BigtableDataClient} connected to Cloud Bigtable instance configured as described
-   * in {@link BigtableSinkConfig#getDefinition()}.
+   *     in {@link BigtableSinkConfig#getDefinition()}.
    */
   public BigtableDataClient getBigtableDataClient() {
     Duration totalTimeout = getTotalRetryTimeout();
@@ -622,7 +623,7 @@ public class BigtableSinkConfig extends AbstractConfig {
 
   /**
    * @return {@link RetrySettings} of Cloud Bigtable clients configured with exponential backoff and
-   * specified timeout and retry delay.
+   *     specified timeout and retry delay.
    */
   protected RetrySettings getRetrySettings(Duration totalTimeout, Duration initialDelay) {
     return RetrySettings.newBuilder()
@@ -635,7 +636,7 @@ public class BigtableSinkConfig extends AbstractConfig {
 
   /**
    * @return Maximal time for Cloud Bigtable clients as described in {@link
-   * BigtableSinkConfig#getDefinition()}.
+   *     BigtableSinkConfig#getDefinition()}.
    */
   private Duration getTotalRetryTimeout() {
     return Duration.of(getLong(RETRY_TIMEOUT_MILLIS_CONFIG), ChronoUnit.MILLIS);
@@ -645,9 +646,9 @@ public class BigtableSinkConfig extends AbstractConfig {
    * Extracts typed enum value from this object.
    *
    * @param configName Enum parameter name in {@link BigtableSinkConfig}.
-   * @param converter  Function that parses parameter value into an enum value. It's assumed to throw
-   *                   only {@link NullPointerException} and {@link IllegalArgumentException}.
-   * @param <T>        Enum type.
+   * @param converter Function that parses parameter value into an enum value. It's assumed to throw
+   *     only {@link NullPointerException} and {@link IllegalArgumentException}.
+   * @param <T> Enum type.
    * @return Parsed enum value.
    */
   private <T> T getEnum(String configName, Function<String, T> converter) {
@@ -666,8 +667,8 @@ public class BigtableSinkConfig extends AbstractConfig {
 
   /**
    * @return {@link Optional#empty()} if the user didn't configure the Cloud Bigtable credentials,
-   * {@link Optional} containing {@link CredentialsProvider} configured as described in {@link
-   * BigtableSinkConfig#getDefinition()} otherwise.
+   *     {@link Optional} containing {@link CredentialsProvider} configured as described in {@link
+   *     BigtableSinkConfig#getDefinition()} otherwise.
    */
   protected Optional<CredentialsProvider> getUserConfiguredBigtableCredentialsProvider() {
     String credentialsJson = getString(GCP_CREDENTIALS_JSON_CONFIG);
@@ -698,7 +699,7 @@ public class BigtableSinkConfig extends AbstractConfig {
 
   /**
    * @return {@link HeaderProvider} allowing the service provider to monitor the usage of this
-   * connector.
+   *     connector.
    */
   private static HeaderProvider getHeaderProvider() {
     return FixedHeaderProvider.create(
