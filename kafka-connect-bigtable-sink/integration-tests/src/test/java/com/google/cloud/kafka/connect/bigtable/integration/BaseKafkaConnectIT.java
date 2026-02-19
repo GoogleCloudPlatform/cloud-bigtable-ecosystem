@@ -37,7 +37,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
 import org.apache.commons.lang.StringUtils;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -283,8 +282,8 @@ public abstract class BaseKafkaConnectIT extends BaseIT {
                   h ->
                       h.key().equals(DeadLetterQueueReporter.ERROR_HEADER_EXCEPTION)
                           && Arrays.equals(
-                          h.value(),
-                          exceptionClass.getName().getBytes(StandardCharsets.UTF_8))));
+                              h.value(),
+                              exceptionClass.getName().getBytes(StandardCharsets.UTF_8))));
     }
   }
 }

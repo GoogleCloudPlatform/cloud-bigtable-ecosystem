@@ -15,6 +15,11 @@
  */
 package com.google.cloud.kafka.connect.bigtable.integration;
 
+import static com.google.cloud.kafka.connect.bigtable.config.BigtableSinkConfig.*;
+import static org.apache.kafka.connect.runtime.WorkerConfig.KEY_CONVERTER_CLASS_CONFIG;
+import static org.apache.kafka.connect.runtime.WorkerConfig.VALUE_CONVERTER_CLASS_CONFIG;
+import static org.junit.Assert.*;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -28,13 +33,6 @@ import com.google.cloud.kafka.connect.bigtable.transformations.ApplyJsonSchema;
 import com.google.cloud.kafka.connect.bigtable.transformations.FlattenArrayElement;
 import com.google.cloud.kafka.connect.bigtable.util.TestDataUtil;
 import com.google.protobuf.ByteString;
-import org.apache.kafka.connect.errors.DataException;
-import org.apache.kafka.connect.json.JsonConverter;
-import org.apache.kafka.connect.storage.StringConverter;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -44,11 +42,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
-
-import static com.google.cloud.kafka.connect.bigtable.config.BigtableSinkConfig.*;
-import static org.apache.kafka.connect.runtime.WorkerConfig.KEY_CONVERTER_CLASS_CONFIG;
-import static org.apache.kafka.connect.runtime.WorkerConfig.VALUE_CONVERTER_CLASS_CONFIG;
-import static org.junit.Assert.*;
+import org.apache.kafka.connect.errors.DataException;
+import org.apache.kafka.connect.json.JsonConverter;
+import org.apache.kafka.connect.storage.StringConverter;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class InsertUpsertIT extends BaseKafkaConnectBigtableIT {
@@ -174,7 +173,8 @@ public class InsertUpsertIT extends BaseKafkaConnectBigtableIT {
   }
 
   @Test
-  public void testUpsertWithRowKeyFromValueNoSchema() throws InterruptedException, ExecutionException, JsonProcessingException {
+  public void testUpsertWithRowKeyFromValueNoSchema()
+      throws InterruptedException, ExecutionException, JsonProcessingException {
     Map<String, String> props = baseConnectorProps();
     props.put(INSERT_MODE_CONFIG, InsertMode.UPSERT.name());
     props.put(ROW_KEY_DEFINITION_CONFIG, "orderId,product");
@@ -202,11 +202,13 @@ public class InsertUpsertIT extends BaseKafkaConnectBigtableIT {
 
     List<RowCell> cells = row1.getCells("cf", "KAFKA_VALUE");
     assertEquals(1, cells.size());
-    assertEquals(parseJson(json), parseJson(cells.get(0).getValue().toString(StandardCharsets.UTF_8)));
+    assertEquals(
+        parseJson(json), parseJson(cells.get(0).getValue().toString(StandardCharsets.UTF_8)));
   }
 
   @Test
-  public void testUpsertWithRowKeyFromValueMissingField() throws InterruptedException, ExecutionException {
+  public void testUpsertWithRowKeyFromValueMissingField()
+      throws InterruptedException, ExecutionException {
     String dlqTopic = createDlq();
     Map<String, String> props = baseConnectorProps();
     props.put(INSERT_MODE_CONFIG, InsertMode.UPSERT.name());
@@ -229,7 +231,8 @@ public class InsertUpsertIT extends BaseKafkaConnectBigtableIT {
   }
 
   @Test
-  public void testUpsertWithRowKeyFromValueNullValue() throws InterruptedException, ExecutionException {
+  public void testUpsertWithRowKeyFromValueNullValue()
+      throws InterruptedException, ExecutionException {
     String dlqTopic = createDlq();
     Map<String, String> props = baseConnectorProps();
     props.put(INSERT_MODE_CONFIG, InsertMode.UPSERT.name());
@@ -253,7 +256,8 @@ public class InsertUpsertIT extends BaseKafkaConnectBigtableIT {
   }
 
   @Test
-  public void testUpsertAppliedSchema() throws InterruptedException, ExecutionException, JsonProcessingException {
+  public void testUpsertAppliedSchema()
+      throws InterruptedException, ExecutionException, JsonProcessingException {
     Map<String, String> props = baseConnectorProps();
     props.put(INSERT_MODE_CONFIG, InsertMode.UPSERT.name());
     props.put(ROW_KEY_DEFINITION_CONFIG, "userId,orderId");
@@ -265,8 +269,11 @@ public class InsertUpsertIT extends BaseKafkaConnectBigtableIT {
     props.put("transforms.createKey.fields", "userId,orderId");
     props.put("transforms.flattenElements.type", FlattenArrayElement.class.getName());
     props.put("transforms.flattenElements." + FlattenArrayElement.ARRAY_FIELD_NAME, "products");
-    props.put("transforms.flattenElements." + FlattenArrayElement.ARRAY_INNER_WRAPPER_FIELD_NAME, "list");
-    props.put("transforms.flattenElements." + FlattenArrayElement.ARRAY_ELEMENT_WRAPPER_FIELD_NAME, "element");
+    props.put(
+        "transforms.flattenElements." + FlattenArrayElement.ARRAY_INNER_WRAPPER_FIELD_NAME, "list");
+    props.put(
+        "transforms.flattenElements." + FlattenArrayElement.ARRAY_ELEMENT_WRAPPER_FIELD_NAME,
+        "element");
     props.put(EXPAND_ROOT_LEVEL_ARRAYS, "true");
     props.put(ROW_KEY_DELIMITER_CONFIG, "#");
     props.put(DEFAULT_COLUMN_FAMILY_CONFIG, "cf");
@@ -290,15 +297,18 @@ public class InsertUpsertIT extends BaseKafkaConnectBigtableIT {
 
     assertEquals("ORD-999", orderResult.orderId());
     assertEquals("USER-42", orderResult.userId());
-    assertArrayEquals(new TestDataUtil.OrderProduct[]{
-        new TestDataUtil.OrderProduct("Ball", "PROD-123", 5),
-        new TestDataUtil.OrderProduct("Car", "PROD-456", 1),
-        new TestDataUtil.OrderProduct("Tambourine", "PROD-789", 2)
-    }, orderResult.products());
+    assertArrayEquals(
+        new TestDataUtil.OrderProduct[] {
+          new TestDataUtil.OrderProduct("Ball", "PROD-123", 5),
+          new TestDataUtil.OrderProduct("Car", "PROD-456", 1),
+          new TestDataUtil.OrderProduct("Tambourine", "PROD-789", 2)
+        },
+        orderResult.products());
   }
 
   @Test
-  public void testUpsertWithRowKeyWithRootLevelArrayExpanded() throws InterruptedException, ExecutionException, JsonProcessingException {
+  public void testUpsertWithRowKeyWithRootLevelArrayExpanded()
+      throws InterruptedException, ExecutionException, JsonProcessingException {
     Map<String, String> props = baseConnectorProps();
     props.put(INSERT_MODE_CONFIG, InsertMode.UPSERT.name());
     props.put(ROW_KEY_DEFINITION_CONFIG, "userId,orderId");
@@ -308,8 +318,11 @@ public class InsertUpsertIT extends BaseKafkaConnectBigtableIT {
     props.put("transforms.createKey.fields", "userId,orderId");
     props.put("transforms.flattenElements.type", FlattenArrayElement.class.getName());
     props.put("transforms.flattenElements." + FlattenArrayElement.ARRAY_FIELD_NAME, "products");
-    props.put("transforms.flattenElements." + FlattenArrayElement.ARRAY_INNER_WRAPPER_FIELD_NAME, "list");
-    props.put("transforms.flattenElements." + FlattenArrayElement.ARRAY_ELEMENT_WRAPPER_FIELD_NAME, "element");
+    props.put(
+        "transforms.flattenElements." + FlattenArrayElement.ARRAY_INNER_WRAPPER_FIELD_NAME, "list");
+    props.put(
+        "transforms.flattenElements." + FlattenArrayElement.ARRAY_ELEMENT_WRAPPER_FIELD_NAME,
+        "element");
 
     props.put(EXPAND_ROOT_LEVEL_ARRAYS, "true");
     props.put(DEFAULT_COLUMN_FAMILY_CONFIG, "cf");
@@ -320,16 +333,20 @@ public class InsertUpsertIT extends BaseKafkaConnectBigtableIT {
     String testId = startSingleTopicConnector(props);
     createTablesAndColumnFamilies(Map.of(testId, Set.of("cf", "products")));
 
-    TestDataUtil.Order order1 = new TestDataUtil.Order("ORD-999", "USER-42", new TestDataUtil.OrderProduct[]{
-        new TestDataUtil.OrderProduct("Ball", "PROD-123", 5),
-        new TestDataUtil.OrderProduct("Car", "PROD-456", 1),
-        new TestDataUtil.OrderProduct("Tambourine", "PROD-789", 2)
-    });
+    TestDataUtil.Order order1 =
+        new TestDataUtil.Order(
+            "ORD-999",
+            "USER-42",
+            new TestDataUtil.OrderProduct[] {
+              new TestDataUtil.OrderProduct("Ball", "PROD-123", 5),
+              new TestDataUtil.OrderProduct("Car", "PROD-456", 1),
+              new TestDataUtil.OrderProduct("Tambourine", "PROD-789", 2)
+            });
 
     TestDataUtil.writeOrder(connect, testId, KEY1, order1);
 
     waitUntilBigtableContainsNumberOfRows(testId, 1);
-    assertArrayEquals(new String[]{"USER-42#ORD-999"}, readAllRowKeys(bigtableData, testId));
+    assertArrayEquals(new String[] {"USER-42#ORD-999"}, readAllRowKeys(bigtableData, testId));
     Map<ByteString, Row> rows = readAllRows(bigtableData, testId);
     ByteString key = ByteString.copyFrom("USER-42#ORD-999".getBytes(StandardCharsets.UTF_8));
     Row row1 = rows.get(key);
@@ -341,17 +358,22 @@ public class InsertUpsertIT extends BaseKafkaConnectBigtableIT {
     assertEquals(order1.userId(), orderResult.userId());
     assertArrayEquals(order1.products(), orderResult.products());
 
-    // overwrite the first order with a smaller products collection to ensure the existing array is deleted
-    TestDataUtil.Order order2 = new TestDataUtil.Order(order1.orderId(), order1.userId(), new TestDataUtil.OrderProduct[]{
-        new TestDataUtil.OrderProduct("Drum", "PROD-ABC", 1),
-        new TestDataUtil.OrderProduct("Balloons", "PROD-DEF", 5),
-    });
+    // overwrite the first order with a smaller products collection to ensure the existing array is
+    // deleted
+    TestDataUtil.Order order2 =
+        new TestDataUtil.Order(
+            order1.orderId(),
+            order1.userId(),
+            new TestDataUtil.OrderProduct[] {
+              new TestDataUtil.OrderProduct("Drum", "PROD-ABC", 1),
+              new TestDataUtil.OrderProduct("Balloons", "PROD-DEF", 5),
+            });
 
     Instant writeTime2 = Instant.now();
     TestDataUtil.writeOrder(connect, testId, KEY1, order2);
 
     waitUntilBigtableWriteTimeLaterThan(testId, writeTime2);
-    assertArrayEquals(new String[]{"USER-42#ORD-999"}, readAllRowKeys(bigtableData, testId));
+    assertArrayEquals(new String[] {"USER-42#ORD-999"}, readAllRowKeys(bigtableData, testId));
     Map<ByteString, Row> rows2 = readAllRows(bigtableData, testId);
     Row row2 = rows2.get(key);
     assertNotNull(row2);
@@ -364,9 +386,9 @@ public class InsertUpsertIT extends BaseKafkaConnectBigtableIT {
     assertArrayEquals(order2.products(), orderResult2.products());
   }
 
-
   @Test
-  public void testRootLevelArrayExpandedWriteNull() throws InterruptedException, ExecutionException, JsonProcessingException {
+  public void testRootLevelArrayExpandedWriteNull()
+      throws InterruptedException, ExecutionException, JsonProcessingException {
     Map<String, String> props = baseConnectorProps();
     props.put(INSERT_MODE_CONFIG, InsertMode.UPSERT.name());
     props.put(ROW_KEY_DEFINITION_CONFIG, "userId,orderId");
@@ -376,8 +398,11 @@ public class InsertUpsertIT extends BaseKafkaConnectBigtableIT {
     props.put("transforms.createKey.fields", "userId,orderId");
     props.put("transforms.flattenElements.type", FlattenArrayElement.class.getName());
     props.put("transforms.flattenElements." + FlattenArrayElement.ARRAY_FIELD_NAME, "products");
-    props.put("transforms.flattenElements." + FlattenArrayElement.ARRAY_INNER_WRAPPER_FIELD_NAME, "list");
-    props.put("transforms.flattenElements." + FlattenArrayElement.ARRAY_ELEMENT_WRAPPER_FIELD_NAME, "element");
+    props.put(
+        "transforms.flattenElements." + FlattenArrayElement.ARRAY_INNER_WRAPPER_FIELD_NAME, "list");
+    props.put(
+        "transforms.flattenElements." + FlattenArrayElement.ARRAY_ELEMENT_WRAPPER_FIELD_NAME,
+        "element");
 
     props.put(EXPAND_ROOT_LEVEL_ARRAYS, "true");
     props.put(VALUE_NULL_MODE_CONFIG, NullValueMode.WRITE.name());
@@ -394,7 +419,7 @@ public class InsertUpsertIT extends BaseKafkaConnectBigtableIT {
     TestDataUtil.writeOrder(connect, testId, KEY1, order1);
 
     waitUntilBigtableContainsNumberOfRows(testId, 1);
-    assertArrayEquals(new String[]{"USER-42#ORD-999"}, readAllRowKeys(bigtableData, testId));
+    assertArrayEquals(new String[] {"USER-42#ORD-999"}, readAllRowKeys(bigtableData, testId));
     Map<ByteString, Row> rows = readAllRows(bigtableData, testId);
     ByteString key = ByteString.copyFrom("USER-42#ORD-999".getBytes(StandardCharsets.UTF_8));
     Row row1 = rows.get(key);
