@@ -136,10 +136,20 @@
                     <parallel>classes</parallel>
                     <useUnlimitedThreads>true</useUnlimitedThreads>
                     <environmentVariables>
-                        <!-- TODO: remove it when transitioning to kokoro. -->
                         <GOOGLE_APPLICATION_CREDENTIALS>target/test-classes/fake_service_key.json</GOOGLE_APPLICATION_CREDENTIALS>
                     </environmentVariables>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>test-jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
