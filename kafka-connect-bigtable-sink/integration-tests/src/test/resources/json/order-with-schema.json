@@ -1,0 +1,16 @@
+{
+  "schema": {
+    "type": "struct",
+    "name": "com.example.Order",
+    "fields": [
+      { "field": "orderId", "type": "string", "optional": false },
+      { "field": "product", "type": "string", "optional": false },
+      { "field": "quantity", "type": "int32", "optional": false }
+    ]
+  },
+  "payload": {
+    "orderId": "ORD-12345",
+    "product": "ball",
+    "quantity": 2
+  }
+}

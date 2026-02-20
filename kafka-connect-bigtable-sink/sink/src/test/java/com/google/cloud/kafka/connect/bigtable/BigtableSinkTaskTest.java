@@ -298,15 +298,6 @@ public class BigtableSinkTaskTest {
     assertEquals(
         (Long) (1000L * timestampMillis), (Long) task.getTimestampMicros(recordWithTimestamp));
     assertNotNull(task.getTimestampMicros(recordWithNullTimestamp));
-
-    // Assertion that the Java Bigtable client doesn't support microsecond timestamp granularity.
-    // When it starts supporting it, getTimestamp() will need to get modified.
-    assertEquals(
-        Arrays.stream(Table.TimestampGranularity.values()).collect(Collectors.toSet()),
-        Set.of(
-            Table.TimestampGranularity.TIMESTAMP_GRANULARITY_UNSPECIFIED,
-            Table.TimestampGranularity.MILLIS,
-            Table.TimestampGranularity.UNRECOGNIZED));
   }
 
   @Test

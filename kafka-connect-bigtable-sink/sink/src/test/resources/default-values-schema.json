@@ -1,0 +1,8 @@
+{
+  "type": "struct",
+  "fields": [
+    { "field": "id", "type": "int32", "default": 42 },
+    { "field": "name", "type": "string", "default": "unnamed" },
+    { "field": "active", "type": "boolean", "default": true }
+  ]
+}

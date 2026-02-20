@@ -1,0 +1,56 @@
+{
+  "type": "struct",
+  "fields": [
+    {
+      "type": "string",
+      "optional": false,
+      "field": "orderId"
+    },
+    {
+      "type": "string",
+      "optional": false,
+      "field": "userId"
+    },
+    {
+      "type": "struct",
+      "fields": [
+        {
+          "type": "array",
+          "items": {
+            "type": "struct",
+            "fields": [
+              {
+                "type": "struct",
+                "fields": [
+                  {
+                    "type": "string",
+                    "optional": false,
+                    "field": "name"
+                  },
+                  {
+                    "type": "string",
+                    "optional": false,
+                    "field": "id"
+                  },
+                  {
+                    "type": "int32",
+                    "optional": false,
+                    "field": "quantity"
+                  }
+                ],
+                "optional": false,
+                "field": "element"
+              }
+            ],
+            "optional": true
+          },
+          "optional": true,
+          "field": "list"
+        }
+      ],
+      "optional": false,
+      "field": "products"
+    }
+  ],
+  "optional": true
+}
