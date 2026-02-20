@@ -102,11 +102,11 @@ cbt -project "$PROJECT" -instance "$INSTANCE" ls | xargs -P 0 -I {} cbt -project
 
 ### Command to run the integration tests
 ```bash
-mvn clean verify -DskipUnitTests
+mvn -Pintegration-tests clean verify
 ```
 
 #### To run a specific integration test
 
 ```bash
-mvn clean verify -DskipUnitTests -Dit.test=InsertUpsertIT#testUpsert
+mvn -Pintegration-tests clean verify -Dit.test=InsertUpsertIT#testUpsert
 ```

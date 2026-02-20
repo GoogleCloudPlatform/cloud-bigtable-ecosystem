@@ -12,7 +12,6 @@
     </description>
     <modules>
         <module>sink</module>
-        <module>integration-tests</module>
     </modules>
     <properties>
         <google.cloud.bom.version>26.53.0</google.cloud.bom.version>
@@ -133,4 +132,15 @@
             </plugin>
         </plugins>
     </reporting>
+    <profiles>
+        <profile>
+            <id>integration-tests</id>
+            <modules>
+                <module>integration-tests</module>
+            </modules>
+            <properties>
+                <skipUnitTests>true</skipUnitTests>
+            </properties>
+        </profile>
+    </profiles>
 </project>
