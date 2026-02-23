@@ -152,3 +152,36 @@ func TestGroupByAndOrderByCounters(t *testing.T) {
 		assert.ElementsMatch(t, []int32{2, 3, 5}, results)
 	})
 }
+
+func TestSetCounterToNull(t *testing.T) {
+	// Cassandra doesn't support setting a counter to null
+	if testTarget == TestTargetCassandra {
+		t.Skip()
+		return
+	}
+
+	pkUser, pkId := "user_null_test", 1
+
+	// 1. Initialize the counter
+	require.NoError(t, session.Query(`UPDATE social_posts SET likes = likes + ? WHERE user_id = ? AND id = ?`, 10, pkUser, pkId).Exec())
+
+	// 2. Validate it's set
+	var likes int64
+	require.NoError(t, session.Query(`SELECT likes FROM social_posts WHERE user_id = ? AND id = ?`, pkUser, pkId).Scan(&likes))
+	assert.Equal(t, int64(10), likes)
+
+	// 3. Set counter to null via placeholder
+	require.NoError(t, session.Query(`UPDATE social_posts SET likes = ? WHERE user_id = ? AND id = ?`, nil, pkUser, pkId).Exec())
+
+	// 4. Validate it's null (which defaults to 0 in Cassandra for counters)
+	require.NoError(t, session.Query(`SELECT likes FROM social_posts WHERE user_id = ? AND id = ?`, pkUser, pkId).Scan(&likes))
+	assert.Equal(t, int64(0), likes, "Counter should be 0 after being set to null")
+
+	// 5. Set counter to null via literal
+	require.NoError(t, session.Query(`UPDATE social_posts SET likes = likes + ? WHERE user_id = ? AND id = ?`, 10, pkUser, pkId).Exec())
+	require.NoError(t, session.Query(`UPDATE social_posts SET likes = NULL WHERE user_id = ? AND id = ?`, pkUser, pkId).Exec())
+
+	// 6. Validate it's null again
+	require.NoError(t, session.Query(`SELECT likes FROM social_posts WHERE user_id = ? AND id = ?`, pkUser, pkId).Scan(&likes))
+	assert.Equal(t, int64(0), likes, "Counter should be 0 after being set to NULL literal")
+}

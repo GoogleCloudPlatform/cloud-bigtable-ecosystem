@@ -1,12 +1,14 @@
 package com.google.cloud.bigtable.cassandra;
 
 import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -63,6 +65,65 @@ public class DdlTests {
     assertThrows(Exception.class, () -> {
       session.execute("SELECT * FROM " + tableToDrop);
     }, "Selecting from a dropped table should throw an exception");
+  }
+
+  @Test
+  public void testReadUndefinedScalars() {
+    // 1. Write row with only partial columns (primitives left out)
+    session.execute(
+        "INSERT INTO bigtabledevinstance.user_info (name, age, extra_info) " +
+            "VALUES ('undefined_primitives_test', 1, {'foo': 'bar'})"
+    );
+
+    // 2. Select the columns that weren't explicitly inserted
+    Row row = session.execute(
+        "SELECT code, credited, text_col, balance, is_active, birth_date, zip_code " +
+            "FROM bigtabledevinstance.user_info " +
+            "WHERE name='undefined_primitives_test' AND age=1"
+    ).one();
+
+    assertNotNull(row);
+
+    assertEquals(0, row.getInt("code"));
+    assertEquals(0.0, row.getDouble("credited"), 0.001);
+
+    assertNull(row.getString("text_col"));
+
+    assertEquals(0.0f, row.getFloat("balance"), 0.001f);
+    assertFalse(row.getBoolean("is_active"));
+
+    assertNull(row.getInstant("birth_date"));
+
+    assertEquals(0L, row.getLong("zip_code"));
+  }
+
+  @Test
+  public void testReadDefaultScalarValues() {
+    session.execute(
+        "INSERT INTO bigtabledevinstance.user_info (name, age, code, credited, text_col, balance, is_active, birth_date, zip_code) " +
+            "VALUES ('undefined_primitives_test', 1, 0, 0, '', 0, false, 0, 0)"
+    );
+
+    // 2. Select the columns that weren't explicitly inserted
+    Row row = session.execute(
+        "SELECT code, credited, text_col, balance, is_active, birth_date, zip_code " +
+            "FROM bigtabledevinstance.user_info " +
+            "WHERE name='undefined_primitives_test' AND age=1"
+    ).one();
+
+    assertNotNull(row);
+
+    assertEquals(0, row.getInt("code"));
+    assertEquals(0.0, row.getDouble("credited"), 0.001);
+
+    assertEquals("", row.getString("text_col"));
+
+    assertEquals(0.0f, row.getFloat("balance"), 0.001f);
+    assertFalse(row.getBoolean("is_active"));
+
+    assertEquals(Instant.EPOCH, row.getInstant("birth_date"));
+
+    assertEquals(0L, row.getLong("zip_code"));
   }
 }
 

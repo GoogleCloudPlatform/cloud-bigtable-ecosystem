@@ -533,7 +533,9 @@ func TestBackwardsCompatibleData(t *testing.T) {
 			query := fmt.Sprintf(`INSERT INTO all_columns (name, %s) VALUES (?, ?) USING TIMESTAMP ?`, tc.column)
 			err := session.Query(query, rowKey, tc.value, WRITE_TIMESTAMP).Exec()
 			require.NoError(t, err)
-			row, err := table.ReadRow(t.Context(), rowKey, bigtable.RowFilter(bigtable.LatestNFilter(1)))
+
+			emptyRowCellFilter := bigtable.ChainFilters(bigtable.ColumnFilter(".+"), bigtable.LatestNFilter(1))
+			row, err := table.ReadRow(t.Context(), rowKey, bigtable.RowFilter(emptyRowCellFilter))
 			require.NoError(t, err)
 
 			for _, cells := range row {

@@ -740,6 +740,10 @@ func GetValueSlice(value types.DynamicValue, values *types.QueryParameterValues)
 		return nil, err
 	}
 
+	if v == nil {
+		return nil, nil
+	}
+
 	val := reflect.ValueOf(v)
 
 	if val.Kind() != reflect.Slice {
@@ -750,7 +754,12 @@ func GetValueSlice(value types.DynamicValue, values *types.QueryParameterValues)
 	result := make([]types.GoValue, length)
 
 	for i := 0; i < length; i++ {
-		result[i] = val.Index(i).Interface()
+		anyVal := val.Index(i).Interface()
+		if anyVal == nil {
+			// don't allow collections to contain null elements to be consistent with Cassandra
+			return nil, fmt.Errorf("collection items are not allowed to be null")
+		}
+		result[i] = anyVal
 	}
 
 	return result, nil
@@ -761,6 +770,11 @@ func GetValueMap(value types.DynamicValue, values *types.QueryParameterValues) (
 	if err != nil {
 		return nil, err
 	}
+
+	if v == nil {
+		return nil, nil
+	}
+
 	val := reflect.ValueOf(v)
 
 	if val.Kind() != reflect.Map {
@@ -779,6 +793,16 @@ func GetValueMap(value types.DynamicValue, values *types.QueryParameterValues) (
 		// 4. Use .Interface() to convert the concrete key/value to an any (interface{})
 		keyAny := keyVal.Interface()
 		valueAny := valueVal.Interface()
+
+		if keyAny == nil {
+			// don't allow collections to contain null elements to be consistent with Cassandra
+			return nil, fmt.Errorf("map keys cannot be null")
+		}
+
+		if valueAny == nil {
+			// don't allow collections to contain null elements to be consistent with Cassandra
+			return nil, fmt.Errorf("map values cannot be null")
+		}
 
 		// 5. Add to the new map[any]any
 		result[keyAny] = valueAny

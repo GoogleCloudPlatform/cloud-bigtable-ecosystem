@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"math"
 	"testing"
+	"time"
 
 	"github.com/gocql/gocql"
 	"github.com/google/uuid"
@@ -216,4 +217,36 @@ func TestUnpreparedCrudTwoSingleQuotes(t *testing.T) {
 	results, err = cqlshScanToMap(`SELECT * FROM bigtabledevinstance.user_info WHERE name='cqlsh_''person' AND age=80`)
 	require.NoError(t, err)
 	assert.Empty(t, results)
+}
+
+func TestReadUndefinedPrimitives(t *testing.T) {
+	t.Parallel()
+
+	// write with no primitive columns
+	require.NoError(t, session.Query(`INSERT INTO bigtabledevinstance.user_info (name, age, extra_info) VALUES ('undefined_primitives_test', 1, {'foo': 'bar'})`).Exec())
+
+	var code int32
+	var credited float64
+	var textCol string
+	var balance float32
+	var isActive bool
+	var birthDate time.Time
+	var zipCode int64
+	// Ensure that scalar values, not written to a row, are still readable and have the correct defaults
+	require.NoError(t, session.Query(`SELECT code, credited, text_col, balance, is_active, birth_date, zip_code FROM bigtabledevinstance.user_info WHERE name='undefined_primitives_test' AND age=1`).Scan(
+		&code,
+		&credited,
+		&textCol,
+		&balance,
+		&isActive,
+		&birthDate,
+		&zipCode,
+	))
+	assert.Equal(t, int32(0), code)
+	assert.Equal(t, float64(0), credited)
+	assert.Equal(t, "", textCol)
+	assert.Equal(t, float32(0), balance)
+	assert.Equal(t, false, isActive)
+	assert.Equal(t, time.Time{}, birthDate)
+	assert.Equal(t, int64(0), zipCode)
 }

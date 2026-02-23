@@ -31,6 +31,18 @@ func TestInsertAndValidationListAscii(t *testing.T) {
 	assert.Equal(t, []string{"apple", "banana", "cherry"}, listText)
 }
 
+func TestInsertListAsciiWithEmptyString(t *testing.T) {
+	t.Parallel()
+	err := session.Query(`INSERT INTO bigtabledevinstance.user_info (name, age, list_ascii) VALUES (?, ?, ?)`,
+		"ascii_list_empty", int64(25), []string{"apple", ""}).Exec()
+	require.NoError(t, err, "Failed to insert record with list<ascii>")
+
+	var listText []string
+	err = session.Query(`SELECT list_ascii FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?`, "ascii_list_empty", int64(25)).Scan(&listText)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"apple", ""}, listText)
+}
+
 func TestAppendElementsToListText(t *testing.T) {
 	t.Parallel()
 	err := session.Query(`INSERT INTO bigtabledevinstance.user_info (name, age, list_text) VALUES (?, ?, ?)`,

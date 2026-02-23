@@ -414,6 +414,9 @@ func ParseListValue(l cql.IValueListContext, dt types.CqlDataType) ([]types.GoVa
 		if err != nil {
 			return nil, err
 		}
+		if val == nil {
+			return nil, fmt.Errorf("collection items are not allowed to be null")
+		}
 		result = append(result, val)
 	}
 	return result, nil
@@ -431,9 +434,15 @@ func ParseCqlMapAssignment(m cql.IValueMapContext, dt types.CqlDataType) (map[ty
 		if err != nil {
 			return nil, err
 		}
+		if key == nil {
+			return nil, fmt.Errorf("map keys cannot be null")
+		}
 		val, err := ParseCqlConstant(all[i+1], mt.ValueType())
 		if err != nil {
 			return nil, err
+		}
+		if val == nil {
+			return nil, fmt.Errorf("map values cannot be null")
 		}
 		result[key] = val
 	}
@@ -457,6 +466,9 @@ func ParseCqlSetAssignment(s cql.IValueSetContext, dt types.CqlDataType) ([]type
 		val, err := ParseCqlConstant(c, st.ElementType())
 		if err != nil {
 			return nil, err
+		}
+		if val == nil {
+			return nil, fmt.Errorf("collection items are not allowed to be null")
 		}
 		result = append(result, val)
 	}
@@ -487,7 +499,7 @@ func ParseCqlConstant(c cql.IConstantContext, dt types.CqlDataType) (types.GoVal
 		if c.StringLiteral() != nil {
 			return parseStringLiteral(c.StringLiteral(), dt)
 		}
-	case types.INT, types.BIGINT, types.DECIMAL, types.FLOAT, types.COUNTER:
+	case types.INT, types.BIGINT, types.DECIMAL, types.FLOAT, types.DOUBLE, types.COUNTER:
 		if c.DecimalLiteral() != nil {
 			return utilities.StringToGo(c.DecimalLiteral().GetText(), dt)
 		}

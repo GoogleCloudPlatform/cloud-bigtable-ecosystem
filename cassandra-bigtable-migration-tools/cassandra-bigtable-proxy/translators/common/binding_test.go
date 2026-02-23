@@ -185,3 +185,54 @@ func Test_bindValues(t *testing.T) {
 		})
 	}
 }
+
+func Test_deleteColumn(t *testing.T) {
+	tests := []struct {
+		name string
+		col  *types.Column
+		want types.IBigtableMutationOp
+	}{
+		{
+			name: "collection: list",
+			col: &types.Column{
+				Name:         "my_list",
+				ColumnFamily: "cf1",
+				CQLType:      types.NewListType(types.TypeInt),
+			},
+			want: types.NewDeleteCellsOp("cf1"),
+		},
+		{
+			name: "collection: map",
+			col: &types.Column{
+				Name:         "my_map",
+				ColumnFamily: "cf1",
+				CQLType:      types.NewMapType(types.TypeText, types.TypeInt),
+			},
+			want: types.NewDeleteCellsOp("cf1"),
+		},
+		{
+			name: "counter",
+			col: &types.Column{
+				Name:         "my_counter",
+				ColumnFamily: "cf1",
+				CQLType:      types.TypeCounter,
+			},
+			want: types.NewDeleteColumnOp(types.BigtableColumn{Family: "cf1", Column: ""}),
+		},
+		{
+			name: "regular column",
+			col: &types.Column{
+				Name:         "my_col",
+				ColumnFamily: "cf1",
+				CQLType:      types.TypeInt,
+			},
+			want: types.NewDeleteColumnOp(types.BigtableColumn{Family: "cf1", Column: "my_col"}),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := deleteColumn(tt.col)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}

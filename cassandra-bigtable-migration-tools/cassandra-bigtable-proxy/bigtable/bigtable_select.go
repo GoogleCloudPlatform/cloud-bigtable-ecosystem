@@ -102,6 +102,10 @@ func (btc *BigtableAdapter) convertResultRow(resultRow bigtable.ResultRow, query
 				if err != nil {
 					return nil, err
 				}
+				// we write an empty column qualifier to support empty rows - just skip it because we never want to show it to the user.
+				if key == "" {
+					continue
+				}
 				col, err := table.GetColumn(types.ColumnName(key))
 				if err != nil {
 					// the column may not exist in the table anymore - this happens when a column is dropped because we don't delete any data

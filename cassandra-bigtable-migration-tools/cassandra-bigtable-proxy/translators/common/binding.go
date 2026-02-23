@@ -158,6 +158,17 @@ func BindMutations(assignments []types.Assignment, usingTimestamp types.DynamicV
 	return nil
 }
 
+func deleteColumn(col *types.Column) types.IBigtableMutationOp {
+	if col.CQLType.IsCollection() {
+		return types.NewDeleteCellsOp(col.ColumnFamily)
+	} else if col.CQLType.Code() == types.COUNTER {
+		// Counters are stored with an empty qualifier.
+		return types.NewDeleteColumnOp(types.BigtableColumn{Family: col.ColumnFamily, Column: ""})
+	} else {
+		return types.NewDeleteColumnOp(types.BigtableColumn{Family: col.ColumnFamily, Column: types.ColumnQualifier(col.Name)})
+	}
+}
+
 func encodeSetValue(assignment *types.ComplexAssignmentSet, values *types.QueryParameterValues) ([]types.IBigtableMutationOp, error) {
 	col := assignment.Column()
 
@@ -166,6 +177,16 @@ func encodeSetValue(assignment *types.ComplexAssignmentSet, values *types.QueryP
 		// clear what's already there
 		results = append(results, types.NewDeleteCellsOp(col.ColumnFamily))
 	}
+
+	value, err := assignment.Value().GetValue(values)
+	if err != nil {
+		return nil, err
+	}
+	// clear the column if the value is explicitly set to nil
+	if value == nil {
+		return []types.IBigtableMutationOp{deleteColumn(col)}, nil
+	}
+
 	if col.CQLType.Code() == types.MAP {
 		mt := col.CQLType.(*types.MapType)
 		mv, err := utilities.GetValueMap(assignment.Value(), values)
@@ -186,6 +207,9 @@ func encodeSetValue(assignment *types.ComplexAssignmentSet, values *types.QueryP
 	} else if col.CQLType.Code() == types.LIST {
 		lt := col.CQLType.(*types.ListType)
 		lv, err := utilities.GetValueSlice(assignment.Value(), values)
+		if err != nil {
+			return nil, err
+		}
 		mutations, err := addListElements(lv, col.ColumnFamily, lt, false)
 		if err != nil {
 			return nil, err

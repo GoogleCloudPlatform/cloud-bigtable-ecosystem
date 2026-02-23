@@ -36,7 +36,7 @@ column qualifier, list items as column value.**
 
 ### Non-supported data types
 
-The proxy currently doesn't support the following data types: 
+The proxy currently doesn't support the following data types:
 date, decimal, duration, inet, smallint, time, timeuuid, tinyint, uuid,
 varint, frozen and user-defined types (UDT).
 
@@ -82,29 +82,7 @@ FROM keyspace.table
 GROUP BY collection_column; -- Collection columns not supported
 ```
 
-## 5. Partial Prepared Queries
-
-Currently, the proxy does not support prepared queries where only some values
-are parameterized, while others are hardcoded. This means that queries where a
-mix of actual values and placeholders (`?`) are used in the same statement are
-not supported, except in the case of `LIMIT` clauses. Below are some examples to
-clarify:
-
-- **Supported**:
-  ```sql
-  INSERT INTO keyspace1.table1 (col1, col2, col3) VALUES (?, ?, ?);
-  ```
-- **Not Supported**:
-  ```sql
-  INSERT INTO keyspace1.table1 (col1, col2, col3) VALUES ('value', ?, ?);
-  SELECT * FROM tableX WHERE col1='valueX' and col2 =?;
-  ```
-
-We aim to enhance support for partial prepared queries in future updates. For
-now, it's recommended to fully parameterize your queries or use literals
-consistently within the same statement.
-
-## 6. Raw Queries in a batch is not supported
+## 5. Raw Queries in a batch is not supported
 
 We do not support raw queries in batch
 
@@ -139,20 +117,7 @@ batch.add(insert_stmt, ('value4', 'value5', 'value6'))
 batch.add(update_stmt, ('updated_value', 'value1'))
 ```
 
-## 7. CQlSH support
-
-We have had limited support for cqlsh - [cqlsh support](./cqlsh.md)
-
-## 8. Mandatory single quote surrounding values
-
-- To run the Raw DML queries, it is mandatory for all values except numerics to
-  have single quotes added to it. For eg.
-    ```sh
-    SELECT * FROM table WHERE name='john doe';
-    INSERT INTO table (id, name) VALUES (1, 'john doe');
-    ```
-
-## 9. WHERE Clause Operator Limitations
+## 6. WHERE Clause Operator Limitations
 
 Currently, the proxy supports only a limited set of operators in WHERE clauses:
 
@@ -209,7 +174,7 @@ WHERE col1 CONTAINS VALUE 'name'
 If your queries use unsupported operators, you'll need to modify them to use
 only the supported operators or handle the filtering in your application logic.
 
-## 10. Timestamp format
+## 7. Timestamp format
 
 We do support below TIMESTAMP for INSERT and UPDATE operation.
 
@@ -221,7 +186,7 @@ We do support below TIMESTAMP for INSERT and UPDATE operation.
 - '2011-02-03T04:05:00+0000'
 - '2011-02-03T04:05:00.000+0000'
 
-## 11. Using timestamp not supported with DELETE operation
+## 8. Using timestamp not supported with DELETE operation
 
 As we have identified that USING TIMESTAMP could lead to data inconsistency due
 to the limitation of applying USING TIMESTAMP on scalar columns, we will not add
@@ -234,7 +199,7 @@ the support of UT for delete operations.
 This decision might come up with some limitations in application heavily relying
 on this feature of cassandra
 
-## 12. Using TTL
+## 9. Using TTL
 
 We do not support TTL (Time-To-Live) in the proxy because Bigtable manages TTL
 at the column family level, whereas Cassandra applies TTL at the cell level. Due
@@ -242,7 +207,7 @@ to this fundamental difference in TTL handling, it is currently not possible to
 implement this feature in the proxy. As a result, this remains a limitation of
 bigtable proxy.
 
-## 13. Limited support for system Queries
+## 10. Limited support for system Queries
 
 We only support limited ***system Queries***
 
@@ -258,19 +223,7 @@ We only support limited ***system Queries***
 - `DESCRIBE KEYSPACES`
 - `DESCRIBE KEYSPACE keyspace_name`
 
-## 14. Reconnect to proxy after DDL
+## 11. Schema Change Propagation
 
-It is necessary to reconnect or restart the session after performing DDL (
-Create, Alter, Drop) in order to refresh the schema at the client (i.e., the
-schema metadata information at CQLSH); otherwise, there is a possibility that
-some queries might fail.
-
-## 15. Inserting "empty rows"
-
-In Cassandra, it is possible to insert "empty rows" (rows without any columns)
-using a command
-like `INSERT INTO table_name (primary_key_column) VALUES (value);`. However,
-this behavior is not supported in Bigtable, which requires at least one column
-to be present in a row. As a result, attempting to insert an empty row through
-the proxy will lead to an error. To work around this limitation, you can insert
-a placeholder column with a default value when creating a new row.
+If you have multiple Proxy instances, you'll need to restart them after schema changes are made. Schema changes are not
+automatically propagated across instances. We are working on a fix for this.
