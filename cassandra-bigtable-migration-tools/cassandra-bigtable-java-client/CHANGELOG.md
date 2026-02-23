@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/compare/v0.3.0...v0.3.1) (2026-02-23)
+
+
+### Documentation
+
+* clean up ([#171](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/issues/171)) ([47a9ee6](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/commit/47a9ee6992f3d88cf74f1148cd4965ecb8d6dd28))
+
 ## [0.3.0](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/compare/v0.2.0...v0.3.0) (2026-02-06)
 
 
