@@ -15,8 +15,6 @@
  */
 package com.google.cloud.kafka.connect.bigtable.mapping;
 
-import static com.google.cloud.kafka.connect.bigtable.mapping.LogicalTypeUtils.logIfLogicalTypeUnsupported;
-
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -28,29 +26,20 @@ import com.google.cloud.kafka.connect.bigtable.config.ConfigInterpolation;
 import com.google.cloud.kafka.connect.bigtable.config.NullValueMode;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.ByteString;
+import org.apache.kafka.common.utils.Utils;
+import org.apache.kafka.connect.data.*;
+import org.apache.kafka.connect.errors.DataException;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.AbstractMap;
 import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
-import javax.annotation.Nonnull;
 
-import com.google.protobuf.MapEntry;
-import org.apache.kafka.common.utils.Utils;
-import org.apache.kafka.connect.data.Decimal;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaAndValue;
-import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.connect.data.Time;
-import org.apache.kafka.connect.data.Timestamp;
-import org.apache.kafka.connect.errors.DataException;
+import static com.google.cloud.kafka.connect.bigtable.mapping.LogicalTypeUtils.logIfLogicalTypeUnsupported;
 
 /**
  * A class responsible for converting Kafka {@link org.apache.kafka.connect.sink.SinkRecord
