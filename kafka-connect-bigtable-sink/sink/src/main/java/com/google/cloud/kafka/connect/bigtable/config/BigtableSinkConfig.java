@@ -272,7 +272,7 @@ public class BigtableSinkConfig extends AbstractConfig {
                 + "- upsert - If the row to be written already exists, then its column values are"
                 + " overwritten with the ones provided.\n"
                 + "- replace_if_newest - If there are no cells newer than this record within the"
-                + " target row of the table, empty the row and then insert new record.")
+                + " target row of the table, clear the row and then insert new record.")
         .define(
             MAX_BATCH_SIZE_CONFIG,
             ConfigDef.Type.INT,
