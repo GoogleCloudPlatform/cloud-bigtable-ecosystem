@@ -7,6 +7,8 @@ on:
     paths:
       - "kafka-connect-bigtable-sink/**"
   pull_request:
+    paths:
+      - "kafka-connect-bigtable-sink/**"
 
 jobs:
   ci:
