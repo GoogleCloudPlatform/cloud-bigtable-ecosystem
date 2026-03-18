@@ -146,6 +146,42 @@ var (
 	TypeVarint    CqlDataType = newScalarType("varint", VARINT, datatype.Varint, reflect.TypeOf(1), bigtable.StringSQLType{})
 )
 
+var (
+	AllScalarTypes = []CqlDataType{
+		TypeAscii,
+		TypeVarchar,
+		TypeBigInt,
+		TypeBlob,
+		TypeBoolean,
+		TypeCounter,
+		TypeDate,
+		TypeDecimal,
+		TypeDouble,
+		TypeFloat,
+		TypeInet,
+		TypeInt,
+		TypeSmallint,
+		TypeText,
+		TypeTime,
+		TypeTimestamp,
+		TypeTimeuuid,
+		TypeTinyint,
+		TypeUuid,
+		TypeVarint,
+	}
+	AllNumericTypes = []CqlDataType{
+		TypeBigInt,
+		TypeCounter,
+		TypeDecimal,
+		TypeDouble,
+		TypeFloat,
+		TypeInt,
+		TypeSmallint,
+		TypeTinyint,
+		TypeVarint,
+	}
+)
+
 type MapType struct {
 	keyType   CqlDataType
 	valueType CqlDataType

@@ -3,7 +3,6 @@ package mem_table
 import (
 	"fmt"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
-	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/utilities"
 	"strings"
 )
 
@@ -27,7 +26,7 @@ func (e *InMemEngine) Execute(query *types.ExecutableSelectQuery) ([]types.GoRow
 
 	// apply limit
 	if query.Limit != nil {
-		limit, err := utilities.GetValueInt32(query.Limit, query.Values)
+		limit, err := query.Values.GetValueInt32(query.Limit)
 		if err != nil {
 			return nil, err
 		}
@@ -36,16 +35,19 @@ func (e *InMemEngine) Execute(query *types.ExecutableSelectQuery) ([]types.GoRow
 		}
 	}
 
+	// todo move transformation logic to CqlFunc type
 	// handle aggregates if present
 	for _, col := range query.SelectClause.Columns {
-		if col.Func == types.FuncCodeCount {
-			key := col.Sql
-			if col.Alias != "" {
-				key = col.Alias
+		if f, ok := col.Value.(*types.FunctionValue); ok {
+			if f.Func.GetCode() == types.FuncCodeCount {
+				key := col.Cql
+				if col.Alias != "" {
+					key = col.Alias
+				}
+				return []types.GoRow{
+					{key: int64(len(filtered))},
+				}, nil
 			}
-			return []types.GoRow{
-				{key: int64(len(filtered))},
-			}, nil
 		}
 	}
 
@@ -56,7 +58,11 @@ func (e *InMemEngine) Execute(query *types.ExecutableSelectQuery) ([]types.GoRow
 
 	projectedRows := make([]types.GoRow, len(filtered))
 	for i, row := range filtered {
-		projectedRows[i] = projectRow(row, query.SelectClause.Columns)
+		selectedRow, err := projectRow(row, query.SelectClause.Columns)
+		if err != nil {
+			return nil, err
+		}
+		projectedRows[i] = selectedRow
 	}
 
 	return projectedRows, nil
@@ -131,18 +137,22 @@ func compareAny(v1, v2 any) (int, error) {
 	return 0, fmt.Errorf("unhandled comparison types: %T and %T", v1, v2)
 }
 
-func projectRow(source types.GoRow, columns []types.SelectedColumn) types.GoRow {
+func projectRow(source types.GoRow, columns []types.SelectedColumn) (types.GoRow, error) {
 	newRow := make(types.GoRow)
 	for _, col := range columns {
-		val, exists := source[string(col.ColumnName)]
+		selectedCol, ok := col.Value.(*types.ColumnValue)
+		if !ok {
+			return nil, fmt.Errorf("unhandled select column operation: %T", col.Value)
+		}
+		val, exists := source[string(selectedCol.Column.Name)]
 		if exists {
 			// Use Alias if present, otherwise use original Family Name
 			targetKey := col.Alias
 			if targetKey == "" {
-				targetKey = string(col.ColumnName)
+				targetKey = string(selectedCol.Column.Name)
 			}
 			newRow[targetKey] = val
 		}
 	}
-	return newRow
+	return newRow, nil
 }
