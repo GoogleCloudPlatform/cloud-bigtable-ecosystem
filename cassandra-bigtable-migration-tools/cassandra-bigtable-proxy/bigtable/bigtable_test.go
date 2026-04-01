@@ -143,7 +143,7 @@ func TestInsertRow(t *testing.T) {
 			client, err := btc.clients.GetClient(tt.keyspace)
 			require.NoError(t, err)
 			table := client.Open(string(tt.table))
-			row, err := table.ReadRow(t.Context(), string(tt.rowKey))
+			row, err := table.ReadRow(t.Context(), string(tt.rowKey), bigtable.RowFilter(bigtable.LatestNFilter(1)))
 			require.NoError(t, err)
 			require.NotEmpty(t, row)
 			require.Contains(t, row, "cf1")
@@ -198,7 +198,7 @@ func TestApplyBulkMutation(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify mutations
-	row1, err := tbl.ReadRow(t.Context(), "bulk1")
+	row1, err := tbl.ReadRow(t.Context(), "bulk1", bigtable.RowFilter(bigtable.LatestNFilter(1)))
 	assert.NoError(t, err)
 	assert.NotEmpty(t, row1)
 	assert.Equal(t, []byte(nil), row1["cf1"][0].Value) // empty row cell
@@ -208,7 +208,7 @@ func TestApplyBulkMutation(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Empty(t, row2)
 
-	row3, err := tbl.ReadRow(t.Context(), "bulk3")
+	row3, err := tbl.ReadRow(t.Context(), "bulk3", bigtable.RowFilter(bigtable.LatestNFilter(1)))
 	assert.NoError(t, err)
 	assert.NotEmpty(t, row3)
 	assert.Equal(t, []byte(nil), row3["cf1"][0].Value) // empty row cell
@@ -229,7 +229,7 @@ func TestMutateRowDeleteColumnFamily(t *testing.T) {
 	// Verify both column families are populated
 	tbl, err := btc.clients.GetTableClient(keyspace, tableName)
 	require.NoError(t, err)
-	row, err := tbl.ReadRow(t.Context(), key)
+	row, err := tbl.ReadRow(t.Context(), key, bigtable.RowFilter(bigtable.LatestNFilter(1)))
 	require.NoError(t, err)
 	assert.ElementsMatch(t, maps.Keys(row), []string{"cf1", "tags"})
 
@@ -240,7 +240,7 @@ func TestMutateRowDeleteColumnFamily(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify deletion by reading the row
-	row, err = tbl.ReadRow(t.Context(), key)
+	row, err = tbl.ReadRow(t.Context(), key, bigtable.RowFilter(bigtable.LatestNFilter(1)))
 	require.NoError(t, err)
 	assert.ElementsMatch(t, maps.Keys(row), []string{"cf1"}, "cf1 should still exist and tags should be deleted")
 }
@@ -265,7 +265,7 @@ func TestMutateRowDeleteQualifiers(t *testing.T) {
 	// Verify deletion by reading the row
 	tbl, err := btc.clients.GetTableClient(keyspace, tableName)
 	require.NoError(t, err)
-	row, err := tbl.ReadRow(t.Context(), key, bigtable.RowFilter(bigtable.FamilyFilter("cf1")))
+	row, err := tbl.ReadRow(t.Context(), key, bigtable.RowFilter(bigtable.ChainFilters(bigtable.FamilyFilter("cf1"), bigtable.LatestNFilter(1))))
 	require.NoError(t, err)
 	var columns []string
 	for _, item := range row["cf1"] {
@@ -297,7 +297,7 @@ func TestMutateRowIfExists(t *testing.T) {
 	tbl, err := btc.clients.GetTableClient(keyspace, tableName)
 	require.NoError(t, err)
 
-	row, err := tbl.ReadRow(t.Context(), key1, bigtable.RowFilter(bigtable.FamilyFilter("cf1")))
+	row, err := tbl.ReadRow(t.Context(), key1, bigtable.RowFilter(bigtable.ChainFilters(bigtable.FamilyFilter("cf1"), bigtable.LatestNFilter(1))))
 	require.NoError(t, err)
 	assert.Equal(t, []byte(nil), row["cf1"][0].Value) // empty row cell
 	assert.Equal(t, "v2", string(row["cf1"][1].Value), "value should be updated to v2")
@@ -327,7 +327,7 @@ func TestMutateRowIfNotExists(t *testing.T) {
 	// Verify the row is created
 	tbl, err := btc.clients.GetTableClient(keyspace, tableName)
 	require.NoError(t, err)
-	row, err := tbl.ReadRow(t.Context(), key, bigtable.RowFilter(bigtable.FamilyFilter("cf1")))
+	row, err := tbl.ReadRow(t.Context(), key, bigtable.RowFilter(bigtable.ChainFilters(bigtable.FamilyFilter("cf1"), bigtable.LatestNFilter(1))))
 	require.NoError(t, err)
 	assert.Equal(t, []byte(nil), row["cf1"][0].Value) // empty row cell
 	assert.Equal(t, "v1", string(row["cf1"][1].Value), "row1 should be created with value v1")
@@ -338,7 +338,7 @@ func TestMutateRowIfNotExists(t *testing.T) {
 	assert.False(t, wasApplied(res))
 
 	// Verify the row is not updated
-	row, err = tbl.ReadRow(t.Context(), key, bigtable.RowFilter(bigtable.FamilyFilter("cf1")))
+	row, err = tbl.ReadRow(t.Context(), key, bigtable.RowFilter(bigtable.ChainFilters(bigtable.FamilyFilter("cf1"), bigtable.LatestNFilter(1))))
 	require.NoError(t, err)
 	assert.Equal(t, []byte(nil), row["cf1"][0].Value) // empty row cell
 	assert.Equal(t, "v1", string(row["cf1"][1].Value), "row1 should not be updated")

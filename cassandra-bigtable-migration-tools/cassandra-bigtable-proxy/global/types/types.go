@@ -271,3 +271,24 @@ func (r *RawQuery) Header() *frame.Header {
 type ICassandraClient interface {
 	SetSessionKeyspace(k Keyspace)
 }
+
+type QueryClause int
+
+const (
+	QueryClauseSelect QueryClause = iota
+	QueryClauseWhere
+	QueryClauseValues
+)
+
+func (c QueryClause) String() string {
+	switch c {
+	case QueryClauseSelect:
+		return "select"
+	case QueryClauseWhere:
+		return "where"
+	case QueryClauseValues:
+		return "values"
+	default:
+		return "unknown"
+	}
+}

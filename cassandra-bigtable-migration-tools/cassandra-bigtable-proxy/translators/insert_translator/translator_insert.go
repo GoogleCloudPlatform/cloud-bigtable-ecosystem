@@ -48,7 +48,7 @@ func (t *InsertTranslator) Translate(query *types.RawQuery, sessionKeyspace type
 		return nil, err
 	}
 
-	values, err := parseInsertValues(insertObj.InsertValuesSpec(), columns, params)
+	values, err := parseInsertValues(insertObj.InsertValuesSpec(), table, columns, params)
 	if err != nil {
 		return nil, err
 	}
