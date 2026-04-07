@@ -5,6 +5,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	"github.com/datastax/go-cassandra-native-protocol/primitive"
@@ -124,6 +125,11 @@ func loadListenerConfig(args *types.CliArgs, l *yamlListener, config *yamlProxyC
 		intRowKeyEncoding = types.BigEndianEncoding
 	}
 
+	var metadataRefreshInterval = l.Bigtable.MetadataRefreshInterval
+	if l.Bigtable.MetadataRefreshInterval == nil {
+		metadataRefreshInterval = &DefaultMetadataRefreshInterval
+	}
+
 	bigtableConfig := &types.BigtableConfig{
 		ProjectID:          projectId,
 		Instances:          instances,
@@ -133,6 +139,7 @@ func loadListenerConfig(args *types.CliArgs, l *yamlListener, config *yamlProxyC
 		},
 		DefaultColumnFamily:      types.ColumnFamily(l.Bigtable.DefaultColumnFamily),
 		DefaultIntRowKeyEncoding: intRowKeyEncoding,
+		MetadataRefreshInterval:  (*time.Duration)(metadataRefreshInterval),
 	}
 
 	result := NewProxyInstanceConfig(args, l.Port, otel, bigtableConfig)
