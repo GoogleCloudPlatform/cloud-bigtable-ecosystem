@@ -1,0 +1,76 @@
+{
+  "skill_name": "bigtable",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Create a Bigtable instance 'my-instance' in us-east1-b with 1 node for my project 'test-project'.",
+      "expected_output": "The agent should provide the gcloud command for instance creation and reference infrastructure_management.md.",
+      "assertions": [
+        {
+          "name": "gcloud_command_present",
+          "description": "Checks if gcloud bigtable instances create command is in output"
+        },
+        {
+          "name": "ref_infra_mgmt",
+          "description": "Checks if infrastructure_management.md is referenced"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I want to use just a timestamp as my Bigtable row key for a high-write-volume IoT table. Is this okay?",
+      "expected_output": "The agent should warn about hotspotting and reference schema_design.md.",
+      "assertions": [
+        {
+          "name": "hotspot_warning",
+          "description": "Checks if hotspotting warning is present"
+        },
+        {
+          "name": "ref_schema_design",
+          "description": "Checks if schema_design.md is referenced"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Show me the SQL to read the last 3 versions of all cells in table 'events'.",
+      "expected_output": "The agent should provide SQL with with_history => TRUE and latest_n => 3.",
+      "assertions": [
+        {
+          "name": "sql_history_syntax",
+          "description": "Checks for with_history and latest_n syntax"
+        },
+        {
+          "name": "ref_sql_guide",
+          "description": "Checks if sql_guide.md is referenced"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "I need to quickly see the data in row 'sensor#001' of table 'metrics' from my terminal.",
+      "expected_output": "The agent should suggest using cbt lookup.",
+      "assertions": [
+        {
+          "name": "cbt_lookup_suggested",
+          "description": "Checks if cbt lookup is suggested"
+        },
+        {
+          "name": "ref_cli_data_access",
+          "description": "Checks if cli_data_access.md is referenced"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Write a Bigtable SQL query to get the 'age' column from family 'info' as an integer.",
+      "expected_output": "The agent should use CAST(... AS INT64).",
+      "assertions": [
+        {
+          "name": "cast_int64_present",
+          "description": "Checks if CAST(... AS INT64) is used"
+        }
+      ]
+    }
+  ]
+}

@@ -32,7 +32,7 @@ When reviewing or generating schema-related code, verify the following:
 
 - [ ] **Row Key Size:** Must be < 4KB (Ideal: 10–100 bytes). Large keys increase memory pressure and disk usage.
 - [ ] **Uniqueness:** Ensure row keys are globally unique. Duplicate keys will overwrite existing data.
-- [ ] **Character Set:** Use `^[a-zA-Z0-0\-_#]+$`. Stick to alphanumeric, underscores, and hashes. Zero pad all numbers to ensure correct string sorting.
+- [ ] **Character Set:** Use `^[a-zA-Z0-9\-_#]+$`. Stick to alphanumeric, underscores, and hashes. Zero pad all numbers to ensure correct string sorting.
 - [ ] **Column Qualifier Size:** Keep < 16 KB to minimize storage footprint.
 - [ ] **Column Family Count:** Limit to < 100 families. Keep names short.
 - [ ] **Cell Field Size:** Keep < 10 MB (100 MB is the hard limit). Larger cells slow down retrieval.
