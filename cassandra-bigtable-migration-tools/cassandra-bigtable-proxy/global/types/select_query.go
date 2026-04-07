@@ -9,32 +9,17 @@ import (
 // SelectedColumn describes a column that was selected as part of a query. It's
 // an output of query translating, and is also used for response construction.
 type SelectedColumn struct {
-	// Sql is the original value of the selected column, including functions, not including alias. e.g. "region" or "count(*)"
-	Sql  string
-	Func CqlFuncCode
-	// placeholders are NOT allowed
-	MapKey ColumnQualifier
-	// placeholders are NOT allowed
-	ListIndex int64
-	// ColumnName is the name of the underlying column in a function, or map key
-	// access. e.g. the column name of "max(price)" is "price"
-	ColumnName ColumnName
-	Alias      string
-	ResultType CqlDataType
+	Cql   string
+	Value DynamicValue
+	Alias string
 }
 
-func NewSelectedColumn(sql string, columnName ColumnName, alias string, resultType CqlDataType) *SelectedColumn {
-	return &SelectedColumn{Sql: sql, ColumnName: columnName, Alias: alias, ResultType: resultType, ListIndex: -1}
+func (s SelectedColumn) GetType() CqlDataType {
+	return s.Value.GetType()
 }
 
-func NewSelectedColumnListElement(sql string, columnName ColumnName, alias string, resultType CqlDataType, listIndex int64) *SelectedColumn {
-	return &SelectedColumn{Sql: sql, Alias: alias, ColumnName: columnName, ResultType: resultType, ListIndex: listIndex}
-}
-func NewSelectedColumnMapElement(sql string, columnName ColumnName, alias string, resultType CqlDataType, key ColumnQualifier) *SelectedColumn {
-	return &SelectedColumn{Sql: sql, Alias: alias, ColumnName: columnName, ResultType: resultType, MapKey: key, ListIndex: -1}
-}
-func NewSelectedColumnFunction(sql string, columnName ColumnName, alias string, resultType CqlDataType, funcCode CqlFuncCode) *SelectedColumn {
-	return &SelectedColumn{Sql: sql, Alias: alias, ColumnName: columnName, ResultType: resultType, Func: funcCode, ListIndex: -1}
+func NewSelectedColumn(cql string, value DynamicValue, alias string) SelectedColumn {
+	return SelectedColumn{Cql: cql, Value: value, Alias: alias}
 }
 
 // PreparedSelectQuery represents the mapping of a select query along with its translation details.

@@ -17,7 +17,7 @@ import (
 //   - input: The Select Element context from the antlr Parser.
 //
 // Returns: Columns Meta and an error if any.
-func parseSelectClause(input cql.ISelectElementsContext, table *sm.TableSchema) (*types.SelectClause, error) {
+func parseSelectClause(input cql.ISelectElementsContext, table *sm.TableSchema, params *types.QueryParameterBuilder) (*types.SelectClause, error) {
 	if input == nil {
 		return nil, errors.New("select clause empty")
 	}
@@ -40,7 +40,7 @@ func parseSelectClause(input cql.ISelectElementsContext, table *sm.TableSchema) 
 		}
 		var selected types.SelectedColumn
 		if val.SelectFunction() != nil {
-			selected, err = common.ParseSelectFunction(val.SelectFunction(), alias, table)
+			selected, err = common.ParseSelectFunction(val.SelectFunction(), alias, table, params)
 		} else if val.SelectColumn() != nil {
 			selected, err = common.ParseSelectColumn(val.SelectColumn(), alias, table)
 		} else if val.SelectIndex() != nil {
@@ -51,7 +51,7 @@ func parseSelectClause(input cql.ISelectElementsContext, table *sm.TableSchema) 
 		if err != nil {
 			return nil, err
 		}
-		if selected.ResultType == nil {
+		if selected.GetType() == nil {
 			return nil, fmt.Errorf("unhandled result type")
 		}
 		selectedColumns = append(selectedColumns, selected)
@@ -149,7 +149,7 @@ func selectedColumnsToMetadata(table *sm.TableSchema, selectClause *types.Select
 	}
 	var resultColumns []*message.ColumnMetadata
 	for i, c := range selectClause.Columns {
-		name := c.Sql
+		name := c.Cql
 		if c.Alias != "" {
 			name = c.Alias
 		}
@@ -158,7 +158,7 @@ func selectedColumnsToMetadata(table *sm.TableSchema, selectClause *types.Select
 			Table:    string(table.Name),
 			Name:     name,
 			Index:    int32(i),
-			Type:     c.ResultType.DataType(),
+			Type:     c.GetType().DataType(),
 		}
 		resultColumns = append(resultColumns, &col)
 	}
