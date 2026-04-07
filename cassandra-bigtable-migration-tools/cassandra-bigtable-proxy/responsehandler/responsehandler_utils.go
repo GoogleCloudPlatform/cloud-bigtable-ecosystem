@@ -53,7 +53,7 @@ func BuildRowsResultResponse(st *types.ExecutableSelectQuery, rows []types.GoRow
 	}, nil
 }
 
-func BuildPreparedResultResponse(id [16]byte, query types.IPreparedQuery) (*message.PreparedResult, error) {
+func BuildPreparedResultResponse(id [16]byte, query types.IPreparedQuery) *message.PreparedResult {
 	resultColumns := query.ResponseColumns()
 	var resultMetadata *message.RowsMetadata = nil
 	if query.QueryType() == types.QueryTypeSelect {
@@ -70,7 +70,7 @@ func BuildPreparedResultResponse(id [16]byte, query types.IPreparedQuery) (*mess
 			PkIndices: pkIndices,
 			Columns:   variableMetadata,
 		},
-	}, nil
+	}
 }
 
 func buildPreparedResult(query types.IPreparedQuery) ([]*message.ColumnMetadata, []uint16) {

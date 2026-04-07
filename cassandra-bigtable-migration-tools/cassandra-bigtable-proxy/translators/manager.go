@@ -17,9 +17,11 @@
 package translators
 
 import (
+	"context"
 	"fmt"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	schemaMapping "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/metadata"
+	otelgo "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/otel"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/translators/alter_translator"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/translators/common"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/translators/create_translator"
@@ -40,12 +42,13 @@ type TranslatorManager struct {
 	SchemaMappingConfig *schemaMapping.SchemaMetadata
 	translators         map[types.QueryType]types.IQueryTranslator
 	config              *types.BigtableConfig
+	otelInst            *otelgo.OpenTelemetry
 }
 
-func NewTranslatorManager(logger *zap.Logger, schemaMappingConfig *schemaMapping.SchemaMetadata, config *types.BigtableConfig) *TranslatorManager {
+func NewTranslatorManager(logger *zap.Logger, schemaMappingConfig *schemaMapping.SchemaMetadata, config *types.BigtableConfig, otelInst *otelgo.OpenTelemetry) *TranslatorManager {
 	// add more translators here
 	translators := []types.IQueryTranslator{
-		select_translator.NewSelectTranslator(schemaMappingConfig),
+		select_translator.NewSelectTranslator(schemaMappingConfig, logger),
 		insert_translator.NewInsertTranslator(schemaMappingConfig),
 		update_translator.NewUpdateTranslator(schemaMappingConfig),
 		delete_translator.NewDeleteTranslator(schemaMappingConfig),
@@ -69,18 +72,25 @@ func NewTranslatorManager(logger *zap.Logger, schemaMappingConfig *schemaMapping
 		SchemaMappingConfig: schemaMappingConfig,
 		translators:         tm,
 		config:              config,
+		otelInst:            otelInst,
 	}
 }
 
-func (t *TranslatorManager) TranslateQuery(q *types.RawQuery, sessionKeyspace types.Keyspace) (types.IPreparedQuery, error) {
+func (t *TranslatorManager) TranslateQuery(ctx context.Context, q *types.RawQuery, sessionKeyspace types.Keyspace) (types.IPreparedQuery, error) {
+	_, childSpan := t.otelInst.StartSpan(ctx, "translate", nil)
+	defer childSpan.End()
+	defer q.Parser().Release()
+
 	queryTranslator, err := t.getTranslator(q.QueryType())
 	if err != nil {
+		childSpan.RecordError(err)
 		return nil, err
 	}
 
 	preparedQuery, err := queryTranslator.Translate(q, sessionKeyspace)
 
 	if err != nil {
+		childSpan.RecordError(err)
 		return nil, err
 	}
 
@@ -88,10 +98,11 @@ func (t *TranslatorManager) TranslateQuery(q *types.RawQuery, sessionKeyspace ty
 
 	// ensure user doesn't try to drop or corrupt the schema mapping table
 	if !preparedQuery.Keyspace().IsSystemKeyspace() && preparedQuery.Table() == t.config.SchemaMappingTable {
+		childSpan.RecordError(err)
 		return nil, fmt.Errorf("table name cannot be the same as the configured schema mapping table name '%s'", t.config.SchemaMappingTable)
 	}
 
-	return preparedQuery, err
+	return preparedQuery, nil
 }
 
 func (t *TranslatorManager) BindQuery(st types.IPreparedQuery, cassandraValues []*primitive.Value, namedValues map[string]*primitive.Value, pv primitive.ProtocolVersion) (types.IExecutableQuery, error) {

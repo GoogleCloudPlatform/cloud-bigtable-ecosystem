@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/constants"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
+	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/metadata"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/responsehandler"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/third_party/datastax/proxycore"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/utilities"
@@ -32,7 +33,7 @@ import (
 	"time"
 )
 
-// ExecutePreparedStatement -  Executes a prepared statement on Bigtable and returns the result.
+// executePreparedStatement -  Executes a prepared statement on Bigtable and returns the result.
 // Parameters:
 //   - ctx: Context for the operation, used for cancellation and deadlines.
 //   - query: rh.QueryMetadata containing the query and parameters.
@@ -42,7 +43,7 @@ import (
 //   - *message.RowsResult: The result of the select statement.
 //   - time.Duration: The total elapsed time for the operation.
 //   - error: Error if the statement preparation or execution fails.
-func (btc *BigtableAdapter) ExecutePreparedStatement(ctx context.Context, query *types.ExecutableSelectQuery) (*message.RowsResult, error) {
+func (btc *BigtableAdapter) executePreparedStatement(ctx context.Context, query *types.ExecutableSelectQuery) (*message.RowsResult, error) {
 	if query.CachedBTPrepare == nil {
 		return nil, fmt.Errorf("cannot execute select query because prepared bigtable query is nil")
 	}
@@ -59,14 +60,19 @@ func (btc *BigtableAdapter) ExecutePreparedStatement(ctx context.Context, query 
 		return nil, fmt.Errorf("failed to bind parameters: %w", err)
 	}
 
+	table, err := btc.schemaManager.Schemas().GetTableSchema(query.Keyspace(), query.Table())
+	if err != nil {
+		return nil, err
+	}
+
 	var processingErr error
 	var rows []types.GoRow
 	executeErr := boundStmt.Execute(ctx, func(resultRow bigtable.ResultRow) bool {
-		r, convertErr := btc.convertResultRow(resultRow, query) // Call the implemented helper
+		r, convertErr := btc.convertResultRow(resultRow, query, table)
 		if convertErr != nil {
 			btc.Logger.Error("Failed to convert result row", zap.Error(convertErr), zap.String("btql", query.TranslatedQuery))
-			processingErr = convertErr // Capture the error
-			return false               // Stop execution
+			processingErr = convertErr
+			return false // Stop execution
 		}
 		rows = append(rows, r)
 		return true // Continue processing
@@ -82,12 +88,7 @@ func (btc *BigtableAdapter) ExecutePreparedStatement(ctx context.Context, query 
 	return responsehandler.BuildRowsResultResponse(query, rows, query.ProtocolVersion)
 }
 
-func (btc *BigtableAdapter) convertResultRow(resultRow bigtable.ResultRow, query *types.ExecutableSelectQuery) (types.GoRow, error) {
-	table, err := btc.schemaManager.Schemas().GetTableSchema(query.Keyspace(), query.Table())
-	if err != nil {
-		return nil, err
-	}
-
+func (btc *BigtableAdapter) convertResultRow(resultRow bigtable.ResultRow, query *types.ExecutableSelectQuery, table *metadata.TableSchema) (types.GoRow, error) {
 	result := make(types.GoRow)
 	for i, colMeta := range resultRow.Metadata.Columns {
 		var val any
@@ -138,10 +139,6 @@ func (btc *BigtableAdapter) convertResultRow(resultRow bigtable.ResultRow, query
 
 		if _, ok := result[key]; ok {
 			return nil, fmt.Errorf("result already set for column `%s`", key)
-		}
-
-		if key == "list_text" {
-			btc.Logger.Log(zap.InfoLevel, "list_text", zap.Any("value", val))
 		}
 
 		goValue, err := rowValueToGoValue(val, expectedType)

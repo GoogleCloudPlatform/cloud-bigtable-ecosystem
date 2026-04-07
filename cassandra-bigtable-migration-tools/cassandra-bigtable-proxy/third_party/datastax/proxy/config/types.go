@@ -32,6 +32,7 @@ type yamlOtelConfig struct {
 	} `yaml:"metrics"`
 	Traces struct {
 		Endpoint      string  `yaml:"endpoint"`
+		ProjectId     string  `yaml:"projectId"`
 		SamplingRatio float64 `yaml:"samplingRatio"`
 	} `yaml:"traces"`
 }

@@ -23,14 +23,18 @@ import (
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/translators/common"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/utilities"
 	"github.com/datastax/go-cassandra-native-protocol/primitive"
+	"go.uber.org/zap"
+	"time"
 )
 
 func (t *SelectTranslator) Translate(query *types.RawQuery, sessionKeyspace types.Keyspace) (types.IPreparedQuery, error) {
+	parserStart := time.Now()
 	selectObj, err := query.Parser().Select_()
 	if err != nil {
 		return nil, err
 	}
-
+	parserDuration := time.Now().Sub(parserStart)
+	t.logger.Info("PARSER_TIMING", zap.String("duration", parserDuration.String()), zap.String("query", query.RawCql()))
 	keyspaceName, tableName, err := common.ParseTableSpec(selectObj.FromSpec().TableSpec(), sessionKeyspace)
 	if err != nil {
 		return nil, err

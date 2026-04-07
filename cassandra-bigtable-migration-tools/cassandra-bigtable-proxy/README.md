@@ -31,7 +31,6 @@ see the [quick start](#quick-start).
     - [Unit Tests](#unit-tests)
     - [Compliance Tests](#compliance-tests)
     - [Fuzzing Tests](#fuzzing-tests)
-- [Generating Mock Files Using Mockery](./mocks/README.md)
 - [Connection Methods](#connection-methods)
     - [Plain TCP Connection](#plain-tcp-connection)
     - [Secured TCP Connection (TLS)](#secured-tcp-connection-tls)

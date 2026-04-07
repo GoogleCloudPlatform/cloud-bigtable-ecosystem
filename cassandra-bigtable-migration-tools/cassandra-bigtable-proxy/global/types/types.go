@@ -200,6 +200,7 @@ func (q QueryType) IsDDLType() bool {
 
 type IExecutableQuery interface {
 	Keyspace() Keyspace
+	Table() TableName // empty string if no table involved e.g. "USE keyspace;"
 	QueryType() QueryType
 	AsBulkMutation() (IBigtableMutation, bool)
 	CqlQuery() string
@@ -229,8 +230,9 @@ type RawQuery struct {
 	cql             string
 	qt              QueryType
 	sessionKeyspace Keyspace
-	parser          *parser.ProxyCqlParser
-	startTime       time.Time
+	// warning: parsers are pooled for performance reasons. this will be released back into the pool and set to nil after translation
+	parser    *parser.ProxyCqlParser
+	startTime time.Time
 }
 
 func NewRawQuery(header *frame.Header, sessionKeyspace Keyspace, cql string, parser *parser.ProxyCqlParser, qt QueryType) *RawQuery {
@@ -246,6 +248,11 @@ func NewRawQueryWithTime(header *frame.Header, sessionKeyspace Keyspace, cql str
 		qt:              qt,
 		startTime:       t,
 	}
+}
+
+func (r *RawQuery) Release() {
+	r.parser.Release()
+	r.parser = nil
 }
 
 func (r *RawQuery) QueryType() QueryType {

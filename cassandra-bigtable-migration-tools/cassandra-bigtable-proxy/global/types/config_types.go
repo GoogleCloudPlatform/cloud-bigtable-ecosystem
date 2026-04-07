@@ -46,6 +46,7 @@ type OtelConfig struct {
 		Endpoint string
 	}
 	Traces struct {
+		ProjectId     string
 		Endpoint      string
 		SamplingRatio float64
 	}

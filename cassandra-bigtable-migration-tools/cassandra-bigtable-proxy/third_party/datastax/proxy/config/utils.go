@@ -56,10 +56,12 @@ func loadProxyConfigFile(config *yamlProxyConfig, args *types.CliArgs) ([]*types
 			Endpoint: config.Otel.Metrics.Endpoint,
 		},
 		Traces: struct {
+			ProjectId     string
 			Endpoint      string
 			SamplingRatio float64
 		}{
 			Endpoint:      config.Otel.Traces.Endpoint,
+			ProjectId:     config.Otel.Traces.ProjectId,
 			SamplingRatio: config.Otel.Traces.SamplingRatio,
 		},
 	}

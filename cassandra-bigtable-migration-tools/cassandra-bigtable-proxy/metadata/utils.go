@@ -87,7 +87,8 @@ func createBigtableRowKeySchema(primaryKeys []types.CreateTablePrimaryKeyConfig,
 		rowKeySchemaFields = append(rowKeySchemaFields, part)
 	}
 	return &bigtable.StructType{
-		Fields:   rowKeySchemaFields,
+		Fields: rowKeySchemaFields,
+
 		Encoding: bigtable.StructOrderedCodeBytesEncoding{},
 	}, nil
 }

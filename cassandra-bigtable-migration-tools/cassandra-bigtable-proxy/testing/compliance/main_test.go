@@ -123,36 +123,36 @@ func setUpTests() {
 	}
 	log.Println(fmt.Sprintf("determined test target to be %s from the cluster name '%s'", testTarget.String(), clusterName))
 
-	log.Println("Creating test tables...")
-	err = runCqlshAsync(getSchemas(), testTarget != TestTargetCassandra)
-	if err != nil {
-		log.Fatalf("could not create table: %v", err)
-	}
-
-	tables, err := cqlshScanToMap("select * from system_schema.tables")
-	if err != nil {
-		log.Fatalf("could not read system tables: %v", err)
-	}
-	var tableNames []string
-	for _, tableRow := range tables {
-		keyspace := tableRow["keyspace_name"]
-		table := tableRow["table_name"]
-		// don't truncate system tables
-		if keyspace != "bigtabledevinstance" {
-			continue
-		}
-		tableNames = append(tableNames, table)
-	}
-
-	var truncateStatements []string
-	for _, table := range tableNames {
-		truncateStatements = append(truncateStatements, fmt.Sprintf("TRUNCATE TABLE %s", table))
-	}
-
-	err = runCqlshAsync(truncateStatements, testTarget != TestTargetCassandra)
-	if err != nil {
-		log.Fatalf("could not truncate table: %v", err)
-	}
+	//log.Println("Creating test tables...")
+	//err = runCqlshAsync(getSchemas(), testTarget != TestTargetCassandra)
+	//if err != nil {
+	//	log.Fatalf("could not create table: %v", err)
+	//}
+	//
+	//tables, err := cqlshScanToMap("select * from system_schema.tables")
+	//if err != nil {
+	//	log.Fatalf("could not read system tables: %v", err)
+	//}
+	//var tableNames []string
+	//for _, tableRow := range tables {
+	//	keyspace := tableRow["keyspace_name"]
+	//	table := tableRow["table_name"]
+	//	// don't truncate system tables
+	//	if keyspace != "bigtabledevinstance" {
+	//		continue
+	//	}
+	//	tableNames = append(tableNames, table)
+	//}
+	//
+	//var truncateStatements []string
+	//for _, table := range tableNames {
+	//	truncateStatements = append(truncateStatements, fmt.Sprintf("TRUNCATE TABLE %s", table))
+	//}
+	//
+	//err = runCqlshAsync(truncateStatements, testTarget != TestTargetCassandra)
+	//if err != nil {
+	//	log.Fatalf("could not truncate table: %v", err)
+	//}
 
 	log.Println("All test tables successfully created!")
 

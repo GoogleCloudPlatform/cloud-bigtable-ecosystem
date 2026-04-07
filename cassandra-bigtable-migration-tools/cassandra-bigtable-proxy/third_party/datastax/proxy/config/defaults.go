@@ -24,7 +24,7 @@ import (
 
 var (
 	// todo ensure this is a reasonable default
-	DefaultBigtableGrpcChannels   = 1
+	DefaultBigtableGrpcChannels   = 4
 	BigtableMinSession            = 100
 	BigtableMaxSession            = 400
 	DefaultSchemaMappingTableName = "schema_mapping"

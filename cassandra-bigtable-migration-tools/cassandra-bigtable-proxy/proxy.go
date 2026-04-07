@@ -17,6 +17,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
+	_ "net/http/pprof" // This side effect import registers the handlers
 	"os"
 	"os/signal"
 
@@ -26,6 +28,10 @@ import (
 func main() {
 	ctx, cancel := signalContext(context.Background(), os.Interrupt, os.Kill)
 	defer cancel()
+
+	go func() {
+		http.ListenAndServe("localhost:6060", nil)
+	}()
 
 	err := proxy.Run(ctx, os.Args[1:])
 	if err != nil {

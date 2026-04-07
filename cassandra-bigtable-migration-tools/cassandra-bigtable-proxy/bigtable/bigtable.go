@@ -56,17 +56,17 @@ func NewBigtableClient(clients *types.BigtableClientManager, logger *zap.Logger,
 func (btc *BigtableAdapter) Execute(ctx context.Context, query types.IExecutableQuery) (message.Message, error) {
 	switch q := query.(type) {
 	case *types.BoundDeleteQuery:
-		return btc.DeleteRow(ctx, q)
+		return btc.deleteRow(ctx, q)
 	case *types.BigtableWriteMutation:
 		return btc.mutateRow(ctx, q)
 	case *types.ExecutableSelectQuery:
-		return btc.ExecutePreparedStatement(ctx, q)
+		return btc.executePreparedStatement(ctx, q)
 	case *types.CreateTableStatementMap:
 		return btc.schemaManager.CreateTable(ctx, q)
 	case *types.AlterTableStatementMap:
 		return btc.schemaManager.AlterTable(ctx, q)
 	case *types.TruncateTableStatementMap:
-		err := btc.DropAllRows(ctx, q)
+		err := btc.dropAllRows(ctx, q)
 		return emptyRowsResult(), err
 	case *types.DropTableQuery:
 		return btc.schemaManager.DropTable(ctx, q)
@@ -90,8 +90,6 @@ func (btc *BigtableAdapter) Execute(ctx context.Context, query types.IExecutable
 func (btc *BigtableAdapter) mutateRow(ctx context.Context, input *types.BigtableWriteMutation) (message.Message, error) {
 	otelgo.AddAnnotation(ctx, applyingBigtableMutation)
 	mut := bigtable.NewMutation()
-
-	btc.Logger.Info("mutating row", zap.String("key", hex.EncodeToString([]byte(input.RowKey()))))
 
 	client, err := btc.clients.GetClient(input.Keyspace())
 	if err != nil {
@@ -185,13 +183,13 @@ func (btc *BigtableAdapter) buildMutation(ctx context.Context, table *bigtable.T
 	return nil
 }
 
-func (btc *BigtableAdapter) DropAllRows(ctx context.Context, data *types.TruncateTableStatementMap) error {
+func (btc *BigtableAdapter) dropAllRows(ctx context.Context, data *types.TruncateTableStatementMap) error {
 	_, err := btc.schemaManager.Schemas().GetTableSchema(data.Keyspace(), data.Table())
 	if err != nil {
 		return err
 	}
 
-	// performance optimization because DropAllRows can be slow
+	// performance optimization because dropAllRows can be slow
 	hasRows, err := btc.hasAnyRows(ctx, data.Keyspace(), data.Table())
 	if err != nil {
 		return err
@@ -263,7 +261,7 @@ func (btc *BigtableAdapter) InsertRow(ctx context.Context, input *types.Bigtable
 	return btc.mutateRow(ctx, input)
 }
 
-// UpdateRow - Updates a row in the specified bigtable table.
+// updateRow - Updates a row in the specified bigtable table.
 //
 // Parameters:
 //   - ctx: Context for the operation, used for cancellation and deadlines.
@@ -271,11 +269,11 @@ func (btc *BigtableAdapter) InsertRow(ctx context.Context, input *types.Bigtable
 //
 // Returns:
 //   - error: Error if the update fails.
-func (btc *BigtableAdapter) UpdateRow(ctx context.Context, input *types.BigtableWriteMutation) (message.Message, error) {
+func (btc *BigtableAdapter) updateRow(ctx context.Context, input *types.BigtableWriteMutation) (message.Message, error) {
 	return btc.mutateRow(ctx, input)
 }
 
-func (btc *BigtableAdapter) DeleteRow(ctx context.Context, deleteQueryData *types.BoundDeleteQuery) (message.Message, error) {
+func (btc *BigtableAdapter) deleteRow(ctx context.Context, deleteQueryData *types.BoundDeleteQuery) (message.Message, error) {
 	otelgo.AddAnnotation(ctx, applyingDeleteMutation)
 	client, err := btc.clients.GetClient(deleteQueryData.Keyspace())
 	if err != nil {
@@ -385,9 +383,10 @@ func (btc *BigtableAdapter) ApplyBulkMutation(ctx context.Context, keyspace type
 				}, err
 			}
 		default:
+			err := fmt.Errorf("unhandled bulk mutation type %T", md)
 			return BulkOperationResponse{
 				FailedRows: fmt.Sprintf("All Rows are failed because: unsupported bulk operation: %T", v),
-			}, fmt.Errorf("unhandled bulk mutation type %T", md)
+			}, err
 		}
 	}
 	// create mutations from mutation data
@@ -510,8 +509,8 @@ func (btc *BigtableAdapter) PrepareStatement(ctx context.Context, query types.IP
 		return nil, nil
 	}
 
-	selectQuery, ok := query.(*types.PreparedSelectQuery)
-	if !ok {
+	selectQuery, isType := query.(*types.PreparedSelectQuery)
+	if !isType {
 		// only select queries can be prepared in Bigtable at this time
 		return nil, nil
 	}

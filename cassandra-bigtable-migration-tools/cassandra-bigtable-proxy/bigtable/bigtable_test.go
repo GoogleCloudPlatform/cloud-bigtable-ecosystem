@@ -28,6 +28,7 @@ import (
 	"cloud.google.com/go/bigtable"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	schemaMapping "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/metadata"
+	otelgo "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/otel"
 	"github.com/datastax/go-cassandra-native-protocol/message"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -63,7 +64,7 @@ func TestMain(m *testing.M) {
 		fmt.Printf("failed to initialize md store: %v", err)
 		os.Exit(1)
 	}
-	btc = NewBigtableClient(bts.Clients(), zap.NewNop(), &bigtableConfig, mdStore)
+	btc = NewBigtableClient(bts.Clients(), zap.NewNop(), &bigtableConfig, mdStore, &otelgo.OpenTelemetry{Config: &otelgo.OTelConfig{OTELEnabled: false}})
 
 	_, err = mdStore.CreateTable(ctx, types.NewCreateTableStatementMap(keyspace, tableName, "ignored", false, []types.CreateColumn{
 		{
@@ -103,7 +104,7 @@ func TestInsertRow(t *testing.T) {
 	mdStore := schemaMapping.NewMetadataStore(zap.NewNop(), bts.Clients(), &bigtableConfig)
 	mdStore.Schemas().AddTables(mockdata.GetSchemaMappingConfig().Tables())
 
-	localBtc := NewBigtableClient(bts.Clients(), zap.NewNop(), &bigtableConfig, mdStore)
+	localBtc := NewBigtableClient(bts.Clients(), zap.NewNop(), &bigtableConfig, mdStore, &otelgo.OpenTelemetry{Config: &otelgo.OTelConfig{OTELEnabled: false}})
 
 	tests := []struct {
 		name          string
@@ -166,7 +167,7 @@ func TestDeleteRow(t *testing.T) {
 	require.NoError(t, err)
 
 	deleteQuery := types.NewBoundDeleteQuery(keyspace, tableName, "", rowKey, false, nil)
-	_, err = btc.DeleteRow(t.Context(), deleteQuery)
+	_, err = btc.deleteRow(t.Context(), deleteQuery)
 	require.NoError(t, err)
 
 	// Verify deletion
@@ -236,7 +237,7 @@ func TestMutateRowDeleteColumnFamily(t *testing.T) {
 	// Delete cf2
 	updateData := types.NewBigtableWriteMutation(keyspace, tableName, "", types.IfSpec{}, types.QueryTypeUpdate, key)
 	updateData.AddMutations(types.NewDeleteCellsOp("tags"))
-	_, err = btc.UpdateRow(t.Context(), updateData)
+	_, err = btc.updateRow(t.Context(), updateData)
 	require.NoError(t, err)
 
 	// Verify deletion by reading the row
@@ -259,7 +260,7 @@ func TestMutateRowDeleteQualifiers(t *testing.T) {
 	// Delete col1
 	updateData := types.NewBigtableWriteMutation(keyspace, tableName, "", types.IfSpec{}, types.QueryTypeUpdate, key)
 	updateData.AddMutations(types.NewDeleteColumnOp(types.BigtableColumn{Family: "cf1", Column: "col1"}))
-	_, err = btc.UpdateRow(t.Context(), updateData)
+	_, err = btc.updateRow(t.Context(), updateData)
 	require.NoError(t, err)
 
 	// Verify deletion by reading the row
@@ -289,7 +290,7 @@ func TestMutateRowIfExists(t *testing.T) {
 	// Update the row when it exists
 	updateData := types.NewBigtableWriteMutation(keyspace, tableName, "", types.IfSpec{IfExists: true}, types.QueryTypeUpdate, key1)
 	updateData.AddMutations(types.NewWriteCellOp("cf1", "col1", []byte("v2")))
-	res, err := btc.UpdateRow(t.Context(), updateData)
+	res, err := btc.updateRow(t.Context(), updateData)
 	require.NoError(t, err)
 	assert.True(t, wasApplied(res))
 
@@ -305,7 +306,7 @@ func TestMutateRowIfExists(t *testing.T) {
 	// Attempt to update a non-existent row
 	updateDataNonExistent := types.NewBigtableWriteMutation(keyspace, tableName, "", types.IfSpec{IfExists: true}, types.QueryTypeUpdate, key2)
 	updateDataNonExistent.AddMutations(types.NewWriteCellOp("cf1", "col1", []byte("v2")))
-	res, err = btc.UpdateRow(t.Context(), updateDataNonExistent)
+	res, err = btc.updateRow(t.Context(), updateDataNonExistent)
 	require.NoError(t, err)
 	assert.False(t, wasApplied(res))
 
@@ -346,11 +347,11 @@ func TestMutateRowIfNotExists(t *testing.T) {
 
 func TestMutateRowInvalidKeyspace(t *testing.T) {
 	localMdStore := schemaMapping.NewMetadataStore(zap.NewNop(), bts.Clients(), &bigtableConfig)
-	localBtc := NewBigtableClient(bts.Clients(), zap.NewNop(), &bigtableConfig, localMdStore)
+	localBtc := NewBigtableClient(bts.Clients(), zap.NewNop(), &bigtableConfig, localMdStore, &otelgo.OpenTelemetry{Config: &otelgo.OTelConfig{OTELEnabled: false}})
 
 	updateData := types.NewBigtableWriteMutation("invalid-keyspace", "any-table", "", types.IfSpec{}, types.QueryTypeUpdate, "row1")
 	updateData.AddMutations(types.NewWriteCellOp("cf1", "col1", []byte("value")))
-	_, err := localBtc.UpdateRow(t.Context(), updateData)
+	_, err := localBtc.updateRow(t.Context(), updateData)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "bigtable client not found for keyspace 'invalid-keyspace'")
 }
