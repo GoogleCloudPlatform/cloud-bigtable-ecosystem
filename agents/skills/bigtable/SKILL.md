@@ -1,5 +1,5 @@
 ---
-name: Bigtable
+name: bigtable
 description: A skill for managing Google Bigtable instances and tables using gcloud and cbt CLI tools and discover Bigtable resources via Dataplex Universal Catalog with guidance on how to design efficient Bigtable schemas and generate code for querying Bigtable.
 ---
 
