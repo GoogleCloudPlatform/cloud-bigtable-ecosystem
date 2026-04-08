@@ -46,5 +46,8 @@ python3 agents/skills/skill-creator/eval-viewer/generate_review.py \
 ## 4. Repository Content
 
 - `evals.json`: The "Source of Truth" for test prompts and success assertions.
-- `benchmark_summary.md`: The latest verified performance snapshot.
+- `schemas.md`: Documentation for the JSON formats used by the evaluation tools.
+- `gemini_benchmark_summary.md`: Performance snapshot for Gemini CLI.
+- `claude_benchmark_summary.md`: Performance snapshot for Claude (Placeholder).
+- `cross_model_report.md`: Comparison of skill effectiveness across different models.
 - `README.md`: This guide.

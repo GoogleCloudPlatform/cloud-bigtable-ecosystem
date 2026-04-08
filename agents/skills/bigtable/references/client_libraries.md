@@ -1,4 +1,4 @@
-# Bigtable Client Library User Guide for Gemini Agents
+# Bigtable Client Library User Guide
 
 This document outlines critical technical details about Bigtable data model and client libraries.
 

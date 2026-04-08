@@ -3,6 +3,7 @@
   "evals": [
     {
       "id": 1,
+      "eval_group": "Infrastructure & Admin",
       "prompt": "Create a Bigtable instance 'my-instance' in us-east1-b with 1 node for my project 'test-project'.",
       "expected_output": "The agent should provide the gcloud command for instance creation and reference infrastructure_management.md.",
       "assertions": [
@@ -18,6 +19,23 @@
     },
     {
       "id": 2,
+      "eval_group": "Infrastructure & Admin",
+      "prompt": "Create a table 'logs' with a column family 'raw' that keeps only the last 5 versions AND data for no more than 30 days.",
+      "expected_output": "The agent should use cbt createfamily with a nested GC policy (AND).",
+      "assertions": [
+        {
+          "name": "cbt_gc_policy_syntax",
+          "description": "Checks if cbt command for GC policy (maxage/maxversions) is correct"
+        },
+        {
+          "name": "gc_and_logic",
+          "description": "Checks if the logic correctly combines versions AND age"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "eval_group": "Schema Design",
       "prompt": "I want to use just a timestamp as my Bigtable row key for a high-write-volume IoT table. Is this okay?",
       "expected_output": "The agent should warn about hotspotting and reference schema_design.md.",
       "assertions": [
@@ -32,7 +50,136 @@
       ]
     },
     {
-      "id": 3,
+      "id": 4,
+      "eval_group": "Schema Design",
+      "prompt": "I need to store user sessions. Each session has a user_id, a device_id, and a timestamp. How should I design my row key if I want to efficiently query all sessions for a specific user, and sometimes for a specific device?",
+      "expected_output": "The agent should suggest a composite row key with user_id as prefix and explain prefix scans vs. filtering.",
+      "assertions": [
+        {
+          "name": "composite_key_suggestion",
+          "description": "Checks if composite row key is suggested"
+        },
+        {
+          "name": "prefix_scan_explanation",
+          "description": "Checks if prefix scan efficiency is explained"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "eval_group": "Structured Row Keys",
+      "prompt": "Show me how to create a Bigtable table 'user_activity' using SQL that has a structured row key composed of 'user_id' (STRING) and 'timestamp' (INT64).",
+      "expected_output": "The agent should use the PRIMARY KEY clause in the CREATE TABLE statement.",
+      "assertions": [
+        {
+          "name": "primary_key_ddl_syntax",
+          "description": "Checks for PRIMARY KEY (user_id, timestamp) in DDL"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "eval_group": "Structured Row Keys",
+      "prompt": "My table 'sensor_readings' has a structured row key with fields 'building_id', 'sensor_type', and 'reading_time'. Write a SQL query to get all 'temperature' readings for 'building_001' from the last hour.",
+      "expected_output": "The agent should filter directly on the key components in the WHERE clause.",
+      "assertions": [
+        {
+          "name": "structured_key_filter",
+          "description": "Checks for WHERE building_id = '...' AND sensor_type = '...' filter"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "eval_group": "Logical Views",
+      "prompt": "Create a logical view named 'active_users_view' that selects the '_key' and the 'email' column from the 'profiles' family of the 'users' table, filtering for rows where 'status' is 'ACTIVE'.",
+      "expected_output": "The agent should use the CREATE VIEW syntax.",
+      "assertions": [
+        {
+          "name": "create_view_syntax",
+          "description": "Checks for CREATE VIEW active_users_view AS SELECT ..."
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "eval_group": "Logical Views",
+      "prompt": "How do I delete the logical view 'active_users_view' from Bigtable using SQL?",
+      "expected_output": "The agent should use the DROP VIEW syntax.",
+      "assertions": [
+        {
+          "name": "drop_view_syntax",
+          "description": "Checks for DROP VIEW active_users_view"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "eval_group": "Data Ingestion (Writes)",
+      "prompt": "I have thousands of rows to ingest into Bigtable. Should I send them one by one? Show me the recommended Go pattern.",
+      "expected_output": "The agent should recommend bulk/batch writes using MutateRows and provide a Go code example.",
+      "assertions": [
+        {
+          "name": "bulk_write_recommendation",
+          "description": "Checks if MutateRows (bulk writing) is suggested"
+        },
+        {
+          "name": "go_batch_example",
+          "description": "Checks for Go code using MutateRows"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "eval_group": "Data Ingestion (Writes)",
+      "prompt": "Write a Go function that atomically increments a 'click_count' column in family 'stats' for a specific row key.",
+      "expected_output": "The agent should use ReadModifyWriteRow with an Increment mutation.",
+      "assertions": [
+        {
+          "name": "atomic_increment_usage",
+          "description": "Checks for ReadModifyWriteRow and Increment usage"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "eval_group": "Data Retrieval (Reads)",
+      "prompt": "I need to fetch a single row with key 'user#123' from table 'users'. What is the most efficient way to do this in Go?",
+      "expected_output": "The agent should suggest ReadRow for a point lookup.",
+      "assertions": [
+        {
+          "name": "point_lookup_efficiency",
+          "description": "Checks if ReadRow is recommended for single key lookup"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "eval_group": "Data Retrieval (Reads)",
+      "prompt": "Write a SQL query to retrieve only the 10 most recent rows from the 'events' table.",
+      "expected_output": "The agent should use the LIMIT clause.",
+      "assertions": [
+        {
+          "name": "sql_limit_clause",
+          "description": "Checks for LIMIT 10 syntax"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "eval_group": "Data Retrieval (Reads)",
+      "prompt": "Show me how to filter rows in Go where the cell value in family 'f1' and column 'status' matches the regex '^active_.*'.",
+      "expected_output": "The agent should use a ValueFilter with a regex.",
+      "assertions": [
+        {
+          "name": "go_value_filter_regex",
+          "description": "Checks for ValueFilter with regex in Go"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "eval_group": "SQL Querying (Basic)",
       "prompt": "Show me the SQL to read the last 3 versions of all cells in table 'events'.",
       "expected_output": "The agent should provide SQL with with_history => TRUE and latest_n => 3.",
       "assertions": [
@@ -47,7 +194,200 @@
       ]
     },
     {
-      "id": 4,
+      "id": 15,
+      "eval_group": "SQL Querying (Basic)",
+      "prompt": "Write a Bigtable SQL query to count the number of rows in table 'orders' where the 'amount' column in family 'f1' is greater than 100.",
+      "expected_output": "The agent should use COUNT(*) with a WHERE clause filtering the column value.",
+      "assertions": [
+        {
+          "name": "sql_count_aggregation",
+          "description": "Checks if COUNT(*) is used"
+        },
+        {
+          "name": "sql_comparison_operator",
+          "description": "Checks if WHERE f1['amount'] > 100 (or equivalent) is used"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "eval_group": "SQL Querying (Basic)",
+      "prompt": "My 'payload' column in family 'data' contains JSON strings like '{\"temp\": 22.5, \"status\": \"ok\"}'. Write a SQL query to get the 'temp' value as a float for all rows where 'status' is 'ok'.",
+      "expected_output": "The agent should use JSON_EXTRACT to parse and filter the data.",
+      "assertions": [
+        {
+          "name": "json_extract_used",
+          "description": "Checks if JSON_EXTRACT (or JSON_VALUE) is used"
+        },
+        {
+          "name": "sql_where_filter",
+          "description": "Checks if SQL WHERE clause is correctly applied to the JSON field"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "eval_group": "SQL Querying (Advanced)",
+      "prompt": "Write a Bigtable SQL query to retrieve all rows where the row key starts with 'user#123' and ends with a specific timestamp range.",
+      "expected_output": "The agent should use _key LIKE 'user#123%' and potentially range filters on _key.",
+      "assertions": [
+        {
+          "name": "row_key_prefix_syntax",
+          "description": "Checks for _key LIKE 'prefix%' usage"
+        },
+        {
+          "name": "row_key_range_syntax",
+          "description": "Checks for _key >= and _key < range filters"
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "eval_group": "SQL Querying (Advanced)",
+      "prompt": "I need to fetch rows for three specific IDs: 'id_001', 'id_005', and 'id_099'. How do I do this in one SQL query?",
+      "expected_output": "The agent should use the IN operator on the _key pseudocolumn.",
+      "assertions": [
+        {
+          "name": "sql_in_operator",
+          "description": "Checks for _key IN ('...', '...') syntax"
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "eval_group": "SQL Querying (Advanced)",
+      "prompt": "Write a SQL query that flattens all versions of the 'price' column in the 'sales' family so I can see each version as a separate row.",
+      "expected_output": "The agent should use the UNPACK function.",
+      "assertions": [
+        {
+          "name": "unpack_function_used",
+          "description": "Checks for UNPACK(sales['price']) usage"
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "eval_group": "SQL Querying (Advanced)",
+      "prompt": "How do I filter a versioned column 'metric' in family 'f1' to only include values that were recorded after 2024-01-01?",
+      "expected_output": "The agent should use ARRAY_FILTER with a lambda expression on the timestamp field.",
+      "assertions": [
+        {
+          "name": "array_filter_lambda",
+          "description": "Checks for ARRAY_FILTER(f1['metric'], e -> e.timestamp > ...) syntax"
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "eval_group": "SQL Querying (Advanced)",
+      "prompt": "Show me how to get a list of all column qualifiers (keys) present in the 'metadata' family for each row.",
+      "expected_output": "The agent should use the MAP_KEYS function.",
+      "assertions": [
+        {
+          "name": "map_keys_used",
+          "description": "Checks for MAP_KEYS(metadata) usage"
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "eval_group": "SQL Querying (Advanced)",
+      "prompt": "Write a query to find rows where the 'attributes' family contains a qualifier 'color' with the value 'blue'.",
+      "expected_output": "The agent should use MAP_ENTRIES with ARRAY_FILTER or similar introspection logic.",
+      "assertions": [
+        {
+          "name": "map_introspection_logic",
+          "description": "Checks for advanced map filtering logic (e.g. MAP_ENTRIES or bracket access)"
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "eval_group": "SQL Querying (Advanced)",
+      "prompt": "Use a CASE statement to label rows as 'High Value' if 'total' in family 'f1' is > 1000, and 'Standard' otherwise.",
+      "expected_output": "The agent should use standard SQL CASE WHEN syntax.",
+      "assertions": [
+        {
+          "name": "sql_case_statement",
+          "description": "Checks for CASE WHEN ... THEN ... ELSE ... END syntax"
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "eval_group": "SQL Querying (Advanced)",
+      "prompt": "How do I query Bigtable to find row keys that match a specific regular expression, like ending with '_prod'?",
+      "expected_output": "The agent should use REGEXP_CONTAINS on the _key column.",
+      "assertions": [
+        {
+          "name": "regexp_contains_used",
+          "description": "Checks for REGEXP_CONTAINS(_key, '...') usage"
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "eval_group": "SQL Querying (CAST Types)",
+      "prompt": "Write a Bigtable SQL query to get the 'age' column from family 'info' as an integer.",
+      "expected_output": "The agent should use CAST(... AS INT64).",
+      "assertions": [
+        {
+          "name": "cast_int64_present",
+          "description": "Checks if CAST(... AS INT64) is used"
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "eval_group": "SQL Querying (CAST Types)",
+      "prompt": "Write a Bigtable SQL query to get the 'temperature' column from family 'sensor_data' as a FLOAT64.",
+      "expected_output": "The agent should use CAST(... AS FLOAT64).",
+      "assertions": [
+        {
+          "name": "cast_float64_present",
+          "description": "Checks if CAST(... AS FLOAT64) is used"
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "eval_group": "SQL Querying (CAST Types)",
+      "prompt": "My 'is_active' column in family 'status' stores boolean data. Write a Bigtable SQL query to retrieve this column cast as a BOOL.",
+      "expected_output": "The agent should use CAST(... AS BOOL).",
+      "assertions": [
+        {
+          "name": "cast_bool_present",
+          "description": "Checks if CAST(... AS BOOL) is used"
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "eval_group": "SQL Querying (CAST Types)",
+      "prompt": "I have a 'created_at' column in family 'metadata' that I want to read as a TIMESTAMP. What SQL query should I use?",
+      "expected_output": "The agent should use CAST(... AS TIMESTAMP).",
+      "assertions": [
+        {
+          "name": "cast_timestamp_present",
+          "description": "Checks if CAST(... AS TIMESTAMP) is used"
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "eval_group": "SQL Querying (CAST Types)",
+      "prompt": "How do I cast the 'event_date' column from family 'events' to a GoogleSQL DATE type in Bigtable?",
+      "expected_output": "The agent should use CAST(... AS DATE).",
+      "assertions": [
+        {
+          "name": "cast_date_present",
+          "description": "Checks if CAST(... AS DATE) is used"
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "eval_group": "Tools & CLI",
       "prompt": "I need to quickly see the data in row 'sensor#001' of table 'metrics' from my terminal.",
       "expected_output": "The agent should suggest using cbt lookup.",
       "assertions": [
@@ -62,13 +402,46 @@
       ]
     },
     {
-      "id": 5,
-      "prompt": "Write a Bigtable SQL query to get the 'age' column from family 'info' as an integer.",
-      "expected_output": "The agent should use CAST(... AS INT64).",
+      "id": 31,
+      "eval_group": "Code Development",
+      "prompt": "Generate Go code to perform a CheckAndMutateRow operation. If the column 'status' in family 'state' is 'pending', update it to 'processed'.",
+      "expected_output": "The agent should use the Go client library's NewCondMutation and CheckAndMutateRow.",
       "assertions": [
         {
-          "name": "cast_int64_present",
-          "description": "Checks if CAST(... AS INT64) is used"
+          "name": "go_code_present",
+          "description": "Checks if Go code block is present"
+        },
+        {
+          "name": "conditional_mutation_usage",
+          "description": "Checks if NewCondMutation is used"
+        },
+        {
+          "name": "ref_client_libs",
+          "description": "Checks if client_libraries.md is referenced"
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "eval_group": "Code Development",
+      "prompt": "Write a Go snippet to fetch only the qualifier (column name) and timestamp for all cells in family 'raw' for row 'key_001'.",
+      "expected_output": "The agent should use a Chain with StripValueFilter or similar projection logic.",
+      "assertions": [
+        {
+          "name": "go_projection_filter",
+          "description": "Checks for StripValueFilter or QualifierFilter usage"
+        }
+      ]
+    },
+    {
+      "id": 33,
+      "eval_group": "Code Development",
+      "prompt": "How do I perform a prefix scan for all rows starting with 'login#' in Go?",
+      "expected_output": "The agent should use PrefixRange with the ReadRows method.",
+      "assertions": [
+        {
+          "name": "go_prefix_range_usage",
+          "description": "Checks for PrefixRange usage in Go"
         }
       ]
     }
