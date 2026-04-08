@@ -1,12 +1,12 @@
 # Bigtable Skill: Cross-Model Comparison
 
 **Evaluation Date**: 2026-04-08
-**Models Tested**: Claude Opus 4.5 (Iteration 4), Claude Sonnet 4.5 (Iteration 5), Gemini CLI (Iteration 6)
+**Models Tested**: Claude Opus 4.5 (Iteration 4), Claude Sonnet 4.5 (Iteration 5), Gemini 3 Pro (Iteration 6)
 **Test Suite**: 33 evaluation cases covering Infrastructure, Schema Design, SQL, and Code Development
 
 ## Executive Summary
 
-All tested models, including the Gemini CLI, demonstrate strong performance with the Bigtable skill. Claude Opus 4.5 shows the highest overall accuracy (+16% improvement), while Gemini CLI and Claude Sonnet 4.5 achieve identical pass rates of 93.3% with the skill.
+All tested models demonstrate strong performance with the Bigtable skill. Claude Opus 4.5 shows the highest overall accuracy (+16% improvement), while Gemini 3 Pro and Claude Sonnet 4.5 achieve identical pass rates of 93.3% with the skill.
 
 ## Model Performance Comparison
 
@@ -14,7 +14,7 @@ All tested models, including the Gemini CLI, demonstrate strong performance with
 |-------|--------|------------|---------------|-------|-------------|
 | **Claude Opus 4.5** | Iteration 4 | **93.9%** (42/45)* | 77.8% (35/45) | **+16.1%** | **+7 assertions** |
 | **Claude Sonnet 4.5** | Iteration 5 | **93.3%** (42/45) | 80.0% (36/45) | **+13.3%** | **+6 assertions** |
-| **Gemini CLI** | Iteration 6 | **93.3%** (42/45) | 80.0% (36/45) | **+13.3%** | **+6 assertions** |
+| **Gemini 3 Pro** | Iteration 6 | **93.3%** (42/45) | 80.0% (36/45) | **+13.3%** | **+6 assertions** |
 
 *\*Note: Opus pass rate is 93.9% based on mean result across multiple runs in Iteration 4.*
 

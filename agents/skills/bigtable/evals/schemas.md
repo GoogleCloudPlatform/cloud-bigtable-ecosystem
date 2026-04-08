@@ -432,3 +432,17 @@ Output from post-hoc analyzer. Located at `<grading-dir>/analysis.json`.
   }
 }
 ```
+
+---
+
+## Reporting Mapping
+
+The following table describes how the JSON data produced by the evaluation tools is used to generate the human-readable markdown reports.
+
+| Report File | Source Data | Description |
+| :--- | :--- | :--- |
+| `gemini_benchmark_summary.md` | `benchmark.json` | Snapshot of a specific Gemini iteration. |
+| `sonnet_benchmark_summary.md` | `benchmark.json` | Snapshot of a specific Sonnet iteration. |
+| `cross_model_comparison.md` | `benchmark.json` (Multi) | Quantitative leaderboard comparing pass rates across models. |
+| `cross_model_report.md` | `analysis.json` | Qualitative report on model behaviors and strategy. |
+

@@ -1,7 +1,7 @@
 # Bigtable Skill: Gemini CLI Benchmark Summary (Iteration 6)
 
 **Date**: 2026-04-08
-**Model**: Gemini CLI (Subagents: Generalist)
+**Model**: Gemini 3 Pro (Gemini CLI / Generalist)
 **Status**: Mature Skill Performance (Iteration 6)
 
 ## Executive Summary

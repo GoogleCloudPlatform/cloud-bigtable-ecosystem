@@ -22,9 +22,9 @@ This skill provides core workflows and guidance for administering and developing
 - **Access Patterns:**
   - Use **Client Libraries** for writes, deletes, and simple reads (point lookups, scans). See [client_libraries.md](references/client_libraries.md).
   - Use **SQL API** for server-side processing (JSON parsing, transforms, aggregations). See [sql_guide.md](references/sql_guide.md).
-- **Executing SQL:** Use the provided script to run SQL queries in a restricted environment:
+- **Executing SQL:** Use the `cbt sql` command to execute queries directly:
   ```bash
-  python3 agents/skills/bigtable/scripts/run_bigtable_sql.py [PROJECT_ID] [INSTANCE_ID] "[SQL_QUERY]" > output.md
+  cbt sql "[SQL_QUERY]"
   ```
 
 ## Reference Guides

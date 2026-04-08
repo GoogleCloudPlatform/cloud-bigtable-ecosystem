@@ -46,8 +46,10 @@ python3 agents/skills/skill-creator/eval-viewer/generate_review.py \
 ## 4. Repository Content
 
 - `evals.json`: The "Source of Truth" for test prompts and success assertions.
-- `schemas.md`: Documentation for the JSON formats used by the evaluation tools.
-- `gemini_benchmark_summary.md`: Performance snapshot for Gemini CLI.
-- `claude_benchmark_summary.md`: Performance snapshot for Claude (Placeholder).
-- `cross_model_report.md`: Comparison of skill effectiveness across different models.
+- `schemas.md`: Documentation for the JSON formats and report mapping.
+- `gemini_benchmark_summary.md`: Performance snapshot for Gemini 3 Pro.
+- `claude_benchmark_summary.md`: Performance snapshot for Claude Opus.
+- `sonnet_benchmark_summary.md`: Performance snapshot for Claude Sonnet.
+- `cross_model_comparison.md`: The Quantitative Leaderboard. Compares pass rates and deltas across all models (Opus, Sonnet, Gemini 3 Pro).
+- `cross_model_report.md`: The Qualitative Strategy Doc. Deep dive into model-specific behaviors, strengths, and failure modes.
 - `README.md`: This guide.
