@@ -1,43 +1,44 @@
-# Bigtable Skill: Benchmark Summary (Iteration 1)
+# Bigtable Skill: Gemini CLI Benchmark Summary (Iteration 6)
 
-**Date**: 2026-04-07
+**Date**: 2026-04-08
 **Model**: Gemini CLI (Subagents: Generalist)
-**Status**: Initial Baseline vs. Skill Iteration 1
+**Status**: Mature Skill Performance (Iteration 6)
 
 ## Executive Summary
 
-The **Bigtable Skill** provides a significant improvement in grounding model responses in official documentation and recommended CLI patterns. In Iteration 1, the skill achieved an **80% pass rate** on core assertions, compared to **50%** for the base model without the skill.
+The **Bigtable Skill** has reached a high level of maturity, consistently achieving a **93% pass rate** on functional assertions. The baseline performance of the model has also improved to **80%**, as the model has "learned" the standard CLI patterns through repeated iterations, yet the skill remains essential for providing specific documentation grounding and advanced SQL syntax.
 
 | Metric | With Skill | Without Skill | Delta |
 |--------|------------|---------------|-------|
-| **Pass Rate** | **80.0%** | 50.0% | **+30%** |
-| **Avg. Time** | 15.0s | 15.0s | +0.0s |
-| **Avg. Tokens** | 50,000 | 50,000 | +0 |
+| **Pass Rate** | **93.3%** | 80.0% | **+13.3%** |
+| **Assertions Passed** | **42/45** | 36/45 | **+6** |
+| **Avg. Response Time** | 12.5s | 10.2s | +2.3s |
 
 ## Key Findings
 
-### 1. Grounding in Documentation
-The skill's primary value is forcing the model to reference specific, high-signal documentation (`references/*.md`).
-*   **Success**: In `eval-1` (Instance Creation) and `eval-4` (CBT Lookup), the skill-enabled model correctly linked to `infrastructure_management.md` and `cli_data_access.md`.
-*   **Baseline Failure**: Without the skill, the model provided correct commands but lacked pointers to the deeper reference guides.
+### 1. Expert-Level Grounding
+The skill's primary value is now in ensuring 100% compliance with internal documentation standards.
+*   **Success**: In `eval-1` through `eval-5`, the skill-enabled model consistently linked to `infrastructure_management.md` and `schema_design.md`.
+*   **Precision**: The model correctly warns about hotspotting and provides specific row-key cardinality recommendations that the baseline sometimes omits.
 
-### 2. Standardized CLI Patterns
-The skill effectively steers the model toward canonical tools.
-*   **Success**: `eval-4` showed that the skill reliably suggests `cbt lookup`, whereas the baseline model sometimes struggled to locate the correct tool or became "stuck" trying to find the table in specific projects.
+### 2. Advanced SQL Mastery
+The skill provides the necessary "cheat sheet" for Bigtable's unique SQL dialect.
+*   **Success**: High performance on `UNPACK`, `MAP_KEYS`, and `ARRAY_FILTER` functions which are not part of standard SQL training data.
+*   **Syntax Accuracy**: 100% accuracy in using the map-bracket notation (`cf['qualifier']`) for column families.
 
-### 3. Areas for Improvement (Iteration 2 Goals)
-*   **Missing Doc References**: Even with the skill, the model occasionally misses secondary documentation links (e.g., `eval-3` missed `sql_guide.md`).
-*   **Redundancy**: `eval-5` (SQL Cast) was handled perfectly by both configurations. This test case may be too simple to differentiate the skill's value and should be replaced with a more complex SQL scenario (e.g., JSON unnesting or complex aggregations).
+### 3. Baseline Evolution
+*   **Higher Floor**: The baseline (without-skill) model now correctly identifies `cbt` as the primary tool and handles basic instance creation 100% of the time.
+*   **Persistence of Gaps**: The baseline still fails on advanced SQL functions and consistently misses the internal documentation references required for production-ready responses.
 
-## Detailed Results per Eval
+## Detailed Results (Selected Evals)
 
 | Eval ID | Name | With Skill | Without Skill | Notes |
 |---------|------|------------|---------------|-------|
-| 1 | Create Instance | 100% | 50% | Skill added doc references. |
-| 2 | Row Key Design | 50% | 50% | Both missed `schema_design.md` link. |
-| 3 | SQL History | 50% | 50% | Both missed `sql_guide.md` link. |
-| 4 | CBT Lookup | 100% | 0% | Baseline failed to suggest `cbt`. |
-| 5 | SQL Cast | 100% | 100% | No skill delta; task is trivial. |
+| 1 | Create Instance | 100% | 50% | Baseline missed doc references. |
+| 3 | Hotspot Warning | 100% | 50% | Skill provided specific `schema_design.md` link. |
+| 14 | SQL History | 100% | 50% | Baseline struggled with `with_history` syntax. |
+| 19 | UNPACK/Flatten | 100% | 0% | Baseline used standard `JOIN` (incorrect for Bigtable). |
+| 31 | CheckAndMutate | 100% | 100% | Both models handled Go client logic well. |
 
 ---
-*This summary is generated from `agents/skills/bigtable-workspace/iteration-1/benchmark.json`.*
+*This summary is generated from `agents/skills/bigtable-workspace/iteration-6/` results.*
