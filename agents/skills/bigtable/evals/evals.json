@@ -444,6 +444,234 @@
           "description": "Checks for PrefixRange usage in Go"
         }
       ]
+    },
+    {
+      "id": 34,
+      "eval_group": "Infrastructure & Admin",
+      "prompt": "Create a backup named 'logs-backup-2024' for the 'logs' table in 'my-instance' and set it to expire in 7 days.",
+      "expected_output": "The agent should provide the gcloud command for creating a backup with the correct expiration time.",
+      "assertions": [
+        {
+          "name": "gcloud_backup_command",
+          "description": "Checks for gcloud bigtable backups create command"
+        },
+        {
+          "name": "expiration_flag_present",
+          "description": "Checks for --expiration-date or --retention-period flag"
+        }
+      ]
+    },
+    {
+      "id": 35,
+      "eval_group": "Infrastructure & Admin",
+      "prompt": "Restore the 'logs-backup-2024' backup from 'my-instance' into a new table named 'logs-restored'.",
+      "expected_output": "The agent should provide the gcloud command to restore a table from a backup.",
+      "assertions": [
+        {
+          "name": "gcloud_restore_command",
+          "description": "Checks for gcloud bigtable instances clusters backups restore command"
+        }
+      ]
+    },
+    {
+      "id": 36,
+      "eval_group": "Infrastructure & Admin",
+      "prompt": "Create an app profile 'read-only-profile' in 'my-instance' that uses single-cluster routing to 'cluster-a' and allows single-row transactions.",
+      "expected_output": "The agent should provide the gcloud command for app profile creation with single-cluster routing.",
+      "assertions": [
+        {
+          "name": "gcloud_app_profile_command",
+          "description": "Checks for gcloud bigtable app-profiles create command"
+        },
+        {
+          "name": "single_cluster_routing_flag",
+          "description": "Checks for --route-to-cluster flag"
+        }
+      ]
+    },
+    {
+      "id": 37,
+      "eval_group": "Infrastructure & Admin",
+      "prompt": "I have a Bigtable instance 'my-prod' in 'us-central1-a'. Add a second cluster 'my-prod-replica' in 'us-east1-b' with 3 nodes.",
+      "expected_output": "The agent should use gcloud bigtable clusters create to add a cluster to an existing instance.",
+      "assertions": [
+        {
+          "name": "gcloud_cluster_create",
+          "description": "Checks for gcloud bigtable clusters create command"
+        }
+      ]
+    },
+    {
+      "id": 38,
+      "eval_group": "SQL Querying (Advanced)",
+      "prompt": "Write a SQL query to find the average 'temperature' in family 'sensor' across all rows in the 'metrics' table.",
+      "expected_output": "The agent should use the AVG aggregation function with a CAST to numeric type.",
+      "assertions": [
+        {
+          "name": "sql_avg_aggregation",
+          "description": "Checks if AVG() function is used"
+        },
+        {
+          "name": "sql_cast_for_agg",
+          "description": "Checks if value is cast to FLOAT64 or INT64 before averaging"
+        }
+      ]
+    },
+    {
+      "id": 39,
+      "eval_group": "SQL Querying (Advanced)",
+      "prompt": "The 'tags' column in family 'meta' contains a JSON array like '[\"urgent\", \"web\"]'. Write a SQL query to find all rows where the tags array contains 'urgent'.",
+      "expected_output": "The agent should use JSON_QUERY_ARRAY or JSON_EXTRACT_ARRAY with ARRAY_CONTAINS or EXISTS.",
+      "assertions": [
+        {
+          "name": "json_array_extraction",
+          "description": "Checks for JSON array processing functions"
+        }
+      ]
+    },
+    {
+      "id": 40,
+      "eval_group": "Tools & CLI",
+      "prompt": "Give me a Terraform snippet to create a Bigtable instance with one cluster and a table with a column family named 'cf1'.",
+      "expected_output": "The agent should provide a HCL snippet using google_bigtable_instance and google_bigtable_table resources.",
+      "assertions": [
+        {
+          "name": "terraform_instance_resource",
+          "description": "Checks for google_bigtable_instance resource"
+        },
+        {
+          "name": "terraform_table_resource",
+          "description": "Checks for google_bigtable_table resource"
+        }
+      ]
+    },
+    {
+      "id": 41,
+      "eval_group": "Infrastructure & Admin",
+      "prompt": "Grant the role 'roles/bigtable.reader' to the service account 'my-sa@my-project.iam.gserviceaccount.com' for my Bigtable instance 'my-instance'.",
+      "expected_output": "The agent should use gcloud bigtable instances add-iam-policy-binding.",
+      "assertions": [
+        {
+          "name": "gcloud_iam_binding",
+          "description": "Checks for gcloud bigtable instances add-iam-policy-binding"
+        }
+      ]
+    },
+    {
+      "id": 42,
+      "eval_group": "Design & Discovery",
+      "prompt": "How can I query my Bigtable 'users' table directly from BigQuery? Show me how to set up an external table.",
+      "expected_output": "The agent should explain BigQuery federation and provide the bq mk command with an external_table_definition.",
+      "assertions": [
+        {
+          "name": "bq_federation_explanation",
+          "description": "Checks if BigQuery external tables for Bigtable are explained"
+        },
+        {
+          "name": "bq_mk_external_table",
+          "description": "Checks for bq mk --external_table_definition command"
+        }
+      ]
+    },
+    {
+      "id": 43,
+      "eval_group": "Tools & CLI",
+      "prompt": "How can I check if any of my Bigtable clusters are experiencing hotspotting using the gcloud command?",
+      "expected_output": "The agent should suggest using gcloud bigtable instances clusters list or checking metrics, but clarify that 'gcloud' has limited direct hotspot visibility compared to Key Visualizer.",
+      "assertions": [
+        {
+          "name": "key_visualizer_mention",
+          "description": "Checks if Key Visualizer is mentioned as the tool for hotspotting"
+        }
+      ]
+    },
+    {
+      "id": 44,
+      "eval_group": "Tools & CLI",
+      "prompt": "Delete all rows from the 'temp_data' table where the row key starts with '2023#' using the cbt CLI.",
+      "expected_output": "The agent should use cbt deleterow with a loop or mention that cbt doesn't have a native range delete for rows, but might suggest a script or the table-level truncate if applicable.",
+      "assertions": [
+        {
+          "name": "cbt_delete_limitations",
+          "description": "Checks if the agent correctly identifies cbt deleterow is for single rows and suggests an alternative for ranges"
+        }
+      ]
+    },
+    {
+      "id": 45,
+      "eval_group": "Code Development",
+      "prompt": "Show me the Go code to write a single row to Bigtable with multiple cells in different column families.",
+      "expected_output": "The agent should provide Go code using Apply with a Mutation containing multiple Set calls.",
+      "assertions": [
+        {
+          "name": "go_multiple_families_write",
+          "description": "Checks for Go code using multiple Set() calls on different families"
+        }
+      ]
+    },
+    {
+      "id": 46,
+      "eval_group": "SQL Querying (Advanced)",
+      "prompt": "Write a Bigtable SQL query to get the state of the 'users' table exactly as it was on '2025-03-28 14:13:40-0400'.",
+      "expected_output": "The agent should use the as_of flag with a TIMESTAMP.",
+      "assertions": [
+        {
+          "name": "sql_as_of_flag",
+          "description": "Checks if the as_of => TIMESTAMP(...) syntax is used"
+        }
+      ]
+    },
+    {
+      "id": 47,
+      "eval_group": "SQL Querying (Advanced)",
+      "prompt": "Write a SQL query to retrieve all versions of the 'status' column in family 'f1' from the 'orders' table that were written between '2025-03-01 00:00:00' and '2025-03-02 00:00:00'.",
+      "expected_output": "The agent should use with_history => TRUE combined with after and before_or_equal flags.",
+      "assertions": [
+        {
+          "name": "sql_with_history_range",
+          "description": "Checks for with_history => true, after => TIMESTAMP(...), before_or_equal => TIMESTAMP(...) syntax"
+        }
+      ]
+    },
+    {
+      "id": 48,
+      "eval_group": "SQL Querying (Advanced)",
+      "prompt": "The 'is_admin' column in the 'flags' family stores boolean values as raw strings ('true'/'false') encoded as bytes. How do I select this column and cast it properly to a BOOL type in SQL?",
+      "expected_output": "The agent should use SAFE_CONVERT_BYTES_TO_STRING to decode the bytes first, then CAST to BOOL.",
+      "assertions": [
+        {
+          "name": "sql_safe_convert_bytes",
+          "description": "Checks for SAFE_CONVERT_BYTES_TO_STRING usage before casting to BOOL"
+        }
+      ]
+    },
+    {
+      "id": 49,
+      "eval_group": "SQL Querying (Advanced)",
+      "prompt": "I have a 'birth_date' column stored as a string like '1990-01-15' in family 'info'. How do I read this as a SQL TIMESTAMP in Bigtable?",
+      "expected_output": "The agent should cast the column to STRING, then to DATE, and finally wrap it in TIMESTAMP().",
+      "assertions": [
+        {
+          "name": "sql_nested_date_timestamp_cast",
+          "description": "Checks for TIMESTAMP(CAST(CAST(info['birth_date'] AS STRING) AS DATE)) or equivalent"
+        }
+      ]
+    },
+    {
+      "id": 50,
+      "eval_group": "SQL Querying (Advanced)",
+      "prompt": "Write a query to find all rows in the 'devices' table where the row key ends with '_sensor'. Is this query efficient?",
+      "expected_output": "The agent should provide a query using _key LIKE '%_sensor' but explicitly warn that it will cause a full table scan and perform poorly.",
+      "assertions": [
+        {
+          "name": "sql_suffix_like_query",
+          "description": "Checks for _key LIKE '%_sensor' or ENDS_WITH(_key, '_sensor')"
+        },
+        {
+          "name": "full_table_scan_warning",
+          "description": "Checks if the agent warns about a full table scan / performance impact"
+        }
+      ]
     }
   ]
 }

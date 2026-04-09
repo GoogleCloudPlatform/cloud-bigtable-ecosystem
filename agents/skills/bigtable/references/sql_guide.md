@@ -29,6 +29,13 @@ There is often no type information associated with column values. So generated S
 
 * *Example:* `SELECT CAST(info['age'] AS INT64) AS age FROM table_name`
 * *Example:* `SELECT CAST(info['address'] AS STRING) AS address FROM table_name`
+* *Example:* `SELECT CAST(CAST(info['age'] AS STRING) AS INT64) AS age FROM table_name`
+* *Example:* `SELECT TO_INT64(cf['age']) as age FROM table_name`
+* *Example:* `SELECT CAST(CAST(cf['checkin_date'] AS STRING) AS DATE) AS checkin_date FROM table_name`
+* *Example:* `SELECT TIMESTAMP(CAST(CAST(cf['checkin_date'] AS STRING) AS DATE)) AS checkin_date_time FROM table_name`
+* *Example:* `SELECT CAST(CAST(cf['is_booked'] AS STRING) AS BOOL) AS is_booked FROM table_name` - if "true" or "false" was stored
+* *Example:* `SELECT CAST(TO_INT64(cf['is_booked']) AS BOOL) AS is_booked FROM table_name` - if 1 or 0 was stored`
+* *Example:* `SELECT CAST(SAFE_CONVERT_BYTES_TO_STRING(cf['is_booked']) AS BOOL) AS is_booked from table_name`, if "true" or "false" was stored
 
 ### Timestamps
 

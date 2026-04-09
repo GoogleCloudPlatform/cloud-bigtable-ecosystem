@@ -18,7 +18,6 @@ This skill provides core workflows and guidance for administering and developing
 
 ## Querying and Development
 
-- **Language Preference:** Use **Go** unless specified otherwise.
 - **Access Patterns:**
   - Use **Client Libraries** for writes, deletes, and simple reads (point lookups, scans). See [client_libraries.md](references/client_libraries.md).
   - Use **SQL API** for server-side processing (JSON parsing, transforms, aggregations). See [sql_guide.md](references/sql_guide.md).
