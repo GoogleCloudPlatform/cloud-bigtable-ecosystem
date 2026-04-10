@@ -1,0 +1,15 @@
+# Evaluation workspaces (skill-creator results)
+*-workspace/
+iteration-*/
+eval-viewer/review.html
+timing.json
+grading.json
+benchmark.json
+agents/skills/skill-creator/
+
+# Standard project excludes
+.DS_Store
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.cbtrc
