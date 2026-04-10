@@ -16,6 +16,8 @@ Reads all columns and versions for a specific row.
 ```bash
 cbt lookup [TABLE_NAME] [ROW_KEY]
 ```
+*Note: `cbt lookup` is optimized for point reads and is significantly more efficient than using `cbt read` with a count or filter for retrieving a single known row.*
+
 
 ### Read N Rows
 Reads the first `N` rows from the table.

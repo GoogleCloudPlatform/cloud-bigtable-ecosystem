@@ -5,49 +5,69 @@ description: Manage Google Bigtable instances/tables, design schemas, and query 
 
 # Bigtable Skill
 
-This skill provides core workflows and guidance for administering and developing with Google Bigtable. For detailed command patterns and in-depth guides, see the [References](#references) section.
+This skill provides core workflows and guidance for administering and developing with Google Bigtable. 
 
-## Prerequisites
+## Core Principles
 
-- `gcloud` and `cbt` CLIs installed and authenticated.
-- A Google Cloud Project ID and Bigtable Instance ID.
-- Access to the `bigtable` skill scripts for SQL execution.
+- **Control Plane vs. Data Plane:**
+  - Use **`gcloud`** for Control Plane operations: Instances, Clusters, App Profiles, Backups, and IAM.
+  - Use **`cbt`** for Data Plane operations: Tables, Column Families, and reading/writing data.
+- **Performance First:** Bigtable is a NoSQL database. Efficiency is tied to Row Key design. Always warn about Full Table Scans.
+- **Observability:** When diagnosing performance or hotspotting, **ALWAYS** mention **Key Visualizer** (via Cloud Console) as the primary diagnostic tool.
 
 > [!IMPORTANT]
 > **Safety Rule:** Always obtain explicit user confirmation before making non-emulator database changes.
 
-## Querying and Development
+## Quick Recipes
 
-- **Access Patterns:**
-  - Use **Client Libraries** for writes, deletes, and simple reads (point lookups, scans). See [client_libraries.md](references/client_libraries.md).
-  - Use **SQL API** for server-side processing (JSON parsing, transforms, aggregations). See [sql_guide.md](references/sql_guide.md).
-- **Executing SQL:** Use the `cbt sql` command to execute queries directly:
-  ```bash
-  cbt sql "[SQL_QUERY]"
-  ```
+### 1. Querying Data (SQL)
+Use the `cbt sql` command for complex transforms or aggregations.
+```bash
+cbt sql "SELECT * FROM my_table WHERE _key = 'user#123' LIMIT 1"
+```
+*Note: `cbt sql` is a **Preview** feature. Always use `LIMIT` or a point lookup on `_key` to avoid expensive scans.*
+
+
+### 2. Diagnosing Hotspotting
+1. **Visual:** Recommend Key Visualizer in the Cloud Console.
+2. **CLI:** List hot tablets for immediate hotspots:
+   ```bash
+   gcloud bigtable hot-tablets list [CLUSTER_ID] --instance=[INSTANCE_ID]
+   ```
+
+### 3. Schema Metadata
+Quickly inspect table structure:
+```bash
+cbt ls [TABLE_NAME]
+```
+
+### 4. Point Lookup
+Read all data for a single row efficiently:
+```bash
+cbt lookup [TABLE_NAME] [ROW_KEY]
+```
+*Note: Use `lookup` instead of `read` when the Row Key is known for maximum efficiency.*
+
 
 ## Reference Guides
 
-Access detailed guidance through these functional reference documents:
-
 - **CLI Operations**:
   - [infrastructure_management.md](references/infrastructure_management.md) - Provisioning instances, clusters, and table schemas.
-  - [cli_data_access.md](references/cli_data_access.md) - Reading and writing data via the `cbt` CLI (debugging).
+  - [cli_data_access.md](references/cli_data_access.md) - Reading and writing data via the `cbt` CLI.
 - **Design & Discovery**:
   - [schema_design.md](references/schema_design.md) - Best practices for row keys and performance.
   - [dataplex.md](references/dataplex.md) - Data catalog search for Bigtable assets.
 - **Querying & Code**:
   - [sql_guide.md](references/sql_guide.md) - Nuances of Bigtable's SQL dialect.
-  - [client_libraries.md](references/client_libraries.md) - Patterns for high-performance client code.
+  - [client_libraries.md](references/client_libraries.md) - Patterns for high-performance Go/Java/Python code.
 
 ## Common Workflows
 
-### 1. Local Development
-1. Start the emulator: `gcloud beta emulators bigtable start` (See [infrastructure_management.md](references/infrastructure_management.md)).
-2. Design and create tables (See [schema_design.md](references/schema_design.md) and [infrastructure_management.md](references/infrastructure_management.md)).
-3. Test application code against the local emulator.
-
-### 2. Schema Evolution (DevOps)
-1. **Always use Terraform** for production schema changes to prevent accidental data loss.
-2. Calculate deltas with `terraform plan` before applying.
-3. Verify IAM policies and column family configurations via [infrastructure_management.md](references/infrastructure_management.md).
+### Schema Evolution (DevOps)
+1. **Prefer Terraform** for production schema changes to prevent accidental data loss.
+2. For manual `cbt` changes, verify column family GC policies:
+   ```bash
+   cbt createfamily [TABLE] [FAMILY]
+   cbt setgcpolicy [TABLE] [FAMILY] "maxversions=5 AND maxage=30d"
+   ```
+3. Reference [infrastructure_management.md](references/infrastructure_management.md) for full syntax.

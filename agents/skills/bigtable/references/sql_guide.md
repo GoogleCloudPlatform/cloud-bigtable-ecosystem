@@ -30,6 +30,7 @@ There is often no type information associated with column values. So generated S
 * *Example:* `SELECT CAST(info['age'] AS INT64) AS age FROM table_name`
 * *Example:* `SELECT CAST(info['address'] AS STRING) AS address FROM table_name`
 * *Example:* `SELECT CAST(CAST(info['age'] AS STRING) AS INT64) AS age FROM table_name`
+* *Example:* `SELECT SAFE_CAST(info['address'] AS STRING) FROM table_name;`
 * *Example:* `SELECT TO_INT64(cf['age']) as age FROM table_name`
 * *Example:* `SELECT CAST(CAST(cf['checkin_date'] AS STRING) AS DATE) AS checkin_date FROM table_name`
 * *Example:* `SELECT TIMESTAMP(CAST(CAST(cf['checkin_date'] AS STRING) AS DATE)) AS checkin_date_time FROM table_name`
