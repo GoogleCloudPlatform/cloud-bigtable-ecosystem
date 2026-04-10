@@ -12,10 +12,6 @@ Bigtable stores timestamps as **64-bit integers** representing **microseconds** 
 > * **Correct:** `timestamp_micros = time_ms() * 1000`
 > * **Incorrect:** Using raw microsecond precision (e.g., `time_micros()`), as this can lead to unexpected behavior with cell versioning and TTL.
 
-## Bigtable Data Organization
-
-Bigtable stores data sorted by unique row keys. Operations within a row key are atomic. Each row contains cells that are grouped first into column families, then into column qualifier and timestamps. Combination of row key, column family,column qualifier and timestamp serve the key that points to a value.
-
 ## Replication & Atomic Operations
 
 Bigtable’s replication model impacts the availability of certain "atomicity" features.

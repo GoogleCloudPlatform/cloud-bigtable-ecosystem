@@ -1,0 +1,22 @@
+{
+  "name": "bigtable",
+  "owner": {
+    "name": "Google Cloud Bigtable",
+    "email": "bigtable-cloud@google.com"
+  },
+  "plugins": [
+    {
+      "name": "bigtable",
+      "description": "Official Claude plugin for Google Cloud Bigtable. Manage instances/tables, design schemas, query data using SQL or client libraries, and more",
+      "category": "development",
+      "tags": [
+        "bigtable",
+        "google-cloud",
+        "database",
+        "nosql",
+        "cloud-services"
+      ],
+      "source": "./"
+    }
+  ]
+}

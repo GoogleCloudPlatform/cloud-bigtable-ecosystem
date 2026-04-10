@@ -25,7 +25,7 @@ Use the `cbt sql` command for complex transforms or aggregations.
 ```bash
 cbt sql "SELECT * FROM my_table WHERE _key = 'user#123' LIMIT 1"
 ```
-*Note: `cbt sql` is a **Preview** feature. Always use `LIMIT` or a point lookup on `_key` to avoid expensive scans.*
+*Note: Always use `LIMIT` or a point lookup on `_key` to avoid expensive scans.*
 
 
 ### 2. Diagnosing Hotspotting

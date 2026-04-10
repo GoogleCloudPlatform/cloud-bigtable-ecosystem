@@ -1,0 +1,13 @@
+{
+  "name": "bigtable",
+  "description": "Official Claude plugin for Google Cloud Bigtable. Manage instances/tables, design schemas, query data using SQL or client libraries, and more",
+  "version": "1.0.0",
+  "author": {
+    "name": "Google Cloud",
+    "url": "https://cloud.google.com/bigtable"
+  },
+  "homepage": "https://github.com/googleapis/cloud-bigtable-ecosystem",
+  "repository": "https://github.com/googleapis/cloud-bigtable-ecosystem.git",
+  "license": "Apache-2.0",
+  "keywords": ["bigtable", "google-cloud", "nosql", "database", "schema-design", "sql", "gcloud", "cbt"]
+}

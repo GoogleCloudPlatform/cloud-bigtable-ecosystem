@@ -11,11 +11,12 @@ This document provides patterns for provisioning and managing Bigtable resources
 
 ### Instance and Cluster Management
 ```bash
-# Create instance with a single cluster
+# Create instance with a single cluster and with column family
 gcloud bigtable instances create [INSTANCE_ID] \
     --project=[PROJECT_ID] \
     --display-name="[DISPLAY_NAME]" \
-    --cluster-config=id=[CLUSTER_ID],zone=[ZONE],nodes=[NUM_NODES]
+    --cluster-config=id=[CLUSTER_ID],zone=[ZONE],nodes=[NUM_NODES] \
+    --column-families=[FAMILY_NAME]
 
 # Add a cluster to an existing instance
 gcloud bigtable clusters create [CLUSTER_ID] \
@@ -83,3 +84,5 @@ To point `cbt` or client libraries to the emulator:
 ```bash
 export BIGTABLE_EMULATOR_HOST=localhost:8086
 ```
+
+** Note**: Bigtable emulator doesn't support Bigtable GoogleSQL yet.

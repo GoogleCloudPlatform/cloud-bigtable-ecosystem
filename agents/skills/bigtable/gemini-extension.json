@@ -1,0 +1,11 @@
+{
+  "name": "bigtable",
+  "description": "Manage Google Cloud Bigtable instances/tables, design schemas, and query data using SQL or client libraries.",
+  "version": "1.0.0",
+  "contextFileName": "SKILL.md",
+  "mcpServers": {
+    "bigtable": {
+      "url": "https://bigtableadmin.googleapis.com/mcp"
+    }
+  }
+}
