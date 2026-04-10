@@ -34,8 +34,10 @@ cbt read [TABLE_NAME] start=[START_KEY] end=[END_KEY]
 ### Row Count (Estimate)
 Provides an estimate of the number of rows in the table.
 ```bash
-cbt count [TABLE_NAME]
+gcloud bigtable instances tables describe TABLE_ID  --instance=INSTANCE_ID --view stats
 ```
+
+**Note**: cbt count [TABLE_NAME] would do a full table scan.
 
 ## Writing Data
 
