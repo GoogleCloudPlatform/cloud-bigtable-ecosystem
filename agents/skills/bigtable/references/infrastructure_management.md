@@ -11,12 +11,11 @@ This document provides patterns for provisioning and managing Bigtable resources
 
 ### Instance and Cluster Management
 ```bash
-# Create instance with a single cluster and with column family
+# Create instance with a single cluster
 gcloud bigtable instances create [INSTANCE_ID] \
     --project=[PROJECT_ID] \
     --display-name="[DISPLAY_NAME]" \
-    --cluster-config=id=[CLUSTER_ID],zone=[ZONE],nodes=[NUM_NODES] \
-    --column-families=[FAMILY_NAME]
+    --cluster-config=id=[CLUSTER_ID],zone=[ZONE],nodes=[NUM_NODES]
 
 # Add a cluster to an existing instance
 gcloud bigtable clusters create [CLUSTER_ID] \

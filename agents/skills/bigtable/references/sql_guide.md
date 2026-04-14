@@ -27,7 +27,6 @@ Unless table metadata indicates otherwise, columns are of **Map type** which hol
 
 There is often no type information associated with column values. So generated SQL queries should try to infer the type from the name of the column and include an explicit cast.
 
-* *Example:* `SELECT CAST(info['age'] AS INT64) AS age FROM table_name`
 * *Example:* `SELECT CAST(info['address'] AS STRING) AS address FROM table_name`
 * *Example:* `SELECT CAST(CAST(info['age'] AS STRING) AS INT64) AS age FROM table_name`
 * *Example:* `SELECT SAFE_CAST(info['address'] AS STRING) FROM table_name;`
@@ -67,6 +66,13 @@ Each Bigtable row is identified with a unique key. Bigtable SQL interface has a 
 
 * **Syntax:** `SELECT * FROM table_name WHERE _key = row_key`
 * **Agent Action:** When generating queries that are not looking for exact matches i.e. **WHERE _key=** or key ranges i.e. **_key > AND _key<=** or prefixes **STARTS_WITH(_key, prefix)** warn the user that the query will result in a full table scan and won't be performant.
+
+### Maps
+
+Inspect qualifiers within a column family.
+
+* *Example:* `SELECT MAP_KEYS(cf1) FROM table_name`
+* *Example:* `SELECT MAP_ENTRIES(cf1) FROM table_name`
 
 ### Functions and operators
 

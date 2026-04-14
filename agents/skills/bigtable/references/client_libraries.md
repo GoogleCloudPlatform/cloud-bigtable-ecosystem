@@ -14,8 +14,8 @@ Bigtable stores timestamps as **64-bit integers** representing **microseconds** 
 
 ## Replication & Atomic Operations
 
-Bigtable’s replication model impacts the availability of certain "atomicity" features.
+Bigtable’s replication model impacts the availability of certain "atomicity" features. These atomic operations are generally less efficient than standard writes.
 
-* **The Conflict:** **ReadModifyWrite** (increments/appends) and **CheckAndMutateRow** (conditional updates) require a single-point-of-truth to maintain consistency.
+* **The Conflict:** **ReadModifyWrite** (increments/appends) and **CheckAndMutateRow** (conditional updates) require a single-point-of-truth to maintain consistency. They also require a read before a write, making them significantly slower and more resource-intensive than standard blind writes.
 * **The Constraint:** These operations **will not work** with multi-cluster routing (App Profiles set to Multi-cluster).
-* **Agent Action:** If a user’s code contains these methods, proactively warn them that they must use a **Single-cluster routing** App Profile or accept that these operations will fail in a multi-cluster configuration.
+* **Agent Action:** If a user’s code contains these methods, proactively warn them that these operations are inefficient and that they must use a **Single-cluster routing** App Profile or accept that these operations will fail in a multi-cluster configuration.
