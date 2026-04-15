@@ -21,7 +21,7 @@
       "id": 2,
       "eval_group": "Infrastructure & Admin",
       "prompt": "Create a table 'logs' with a column family 'raw' that keeps only the last 5 versions AND data for no more than 30 days.",
-      "expected_output": "The agent should either use cbt createtable with the families= argument to set the GC policy in one step, or sequentially use cbt createtable, cbt createfamily, and cbt setgcpolicy with a nested GC policy (AND).",
+      "expected_output": "The agent should use cbt createfamily with a nested GC policy (AND).",
       "assertions": [
         {
           "name": "cbt_gc_policy_syntax",
@@ -68,12 +68,12 @@
     {
       "id": 5,
       "eval_group": "Structured Row Keys",
-      "prompt": "Show me how to create a Bigtable table 'user_activity' with a structured row key composed of 'user_id' and 'timestamp' using SQL.",
-      "expected_output": "The agent should explain that Bigtable SQL does not support DDL (like CREATE TABLE) and suggest using gcloud bigtable instances tables create with the --row-key-schema-definition-file flag.",
+      "prompt": "Show me how to create a Bigtable table 'user_activity' that has a structured row key composed of 'user_id' (STRING) and 'timestamp' (INT64).",
+      "expected_output": "The agent should use the gcloud beta bigtable tables update statement with --row-key-schema-definition-file and --row-key-schema-pre-encoded-bytes flags",
       "assertions": [
         {
-          "name": "sql_ddl_not_supported",
-          "description": "Checks if the agent mentions gcloud bigtable instances tables create and --row-key-schema-definition-file"
+          "name": "primary_key_ddl_syntax",
+          "description": "Checks for --row-key-schema-definition-file in gcloud command call and the file content to include fieldName, type and encoding for each key component and a delimiter"
         }
       ]
     },
@@ -81,23 +81,23 @@
       "id": 6,
       "eval_group": "Structured Row Keys",
       "prompt": "My table 'sensor_readings' has a structured row key with fields 'building_id', 'sensor_type', and 'reading_time'. Write a SQL query to get all 'temperature' readings for 'building_001' from the last hour.",
-      "expected_output": "The agent should filter directly on the key components (building_id, sensor_type, reading_time) in the WHERE clause, as the table has a defined row key schema.",
+      "expected_output": "The agent should filter directly on the key components in the WHERE clause.",
       "assertions": [
         {
           "name": "structured_key_filter",
-          "description": "Checks for WHERE building_id = 'building_001' AND sensor_type = 'temperature' (or equivalent) filter"
+          "description": "Checks for WHERE building_id = '...' AND sensor_type = '...' filter"
         }
       ]
     },
     {
       "id": 7,
       "eval_group": "Logical Views",
-      "prompt": "Create a logical view named 'active_users_view' that selects the '_key' and the 'email' column from the 'profiles' family of the 'users' table, filtering for rows where 'status' is 'ACTIVE' using SQL.",
-      "expected_output": "The agent should explain that Bigtable SQL only supports SELECT statements and suggest using gcloud bigtable logical-views create for managing logical views.",
+      "prompt": "Create a logical view named 'active_users_view' that selects the '_key' and the 'email' column from the 'profiles' family of the 'users' table, filtering for rows where the value of 'status' column in profiles family is 'ACTIVE'.",
+      "expected_output": "The agent should use gcloud with --query=\"SELECT _key, profiles['email'] FROM users WHERE profiles['status'] = 'ACTIVE'\".",
       "assertions": [
         {
-          "name": "gcloud_logical_views_create",
-          "description": "Checks if the agent suggests gcloud bigtable logical-views create"
+          "name": "create_view_syntax",
+          "description": "Checks for gcloud bigtable logical-views create active_users_view --query=\"SELECT ..."
         }
       ]
     },
@@ -105,11 +105,11 @@
       "id": 8,
       "eval_group": "Logical Views",
       "prompt": "How do I delete the logical view 'active_users_view' from Bigtable using SQL?",
-      "expected_output": "The agent should explain that Bigtable SQL only supports SELECT statements and suggest using gcloud bigtable logical-views delete.",
+      "expected_output": "The agent should use gcloud bigtable logical-views delete",
       "assertions": [
         {
-          "name": "gcloud_logical_views_delete",
-          "description": "Checks if the agent suggests gcloud bigtable logical-views delete"
+          "name": "drop_view_syntax",
+          "description": "Checks for gcloud bigtable logical-views delete active_users_view"
         }
       ]
     },
@@ -117,15 +117,15 @@
       "id": 9,
       "eval_group": "Data Ingestion (Writes)",
       "prompt": "I have thousands of rows to ingest into Bigtable. Should I send them one by one? Show me the recommended Go pattern.",
-      "expected_output": "The agent should recommend bulk/batch writes using ApplyBulk.",
+      "expected_output": "The agent should recommend bulk/batch writes using MutateRows and provide a Go code example.",
       "assertions": [
         {
           "name": "bulk_write_recommendation",
-          "description": "Checks if ApplyBulk (bulk writing) is suggested"
+          "description": "Checks if MutateRows (bulk writing) is suggested"
         },
         {
           "name": "go_batch_example",
-          "description": "Checks for Go code using ApplyBulk"
+          "description": "Checks for Go code using MutateRows"
         }
       ]
     },
@@ -133,11 +133,11 @@
       "id": 10,
       "eval_group": "Data Ingestion (Writes)",
       "prompt": "Write a Go function that atomically increments a 'click_count' column in family 'stats' for a specific row key.",
-      "expected_output": "The agent should use ApplyReadModifyWrite with an Increment mutation.",
+      "expected_output": "The agent should use ReadModifyWriteRow with an Increment mutation.",
       "assertions": [
         {
           "name": "atomic_increment_usage",
-          "description": "Checks for ApplyReadModifyWrite and Increment usage"
+          "description": "Checks for ReadModifyWriteRow and Increment usage"
         }
       ]
     },
@@ -213,7 +213,7 @@
       "id": 16,
       "eval_group": "SQL Querying (Basic)",
       "prompt": "My 'payload' column in family 'data' contains JSON strings like '{\"temp\": 22.5, \"status\": \"ok\"}'. Write a SQL query to get the 'temp' value as a float for all rows where 'status' is 'ok'.",
-      "expected_output": "The agent should use JSON_EXTRACT to parse and filter the data.",
+      "expected_output": "The agent should use JSON_EXTRACT to parse and filter the data and data['payload'] to access the contents of the column holding the JSON data.",
       "assertions": [
         {
           "name": "json_extract_used",
@@ -256,12 +256,12 @@
     {
       "id": 19,
       "eval_group": "SQL Querying (Advanced)",
-      "prompt": "Write a SQL query that flattens all versions of the 'price' column in the 'sales' family so I can see each version as a separate row.",
+      "prompt": "Write a SQL query that flattens all versions of the 'price' column in the 'sales' family in 'promotions' table so I can see each version as a separate row.",
       "expected_output": "The agent should use the UNPACK function.",
       "assertions": [
         {
           "name": "unpack_function_used",
-          "description": "Checks for UNPACK(sales['price']) usage"
+          "description": "Checks for SELECT ... FROM UNPACK((SELECT sales['price'] from  promotions(with_history => true))) usage"
         }
       ]
     },
@@ -329,11 +329,11 @@
       "id": 25,
       "eval_group": "SQL Querying (CAST Types)",
       "prompt": "Write a Bigtable SQL query to get the 'age' column from family 'info' as an integer.",
-      "expected_output": "The agent should use CAST(... AS INT64).",
+      "expected_output": "The agent should use CAST(CAST(... AS STRING) AS INT64).",
       "assertions": [
         {
           "name": "cast_int64_present",
-          "description": "Checks if CAST(... AS INT64) is used"
+          "description": "Checks if CAST(CAST(... AS STRING) AS INT64) is used"
         }
       ]
     },
@@ -341,11 +341,11 @@
       "id": 26,
       "eval_group": "SQL Querying (CAST Types)",
       "prompt": "Write a Bigtable SQL query to get the 'temperature' column from family 'sensor_data' as a FLOAT64.",
-      "expected_output": "The agent should use CAST(... AS FLOAT64).",
+      "expected_output": "The agent should use CAST(CAST(... AS STRING) AS FLOAT64).",
       "assertions": [
         {
           "name": "cast_float64_present",
-          "description": "Checks if CAST(... AS FLOAT64) is used"
+          "description": "Checks if CAST(CAST(... AS STRING) AS FLOAT64) is used"
         }
       ]
     },
@@ -353,11 +353,11 @@
       "id": 27,
       "eval_group": "SQL Querying (CAST Types)",
       "prompt": "My 'is_active' column in family 'status' stores boolean data. Write a Bigtable SQL query to retrieve this column cast as a BOOL.",
-      "expected_output": "The agent should use CAST(... AS BOOL).",
+      "expected_output": "The agent should use CAST(CAST(... AS STRING) AS BOOL).",
       "assertions": [
         {
           "name": "cast_bool_present",
-          "description": "Checks if CAST(... AS BOOL) is used"
+          "description": "Checks if CAST(CAST(... AS STRING) AS BOOL) is used"
         }
       ]
     },
@@ -365,11 +365,11 @@
       "id": 28,
       "eval_group": "SQL Querying (CAST Types)",
       "prompt": "I have a 'created_at' column in family 'metadata' that I want to read as a TIMESTAMP. What SQL query should I use?",
-      "expected_output": "The agent should use CAST(... AS TIMESTAMP).",
+      "expected_output": "The agent should use CAST(CAST(... AS STRING) AS TIMESTAMP).",
       "assertions": [
         {
           "name": "cast_timestamp_present",
-          "description": "Checks if CAST(... AS TIMESTAMP) is used"
+          "description": "Checks if CAST(CAST(... AS STRING) AS TIMESTAMP) is used"
         }
       ]
     },
@@ -377,11 +377,11 @@
       "id": 29,
       "eval_group": "SQL Querying (CAST Types)",
       "prompt": "How do I cast the 'event_date' column from family 'events' to a GoogleSQL DATE type in Bigtable?",
-      "expected_output": "The agent should use CAST(... AS DATE).",
+      "expected_output": "The agent should use CAST(CAST(... AS STRING) AS DATE).",
       "assertions": [
         {
           "name": "cast_date_present",
-          "description": "Checks if CAST(... AS DATE) is used"
+          "description": "Checks if CAST(CAST(... AS STRING) AS DATE) is used"
         }
       ]
     },
@@ -405,7 +405,7 @@
       "id": 31,
       "eval_group": "Code Development",
       "prompt": "Generate Go code to perform a CheckAndMutateRow operation. If the column 'status' in family 'state' is 'pending', update it to 'processed'.",
-      "expected_output": "The agent should use the Go client library's NewCondMutation and Apply.",
+      "expected_output": "The agent should use the Go client library's NewCondMutation and CheckAndMutateRow.",
       "assertions": [
         {
           "name": "go_code_present",
@@ -413,7 +413,7 @@
         },
         {
           "name": "conditional_mutation_usage",
-          "description": "Checks if NewCondMutation and Apply are used"
+          "description": "Checks if NewCondMutation is used"
         },
         {
           "name": "ref_client_libs",
@@ -469,7 +469,7 @@
       "assertions": [
         {
           "name": "gcloud_restore_command",
-          "description": "Checks for gcloud bigtable instances tables restore command"
+          "description": "Checks for gcloud bigtable instances clusters backups restore command"
         }
       ]
     },
@@ -485,7 +485,7 @@
         },
         {
           "name": "single_cluster_routing_flag",
-          "description": "Checks for --route-to flag"
+          "description": "Checks for --route-to-cluster flag"
         }
       ]
     },
@@ -519,6 +519,18 @@
     },
     {
       "id": 39,
+      "eval_group": "SQL Querying (Advanced)",
+      "prompt": "The 'tags' column in family 'meta' contains a JSON array like '[\"urgent\", \"web\"]'. Write a SQL query to find all rows where the tags array contains 'urgent'.",
+      "expected_output": "The agent should use JSON_QUERY_ARRAY or JSON_EXTRACT_ARRAY with ARRAY_CONTAINS or EXISTS. Agent should use meta['tags'] to retrieve the column holding the JSON content",
+      "assertions": [
+        {
+          "name": "json_array_extraction",
+          "description": "Checks for JSON array processing functions"
+        }
+      ]
+    },
+    {
+      "id": 40,
       "eval_group": "Tools & CLI",
       "prompt": "Give me a Terraform snippet to create a Bigtable instance with one cluster and a table with a column family named 'cf1'.",
       "expected_output": "The agent should provide a HCL snippet using google_bigtable_instance and google_bigtable_table resources.",
@@ -534,7 +546,7 @@
       ]
     },
     {
-      "id": 40,
+      "id": 41,
       "eval_group": "Infrastructure & Admin",
       "prompt": "Grant the role 'roles/bigtable.reader' to the service account 'my-sa@my-project.iam.gserviceaccount.com' for my Bigtable instance 'my-instance'.",
       "expected_output": "The agent should use gcloud bigtable instances add-iam-policy-binding.",
@@ -546,7 +558,7 @@
       ]
     },
     {
-      "id": 41,
+      "id": 42,
       "eval_group": "Design & Discovery",
       "prompt": "How can I query my Bigtable 'users' table directly from BigQuery? Show me how to set up an external table.",
       "expected_output": "The agent should explain BigQuery federation and provide the bq mk command with an external_table_definition.",
@@ -562,23 +574,19 @@
       ]
     },
     {
-      "id": 42,
+      "id": 43,
       "eval_group": "Tools & CLI",
       "prompt": "How can I check if any of my Bigtable clusters are experiencing hotspotting using the gcloud command?",
-      "expected_output": "The agent should suggest using gcloud bigtable hot-tablets list to identify specific hot tablets, and also mention Key Visualizer for a visual heatmap.",
+      "expected_output": "The agent should suggest using gcloud bigtable instances clusters list or checking metrics, but clarify that 'gcloud' has limited direct hotspot visibility compared to Key Visualizer.",
       "assertions": [
         {
           "name": "key_visualizer_mention",
           "description": "Checks if Key Visualizer is mentioned as the tool for hotspotting"
-        },
-        {
-          "name": "hot_tablets_list_command",
-          "description": "Checks if gcloud bigtable hot-tablets list is suggested"
         }
       ]
     },
     {
-      "id": 43,
+      "id": 44,
       "eval_group": "Tools & CLI",
       "prompt": "Delete all rows from the 'temp_data' table where the row key starts with '2023#' using the cbt CLI.",
       "expected_output": "The agent should use cbt deleterow with a loop or mention that cbt doesn't have a native range delete for rows, but might suggest a script or the table-level truncate if applicable.",
@@ -590,7 +598,7 @@
       ]
     },
     {
-      "id": 44,
+      "id": 45,
       "eval_group": "Code Development",
       "prompt": "Show me the Go code to write a single row to Bigtable with multiple cells in different column families.",
       "expected_output": "The agent should provide Go code using Apply with a Mutation containing multiple Set calls.",
@@ -602,7 +610,7 @@
       ]
     },
     {
-      "id": 45,
+      "id": 46,
       "eval_group": "SQL Querying (Advanced)",
       "prompt": "Write a Bigtable SQL query to get the state of the 'users' table exactly as it was on '2025-03-28 14:13:40-0400'.",
       "expected_output": "The agent should use the as_of flag with a TIMESTAMP.",
@@ -614,7 +622,7 @@
       ]
     },
     {
-      "id": 46,
+      "id": 47,
       "eval_group": "SQL Querying (Advanced)",
       "prompt": "Write a SQL query to retrieve all versions of the 'status' column in family 'f1' from the 'orders' table that were written between '2025-03-01 00:00:00' and '2025-03-02 00:00:00'.",
       "expected_output": "The agent should use with_history => TRUE combined with after and before_or_equal flags.",
@@ -626,7 +634,7 @@
       ]
     },
     {
-      "id": 47,
+      "id": 48,
       "eval_group": "SQL Querying (Advanced)",
       "prompt": "The 'is_admin' column in the 'flags' family stores boolean values as raw strings ('true'/'false') encoded as bytes. How do I select this column and cast it properly to a BOOL type in SQL?",
       "expected_output": "The agent should use SAFE_CONVERT_BYTES_TO_STRING to decode the bytes first, then CAST to BOOL.",
@@ -638,7 +646,7 @@
       ]
     },
     {
-      "id": 48,
+      "id": 49,
       "eval_group": "SQL Querying (Advanced)",
       "prompt": "I have a 'birth_date' column stored as a string like '1990-01-15' in family 'info'. How do I read this as a SQL TIMESTAMP in Bigtable?",
       "expected_output": "The agent should cast the column to STRING, then to DATE, and finally wrap it in TIMESTAMP().",
@@ -650,7 +658,7 @@
       ]
     },
     {
-      "id": 49,
+      "id": 50,
       "eval_group": "SQL Querying (Advanced)",
       "prompt": "Write a query to find all rows in the 'devices' table where the row key ends with '_sensor'. Is this query efficient?",
       "expected_output": "The agent should provide a query using _key LIKE '%_sensor' but explicitly warn that it will cause a full table scan and perform poorly.",
@@ -662,6 +670,46 @@
         {
           "name": "full_table_scan_warning",
           "description": "Checks if the agent warns about a full table scan / performance impact"
+        }
+      ]
+    },
+    {
+      "id": 51,
+      "eval_group": "Materialized Views",
+      "prompt": "Create a materialized view named 'search_by_lastname' that allows me to look up users by their last name quickly from the 'users' table which contains a column family named profile that has a qualifier 'last_name'.",
+      "expected_output": "The agent should use gcloud beta bigtable materialized-views create with --query flag",
+      "assertions": [
+        {
+          "name": "create_disaggregate_view_syntax",
+          "description": "Checks for gcloud beta bigtable materialized-views create active_users_view --query=\"SELECT profile['last_name'] as last_name, _key FROM users ORDER BY last_name, _key\""
+        }
+      ]
+    },
+    {
+      "id": 52,
+      "eval_group": "Materialized Views",
+      "prompt": "Create a materialized view named 'regional_sales_view' that allows me to look up total sales by region quickly from the 'transactions' table which contains a column family named 'sales' that has a qualifier 'billed_amount' and _key is a delimited string in the format transactionid#region.",
+      "expected_output": "The agent should use gcloud beta bigtable materialized-views create with --query flag",
+      "assertions": [
+        {
+          "name": "create_aggregate_view_syntax",
+          "description": "Checks for gcloud beta bigtable materialized-views create regional_sales_view --query=\"SELECT SPLIT(_key, '#')[1] as region, SUM(sales['billed_amount']) as total_sales FROM users GROUP BY BY 1\""
+        }
+      ]
+    },
+    {
+      "id": 53,
+      "eval_group": "Data Ingestion (Writes)",
+      "prompt": "Insert new row into my Bigtable instance 'abc' with key '0123' with current timestamp with a value of 'x' for column family 'metadata' and qualifier 'check'",
+      "expected_output": "The agent should use an epoch timestamp in microseconds but at microsecond granularity i.e. a millisecond timestamp multiplied by a thousand",
+      "assertions": [
+        {
+          "name": "epoch_time",
+          "description": "Checks if a Unix timestamp is used."
+        },
+        {
+          "name": "millisecond_timestamp",
+          "description": "Checks if the Unix timestamp is in microseconds with 3 trailing zeros for example by dividing the timestamp by 1000 and checking if it returns an integer"
         }
       ]
     }
