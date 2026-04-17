@@ -5,8 +5,8 @@ This document provides patterns for reading and writing data in Bigtable using t
 ## Configuring cbt for Data Access
 
 ```bash
-echo project = [PROJECT_ID] > ~/.cbtrc
-echo instance = [INSTANCE_ID] >> ~/.cbtrc
+echo project = ${BIGTABLE_PROJECT} > ~/.cbtrc
+echo instance = ${BIGTABLE_INSTANCE} >> ~/.cbtrc
 ```
 
 ## Reading Data

@@ -1,10 +1,10 @@
 {
   "name": "bigtable",
   "displayName": "Google Cloud Bigtable",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "The official Google Cloud Bigtable Cursor plugin. Manage instances/tables, design schemas, and query data using SQL or client libraries.",
   "author": {
-    "name": "Google Cloud Bigtable",
+    "name": "Google LLC",
     "email": "bigtable-cloud@google.com",
     "url": "https://cloud.google.com/bigtable"
   },
@@ -14,14 +14,13 @@
     "google-cloud",
     "nosql",
     "database",
-    "schema-design",
     "sql",
     "gcloud",
     "cbt",
     "cloud-services"
   ],
-  "skills": "./skills/",
+  "skills": "./agents/skills/",
   "mcpServers": "./.mcp.json",
-  "homepage": "https://github.com/googleapis/cloud-bigtable-ecosystem",
-  "repository": "https://github.com/googleapis/cloud-bigtable-ecosystem"
+  "homepage": "https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem",
+  "repository": "https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem"
 }

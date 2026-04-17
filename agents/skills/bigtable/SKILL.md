@@ -26,14 +26,14 @@ Use the `cbt sql` command for complex transforms or aggregations.
 ```bash
 cbt sql "SELECT * FROM my_table WHERE _key = 'user#123' LIMIT 1"
 ```
-*Note: Always use `LIMIT` or a point lookup on `_key` to avoid expensive scans.*
+*Note: Always use point lookup on `_key` to avoid expensive scans. LIMIT doesn't prevent expensive scans.*
 
 
 ### 2. Diagnosing Hotspotting
 1. **Visual:** Recommend Key Visualizer in the Cloud Console.
 2. **CLI:** List hot tablets for immediate hotspots:
    ```bash
-   gcloud bigtable hot-tablets list [CLUSTER_ID] --instance=[INSTANCE_ID]
+   gcloud bigtable hot-tablets list ${BIGTABLE_CLUSTER} --instance=${BIGTABLE_INSTANCE}
    ```
 
 ### 3. Schema Metadata

@@ -38,7 +38,7 @@ Bigtable supports **Structured Row Keys** to define the structure of your row ke
 You can define the structure when creating a table or update an existing one:
 ```bash
 gcloud bigtable instances tables update [TABLE_ID] \
-    --instance=[INSTANCE_ID] \
+    --instance=${BIGTABLE_INSTANCE} \
     ----row-key-schema-definition-file=ROW_KEY_SCHEMA_DEFINITION_FILE
 ```
 

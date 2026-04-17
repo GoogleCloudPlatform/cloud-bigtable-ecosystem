@@ -10,7 +10,7 @@ Searches for entries matching a query in a specific Google Cloud project and loc
 curl -X POST \
   -H "Authorization: Bearer $(gcloud auth application-default print-access-token)" \
   -H "Content-Type: application/json" \
-  "https://dataplex.googleapis.com/v1/projects/[PROJECT_ID]/locations/[LOCATION]:searchEntries" \
+  "https://dataplex.googleapis.com/v1/projects/${BIGTABLE_PROJECT}/locations/[LOCATION]:searchEntries" \
   -d '{"query": "[SEARCH_TERM] system=Bigtable"}'
 ```
 
