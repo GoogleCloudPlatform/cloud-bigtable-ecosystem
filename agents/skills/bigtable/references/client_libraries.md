@@ -2,6 +2,15 @@
 
 This document outlines critical technical details about Bigtable data model and client libraries.
 
+## Language Recommendations
+
+For production use cases requiring the **best performance and feature coverage**, **Java** or **Go** are highly recommended. These libraries are mature, highly optimized, and typically receive new features first. Python is suitable for scripting and data science but may have lower throughput for high-concurrency production workloads.
+
+- [Go Example](https://docs.cloud.google.com/bigtable/docs/samples-go-hello)
+- [Java Example](https://docs.cloud.google.com/bigtable/docs/samples-java-hello-world)
+- [Python Example](https://docs.cloud.google.com/bigtable/docs/samples-python-hello)
+- [Node Example](https://docs.cloud.google.com/bigtable/docs/samples-nodejs-hello)
+
 ## Timestamp Precision & Granularity
 
 Bigtable stores timestamps as **64-bit integers** representing **microseconds** since the Unix epoch. However, Bigtable’s internal garbage collection and versioning operate at **millisecond granularity**.

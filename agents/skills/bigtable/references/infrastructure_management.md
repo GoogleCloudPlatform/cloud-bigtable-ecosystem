@@ -38,11 +38,11 @@ gcloud bigtable backups create [BACKUP_ID] \
 
 # Restore a table from backup
 gcloud bigtable instances tables restore \
-    --source=[BACKUP_ID] \
-    --source-instance=[INSTANCE_ID] \
-    --source-cluster=[CLUSTER_ID] \
+    --source=projects/[PROJECT_ID_SOURCE]/instances/[INSTANCE_ID_SOURCE]/clusters/[CLUSTER_ID]/backups/[BACKUP_ID] \
     --destination=[NEW_TABLE_ID] \
-    --destination-instance=[INSTANCE_ID]
+    --destination-instance=[INSTANCE_ID_DESTINATION] \
+    --project=[PROJECT_ID_DESTINATION] \
+    --async
 ```
 
 ## Data Plane (cbt)

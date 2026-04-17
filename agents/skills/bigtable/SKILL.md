@@ -13,6 +13,7 @@ This skill provides core workflows and guidance for administering and developing
   - Use **`gcloud`** for Control Plane operations: Instances, Clusters, App Profiles, Backups, and IAM.
   - Use **`cbt`** for Data Plane operations: Tables, Column Families, and reading/writing data.
 - **Performance First:** Bigtable is a NoSQL database. Efficiency is tied to Row Key design. Always warn about Full Table Scans.
+- **Client Selection:** For production use cases, **Java** or **Go** are preferred for their superior performance and feature coverage compared to other languages.
 - **Observability:** When diagnosing performance or hotspotting, **ALWAYS** mention **Key Visualizer** (via Cloud Console) as the primary diagnostic tool.
 
 > [!IMPORTANT]
@@ -58,7 +59,7 @@ cbt lookup [TABLE_NAME] [ROW_KEY]
   - [schema_design.md](references/schema_design.md) - Best practices for row keys and performance.
   - [dataplex.md](references/dataplex.md) - Data catalog search for Bigtable assets.
 - **Querying & Code**:
-  - [sql_guide.md](references/sql_guide.md) - Nuances of Bigtable's SQL dialect.
+  - [sql_guide.md](references/sql_guide.md) - Querying structured row keys via SQL and CLI.
   - [client_libraries.md](references/client_libraries.md) - Patterns for high-performance Go/Java/Python code.
 
 ## Common Workflows

@@ -64,8 +64,21 @@ There is often no type information associated with column values. So generated S
 
 Each Bigtable row is identified with a unique key. Bigtable SQL interface has a pseudo-column named  **_key** that should to query by row key.
 
-* **Syntax:** `SELECT * FROM table_name WHERE _key = row_key`
-* **Agent Action:** When generating queries that are not looking for exact matches i.e. **WHERE _key=** or key ranges i.e. **_key > AND _key<=** or prefixes **STARTS_WITH(_key, prefix)** warn the user that the query will result in a full table scan and won't be performant.
+#### Standard Scans (Opaque Key)
+Success with Bigtable depends on translating logical queries into efficient physical scans.
+* **Point Lookup:** `SELECT * FROM table_name WHERE _key = 'row_key'`
+* **Prefix Scan:** `SELECT * FROM table_name WHERE STARTS_WITH(_key, 'prefix#')` (Warning: Causes full table scan).
+* **Range Scan:** `SELECT * FROM table_name WHERE _key >= 'start#key' AND _key < 'end#key'` (Warning: Causes full table scan).
+* **Fuzzy Match:** `SELECT * FROM table_name WHERE _key LIKE '%#pattern#%'` (Warning: Causes full table scan).
+
+#### Querying with Structured Row Keys
+If a **Structured Row Key** is defined for the table (see `schema_design.md`), you can reference segments directly by name in the `WHERE` clause. This allows for cleaner, more expressive queries.
+
+* **Syntax:** `SELECT * FROM table_name WHERE segment_name = 'value'`
+* **Example:** If your structure defines `tenant_id` and `timestamp`, you can query:
+  `SELECT * FROM table_name WHERE tenant_id = '123' AND timestamp > 1713300000`
+
+**Agent Action:** When generating queries that are not looking for exact matches (point lookups), key ranges, or prefixes, warn the user that the query will result in a full table scan.
 
 ### Maps
 
