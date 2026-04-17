@@ -21,6 +21,6 @@
   ],
   "skills": "./agents/skills/",
   "mcpServers": "./.mcp.json",
-  "homepage": "https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem",
+  "homepage": "https://cloud.google.com/bigtable",
   "repository": "https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem"
 }
