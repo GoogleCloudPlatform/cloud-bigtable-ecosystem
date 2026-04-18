@@ -31,6 +31,12 @@ Reads rows between `START_KEY` (inclusive) and `END_KEY` (exclusive).
 cbt read [TABLE_NAME] start=[START_KEY] end=[END_KEY]
 ```
 
+### Read using SQL
+For complex queries and aggregations use SQL via the `cbt sql` command
+```bash
+cbt sql "SELECT * FROM my_table WHERE _key = 'user#123'"
+```
+
 ### Row Count (Estimate)
 Provides an estimate of the number of rows in the table.
 ```bash
