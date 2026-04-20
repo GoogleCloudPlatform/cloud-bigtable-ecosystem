@@ -78,6 +78,34 @@ If a user must use a low-cardinality prefix, recommend "salting" the key:
 `salt = hash(original_key) % number_of_nodes`
 `new_row_key = salt + "#" + original_key`
 
+## Counters for real-time metrics
+For frequent updates on single row metrics e.g. number of ad views, social media post likes, API calls or daily unique viewers (using data sketches like HLL), create an aggregate family to use Bigtable counters for much higher throughput and lower latency compared to read-modify-write. 
+
+## Materialized views
+### For real-time analytics
+Materialized views can be used for real-time aggregations across one or more rows for any type of data including aggregate families (note that approximate count distinct sketches will need to be aggregated using HLL_COUNT.MERGE). Frequently used metrics can be pre-aggregated efficiently as these views are incrementally maintained, then further filtered and aggregated at read time using SQL. Telemetry, merchant analytics, ad performance monitoring and real-time features for machine learning are some common use cases. Below is an example query that can be used as a materialized view that returns hourly count of messages in each chat room for a messaging application that has chatroom's unique identifier as the first row key token.
+
+```sql
+SELECT SPLIT(_key, '#')[0] AS chatroom, TIMESTAMP_TRUNC(_timestamp, HOUR) AS time_bucket,
+COUNT(_key) AS total_messages FROM UNPACK((SELECT * FROM messages(WITH_HISTORY=>TRUE)))
+GROUP BY 1, 2
+```
+
+### For secondary indexing
+Materialized views can be used as asynchronous global secondary indexes. Given the wide range of SQL functions supported, even geospatial index (using `S2_CELLIDFROMPOINT`) and inverted index use cases can be served with materialized views. Below is an example of an inverted index that allows fast search for rows that have occurrences of a given word in any of its cells in `user_profile` family or in a particular qualifier .
+
+```sql
+SELECT
+u.value AS indexed_value,
+u.key AS indexed_qualifier,
+ARRAY_AGG(_key) AS user_keys
+FROM users, UNNEST(MAP_ENTRIES(user_profile)) u
+GROUP BY 1,2
+```
+
+Filtering this index view for just `indexed_value` returns all occurrences in the form of an array of rowkeys from the `users` table while using both `indexed_value` and `indexed_qualifier` returns results for only that qualifier. 
+
+
 ## Performance Checklist (Agent Verification)
 
 When reviewing or generating schema-related code, verify the following:
