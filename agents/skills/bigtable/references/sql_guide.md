@@ -71,9 +71,10 @@ SELECT * FROM table_name(with_history => true, after => TIMESTAMP("2025-03-28 14
 
 * **Access Pattern:** Convert timestamped values into a flat table and perform time bucketing and aggregations.
 ```sql
-SELECT temp_versioned, _timestamp FROM
-UNPACK((SELECT metrics['temperature'] AS temp_versioned FROM sensorReadings(with_history => true, after => TIMESTAMP('2023-01-04T23:00:00.000Z'), before => TIMESTAMP('2023-01-05T01:00:00.000Z'))
-WHERE _key LIKE 'sensorA%'));
+SELECT TIMESTAMP_TRUNC(_timestamp, HOUR) AS hourly, AVG(temp_versioned) AS average_temperature FROM
+UNPACK((SELECT metrics['temperature'] AS temp_versioned FROM sensorReadings(with_history => true, after => TIMESTAMP('2023-01-14T23:00:00.000Z'), before => TIMESTAMP('2023-01-21T01:00:00.000Z'))
+WHERE _key LIKE 'sensorA%'))
+GROUP BY 1
 ```
 
 ---
