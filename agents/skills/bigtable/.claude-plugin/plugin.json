@@ -1,0 +1,33 @@
+{
+  "name": "bigtable",
+  "version": "0.0.1",
+  "description": "Official Claude plugin for Google Cloud Bigtable. Manage instances/tables, design schemas, query data using SQL or client libraries, and more",
+  "author": {
+    "name": "Google LLC",
+    "email": "bigtable-cloud@google.com"
+  },
+  "homepage": "https://cloud.google.com/bigtable",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem",
+  "skills": "./agents/skills/",
+  "userConfig": {
+    "bigtable_project": {
+      "title": "Project ID",
+      "description": "ID of the Google Cloud project",
+      "type": "string",
+      "sensitive": false
+    },
+    "bigtable_instance": {
+      "title": "Instance",
+      "description": "ID of the Bigtable instance",
+      "type": "string",
+      "sensitive": false
+    },
+    "bigtable_cluster": {
+      "title": "Cluster",
+      "description": "ID of the Bigtable cluster (optional)",
+      "type": "string",
+      "sensitive": false
+    }
+  }
+}

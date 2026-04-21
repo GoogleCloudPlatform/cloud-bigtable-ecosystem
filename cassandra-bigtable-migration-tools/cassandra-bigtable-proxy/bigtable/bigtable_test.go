@@ -201,8 +201,9 @@ func TestApplyBulkMutation(t *testing.T) {
 	row1, err := tbl.ReadRow(t.Context(), "bulk1")
 	assert.NoError(t, err)
 	assert.NotEmpty(t, row1)
-	assert.Equal(t, []byte(nil), row1["cf1"][0].Value) // empty row cell
-	assert.Equal(t, []byte("buddy-2"), row1["cf1"][1].Value)
+	var value []byte
+	require.NoError(t, getLatestColumnValue(row1, "cf1", "name", &value))
+	assert.Equal(t, []byte("buddy-2"), value)
 
 	row2, err := tbl.ReadRow(t.Context(), "bulk2")
 	assert.NoError(t, err)
@@ -211,8 +212,8 @@ func TestApplyBulkMutation(t *testing.T) {
 	row3, err := tbl.ReadRow(t.Context(), "bulk3")
 	assert.NoError(t, err)
 	assert.NotEmpty(t, row3)
-	assert.Equal(t, []byte(nil), row3["cf1"][0].Value) // empty row cell
-	assert.Equal(t, []byte("walter"), row3["cf1"][1].Value)
+	require.NoError(t, getLatestColumnValue(row3, "cf1", "name", &value))
+	assert.Equal(t, []byte("walter"), value)
 }
 
 func TestMutateRowDeleteColumnFamily(t *testing.T) {
@@ -267,12 +268,12 @@ func TestMutateRowDeleteQualifiers(t *testing.T) {
 	require.NoError(t, err)
 	row, err := tbl.ReadRow(t.Context(), key, bigtable.RowFilter(bigtable.FamilyFilter("cf1")))
 	require.NoError(t, err)
-	var columns []string
+	columns := make(map[string]bool)
 	for _, item := range row["cf1"] {
-		columns = append(columns, item.Column)
+		columns[item.Column] = true
 	}
 	// 'cf1:' is an empty cell that we write to ensure the row isn't empty
-	assert.ElementsMatch(t, []string{"cf1:col2", "cf1:"}, columns, "col2 should still exist")
+	assert.ElementsMatch(t, []string{"cf1:col2", "cf1:"}, maps.Keys(columns), "col2 should still exist")
 }
 
 func TestMutateRowIfExists(t *testing.T) {
@@ -299,8 +300,11 @@ func TestMutateRowIfExists(t *testing.T) {
 
 	row, err := tbl.ReadRow(t.Context(), key1, bigtable.RowFilter(bigtable.FamilyFilter("cf1")))
 	require.NoError(t, err)
-	assert.Equal(t, []byte(nil), row["cf1"][0].Value) // empty row cell
-	assert.Equal(t, "v2", string(row["cf1"][1].Value), "value should be updated to v2")
+	var value []byte
+	require.NoError(t, getLatestColumnValue(row, "cf1", "", &value))
+	assert.Equal(t, []byte(nil), value) // empty row cell
+	require.NoError(t, getLatestColumnValue(row, "cf1", "col1", &value))
+	assert.Equal(t, []byte("v2"), value, "value should be updated to v2")
 
 	// Attempt to update a non-existent row
 	updateDataNonExistent := types.NewBigtableWriteMutation(keyspace, tableName, "", types.IfSpec{IfExists: true}, types.QueryTypeUpdate, key2)
@@ -329,19 +333,28 @@ func TestMutateRowIfNotExists(t *testing.T) {
 	require.NoError(t, err)
 	row, err := tbl.ReadRow(t.Context(), key, bigtable.RowFilter(bigtable.FamilyFilter("cf1")))
 	require.NoError(t, err)
-	assert.Equal(t, []byte(nil), row["cf1"][0].Value) // empty row cell
-	assert.Equal(t, "v1", string(row["cf1"][1].Value), "row1 should be created with value v1")
+
+	var value []byte
+	require.NoError(t, getLatestColumnValue(row, "cf1", "", &value))
+	assert.Equal(t, []byte(nil), value) // empty row cell
+	require.NoError(t, getLatestColumnValue(row, "cf1", "col1", &value))
+	assert.Equal(t, []byte("v1"), value)
 
 	// Attempt to insert the same row again
-	res, err = btc.InsertRow(t.Context(), insertData)
+	insertData2 := types.NewBigtableWriteMutation(keyspace, tableName, "", types.IfSpec{IfNotExists: true}, types.QueryTypeInsert, key)
+	insertData2.AddMutations(types.NewWriteCellOp("cf1", "col1", []byte("v2")))
+	res, err = btc.InsertRow(t.Context(), insertData2)
 	require.NoError(t, err)
 	assert.False(t, wasApplied(res))
 
 	// Verify the row is not updated
 	row, err = tbl.ReadRow(t.Context(), key, bigtable.RowFilter(bigtable.FamilyFilter("cf1")))
 	require.NoError(t, err)
-	assert.Equal(t, []byte(nil), row["cf1"][0].Value) // empty row cell
-	assert.Equal(t, "v1", string(row["cf1"][1].Value), "row1 should not be updated")
+
+	require.NoError(t, getLatestColumnValue(row, "cf1", "", &value))
+	assert.Equal(t, []byte(nil), value) // empty row cell
+	require.NoError(t, getLatestColumnValue(row, "cf1", "col1", &value))
+	assert.Equal(t, []byte("v1"), value, "row should not be updated")
 }
 
 func TestMutateRowInvalidKeyspace(t *testing.T) {
@@ -365,4 +378,33 @@ func wasApplied(result message.Message) bool {
 	}
 	// The CQL boolean type is represented as a single byte, 0 for false, 1 for true.
 	return rowsResult.Data[0][0][0] == 0x01
+}
+
+func getLatestColumnValue(r bigtable.Row, cf string, cq string, result *[]byte) error {
+	items, ok := r[cf]
+	if !ok {
+		return fmt.Errorf("column family '%s' not found", cf)
+	}
+
+	targetColumn := fmt.Sprintf("%s:%s", cf, cq)
+	var maxTimestamp bigtable.Timestamp = -1
+	var latestValue []byte // Store the slice itself
+	found := false
+
+	for _, readItem := range items {
+		if readItem.Column == targetColumn {
+			if readItem.Timestamp > maxTimestamp {
+				maxTimestamp = readItem.Timestamp
+				latestValue = readItem.Value
+				found = true
+			}
+		}
+	}
+
+	if !found {
+		return fmt.Errorf("column '%s' not found in family '%s'", cq, cf)
+	}
+
+	*result = latestValue
+	return nil
 }

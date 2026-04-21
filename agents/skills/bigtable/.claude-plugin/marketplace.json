@@ -1,0 +1,28 @@
+{
+  "name": "bigtable-marketplace",
+  "version": "0.0.1",
+  "interface": {
+    "displayName": "Bigtable Agent Skills"
+  },
+  "owner": {
+    "name": "Google LLC",
+    "email": "bigtable-cloud@google.com"
+  },
+  "metadata": {
+    "description": "Official Claude plugin for Google Cloud Bigtable. Manage instances/tables, design schemas, query data using SQL or client libraries, and more"
+  },
+  "plugins": [
+    {
+      "name": "bigtable",
+      "source": {
+        "source": "git",
+        "url": "https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem.git"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Database"
+    }
+  ]
+}
