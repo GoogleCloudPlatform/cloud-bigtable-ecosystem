@@ -17,7 +17,7 @@
   "skills": "./agents/skills/",
   "interface": {
     "displayName": "Bigtable",
-    "shortDescription": "Official plugin for Google Cloud Bigtable. Manage instances/tables, design schemas, query data using SQL or client libraries, and more",
+    "shortDescription": "Official plugin for Google Cloud Bigtable. Manage instances/tables, design schemas, query data using SQL or client libraries, and more.",
     "developerName": "Google LLC",
     "category": "Database"
   }
