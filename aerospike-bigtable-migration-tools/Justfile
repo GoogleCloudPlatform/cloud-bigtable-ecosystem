@@ -1,0 +1,90 @@
+set shell := ["bash", "-o", "pipefail", "-eEuc"]
+
+export BIGTABLE_EMULATOR_HOST := "localhost:8086"
+
+c_src := "backup-loader/src/main/c/com_google_cloud_aerospike_BackupReader.c"
+
+default:
+    @just --list
+
+run-aerospike:
+    docker run --rm -v ./backup-loader-example/aerospike/config:/etc/aerospike/ -p 3000:3000 -p 3001:3001 -p 3002:3002 aerospike/aerospike-server:8.0.0.5_1
+
+run-emulator:
+    docker run -p 127.0.0.1:8086:8086 --rm -ti $@ google/cloud-sdk gcloud beta emulators bigtable start --host-port=0.0.0.0:8086
+
+run-backup-loader:
+    mvn -Pall clean compile exec:java -Dexec.mainClass=com.google.cloud.aerospike.LoadBackupExample -Dexec.jvmArgs="-Djava.library.path=target/classes:/usr/lib:/usr/local/lib"
+
+build:
+    mvn clean compile
+
+clean:
+    mvn clean
+
+test case="*":
+    mvn clean test -Dtest="{{ case }}" -Dsurefire.failIfNoSpecifiedTests=false
+
+format: && clang-format
+    mvn -Pall clean spotless:apply
+
+pull-dependencies:
+    mvn org.apache.maven.plugins:maven-dependency-plugin:3.8.1:go-offline -DexcludeGroupIds=com.google.cloud.aerospike
+
+package:
+    mvn clean package -Dmaven.test.skip
+
+install:
+    mvn clean install -Dmaven.test.skip
+
+run-mvn module target:
+    mvn -Pall clean "{{ target }}" -pl "{{ module }}" -am
+
+lint-python:
+    find . -name "*.py" -print0 | xargs -0 python -m black --check
+
+fix-python:
+    find . -name "*.py" -print0 | xargs -0 python -m black
+
+clang-tidy:
+    clang-tidy --config-file=.clang-tidy {{ c_src }} -- \
+        -isystem "$(dirname $(dirname $(readlink -f $(which javac))))/include" \
+        -isystem "$(dirname $(dirname $(readlink -f $(which javac))))/include/linux" \
+        -isystem /app/include \
+        -isystem /app/modules/c-client/modules/common/src/include \
+        -isystem /app/modules/c-client/src/include \
+        -isystem /app/modules/secret-agent-client/src/include \
+        -isystem /usr/local/include
+
+clang-format:
+    clang-format -i -style=file -assume-filename=.clang-format {{ c_src }}
+
+build-worker-image container_url version:
+    docker build . -t "{{ container_url }}:{{ version }}" --target dataflow-worker --build-arg "BEAM_VERSION={{ version }}"
+
+test-memory-leak:
+    apt install -y libjemalloc-dev libjemalloc2 graphviz ghostscript
+    rm /usr/lib/libbackupreader.so jeprof* || true
+    mvn -Pall clean install -Dmaven.test.skip
+    mvn -Pall dependency:build-classpath -Dmdep.outputFile=cp.txt
+    MALLOC_CONF="prof_leak:true,lg_prof_sample:0,prof_final:true" LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libjemalloc.so.2 java \
+        -Djava.library.path=target/classes:/usr/lib:/usr/local/lib \
+        -Djava.compiler=NONE \
+        -cp "$(cat backup-loader-example/cp.txt):backup-loader-example/target/backup-loader-example-1.0.0-SNAPSHOT.jar" \
+        com.google.cloud.aerospike.TestForLeaks \
+            <(python3 backup-loader-example/generate-large-backup.py 10000)
+    jeprof --focus BackupReader --show_bytes --pdf `which java` jeprof.*.f.heap > java.pdf
+
+test-local-references-limit:
+    apt install -y python3-msgpack
+    rm /usr/lib/libbackupreader.so || true
+    mvn -Pall clean install -Dmaven.test.skip
+    mvn -Pall dependency:build-classpath -Dmdep.outputFile=cp.txt
+    java \
+        -Xcheck:jni \
+        -verbose:jni \
+        -Djava.library.path=target/classes:/usr/lib:/usr/local/lib \
+        -Djava.compiler=NONE \
+        -cp "$(cat backup-loader-example/cp.txt):backup-loader-example/target/backup-loader-example-1.0.0-SNAPSHOT.jar" \
+        com.google.cloud.aerospike.TestForLeaks \
+            <(python3 backup-loader-example/generate-backup-with-large-entry.py 100000)

@@ -1,0 +1,150 @@
+Version 3.1
+# namespace test
+# first-file
++ k S 6 lion-0
++ n test
++ d 0T4dkNzFvNj6lQeYYlS3WmhnlNs=
++ s carnivores
++ g 1
++ t 0
++ b 14
+- I integer 1223
+- D double 0.86023018066871959
+- S string 18 str-0.244754-hello
+- Z bool F
+- S bytes 22 bytes-0.702444-goodbye
+- L list_empty 4 kA==
+- L list_scalars 8 kwECAw==
+- L list_mixed 28 lQHLQAGZmZmZmZqiAzPDpQR0ZXN0
+- M map_empty 4 gA==
+- M map_scalars 20 gwGiA2ECogNiA6IDYw==
+- M map_mixed 16 ggGlBHRlc3SiA2EB
+- L list_nested 12 k5CRAZMBkJEB
+- M map_nested 28 gwGAAoEBogNhA4IBgQGiA2ICgA==
+- M mixed_nested 36 gwGQAoIBkAKBA6IDYQOSgQGiA2GBAqIDYg==
++ k S 5 cat-0
++ n test
++ d d4Sdkwu3v5AnyCn7YbB3MuPLfmo=
++ s carnivores
++ g 1
++ t 0
++ b 14
+- I integer 8191
+- D double 0.20010814122206477
+- S string 18 str-0.021804-hello
+- Z bool F
+- S bytes 22 bytes-0.078527-goodbye
+- L list_empty 4 kA==
+- L list_scalars 8 kwECAw==
+- L list_mixed 28 lQHLQAGZmZmZmZqiAzPDpQR0ZXN0
+- M map_empty 4 gA==
+- M map_scalars 20 gwGiA2ECogNiA6IDYw==
+- M map_mixed 16 ggGlBHRlc3SiA2EB
+- L list_nested 12 k5CRAZMBkJEB
+- M map_nested 28 gwGAAoEBogNhA4IBgQGiA2ICgA==
+- M mixed_nested 36 gwGQAoIBkAKBA6IDYQOSgQGiA2GBAqIDYg==
++ k S 5 dog-0
++ n test
++ d 4BEodXo5XOj4luxDr9ypWZ5FiVE=
++ s carnivores
++ g 1
++ t 0
++ b 14
+- I integer 2411
+- D double 0.84947045212700401
+- S string 18 str-0.518004-hello
+- Z bool F
+- S bytes 22 bytes-0.866596-goodbye
+- L list_empty 4 kA==
+- L list_scalars 8 kwECAw==
+- L list_mixed 28 lQHLQAGZmZmZmZqiAzPDpQR0ZXN0
+- M map_empty 4 gA==
+- M map_scalars 20 gwGiA2ECogNiA6IDYw==
+- M map_mixed 16 ggGlBHRlc3SiA2EB
+- L list_nested 12 k5CRAZMBkJEB
+- M map_nested 28 gwGAAoEBogNhA4IBgQGiA2ICgA==
+- M mixed_nested 36 gwGQAoIBkAKBA6IDYQOSgQGiA2GBAqIDYg==
++ k S 5 cow-0
++ n test
++ d KNdfqvaW7crsoLdLdS0v1vrjpmI=
++ s herbivores
++ g 1
++ t 0
++ b 14
+- I integer 6342
+- D double 0.87600749208887341
+- S string 18 str-0.864559-hello
+- Z bool F
+- S bytes 22 bytes-0.224827-goodbye
+- L list_empty 4 kA==
+- L list_scalars 8 kwECAw==
+- L list_mixed 28 lQHLQAGZmZmZmZqiAzPDpQR0ZXN0
+- M map_empty 4 gA==
+- M map_scalars 20 gwGiA2ECogNiA6IDYw==
+- M map_mixed 16 ggGlBHRlc3SiA2EB
+- L list_nested 12 k5CRAZMBkJEB
+- M map_nested 28 gwGAAoEBogNhA4IBgQGiA2ICgA==
+- M mixed_nested 36 gwGQAoIBkAKBA6IDYQOSgQGiA2GBAqIDYg==
++ k S 6 bear-0
++ n test
++ d mAzEQF60vaIx8+MpVP0NuKK6wPQ=
++ s carnivores
++ g 1
++ t 0
++ b 14
+- I integer 3628
+- D double 0.4481753758018967
+- S string 18 str-0.766252-hello
+- Z bool F
+- S bytes 22 bytes-0.267587-goodbye
+- L list_empty 4 kA==
+- L list_scalars 8 kwECAw==
+- L list_mixed 28 lQHLQAGZmZmZmZqiAzPDpQR0ZXN0
+- M map_empty 4 gA==
+- M map_scalars 20 gwGiA2ECogNiA6IDYw==
+- M map_mixed 16 ggGlBHRlc3SiA2EB
+- L list_nested 12 k5CRAZMBkJEB
+- M map_nested 28 gwGAAoEBogNhA4IBgQGiA2ICgA==
+- M mixed_nested 36 gwGQAoIBkAKBA6IDYQOSgQGiA2GBAqIDYg==
++ k S 8 rabbit-0
++ n test
++ d INg5F3sFLAEce1PFps+mpWQIP3g=
++ s herbivores
++ g 1
++ t 0
++ b 14
+- I integer 5949
+- D double 0.35131025526614301
+- S string 18 str-0.247623-hello
+- Z bool F
+- S bytes 22 bytes-0.621525-goodbye
+- L list_empty 4 kA==
+- L list_scalars 8 kwECAw==
+- L list_mixed 28 lQHLQAGZmZmZmZqiAzPDpQR0ZXN0
+- M map_empty 4 gA==
+- M map_scalars 20 gwGiA2ECogNiA6IDYw==
+- M map_mixed 16 ggGlBHRlc3SiA2EB
+- L list_nested 12 k5CRAZMBkJEB
+- M map_nested 28 gwGAAoEBogNhA4IBgQGiA2ICgA==
+- M mixed_nested 36 gwGQAoIBkAKBA6IDYQOSgQGiA2GBAqIDYg==
++ k S 7 horse-0
++ n test
++ d lTwIO+FWPcegVkHXLh4LSBBtCEI=
++ s herbivores
++ g 1
++ t 0
++ b 14
+- I integer 3356
+- D double 0.59870127176573884
+- S string 18 str-0.926333-hello
+- Z bool F
+- S bytes 22 bytes-0.493853-goodbye
+- L list_empty 4 kA==
+- L list_scalars 8 kwECAw==
+- L list_mixed 28 lQHLQAGZmZmZmZqiAzPDpQR0ZXN0
+- M map_empty 4 gA==
+- M map_scalars 20 gwGiA2ECogNiA6IDYw==
+- M map_mixed 16 ggGlBHRlc3SiA2EB
+- L list_nested 12 k5CRAZMBkJEB
+- M map_nested 28 gwGAAoEBogNhA4IBgQGiA2ICgA==
+- M mixed_nested 36 gwGQAoIBkAKBA6IDYQOSgQGiA2GBAqIDYg==

@@ -1,0 +1,16 @@
+Version 3.1
+# namespace test
+# first-file
++ k S 4 key1
++ n test
++ d 7JEZLUt/jONdXXjTS8ply6qqyWA=
++ s demo
++ g 1
++ t 428179113
++ b 6
+- I foo 123
+- S bar 3 abc
+- Z baz T
+- D qux +Inf
+- S quux 2 xD
+- B corge 4 FSU=

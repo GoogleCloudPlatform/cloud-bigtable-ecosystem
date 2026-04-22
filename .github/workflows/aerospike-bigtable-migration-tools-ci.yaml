@@ -1,0 +1,54 @@
+name: Aerospike Bigtable Migration Tools CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "aerospike-bigtable-migration-tools/**"
+  pull_request:
+    paths:
+      - "aerospike-bigtable-migration-tools/**"
+
+jobs:
+  ci:
+    name: Check the Aerospike Bigtable Migration Tools code
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: C formatter
+        working-directory: aerospike-bigtable-migration-tools
+        run: |
+          shopt -s globstar
+          clang-format --dry-run --Werror -style=file -assume-filename=.clang-format **/*.c
+      - name: Java formatter
+        working-directory: aerospike-bigtable-migration-tools
+        run: mvn -B -ntp -Pall spotless:check
+      # TODO: test other submodules (e.g., backup-loader), which require dependencies compiled as described in the Dockerfile.
+      - name: Java unit tests
+        working-directory: aerospike-bigtable-migration-tools
+        run: mvn -B -ntp test -pl adapter,replicator
+      # Replicator's integration tests need to be provided with Kafka Connect Bigtable Sink .jar
+      - name: Compile sink .jar
+        working-directory: kafka-connect-bigtable-sink
+        run: mvn -B -ntp clean package -pl sink -DskipUnitTests -DskipIntegrationTests
+      - name: Create integration_test_plugins dir and necessary subdirectories
+        working-directory: aerospike-bigtable-migration-tools
+        run: mkdir -p replicator/integration_test_plugins/sink
+      - name: Copy sink .jar into directory used by replicator's integration tests
+        run: cp kafka-connect-bigtable-sink/sink/target/sink*.jar aerospike-bigtable-migration-tools/replicator/integration_test_plugins/sink
+      - name: Show integration_test_plugins dir contents
+        working-directory: aerospike-bigtable-migration-tools
+        run: tree --du replicator/integration_test_plugins
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          version: latest
+          install_components: beta,bigtable
+      - name: Integration tests
+        working-directory: aerospike-bigtable-migration-tools
+        run: |
+          set -euo pipefail
+          gcloud beta emulators bigtable start --host-port=0.0.0.0:8086 &
+          mvn -B -ntp verify -pl adapter,replicator -DskipUnitTests
