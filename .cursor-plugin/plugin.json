@@ -19,7 +19,7 @@
     "cbt",
     "cloud-services"
   ],
-  "skills": "./agents/skills/",
+  "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "homepage": "https://cloud.google.com/bigtable",
   "repository": "https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem"

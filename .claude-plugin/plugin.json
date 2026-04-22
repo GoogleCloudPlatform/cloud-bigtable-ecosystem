@@ -9,7 +9,7 @@
   "homepage": "https://cloud.google.com/bigtable",
   "license": "Apache-2.0",
   "repository": "https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem",
-  "skills": "./agents/skills/",
+  "skills": "./skills/",
   "userConfig": {
     "bigtable_project": {
       "title": "Project ID",
