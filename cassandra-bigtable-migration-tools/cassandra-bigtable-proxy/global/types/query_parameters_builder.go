@@ -29,7 +29,18 @@ func (q *QueryParameterBuilder) AddPositionalParam(dt CqlDataType, c *Column) (P
 		// could happen if named parameters are also used (which is not allowed in cql)
 		return "", errors.New("unexpected positional param key already exists")
 	}
-	q.metadata[p] = newParameterMetadata(p, q.getNextIndex(), false, dt, c)
+	q.metadata[p] = newParameterMetadata(p, q.getNextIndex(), false, dt, c, false)
+	return p, nil
+}
+
+func (q *QueryParameterBuilder) AddInternalParam(dt CqlDataType) (Parameter, error) {
+	p := q.getNextParameter()
+	_, exists := q.metadata[p]
+	if exists {
+		// could happen if named parameters are also used (which is not allowed in cql)
+		return "", errors.New("unexpected positional param key already exists")
+	}
+	q.metadata[p] = newParameterMetadata(p, q.getNextIndex(), false, dt, nil, true)
 	return p, nil
 }
 
@@ -41,7 +52,7 @@ func (q *QueryParameterBuilder) AddNamedParam(p Parameter, dt CqlDataType) error
 		// we already have this param so we can return now
 		return nil
 	}
-	q.metadata[p] = newParameterMetadata(p, q.getNextIndex(), true, dt, nil)
+	q.metadata[p] = newParameterMetadata(p, q.getNextIndex(), true, dt, nil, false)
 	return nil
 }
 

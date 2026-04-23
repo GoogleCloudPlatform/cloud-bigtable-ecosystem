@@ -80,6 +80,21 @@ const (
 	CONTAINS_KEY Operator = "CONTAINS KEY"
 )
 
+func FlipOperator(op Operator) Operator {
+	switch op {
+	case GT:
+		return LT
+	case LT:
+		return GT
+	case GTE:
+		return LTE
+	case LTE:
+		return LTE
+	default:
+		return op
+	}
+}
+
 type ArithmeticOperator string
 
 const (
