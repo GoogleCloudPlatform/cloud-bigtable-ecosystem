@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 type MetadataStore struct {
@@ -41,7 +42,46 @@ func (b *MetadataStore) Initialize(ctx context.Context) error {
 			return err
 		}
 	}
+
+	if b.config.MetadataRefreshInterval != nil && *b.config.MetadataRefreshInterval > 0 {
+		go b.refreshLoop(ctx)
+	} else {
+		b.logger.Info("periodic metadata refresh disabled.")
+	}
 	return nil
+}
+
+func (b *MetadataStore) refreshLoop(ctx context.Context) {
+	b.logger.Info("starting periodic metadata refresh loop", zap.String("interval", b.config.MetadataRefreshInterval.String()))
+	ticker := time.NewTicker(*b.config.MetadataRefreshInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			b.logger.Info("stopping periodic metadata refresh loop")
+			return
+		case <-ticker.C:
+			b.logger.Debug("starting periodic metadata refresh")
+			b.reloadAllKeyspaces(ctx)
+		}
+	}
+}
+
+// reloads schemas for all known keyspaces in parallel
+func (b *MetadataStore) reloadAllKeyspaces(ctx context.Context) {
+	var wg sync.WaitGroup
+	for keyspace := range b.config.Instances {
+		wg.Add(1)
+		go func(ks types.Keyspace) {
+			defer wg.Done()
+			err := b.ReloadKeyspaceSchemas(ctx, ks)
+			if err != nil && ctx.Err() == nil {
+				b.logger.Error("failed to reload keyspace schemas", zap.String("keyspace", string(ks)), zap.Error(err))
+			}
+		}(keyspace)
+	}
+	wg.Wait()
 }
 
 func (b *MetadataStore) Schemas() *SchemaMetadata {
@@ -567,6 +607,11 @@ func (b *MetadataStore) ReloadKeyspaceSchemas(ctx context.Context, keyspace type
 	if err != nil {
 		return fmt.Errorf("error when reloading schema mappings for %s.%s: %w", keyspace, b.config.SchemaMappingTable, err)
 	}
-	b.schemas.SyncKeyspace(keyspace, tableConfigs)
+	changeCount := b.schemas.SyncKeyspace(keyspace, tableConfigs)
+	if changeCount > 0 {
+		b.logger.Info("successfully synced keyspace schemas", zap.String("keyspace", string(keyspace)), zap.Int("changes", changeCount))
+	} else {
+		b.logger.Debug("synced keyspace schemas, no changes detected", zap.String("keyspace", string(keyspace)))
+	}
 	return nil
 }
