@@ -1,0 +1,6 @@
+Version 3.1
+# namespace test
+# first-file
+* u L test.lua 27 -- just an empty Lua file
+
+

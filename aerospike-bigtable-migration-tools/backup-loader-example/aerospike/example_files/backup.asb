@@ -1,0 +1,87 @@
+Version 3.1
+# namespace test
+# first-file
++ k S 5 cat-0
++ n test
++ d d4Sdkwu3v5AnyCn7YbB3MuPLfmo=
++ s carnivores
++ g 1
++ t 0
++ b 5
+- I integer 9159
+- D double 0.15225256473850957
+- S string 18 str-0.963070-hello
+- Z bool T
+- S bytes 22 bytes-0.143413-goodbye
++ k S 7 horse-0
++ n test
++ d lTwIO+FWPcegVkHXLh4LSBBtCEI=
++ s herbivores
++ g 1
++ t 0
++ b 5
+- I integer 9374
+- D double 0.67770821256064362
+- S string 18 str-0.854085-hello
+- Z bool F
+- S bytes 22 bytes-0.558431-goodbye
++ k S 5 dog-0
++ n test
++ d 4BEodXo5XOj4luxDr9ypWZ5FiVE=
++ s carnivores
++ g 1
++ t 0
++ b 5
+- I integer 5499
+- D double 0.72286349453223397
+- S string 18 str-0.087942-hello
+- Z bool F
+- S bytes 22 bytes-0.986507-goodbye
++ k S 5 cow-0
++ n test
++ d KNdfqvaW7crsoLdLdS0v1vrjpmI=
++ s herbivores
++ g 1
++ t 0
++ b 5
+- I integer 9036
+- D double 0.74379626744966332
+- S string 18 str-0.173059-hello
+- Z bool F
+- S bytes 22 bytes-0.909698-goodbye
++ k S 8 rabbit-0
++ n test
++ d INg5F3sFLAEce1PFps+mpWQIP3g=
++ s herbivores
++ g 1
++ t 0
++ b 5
+- I integer 4352
+- D double 0.5090731613185312
+- S string 18 str-0.839390-hello
+- Z bool T
+- S bytes 22 bytes-0.945603-goodbye
++ k S 6 bear-0
++ n test
++ d mAzEQF60vaIx8+MpVP0NuKK6wPQ=
++ s carnivores
++ g 1
++ t 0
++ b 5
+- I integer 8803
+- D double 0.54670403111239196
+- S string 18 str-0.633120-hello
+- Z bool T
+- S bytes 22 bytes-0.296898-goodbye
++ k S 6 lion-0
++ n test
++ d 0T4dkNzFvNj6lQeYYlS3WmhnlNs=
++ s carnivores
++ g 1
++ t 0
++ b 5
+- I integer 8383
+- D double 0.034979037472473662
+- S string 18 str-0.527770-hello
+- Z bool F
+- S bytes 22 bytes-0.014427-goodbye
