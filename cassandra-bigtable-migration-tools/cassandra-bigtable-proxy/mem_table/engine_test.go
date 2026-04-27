@@ -196,6 +196,23 @@ func Test_SelectEngine(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:  "multiple where conditions",
+			query: "select * from test_keyspace.user_info where name='u2' and age=51",
+			want: []types.GoRow{
+				{
+					"name":     "u2",
+					"age":      int64(51),
+					"email":    "fizz@buzz.net",
+					"username": "fizzle2",
+				},
+			},
+		},
+		{
+			name:  "multiple where conditions no match",
+			query: "select * from test_keyspace.user_info where name='u2' and age=80",
+			want:  nil,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
