@@ -1398,6 +1398,28 @@ func TestTranslator_TranslateSelectQuerytoBigtable(t *testing.T) {
 			sessionKeyspace: "test_keyspace",
 		},
 		{
+			name:  "Quoted table and keyspace names",
+			query: `select pk1 from "test_keyspace"."test_table" where pk1 = 'test';`,
+			want: &Want{
+				TranslatedQuery: "SELECT pk1 FROM test_table WHERE pk1 = 'test';",
+				Table:           "test_table",
+				Keyspace:        "test_keyspace",
+				SelectClause: &types.SelectClause{
+					Columns: []types.SelectedColumn{
+						*types.NewSelectedColumn("pk1", "pk1", "", types.TypeVarchar),
+					},
+				},
+				Conditions: []types.Condition{
+					{
+						Column:   mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk1"),
+						Operator: types.EQ,
+						Value:    types.NewLiteralValue("test"),
+					},
+				},
+				AllParams: []*types.ParameterMetadata{},
+			},
+		},
+		{
 			name:  "Valid GROUP BY with aggregate and ORDER BY",
 			query: `select pk1, count(col_int) from test_keyspace.test_table where pk1 = 'test' GROUP BY pk1 ORDER BY pk1;`,
 			want: &Want{
