@@ -1,0 +1,17 @@
+Version 3.1
+# namespace test
+# first-file
++ k S 6 lion-0
++ n test
++ d 0T4dkNzFvNj6lQeYYlS3WmhnlNs=
++ s carnivores
++ g 1
++ t 0
++ b 7
+- L list_empty 4 kA==
+- L list_scalars 8 kwECAw==
+- M map_empty 4 gA==
+- M map_scalars 20 gwGiA2ECogNiA6IDYw==
+- L list_nested 12 k5CRAZMBkJEB
+- M map_nested 28 gwGAAoEBogNhA4IBgQGiA2ICgA==
+- M mixed_nested 36 gwGQAoIBkAKBA6IDYQOSgQGiA2GBAqIDYg==
