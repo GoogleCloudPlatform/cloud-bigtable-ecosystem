@@ -35,10 +35,14 @@ func createBtqlSelectClause(tableConfig *sm.TableSchema, s *types.SelectClause, 
 	return strings.Join(columns, ", "), nil
 }
 
+func formatBtqlAlias(alias string) string {
+	return "`" + strings.NewReplacer("\\", "\\\\", "`", "\\`").Replace(alias) + "`"
+}
+
 func createBtqlFunc(col types.SelectedColumn, tableConfig *sm.TableSchema) (string, error) {
 	if col.Func == types.FuncCodeCount && col.ColumnName == "*" {
 		if col.Alias != "" {
-			return "count(*) as " + col.Alias, nil
+			return "count(*) as " + formatBtqlAlias(col.Alias), nil
 		}
 		return "count(*)", nil
 	}
@@ -56,7 +60,7 @@ func createBtqlFunc(col types.SelectedColumn, tableConfig *sm.TableSchema) (stri
 	if col.Func == types.FuncCodeWriteTime {
 		// todo what about collections?
 		if col.Alias != "" {
-			return fmt.Sprintf("UNIX_MICROS(WRITE_TIMESTAMP(%s, '%s')) AS %s", colMeta.ColumnFamily, colMeta.Name, col.Alias), nil
+			return fmt.Sprintf("UNIX_MICROS(WRITE_TIMESTAMP(%s, '%s')) AS %s", colMeta.ColumnFamily, colMeta.Name, formatBtqlAlias(col.Alias)), nil
 		}
 		return fmt.Sprintf("UNIX_MICROS(WRITE_TIMESTAMP(%s, '%s'))", colMeta.ColumnFamily, colMeta.Name), nil
 	}
@@ -67,14 +71,14 @@ func createBtqlFunc(col types.SelectedColumn, tableConfig *sm.TableSchema) (stri
 			return "", err
 		}
 		if col.Alias != "" {
-			return fmt.Sprintf("%s AS %s", castValue, col.Alias), nil
+			return fmt.Sprintf("%s AS %s", castValue, formatBtqlAlias(col.Alias)), nil
 		}
 		return castValue, nil
 	}
 
 	if col.Func == types.FuncCodeNow {
 		if col.Alias != "" {
-			return "CURRENT_TIMESTAMP() AS " + col.Alias, nil // CURRENT_TIMESTAMP returns a timestamp, we'll convert it to UUID in result processor if needed, but it's better to return raw bits if we can.
+			return "CURRENT_TIMESTAMP() AS " + formatBtqlAlias(col.Alias), nil // CURRENT_TIMESTAMP returns a timestamp, we'll convert it to UUID in result processor if needed, but it's better to return raw bits if we can.
 		}
 		return "CURRENT_TIMESTAMP()", nil
 	}
@@ -86,7 +90,7 @@ func createBtqlFunc(col types.SelectedColumn, tableConfig *sm.TableSchema) (stri
 	column := fmt.Sprintf("%s(%s)", col.Func.String(), castValue)
 
 	if col.Alias != "" {
-		column = column + " as " + col.Alias
+		column = column + " as " + formatBtqlAlias(col.Alias)
 	}
 
 	return column, nil
@@ -115,7 +119,7 @@ func createBtqlSelectCol(tableConfig *sm.TableSchema, selectedColumn types.Selec
 	}
 
 	if selectedColumn.Alias != "" {
-		sql = fmt.Sprintf("%s as %s", sql, selectedColumn.Alias)
+		sql = fmt.Sprintf("%s as %s", sql, formatBtqlAlias(selectedColumn.Alias))
 	}
 	return sql, nil
 }
@@ -195,7 +199,7 @@ func createBigtableSql(t *SelectTranslator, st *types.PreparedSelectQuery) (stri
 		for _, col := range st.GroupByColumns {
 			lookupCol := col
 			if _, ok := aliasToColumn[col]; ok {
-				groupByKeys = append(groupByKeys, col)
+				groupByKeys = append(groupByKeys, formatBtqlAlias(col))
 			} else {
 				if colMeta, ok := tableConfig.Columns[types.ColumnName(lookupCol)]; ok {
 					if !colMeta.CQLType.IsCollection() {
@@ -218,7 +222,7 @@ func createBigtableSql(t *SelectTranslator, st *types.PreparedSelectQuery) (stri
 		for _, orderByCol := range st.OrderBy.Columns {
 			lookupCol := orderByCol.Column
 			if _, ok := aliasToColumn[orderByCol.Column]; ok {
-				orderByClauses = append(orderByClauses, orderByCol.Column+" "+string(orderByCol.Operation))
+				orderByClauses = append(orderByClauses, formatBtqlAlias(orderByCol.Column)+" "+string(orderByCol.Operation))
 			} else {
 				if colMeta, ok := tableConfig.Columns[types.ColumnName(lookupCol)]; ok {
 					if colMeta.IsPrimaryKey {

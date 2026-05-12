@@ -88,7 +88,7 @@ func parseOrderByFromSelect(input cql.IOrderSpecContext) (types.OrderBy, error) 
 			return types.OrderBy{}, fmt.Errorf("order_by section not have proper values")
 		}
 
-		colName := strings.TrimSpace(object.GetText())
+		colName := common.NormalizeCqlIdentifier(strings.TrimSpace(object.GetText()))
 		if colName == "" {
 			return types.OrderBy{}, fmt.Errorf("order_by section has empty column name")
 		}
@@ -136,7 +136,7 @@ func parseGroupByColumn(input cql.IGroupSpecContext) []string {
 			return nil
 		}
 
-		colName := object.GetText()
+		colName := common.NormalizeCqlIdentifier(object.GetText())
 		columns = append(columns, colName)
 	}
 
