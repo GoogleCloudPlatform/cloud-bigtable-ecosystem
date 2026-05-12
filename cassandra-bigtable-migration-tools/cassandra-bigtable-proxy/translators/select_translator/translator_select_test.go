@@ -28,16 +28,17 @@ import (
 )
 
 type Want struct {
-	Keyspace        types.Keyspace
-	Table           types.TableName
-	TranslatedQuery string
-	SelectClause    *types.SelectClause
-	Conditions      []types.Condition
-	CachedBTPrepare *bigtable.PreparedStatement
-	OrderBy         types.OrderBy
-	GroupByColumns  []string
-	LimitValue      types.DynamicValue
-	AllParams       []*types.ParameterMetadata
+	Keyspace          types.Keyspace
+	Table             types.TableName
+	TranslatedQuery   string
+	SelectClause      *types.SelectClause
+	Conditions        []types.Condition
+	CachedBTPrepare   *bigtable.PreparedStatement
+	OrderBy           types.OrderBy
+	GroupByColumns    []string
+	LimitValue        types.DynamicValue
+	AllParams         []*types.ParameterMetadata
+	ResultColumnNames []string
 }
 
 func TestTranslator_TranslateSelectQuerytoBigtable(t *testing.T) {
@@ -105,7 +106,7 @@ func TestTranslator_TranslateSelectQuerytoBigtable(t *testing.T) {
 			name:  "Select query with list contains clause",
 			query: `select col_int as name from test_keyspace.test_table where list_text CONTAINS 'test';`,
 			want: &Want{
-				TranslatedQuery: "SELECT TO_INT64(`cf1`['col_int']) as name FROM test_table WHERE ARRAY_INCLUDES(MAP_VALUES(`list_text`), 'test');",
+				TranslatedQuery: "SELECT TO_INT64(`cf1`['col_int']) as `name` FROM test_table WHERE ARRAY_INCLUDES(MAP_VALUES(`list_text`), 'test');",
 				Table:           "test_table",
 				Keyspace:        "test_keyspace",
 				SelectClause: &types.SelectClause{
@@ -131,7 +132,7 @@ func TestTranslator_TranslateSelectQuerytoBigtable(t *testing.T) {
 			name:  "Select query with map contains key clause",
 			query: `select col_int as name from test_keyspace.test_table where map_text_text CONTAINS KEY 'test';`,
 			want: &Want{
-				TranslatedQuery: "SELECT TO_INT64(`cf1`['col_int']) as name FROM test_table WHERE MAP_CONTAINS_KEY(`map_text_text`, 'test');",
+				TranslatedQuery: "SELECT TO_INT64(`cf1`['col_int']) as `name` FROM test_table WHERE MAP_CONTAINS_KEY(`map_text_text`, 'test');",
 				Table:           "test_table",
 				Keyspace:        "test_keyspace",
 				SelectClause: &types.SelectClause{
@@ -156,7 +157,7 @@ func TestTranslator_TranslateSelectQuerytoBigtable(t *testing.T) {
 			name:  "Select query with set contains clause",
 			query: `select col_int as name from test_keyspace.test_table where set_text CONTAINS 'test';`,
 			want: &Want{
-				TranslatedQuery: "SELECT TO_INT64(`cf1`['col_int']) as name FROM test_table WHERE MAP_CONTAINS_KEY(`set_text`, 'test');",
+				TranslatedQuery: "SELECT TO_INT64(`cf1`['col_int']) as `name` FROM test_table WHERE MAP_CONTAINS_KEY(`set_text`, 'test');",
 				Table:           "test_table",
 				Keyspace:        "test_keyspace",
 				SelectClause: &types.SelectClause{
@@ -581,7 +582,7 @@ func TestTranslator_TranslateSelectQuerytoBigtable(t *testing.T) {
 			name:  "Writetime CqlQuery with as keyword",
 			query: `select pk1, WRITETIME(col_int) as name from test_keyspace.test_table where pk1 = 'test';`,
 			want: &Want{
-				TranslatedQuery: "SELECT pk1, UNIX_MICROS(WRITE_TIMESTAMP(cf1, 'col_int')) AS name FROM test_table WHERE pk1 = 'test';",
+				TranslatedQuery: "SELECT pk1, UNIX_MICROS(WRITE_TIMESTAMP(cf1, 'col_int')) AS `name` FROM test_table WHERE pk1 = 'test';",
 				Table:           "test_table",
 				Keyspace:        "test_keyspace",
 				SelectClause: &types.SelectClause{
@@ -607,7 +608,7 @@ func TestTranslator_TranslateSelectQuerytoBigtable(t *testing.T) {
 			name:  "As CqlQuery",
 			query: `select col_int as name from test_keyspace.test_table where pk1 = 'test';`,
 			want: &Want{
-				TranslatedQuery: "SELECT TO_INT64(`cf1`['col_int']) as name FROM test_table WHERE pk1 = 'test';",
+				TranslatedQuery: "SELECT TO_INT64(`cf1`['col_int']) as `name` FROM test_table WHERE pk1 = 'test';",
 				Table:           "test_table",
 				Keyspace:        "test_keyspace",
 				SelectClause: &types.SelectClause{
@@ -626,6 +627,246 @@ func TestTranslator_TranslateSelectQuerytoBigtable(t *testing.T) {
 					IsOrderBy: false,
 				},
 				AllParams: []*types.ParameterMetadata{}},
+			sessionKeyspace: "test_keyspace",
+		},
+		{
+			name:  "As CqlQuery with quoted alias",
+			query: `select col_int as "TableBindName" from test_keyspace.test_table where pk1 = 'test';`,
+			want: &Want{
+				TranslatedQuery: "SELECT TO_INT64(`cf1`['col_int']) as `TableBindName` FROM test_table WHERE pk1 = 'test';",
+				Table:           "test_table",
+				Keyspace:        "test_keyspace",
+				SelectClause: &types.SelectClause{
+					Columns: []types.SelectedColumn{
+						*types.NewSelectedColumn("col_int", "col_int", "TableBindName", types.TypeInt),
+					},
+				},
+				Conditions: []types.Condition{
+					{
+						Column:   mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk1"),
+						Operator: "=",
+						Value:    types.NewLiteralValue("test"),
+					},
+				},
+				OrderBy:           types.OrderBy{IsOrderBy: false},
+				AllParams:         []*types.ParameterMetadata{},
+				ResultColumnNames: []string{"TableBindName"},
+			},
+			sessionKeyspace: "test_keyspace",
+		},
+		{
+			name:  "As CqlQuery with unquoted mixed-case alias",
+			query: `select col_int as TableBindName from test_keyspace.test_table where pk1 = 'test';`,
+			want: &Want{
+				TranslatedQuery: "SELECT TO_INT64(`cf1`['col_int']) as `tablebindname` FROM test_table WHERE pk1 = 'test';",
+				Table:           "test_table",
+				Keyspace:        "test_keyspace",
+				SelectClause: &types.SelectClause{
+					Columns: []types.SelectedColumn{
+						*types.NewSelectedColumn("col_int", "col_int", "tablebindname", types.TypeInt),
+					},
+				},
+				Conditions: []types.Condition{
+					{
+						Column:   mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk1"),
+						Operator: "=",
+						Value:    types.NewLiteralValue("test"),
+					},
+				},
+				OrderBy:           types.OrderBy{IsOrderBy: false},
+				AllParams:         []*types.ParameterMetadata{},
+				ResultColumnNames: []string{"tablebindname"},
+			},
+			sessionKeyspace: "test_keyspace",
+		},
+		{
+			name:  "As CqlQuery with quoted alias ending in backslash",
+			query: `select col_int as "TrailingBackslash\" from test_keyspace.test_table where pk1 = 'test';`,
+			want: &Want{
+				TranslatedQuery: "SELECT TO_INT64(`cf1`['col_int']) as `TrailingBackslash\\\\` FROM test_table WHERE pk1 = 'test';",
+				Table:           "test_table",
+				Keyspace:        "test_keyspace",
+				SelectClause: &types.SelectClause{
+					Columns: []types.SelectedColumn{
+						*types.NewSelectedColumn("col_int", "col_int", "TrailingBackslash\\", types.TypeInt),
+					},
+				},
+				Conditions: []types.Condition{
+					{
+						Column:   mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk1"),
+						Operator: "=",
+						Value:    types.NewLiteralValue("test"),
+					},
+				},
+				OrderBy:           types.OrderBy{IsOrderBy: false},
+				AllParams:         []*types.ParameterMetadata{},
+				ResultColumnNames: []string{"TrailingBackslash\\"},
+			},
+			sessionKeyspace: "test_keyspace",
+		},
+		{
+			name:  "As CqlQuery with quoted reserved alias",
+			query: `select col_int as "select" from test_keyspace.test_table where pk1 = 'test';`,
+			want: &Want{
+				TranslatedQuery: "SELECT TO_INT64(`cf1`['col_int']) as `select` FROM test_table WHERE pk1 = 'test';",
+				Table:           "test_table",
+				Keyspace:        "test_keyspace",
+				SelectClause: &types.SelectClause{
+					Columns: []types.SelectedColumn{
+						*types.NewSelectedColumn("col_int", "col_int", "select", types.TypeInt),
+					},
+				},
+				Conditions: []types.Condition{
+					{
+						Column:   mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk1"),
+						Operator: "=",
+						Value:    types.NewLiteralValue("test"),
+					},
+				},
+				OrderBy:           types.OrderBy{IsOrderBy: false},
+				AllParams:         []*types.ParameterMetadata{},
+				ResultColumnNames: []string{"select"},
+			},
+			sessionKeyspace: "test_keyspace",
+		},
+		{
+			name:  "Writetime CqlQuery with quoted alias",
+			query: `select WRITETIME(col_int) as "WriteTimeAlias" from test_keyspace.test_table where pk1 = 'test';`,
+			want: &Want{
+				TranslatedQuery: "SELECT UNIX_MICROS(WRITE_TIMESTAMP(cf1, 'col_int')) AS `WriteTimeAlias` FROM test_table WHERE pk1 = 'test';",
+				Table:           "test_table",
+				Keyspace:        "test_keyspace",
+				SelectClause: &types.SelectClause{
+					Columns: []types.SelectedColumn{
+						*types.NewSelectedColumnFunction("WRITETIME(col_int)", "col_int", "WriteTimeAlias", types.TypeBigInt, types.FuncCodeWriteTime),
+					},
+				},
+				Conditions: []types.Condition{
+					{
+						Column:   mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk1"),
+						Operator: "=",
+						Value:    types.NewLiteralValue("test"),
+					},
+				},
+				OrderBy:           types.OrderBy{IsOrderBy: false},
+				AllParams:         []*types.ParameterMetadata{},
+				ResultColumnNames: []string{"WriteTimeAlias"},
+			},
+			sessionKeyspace: "test_keyspace",
+		},
+		{
+			name:  "Count CqlQuery with quoted alias",
+			query: `select count(*) as "TotalRows" from test_keyspace.test_table where pk1 = 'test';`,
+			want: &Want{
+				TranslatedQuery: "SELECT count(*) as `TotalRows` FROM test_table WHERE pk1 = 'test';",
+				Table:           "test_table",
+				Keyspace:        "test_keyspace",
+				SelectClause: &types.SelectClause{
+					Columns: []types.SelectedColumn{
+						*types.NewSelectedColumnFunction("system.count(*)", "*", "TotalRows", types.TypeBigInt, types.FuncCodeCount),
+					},
+				},
+				Conditions: []types.Condition{
+					{
+						Column:   mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk1"),
+						Operator: "=",
+						Value:    types.NewLiteralValue("test"),
+					},
+				},
+				OrderBy:           types.OrderBy{IsOrderBy: false},
+				AllParams:         []*types.ParameterMetadata{},
+				ResultColumnNames: []string{"TotalRows"},
+			},
+			sessionKeyspace: "test_keyspace",
+		},
+		{
+			name:  "ORDER BY quoted alias",
+			query: `select pk1, count(col_int) as "TotalRows" from test_keyspace.test_table where pk1 = 'test' GROUP BY pk1 ORDER BY "TotalRows" DESC;`,
+			want: &Want{
+				TranslatedQuery: "SELECT pk1, count(TO_INT64(`cf1`['col_int'])) as `TotalRows` FROM test_table WHERE pk1 = 'test' GROUP BY pk1 ORDER BY `TotalRows` desc;",
+				Table:           "test_table",
+				Keyspace:        "test_keyspace",
+				SelectClause: &types.SelectClause{
+					Columns: []types.SelectedColumn{
+						*types.NewSelectedColumn("pk1", "pk1", "", types.TypeVarchar),
+						*types.NewSelectedColumnFunction("system.count(col_int)", "col_int", "TotalRows", types.TypeBigInt, types.FuncCodeCount),
+					},
+				},
+				Conditions: []types.Condition{
+					{
+						Column:   mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk1"),
+						Operator: "=",
+						Value:    types.NewLiteralValue("test"),
+					},
+				},
+				GroupByColumns: []string{"pk1"},
+				OrderBy: types.OrderBy{
+					IsOrderBy: true,
+					Columns: []types.OrderByColumn{
+						{Column: "TotalRows", Operation: types.Desc},
+					},
+				},
+				AllParams:         []*types.ParameterMetadata{},
+				ResultColumnNames: []string{"pk1", "TotalRows"},
+			},
+			sessionKeyspace: "test_keyspace",
+		},
+		{
+			name:  "ORDER BY unquoted mixed-case alias",
+			query: `select pk1, count(col_int) as TotalRows from test_keyspace.test_table where pk1 = 'test' GROUP BY pk1 ORDER BY TotalRows DESC;`,
+			want: &Want{
+				TranslatedQuery: "SELECT pk1, count(TO_INT64(`cf1`['col_int'])) as `totalrows` FROM test_table WHERE pk1 = 'test' GROUP BY pk1 ORDER BY `totalrows` desc;",
+				Table:           "test_table",
+				Keyspace:        "test_keyspace",
+				SelectClause: &types.SelectClause{
+					Columns: []types.SelectedColumn{
+						*types.NewSelectedColumn("pk1", "pk1", "", types.TypeVarchar),
+						*types.NewSelectedColumnFunction("system.count(col_int)", "col_int", "totalrows", types.TypeBigInt, types.FuncCodeCount),
+					},
+				},
+				Conditions: []types.Condition{
+					{
+						Column:   mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk1"),
+						Operator: "=",
+						Value:    types.NewLiteralValue("test"),
+					},
+				},
+				GroupByColumns: []string{"pk1"},
+				OrderBy: types.OrderBy{
+					IsOrderBy: true,
+					Columns: []types.OrderByColumn{
+						{Column: "totalrows", Operation: types.Desc},
+					},
+				},
+				AllParams:         []*types.ParameterMetadata{},
+				ResultColumnNames: []string{"pk1", "totalrows"},
+			},
+			sessionKeyspace: "test_keyspace",
+		},
+		{
+			name:  "GROUP BY quoted alias",
+			query: `select pk1 as "PkAlias" from test_keyspace.test_table where pk1 = 'test' GROUP BY "PkAlias";`,
+			want: &Want{
+				TranslatedQuery: "SELECT pk1 as `PkAlias` FROM test_table WHERE pk1 = 'test' GROUP BY `PkAlias`;",
+				Table:           "test_table",
+				Keyspace:        "test_keyspace",
+				SelectClause: &types.SelectClause{
+					Columns: []types.SelectedColumn{
+						*types.NewSelectedColumn("pk1", "pk1", "PkAlias", types.TypeVarchar),
+					},
+				},
+				Conditions: []types.Condition{
+					{
+						Column:   mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk1"),
+						Operator: "=",
+						Value:    types.NewLiteralValue("test"),
+					},
+				},
+				GroupByColumns:    []string{"PkAlias"},
+				OrderBy:           types.OrderBy{IsOrderBy: false},
+				AllParams:         []*types.ParameterMetadata{},
+				ResultColumnNames: []string{"PkAlias"},
+			},
 			sessionKeyspace: "test_keyspace",
 		},
 		{
@@ -1476,6 +1717,13 @@ func TestTranslator_TranslateSelectQuerytoBigtable(t *testing.T) {
 			assert.Equal(t, tt.want.OrderBy, gotSelect.OrderBy)
 			assert.Equal(t, tt.want.GroupByColumns, gotSelect.GroupByColumns)
 			assert.ElementsMatch(t, tt.want.AllParams, gotSelect.Params.Ordered())
+			if tt.want.ResultColumnNames != nil {
+				var gotColumnNames []string
+				for _, col := range gotSelect.ResultColumnMetadata {
+					gotColumnNames = append(gotColumnNames, col.Name)
+				}
+				assert.Equal(t, tt.want.ResultColumnNames, gotColumnNames)
+			}
 		})
 	}
 }

@@ -970,12 +970,23 @@ func ParseAs(a cql.IAsSpecContext) (string, error) {
 		return "", nil
 	}
 
-	alias := a.OBJECT_NAME().GetText()
-	if utilities.IsReservedCqlKeyword(alias) {
+	alias := NormalizeCqlIdentifier(a.OBJECT_NAME().GetText())
+	if !IsQuotedIdentifier(a.OBJECT_NAME().GetText()) && utilities.IsReservedCqlKeyword(alias) {
 		return "", fmt.Errorf("cannot use reserved word as alias: '%s'", alias)
 	}
 
 	return alias, nil
+}
+
+func NormalizeCqlIdentifier(identifier string) string {
+	if IsQuotedIdentifier(identifier) {
+		return TrimDoubleQuotes(identifier)
+	}
+	return strings.ToLower(identifier)
+}
+
+func IsQuotedIdentifier(identifier string) bool {
+	return strings.HasPrefix(identifier, "\"") && strings.HasSuffix(identifier, "\"")
 }
 
 func ConvertStrictConditionsToRowKeyValues(table *schemaMapping.TableSchema, conditions []types.Condition) ([]types.DynamicValue, error) {
