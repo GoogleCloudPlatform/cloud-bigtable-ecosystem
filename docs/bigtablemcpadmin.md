@@ -1,6 +1,6 @@
 # Overview
 
-The Bigtable remote Admin MCP server standardizes how large language models (LLMs) and AI agents to  query and manage Bigtable resources ([source](https://docs.cloud.google.com/bigtable/docs/use-bigtable-mcp?content_ref=mcp+servers+let+you+use+their+tools+resources+and+prompts+to+take+actions+and+get+updated+data+from+their+backend+service)). It operates as a remote server on Google Cloud infrastructure, offering an HTTP endpoint for communication ([source](https://docs.cloud.google.com/bigtable/docs/use-bigtable-mcp?content_ref=remote+mcp+servers+run+on+the+service+s+infrastructure+and+offer+an+http+endpoint+to+ai+applications)).
+The Bigtable remote Admin MCP server standardizes how large language models (LLMs) and AI agents query and manage Bigtable resources ([source](https://docs.cloud.google.com/bigtable/docs/use-bigtable-mcp?content_ref=mcp+servers+let+you+use+their+tools+resources+and+prompts+to+take+actions+and+get+updated+data+from+their+backend+service)). It operates as a remote server on Google Cloud infrastructure, offering an HTTP endpoint for communication ([source](https://docs.cloud.google.com/bigtable/docs/use-bigtable-mcp?content_ref=remote+mcp+servers+run+on+the+service+s+infrastructure+and+offer+an+http+endpoint+to+ai+applications)).
 
 ## Prerequisites for using with Antigravity
 
