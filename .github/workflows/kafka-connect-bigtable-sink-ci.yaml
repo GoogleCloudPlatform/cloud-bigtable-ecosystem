@@ -1,0 +1,36 @@
+name: Kafka Connect Bigtable Sink CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "kafka-connect-bigtable-sink/**"
+  pull_request:
+    paths:
+      - "kafka-connect-bigtable-sink/**"
+
+jobs:
+  ci:
+    name: Check the Kafka Connect Bigtable Sink code
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Formatter
+        working-directory: kafka-connect-bigtable-sink
+        run: mvn -Pintegration-tests -B -ntp  spotless:check
+      - name: Unit tests
+        working-directory: kafka-connect-bigtable-sink
+        run: mvn -B -ntp clean test
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          version: latest
+          install_components: beta,bigtable
+      - name: Integration tests against the emulator
+        working-directory: kafka-connect-bigtable-sink
+        run: |
+          set -euo pipefail
+          gcloud beta emulators bigtable start --host-port=0.0.0.0:8086 &
+          BIGTABLE_EMULATOR_HOST=localhost:8086 mvn -Pintegration-tests -B -ntp verify -Dit.test='!ResourceAutoCreationIT#testRowDeletionCreatesTableWhenAutoCreationEnabled,!ErrorHandlingIT#testTooLargeData,!ResourceAutoCreationIT#testCreationOfInvalidTable'

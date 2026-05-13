@@ -3,6 +3,7 @@ package compliance
 import (
 	"cloud.google.com/go/bigtable"
 	"fmt"
+	"github.com/gocql/gocql"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -133,6 +134,32 @@ func TestBackwardsCompatibleData(t *testing.T) {
 					{
 						Column: "cf1:time_col",
 						Value:  []uint8{0x0, 0x0, 0x1, 0x9a, 0xbb, 0xa3, 0x2b, 0x4c},
+					},
+				},
+			},
+		},
+		{
+			name:   "timeuuid column",
+			column: "timeuuid_col",
+			value:  parseUuidOrDie(t, "5c09c580-d75d-11f0-8080-808080808080"),
+			want: bigtable.Row{
+				"cf1": []bigtable.ReadItem{
+					{
+						Column: "cf1:timeuuid_col",
+						Value:  parseUuidOrDie(t, "5c09c580-d75d-11f0-8080-808080808080").Bytes(),
+					},
+				},
+			},
+		},
+		{
+			name:   "uuid column",
+			column: "uuid_col",
+			value:  parseUuidOrDie(t, "7b287b9e-d769-11f0-b949-8e0ad7a51247"),
+			want: bigtable.Row{
+				"cf1": []bigtable.ReadItem{
+					{
+						Column: "cf1:uuid_col",
+						Value:  parseUuidOrDie(t, "7b287b9e-d769-11f0-b949-8e0ad7a51247").Bytes(),
 					},
 				},
 			},
@@ -533,7 +560,9 @@ func TestBackwardsCompatibleData(t *testing.T) {
 			query := fmt.Sprintf(`INSERT INTO all_columns (name, %s) VALUES (?, ?) USING TIMESTAMP ?`, tc.column)
 			err := session.Query(query, rowKey, tc.value, WRITE_TIMESTAMP).Exec()
 			require.NoError(t, err)
-			row, err := table.ReadRow(t.Context(), rowKey, bigtable.RowFilter(bigtable.LatestNFilter(1)))
+
+			emptyRowCellFilter := bigtable.ChainFilters(bigtable.ColumnFilter(".+"), bigtable.LatestNFilter(1))
+			row, err := table.ReadRow(t.Context(), rowKey, bigtable.RowFilter(emptyRowCellFilter))
 			require.NoError(t, err)
 
 			for _, cells := range row {
@@ -559,4 +588,10 @@ func TestBackwardsCompatibleData(t *testing.T) {
 			assert.Equal(t, tc.want, row)
 		})
 	}
+}
+
+func parseUuidOrDie(t *testing.T, u string) gocql.UUID {
+	minUuid, err := gocql.ParseUUID(u)
+	require.NoError(t, err)
+	return minUuid
 }

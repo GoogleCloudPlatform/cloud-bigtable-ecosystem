@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	schemaMapping "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/metadata"
+	"github.com/datastax/go-cassandra-native-protocol/primitive"
 	"time"
 )
 
@@ -68,6 +69,13 @@ func BindRowKey(tableConfig *schemaMapping.TableSchema, rowKeyValues []types.Dyn
 			orderEncodedField = orderEncodedField[:len(orderEncodedField)-2]
 		case string:
 			orderEncodedField, err = Append(nil, v)
+			if err != nil {
+				return "", err
+			}
+			// the ordered code library always appends a delimiter to strings, but we have custom delimiter logic so remove it
+			orderEncodedField = orderEncodedField[:len(orderEncodedField)-2]
+		case primitive.UUID:
+			orderEncodedField, err = Append(nil, string(v[:]))
 			if err != nil {
 				return "", err
 			}

@@ -1,0 +1,58 @@
+name: Publish Cassandra Proxy Release
+
+on:
+  release:
+    types: [published]
+
+# Required to allow the workflow to upload files to the GitHub Release
+permissions:
+  contents: write
+
+jobs:
+  build-and-upload:
+    name: Build and Upload Binary
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/
+
+    # A matrix to easily cross-compile for multiple platforms
+    strategy:
+      matrix:
+        os: [linux, darwin]
+        arch: [amd64, arm64]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.0'
+          cache: true
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Build Binary
+        env:
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
+        run: |
+          # Append .exe if building for Windows (optional, left out of matrix for now)
+          BINARY_NAME="cassandra-proxy-${{ matrix.os }}-${{ matrix.arch }}"
+          
+          # Build the executable
+          go build -ldflags="-s -w" -o $BINARY_NAME .
+
+      - name: Upload Artifact to Release
+        env:
+          # The standard GITHUB_TOKEN has permission to do this because of the `permissions` block above
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BINARY_NAME="cassandra-proxy-${{ matrix.os }}-${{ matrix.arch }}"
+          
+          # Use the GitHub CLI to upload the built binary to the release that triggered the workflow
+          gh release upload ${{ github.event.release.tag_name }} ./$BINARY_NAME --clobber

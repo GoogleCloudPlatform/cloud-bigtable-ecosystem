@@ -1,0 +1,46 @@
+name: Cassandra Proxy Unit Tests
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.0'
+          cache: true
+
+      - name: Check Formatting
+        run: |
+          # gofmt -l lists files that differ from gofmt style
+          # if any files are listed, the variable won't be empty
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "The following files are not formatted:"
+            echo "$unformatted"
+            echo "Run 'go fmt ./...' locally to fix."
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: |
+          go mod tidy
+          # --exit-code returns 1 if there are changes, 0 if clean
+          git diff --exit-code go.mod go.sum || (echo "Error: go.mod/go.sum are not tidy. Run 'go mod tidy' locally and commit the changes." && exit 1)
+
+      - name: Run Tests
+        run: go test $(go list ./... | grep -v /testing/) # Run all unit tests (except testing/ because it requires external deps)

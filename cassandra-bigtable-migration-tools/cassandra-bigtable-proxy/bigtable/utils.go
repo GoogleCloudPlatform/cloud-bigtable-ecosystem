@@ -22,6 +22,7 @@ import (
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	"github.com/datastax/go-cassandra-native-protocol/datatype"
 	"github.com/datastax/go-cassandra-native-protocol/message"
+	"github.com/datastax/go-cassandra-native-protocol/primitive"
 )
 
 const (
@@ -138,6 +139,13 @@ func addBindValueIfNeeded(dynamicValue types.DynamicValue, values *types.QueryPa
 		value, err = param.GetValue(values)
 		if err != nil {
 			return err
+		}
+		// ensure UUIDs are converted to []byte for Bigtable SQL
+		switch v := value.(type) {
+		case primitive.UUID:
+			value = v[:]
+		case [16]byte:
+			value = v[:]
 		}
 	}
 	result[string(param.Parameter)] = value

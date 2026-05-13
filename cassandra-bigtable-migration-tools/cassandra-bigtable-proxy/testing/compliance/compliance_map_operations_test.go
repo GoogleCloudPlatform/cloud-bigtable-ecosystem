@@ -61,6 +61,18 @@ func TestMapOperationAdditionAscii(t *testing.T) {
 	assert.Equal(t, map[string]string{"key1": "value1", "key2": "value2"}, extraInfo)
 }
 
+func TestAsciiMapWithEmptyString(t *testing.T) {
+	t.Parallel()
+	err := session.Query(`INSERT INTO bigtabledevinstance.user_info (name, age, map_ascii) VALUES (?, ?, ?)`,
+		"map_ascii_empty", int64(25), map[string]string{"": "value1", "key2": ""}).Exec()
+	require.NoError(t, err)
+
+	var extraInfo map[string]string
+	err = session.Query(`SELECT map_ascii FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?`, "map_ascii_empty", int64(25)).Scan(&extraInfo)
+	require.NoError(t, err)
+	assert.Equal(t, map[string]string{"": "value1", "key2": ""}, extraInfo)
+}
+
 func TestMapOperationAdditionTimestampText(t *testing.T) {
 	t.Parallel()
 	// 1. Initialize with an empty map

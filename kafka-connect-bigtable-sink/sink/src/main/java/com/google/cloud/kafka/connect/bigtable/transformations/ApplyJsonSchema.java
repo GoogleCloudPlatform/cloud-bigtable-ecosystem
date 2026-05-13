@@ -1,6 +1,23 @@
+/*
+ * Copyright 2026 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.google.cloud.kafka.connect.bigtable.transformations;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
+import java.util.*;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.connect.connector.ConnectRecord;
 import org.apache.kafka.connect.data.Schema;
@@ -10,9 +27,6 @@ import org.apache.kafka.connect.json.JsonConverter;
 import org.apache.kafka.connect.transforms.Transformation;
 import org.apache.kafka.connect.transforms.util.SimpleConfig;
 
-import java.io.IOException;
-import java.util.*;
-
 public abstract class ApplyJsonSchema<R extends ConnectRecord<R>> implements Transformation<R> {
 
   public static final String OVERVIEW_DOC =
@@ -21,8 +35,15 @@ public abstract class ApplyJsonSchema<R extends ConnectRecord<R>> implements Tra
   public static final String SCHEMA_CONFIG = "schema.json";
   private static final String SCHEMA_DOC = "The schema definition in JSON format.";
 
-  private static final ConfigDef CONFIG_DEF = new ConfigDef()
-      .define(SCHEMA_CONFIG, ConfigDef.Type.STRING, ConfigDef.NO_DEFAULT_VALUE, new org.apache.kafka.common.config.ConfigDef.NonEmptyString(), ConfigDef.Importance.HIGH, SCHEMA_DOC);
+  private static final ConfigDef CONFIG_DEF =
+      new ConfigDef()
+          .define(
+              SCHEMA_CONFIG,
+              ConfigDef.Type.STRING,
+              ConfigDef.NO_DEFAULT_VALUE,
+              new org.apache.kafka.common.config.ConfigDef.NonEmptyString(),
+              ConfigDef.Importance.HIGH,
+              SCHEMA_DOC);
 
   private Schema targetSchema;
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -56,8 +77,8 @@ public abstract class ApplyJsonSchema<R extends ConnectRecord<R>> implements Tra
   protected abstract R newRecord(R record, Schema schema, Object value);
 
   /**
-   * Recursively converts a Java Object (Map, List, or Primitive) into a Connect Struct/Array
-   * based on the provided Schema.
+   * Recursively converts a Java Object (Map, List, or Primitive) into a Connect Struct/Array based
+   * on the provided Schema.
    */
   private Object convertToConnectData(String name, Object input, Schema schema) {
     if (input == null) {
@@ -73,7 +94,9 @@ public abstract class ApplyJsonSchema<R extends ConnectRecord<R>> implements Tra
     switch (schema.type()) {
       case STRUCT:
         if (!(input instanceof Map)) {
-          throw new DataException(String.format("Expected Map for STRUCT schema for field %s, found %s", name, input.getClass()));
+          throw new DataException(
+              String.format(
+                  "Expected Map for STRUCT schema for field %s, found %s", name, input.getClass()));
         }
         Struct struct = new Struct(schema);
         Map<?, ?> inputMap = (Map<?, ?>) input;
@@ -85,7 +108,9 @@ public abstract class ApplyJsonSchema<R extends ConnectRecord<R>> implements Tra
         return struct;
       case ARRAY:
         if (!(input instanceof List)) {
-          throw new DataException(String.format("Expected List for ARRAY schema for field %s, found %s", name, input.getClass()));
+          throw new DataException(
+              String.format(
+                  "Expected List for ARRAY schema for field %s, found %s", name, input.getClass()));
         }
         List<?> inputList = (List<?>) input;
         List<Object> outputList = new ArrayList<>();
@@ -98,7 +123,9 @@ public abstract class ApplyJsonSchema<R extends ConnectRecord<R>> implements Tra
         return outputList;
       case MAP:
         if (!(input instanceof Map)) {
-          throw new DataException(String.format("Expected Map for MAP schema for field %s, found %s", name, input.getClass()));
+          throw new DataException(
+              String.format(
+                  "Expected Map for MAP schema for field %s, found %s", name, input.getClass()));
         }
         Map<?, ?> inputMapForMap = (Map<?, ?>) input;
         Map<Object, Object> outputMap = new HashMap<>();
@@ -107,8 +134,7 @@ public abstract class ApplyJsonSchema<R extends ConnectRecord<R>> implements Tra
         for (Map.Entry<?, ?> entry : inputMapForMap.entrySet()) {
           outputMap.put(
               convertToConnectData(name + "(key)", entry.getKey(), mapKeySchema),
-              convertToConnectData(name + "(value)", entry.getValue(), mapValueSchema)
-          );
+              convertToConnectData(name + "(value)", entry.getValue(), mapValueSchema));
         }
         return outputMap;
       default:
@@ -166,10 +192,13 @@ public abstract class ApplyJsonSchema<R extends ConnectRecord<R>> implements Tra
         if (input instanceof byte[]) {
           return input;
         }
-        throw new DataException("Expected a Base64-encoded String or byte[] for BYTES field, but found " + input.getClass().getName());
+        throw new DataException(
+            "Expected a Base64-encoded String or byte[] for BYTES field, but found "
+                + input.getClass().getName());
       case STRING:
         if (input instanceof Map || input instanceof List) {
-          throw new DataException("Expected a primitive for STRING field, but found " + input.getClass().getName());
+          throw new DataException(
+              "Expected a primitive for STRING field, but found " + input.getClass().getName());
         }
         return input.toString();
       default:
@@ -197,9 +226,13 @@ public abstract class ApplyJsonSchema<R extends ConnectRecord<R>> implements Tra
     @Override
     protected R newRecord(R record, Schema schema, Object value) {
       return record.newRecord(
-          record.topic(), record.kafkaPartition(),
-          schema, value,
-          record.valueSchema(), record.value(), record.timestamp());
+          record.topic(),
+          record.kafkaPartition(),
+          schema,
+          value,
+          record.valueSchema(),
+          record.value(),
+          record.timestamp());
     }
   }
 
@@ -212,9 +245,13 @@ public abstract class ApplyJsonSchema<R extends ConnectRecord<R>> implements Tra
     @Override
     protected R newRecord(R record, Schema schema, Object value) {
       return record.newRecord(
-          record.topic(), record.kafkaPartition(),
-          record.keySchema(), record.key(),
-          schema, value, record.timestamp());
+          record.topic(),
+          record.kafkaPartition(),
+          record.keySchema(),
+          record.key(),
+          schema,
+          value,
+          record.timestamp());
     }
   }
 }

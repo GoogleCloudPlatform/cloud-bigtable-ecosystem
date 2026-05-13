@@ -78,7 +78,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>build-helper-maven-plugin</artifactId>
-                <version>3.3.0</version>
+                <version>${maven-build-helper.version}</version>
                 <executions>
                     <execution>
                         <id>add-source</id>
@@ -90,7 +90,7 @@
                             <sources>
                                 <!-- We need to put third-party code inside the `third_party` directory
                                   for licensing compliance, including them in the project here. -->
-                                <source>./third_party/apache_hbase_common/src/main/java/com/google/cloud/kafka/connect/bigtable/utils/ByteUtils.java</source>
+                                <source>./third_party/apache_hbase_common/src/main/java</source>
                             </sources>
                         </configuration>
                     </execution>
@@ -99,7 +99,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>3.5.0</version>
+                <version>${maven-shade.version}</version>
                 <executions>
                     <execution>
                         <phase>package</phase>
@@ -136,11 +136,31 @@
                     <parallel>classes</parallel>
                     <useUnlimitedThreads>true</useUnlimitedThreads>
                     <environmentVariables>
-                        <!-- TODO: remove it when transitioning to kokoro. -->
                         <GOOGLE_APPLICATION_CREDENTIALS>target/test-classes/fake_service_key.json</GOOGLE_APPLICATION_CREDENTIALS>
                     </environmentVariables>
                 </configuration>
             </plugin>
         </plugins>
     </build>
+    <profiles>
+        <profile>
+            <id>integration-tests</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-jar-plugin</artifactId>
+                        <version>${maven-jar.version}</version>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>test-jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

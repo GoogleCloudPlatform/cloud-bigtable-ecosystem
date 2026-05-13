@@ -47,7 +47,7 @@ Application without the need of any code changes in the Client Application.
 
 ## Pre-requisites
 
-- Go v1.22
+- Go v1.24
 - Cloud Bigtable Database Instance
 - Docker(Optional)
 - GCP Service Account with Read/Write Permissions to Cloud Bigtable
@@ -173,7 +173,7 @@ recommended approach for setting up your schema.
 
 3. **Start the Proxy:**
    ```bash
-   ./cassandra-to-bigtable-proxy -f config.yaml
+   ./cassandra-bigtable-proxy -f config.yaml
    ```
     - The proxy will start with an empty cache since no tables exist yet.
 
@@ -348,9 +348,32 @@ loggerConfig:
 We can set up the `cassandra-to-bigtable-proxy` Adapter via 3 different methods
 as mentioned below
 
+- Download and run `cassandra-to-bigtable-proxy`
 - Locally build and run `cassandra-to-bigtable-proxy`
 - Run a docker image that has `cassandra-to-bigtable-proxy` installed
 - Use a Kubernetes container to run `cassandra-to-bigtable-proxy`
+
+### Download and Run Proxy Locally
+For the easiest and recommended setup, you can download the prebuilt binaries directly from GitHub. This allows you to skip the manual build process entirely.
+
+Go to the Cloud Bigtable Ecosystem Releases page.
+
+Download the binary that matches your operating system and architecture. They follow the naming convention cassandra-proxy-<os>-<arch>. For example:
+
+* cassandra-proxy-darwin-amd64 (Mac Intel)
+* cassandra-proxy-darwin-arm64 (Mac Apple Silicon)
+* cassandra-proxy-linux-amd64 (Linux x86_64)
+* cassandra-proxy-linux-arm64 (Linux ARM64)
+
+Once downloaded, grant execute permissions to the binary. For example:
+```shell
+chmod +x cassandra-proxy-darwin-amd64
+```
+Run the proxy with your configuration file:
+
+```shell
+./cassandra-proxy-darwin-amd64 -f config.yaml
+```
 
 ### Build and Run Proxy Locally
 
@@ -378,7 +401,7 @@ Steps to run the Adapter locally are as mentioned below:
   *Once you create the build then execute the below command to run the
   application*
   ```sh
-  ./cassandra-to-bigtable-proxy -f config.yaml
+  ./cassandra-bigtable-proxy -f config.yaml
   ```
 
   **2. Without Build**
@@ -408,7 +431,7 @@ Steps to run the Adapter locally are as mentioned below:
 
 - Run the Application with the arguments example
   ```sh
-  ./cassandra-to-bigtable-proxy --log-level error -t 9043 -f config.yaml
+  ./cassandra-bigtable-proxy --log-level error -t 9043 -f config.yaml
   ```
 
 - Application will be listening on the specified TCP port (default: 9042).
@@ -424,7 +447,7 @@ setups alongside a config file, but we recommend keeping all of your config in
 one place.
 
 ```
-./cassandra-to-bigtable-proxy --project-id='YOUR_GOOGLE_CLOUD_PROJECT_ID' --instance-id='YOUR_BIGTABLE_INSTANCE_ID' --keyspace-id='YOUR_CASSANDRA_KEYSPACE'
+./cassandra-bigtable-proxy --project-id='YOUR_GOOGLE_CLOUD_PROJECT_ID' --instance-id='YOUR_BIGTABLE_INSTANCE_ID' --keyspace-id='YOUR_CASSANDRA_KEYSPACE'
 ```
 
 - **project-id** the Google Cloud project id to use
@@ -655,7 +678,7 @@ for local development or secure internal networks.
 
 1. Start the proxy with default TCP settings:
    ```bash
-   ./cassandra-to-bigtable-proxy -f config.yaml
+   ./cassandra-bigtable-proxy -f config.yaml
    ```
    This will listen on `0.0.0.0:9042` by default.
 
@@ -688,7 +711,7 @@ Example:
 
 2. Start the proxy with TLS enabled:
    ```bash
-   ./cassandra-to-bigtable-proxy --proxy-cert-file cert.pem --proxy-key-file key.pem -f config.yaml
+   ./cassandra-bigtable-proxy --proxy-cert-file cert.pem --proxy-key-file key.pem -f config.yaml
    ```
 
 3. Connect using a Cassandra client with TLS:
@@ -719,13 +742,13 @@ ideal for applications running on the same machine as the proxy.
 
 2. Start the proxy with UDS enabled:
    ```bash
-   ./cassandra-to-bigtable-proxy --use-unix-socket -f config.yaml
+   ./cassandra-bigtable-proxy --use-unix-socket -f config.yaml
    ```
    This will create a Unix socket at `/tmp/cassandra-proxy.sock` by default.
 
    You can specify a custom path:
    ```bash
-   ./cassandra-to-bigtable-proxy --use-unix-socket --unix-socket-path "/path/to/custom.sock" -f config.yaml
+   ./cassandra-bigtable-proxy --use-unix-socket --unix-socket-path "/path/to/custom.sock" -f config.yaml
    ```
 
 3. Set up socat to bridge TCP to UDS:
@@ -763,7 +786,7 @@ To specify a different protocol version when starting the proxy, use
 the `--protocol-version` flag:
 
 ```bash
-./cassandra-to-bigtable-proxy --protocol-version v3 -f config.yaml
+./cassandra-bigtable-proxy --protocol-version v3 -f config.yaml
 ```
 
 Note that some features may behave differently between Cassandra 3.x and 4.x.

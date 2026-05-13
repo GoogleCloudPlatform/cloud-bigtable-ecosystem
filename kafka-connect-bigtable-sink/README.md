@@ -204,10 +204,12 @@ Defines the insertion mode to use. Supported modes are:
   the table, an error is thrown.
 - upsert - If the row to be written already exists, then its column values are
   overwritten with the ones provided.
+- replace_if_newest - If there are no cells newer than this record within the 
+  target row of the table, clear the row and then insert new record.
 
 * Type: string
 * Default: INSERT
-* Valid Values: (case insensitive) [UPSERT, INSERT]
+* Valid Values: (case insensitive) [UPSERT, INSERT, REPLACE_IF_NEWEST]
 * Importance: high
 
 `auto.create.column.families`

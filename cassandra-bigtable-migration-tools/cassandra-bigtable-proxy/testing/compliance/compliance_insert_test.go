@@ -56,6 +56,33 @@ func TestUpsertOperation(t *testing.T) {
 	assert.Equal(t, 456, code)
 	assert.Equal(t, "abc", textCol)
 }
+func TestEmptyString(t *testing.T) {
+	t.Parallel()
+	pkName := ""
+	pkAge := int64(33)
+	err := session.Query(`INSERT INTO bigtabledevinstance.user_info (name, age, text_col) VALUES (?, ?, ?)`, pkName, pkAge, "").Exec()
+	require.NoError(t, err)
+
+	var name string
+	var textCol string
+	err = session.Query(`SELECT name, text_col FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?`, pkName, pkAge).Scan(&name, &textCol)
+	require.NoError(t, err)
+	assert.Equal(t, "", name)
+	assert.Equal(t, "", textCol)
+}
+
+func TestEmptyStringLiteral(t *testing.T) {
+	t.Parallel()
+	err := session.Query(`INSERT INTO bigtabledevinstance.user_info (name, age, text_col) VALUES ('', 22, '')`).Exec()
+	require.NoError(t, err)
+
+	var name string
+	var textCol string
+	err = session.Query(`SELECT name, text_col FROM bigtabledevinstance.user_info WHERE name = '' AND age = 22 and text_col=''`).Scan(&name, &textCol)
+	require.NoError(t, err)
+	assert.Equal(t, "", name)
+	assert.Equal(t, "", textCol)
+}
 
 func TestInsertAndValidateCollectionData(t *testing.T) {
 	t.Parallel()
@@ -362,5 +389,138 @@ func TestTimestampInKey(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, input, got)
+	})
+}
+
+func TestInsertEmptyRow(t *testing.T) {
+	t.Parallel()
+
+	pkName := uuid.New().String()
+	pkAge := int64(100)
+
+	err := session.Query(`INSERT INTO bigtabledevinstance.user_info (name, age) VALUES (?, ?)`,
+		pkName, pkAge).Exec()
+	require.NoError(t, err)
+
+	var name string
+	var age int64
+	var code *int
+	var credited *float64
+	var textCol *string
+	var tags []string
+	var extraInfo map[string]string
+	var listText []string
+	err = session.Query(`SELECT name, age, code, credited, text_col, tags, extra_info, list_text FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?`, pkName, pkAge).
+		Scan(&name, &age, &code, &credited, &textCol, &tags, &extraInfo, &listText)
+	require.NoError(t, err)
+
+	assert.Equal(t, pkName, name)
+	assert.Equal(t, pkAge, age)
+	assert.Nil(t, code)
+	assert.Nil(t, credited)
+	assert.Nil(t, textCol)
+	assert.Empty(t, tags)
+	assert.Empty(t, extraInfo)
+	assert.Empty(t, listText)
+}
+
+func TestInsertNullValues(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Placeholders", func(t *testing.T) {
+		t.Parallel()
+		pkName := uuid.New().String()
+		pkAge := int64(100)
+
+		// Insert nulls using placeholders
+		err := session.Query(`INSERT INTO bigtabledevinstance.user_info (name, age, code, credited, text_col, tags, extra_info, list_text) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+			pkName, pkAge, nil, nil, nil, nil, nil, nil).Exec()
+		require.NoError(t, err)
+
+		var code *int
+		var credited *float64
+		var textCol *string
+		var tags []string
+		var extraInfo map[string]string
+		var listText []string
+
+		err = session.Query(`SELECT code, credited, text_col, tags, extra_info, list_text FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?`, pkName, pkAge).
+			Scan(&code, &credited, &textCol, &tags, &extraInfo, &listText)
+		require.NoError(t, err)
+
+		assert.Nil(t, code, "code should be null")
+		assert.Nil(t, credited, "credited should be null")
+		assert.Nil(t, textCol, "text_col should be null")
+		assert.Empty(t, tags, "tags should be empty/null")
+		assert.Empty(t, extraInfo, "extra_info should be empty/null")
+		assert.Empty(t, listText, "list_text should be empty/null")
+	})
+
+	t.Run("Literals", func(t *testing.T) {
+		t.Parallel()
+		pkName := uuid.New().String()
+		pkAge := int64(101)
+
+		// Insert nulls using NULL literal
+		err := session.Query(`INSERT INTO bigtabledevinstance.user_info (name, age, code, credited, text_col, tags, extra_info, list_text) VALUES (?, ?, NULL, NULL, NULL, NULL, NULL, NULL)`,
+			pkName, pkAge).Exec()
+		require.NoError(t, err)
+
+		var code *int
+		var credited *float64
+		var textCol *string
+		var tags []string
+		var extraInfo map[string]string
+		var listText []string
+
+		err = session.Query(`SELECT code, credited, text_col, tags, extra_info, list_text FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?`, pkName, pkAge).
+			Scan(&code, &credited, &textCol, &tags, &extraInfo, &listText)
+		require.NoError(t, err)
+
+		assert.Nil(t, code, "code should be null")
+		assert.Nil(t, credited, "credited should be null")
+		assert.Nil(t, textCol, "text_col should be null")
+		assert.Empty(t, tags, "tags should be empty/null")
+		assert.Empty(t, extraInfo, "extra_info should be empty/null")
+		assert.Empty(t, listText, "list_text should be empty/null")
+	})
+
+	t.Run("list element", func(t *testing.T) {
+		t.Parallel()
+		pkName := uuid.New().String()
+		pkAge := int64(101)
+
+		err := session.Query(`INSERT INTO bigtabledevinstance.user_info (name, age, list_text) VALUES (?, ?, ['foo', NULL])`, pkName, pkAge).Exec()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "collection items are not allowed to be null")
+	})
+
+	t.Run("set element", func(t *testing.T) {
+		t.Parallel()
+		pkName := uuid.New().String()
+		pkAge := int64(102)
+
+		err := session.Query(`INSERT INTO bigtabledevinstance.user_info (name, age, tags) VALUES (?, ?, {'foo', NULL})`, pkName, pkAge).Exec()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "collection items are not allowed to be null")
+	})
+
+	t.Run("map elements", func(t *testing.T) {
+		t.Parallel()
+		pkName := uuid.New().String()
+		pkAge := int64(103)
+
+		// null value
+		err := session.Query(`INSERT INTO bigtabledevinstance.user_info (name, age, extra_info) VALUES (?, ?, {'k': 'v', 'foo': NULL})`, pkName, pkAge).Exec()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "map values cannot be null")
+		// null key
+		err = session.Query(`INSERT INTO bigtabledevinstance.user_info (name, age, extra_info) VALUES (?, ?, {'k': 'v', NULL: 'foo'})`, pkName, pkAge).Exec()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "map keys cannot be null")
+		// null key and value
+		err = session.Query(`INSERT INTO bigtabledevinstance.user_info (name, age, extra_info) VALUES (?, ?, {'k': 'v', NULL: NULL})`, pkName, pkAge).Exec()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "map keys cannot be null")
 	})
 }

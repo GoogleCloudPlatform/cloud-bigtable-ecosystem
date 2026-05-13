@@ -1,5 +1,25 @@
+/*
+ * Copyright 2026 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.google.cloud.kafka.connect.bigtable.transformations;
 
+import static org.junit.Assert.*;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.errors.DataException;
@@ -7,14 +27,6 @@ import org.apache.kafka.connect.source.SourceRecord;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.util.*;
-
-import static org.junit.Assert.*;
 
 public class ApplyJsonSchemaTest {
 
@@ -59,10 +71,7 @@ public class ApplyJsonSchemaTest {
     rootMap.put("tags", Arrays.asList("production", "urgent"));
 
     // 2. Create the SourceRecord with NO schema
-    SourceRecord record = new SourceRecord(
-        null, null, "test-topic", 0,
-        null, rootMap
-    );
+    SourceRecord record = new SourceRecord(null, null, "test-topic", 0, null, rootMap);
 
     // 3. Apply the SMT
     SourceRecord transformed = smt.apply(record);
@@ -183,10 +192,7 @@ public class ApplyJsonSchemaTest {
   @Test
   public void testTombstoneRecord() {
     // A tombstone record has a null value
-    SourceRecord record = new SourceRecord(
-        null, null, "test-topic", 0,
-        null, null
-    );
+    SourceRecord record = new SourceRecord(null, null, "test-topic", 0, null, null);
 
     SourceRecord transformed = smt.apply(record);
 
@@ -196,19 +202,20 @@ public class ApplyJsonSchemaTest {
 
   @Test
   public void testBytesField() {
-    String schemaJson = "{" +
-        "  \"type\": \"struct\"," +
-        "  \"fields\": [" +
-        "    { \"field\": \"raw_bytes\", \"type\": \"bytes\" }," +
-        "    { \"field\": \"base64_bytes\", \"type\": \"bytes\" }" +
-        "  ]" +
-        "}";
+    String schemaJson =
+        "{"
+            + "  \"type\": \"struct\","
+            + "  \"fields\": ["
+            + "    { \"field\": \"raw_bytes\", \"type\": \"bytes\" },"
+            + "    { \"field\": \"base64_bytes\", \"type\": \"bytes\" }"
+            + "  ]"
+            + "}";
 
     ApplyJsonSchema.Value<SourceRecord> bytesSmt = new ApplyJsonSchema.Value<>();
     bytesSmt.configure(Collections.singletonMap(ApplyJsonSchema.SCHEMA_CONFIG, schemaJson));
 
-    byte[] rawData = new byte[]{1, 2, 3, 4};
-    String base64Data = Base64.getEncoder().encodeToString(new byte[]{5, 6, 7, 8});
+    byte[] rawData = new byte[] {1, 2, 3, 4};
+    String base64Data = Base64.getEncoder().encodeToString(new byte[] {5, 6, 7, 8});
 
     Map<String, Object> valueMap = new HashMap<>();
     valueMap.put("raw_bytes", rawData);
@@ -219,12 +226,13 @@ public class ApplyJsonSchemaTest {
 
     Struct struct = (Struct) transformed.value();
     assertArrayEquals(rawData, (byte[]) struct.get("raw_bytes"));
-    assertArrayEquals(new byte[]{5, 6, 7, 8}, (byte[]) struct.get("base64_bytes"));
+    assertArrayEquals(new byte[] {5, 6, 7, 8}, (byte[]) struct.get("base64_bytes"));
   }
 
   @Test
   public void testNumericToStringConversion() {
-    String schemaJson = "{\"type\": \"struct\", \"fields\": [{\"field\": \"string_field\", \"type\": \"string\"}]}";
+    String schemaJson =
+        "{\"type\": \"struct\", \"fields\": [{\"field\": \"string_field\", \"type\": \"string\"}]}";
 
     ApplyJsonSchema.Value<SourceRecord> stringSmt = new ApplyJsonSchema.Value<>();
     stringSmt.configure(Collections.singletonMap(ApplyJsonSchema.SCHEMA_CONFIG, schemaJson));
@@ -243,7 +251,9 @@ public class ApplyJsonSchemaTest {
   @Test
   public void testDefaultValues() throws IOException {
     ApplyJsonSchema.Value<SourceRecord> defaultSmt = new ApplyJsonSchema.Value<>();
-    defaultSmt.configure(Collections.singletonMap(ApplyJsonSchema.SCHEMA_CONFIG, readResource(DEFAULT_VALUES_SCHEMA_FILE)));
+    defaultSmt.configure(
+        Collections.singletonMap(
+            ApplyJsonSchema.SCHEMA_CONFIG, readResource(DEFAULT_VALUES_SCHEMA_FILE)));
 
     // Input map is empty, so all fields should take their default values
     Map<String, Object> valueMap = new HashMap<>();

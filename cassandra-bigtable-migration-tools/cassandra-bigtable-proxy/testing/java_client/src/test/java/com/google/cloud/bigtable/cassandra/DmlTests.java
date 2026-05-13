@@ -140,4 +140,31 @@ public class DmlTests {
     row = rs.one();
     assertNull(row, "Row should be null after delete");
   }
+
+  @Test
+  public void testInsertIfNotExists() {
+    String userId = "lwt123";
+    int orderNum = 4;
+    String name = "lwt bob";
+
+    // ensure the row does not exist.
+    session.execute("DELETE FROM " + TABLE + " WHERE user_id='" + userId + "' AND order_num=" + orderNum);
+
+    // Insert IF NOT EXISTS (should succeed)
+    ResultSet rs = session.execute("INSERT INTO " + TABLE + " (user_id, order_num, name) VALUES ('" + userId + "', " + orderNum + ", '" + name + "') IF NOT EXISTS");
+    assertTrue(rs.wasApplied(), "Insert should be applied");
+
+    // Insert IF NOT EXISTS again (should fail)
+    rs = session.execute("INSERT INTO " + TABLE + " (user_id, order_num, name) VALUES ('" + userId + "', " + orderNum + ", 'new name') IF NOT EXISTS");
+    assertFalse(rs.wasApplied(), "Insert should not be applied second time");
+
+    // Verify original data remains
+    rs = session.execute("SELECT * FROM " + TABLE + " WHERE user_id='" + userId + "' AND order_num=" + orderNum);
+    Row row = rs.one();
+    assertNotNull(row);
+    assertEquals(name, row.getString("name"));
+
+    // Cleanup
+    session.execute("DELETE FROM " + TABLE + " WHERE user_id='" + userId + "' AND order_num=" + orderNum);
+  }
 }

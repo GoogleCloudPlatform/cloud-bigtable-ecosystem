@@ -16,7 +16,6 @@
 package com.google.cloud.kafka.connect.bigtable.integration;
 
 import java.util.Map;
-
 import org.apache.kafka.connect.runtime.SinkConnectorConfig;
 import org.apache.kafka.connect.runtime.rest.errors.ConnectRestException;
 import org.junit.Test;

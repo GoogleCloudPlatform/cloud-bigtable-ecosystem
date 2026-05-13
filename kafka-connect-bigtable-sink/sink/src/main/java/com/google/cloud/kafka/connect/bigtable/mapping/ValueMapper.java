@@ -25,31 +25,21 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import com.google.cloud.bigtable.data.v2.models.Range;
 import com.google.cloud.kafka.connect.bigtable.config.ConfigInterpolation;
+import com.google.cloud.kafka.connect.bigtable.config.InsertMode;
 import com.google.cloud.kafka.connect.bigtable.config.NullValueMode;
+import com.google.cloud.kafka.connect.bigtable.utils.ByteUtils;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.ByteString;
-
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.AbstractMap;
+import java.util.*;
 import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
-
-import com.google.protobuf.MapEntry;
 import org.apache.kafka.common.utils.Utils;
-import org.apache.kafka.connect.data.Decimal;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaAndValue;
-import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.connect.data.Time;
-import org.apache.kafka.connect.data.Timestamp;
+import org.apache.kafka.connect.data.*;
 import org.apache.kafka.connect.errors.DataException;
 
 /**
@@ -59,7 +49,8 @@ import org.apache.kafka.connect.errors.DataException;
  */
 public class ValueMapper {
   private static final int ROOT_LEVEL_ARRAY_INDEX_PADDING_WIDTH = 6;
-  private static final String ROOT_LEVEL_ARRAY_INDEX_FORMAT = "%0" + ROOT_LEVEL_ARRAY_INDEX_PADDING_WIDTH + "d";
+  private static final String ROOT_LEVEL_ARRAY_INDEX_FORMAT =
+      "%0" + ROOT_LEVEL_ARRAY_INDEX_PADDING_WIDTH + "d";
   public final String defaultColumnFamilyTemplate;
   public final ByteString defaultColumnQualifier;
   private final NullValueMode nullMode;
@@ -69,13 +60,16 @@ public class ValueMapper {
   /**
    * The main constructor.
    *
-   * @param defaultColumnFamily    Default column family as per {@link
-   *                               com.google.cloud.kafka.connect.bigtable.config.BigtableSinkConfig#DEFAULT_COLUMN_FAMILY_CONFIG}.
+   * @param defaultColumnFamily Default column family as per {@link
+   *     com.google.cloud.kafka.connect.bigtable.config.BigtableSinkConfig#DEFAULT_COLUMN_FAMILY_CONFIG}.
    * @param defaultColumnQualifier Default column as per {@link
-   *                               com.google.cloud.kafka.connect.bigtable.config.BigtableSinkConfig#ROW_KEY_DELIMITER_CONFIG}.
+   *     com.google.cloud.kafka.connect.bigtable.config.BigtableSinkConfig#ROW_KEY_DELIMITER_CONFIG}.
    */
   public ValueMapper(
-      String defaultColumnFamily, String defaultColumnQualifier, @Nonnull NullValueMode nullMode, boolean expandRootLevelArrays) {
+      String defaultColumnFamily,
+      String defaultColumnQualifier,
+      @Nonnull NullValueMode nullMode,
+      boolean expandRootLevelArrays) {
     this.defaultColumnFamilyTemplate =
         Utils.isBlank(defaultColumnFamily) ? null : defaultColumnFamily;
     this.defaultColumnQualifier =
@@ -91,17 +85,21 @@ public class ValueMapper {
    * representing the input Kafka Connect value as Cloud Bigtable mutations that need to be applied.
    *
    * @param kafkaValueAndSchema The value to be converted into Cloud Bigtable {@link
-   *                            com.google.cloud.bigtable.data.v2.models.Mutation Mutation(s)} and its optional {@link
-   *                            Schema}.
-   * @param topic               The name of Kafka topic this value originates from.
-   * @param timestampMicros     The timestamp the mutations will be created at in microseconds.
+   *     com.google.cloud.bigtable.data.v2.models.Mutation Mutation(s)} and its optional {@link
+   *     Schema}.
+   * @param topic The name of Kafka topic this value originates from.
+   * @param timestampMicros The timestamp the mutations will be created at in microseconds.
    */
   public MutationDataBuilder getRecordMutationDataBuilder(
-      SchemaAndValue kafkaValueAndSchema, String topic, long timestampMicros) {
+      SchemaAndValue kafkaValueAndSchema,
+      String topic,
+      InsertMode insertMode,
+      long timestampMicros) {
     Object rootKafkaValue = kafkaValueAndSchema.value();
     Optional<Schema> rootKafkaSchema = Optional.ofNullable(kafkaValueAndSchema.schema());
     logIfLogicalTypeUnsupported(rootKafkaSchema);
-    MutationDataBuilder mutationDataBuilder = createMutationDataBuilder();
+    MutationDataBuilder mutationDataBuilder =
+        createMutationDataBuilder(insertMode, timestampMicros);
     if (rootKafkaValue == null && nullMode == NullValueMode.IGNORE) {
       // Do nothing
     } else if (rootKafkaValue == null && nullMode == NullValueMode.DELETE) {
@@ -118,7 +116,7 @@ public class ValueMapper {
         } else if (kafkaFieldValue == null && nullMode == NullValueMode.DELETE) {
           mutationDataBuilder.deleteFamily(kafkaFieldName);
         } else if (expandRootLevelArrays && kafkaFieldValue instanceof List) {
-          writeRootLevelArray(mutationDataBuilder, kafkaFieldName, kafkaFieldValue, timestampMicros);
+          writeRootLevelArray(mutationDataBuilder, kafkaFieldName, kafkaFieldValue);
         } else if (kafkaFieldValue instanceof Struct) {
           for (Map.Entry<Object, SchemaAndValue> subfield :
               getChildren((Struct) kafkaFieldValue, kafkaFieldSchema)) {
@@ -139,7 +137,6 @@ public class ValueMapper {
               mutationDataBuilder.setCell(
                   kafkaFieldName,
                   kafkaSubfieldName,
-                  timestampMicros,
                   ByteString.copyFrom(serialize(kafkaSubfieldValue)));
             }
           }
@@ -148,7 +145,6 @@ public class ValueMapper {
             mutationDataBuilder.setCell(
                 getDefaultColumnFamily(topic),
                 ByteString.copyFrom(kafkaFieldName.getBytes(StandardCharsets.UTF_8)),
-                timestampMicros,
                 ByteString.copyFrom(serialize(kafkaFieldValue)));
           }
         }
@@ -158,14 +154,14 @@ public class ValueMapper {
         mutationDataBuilder.setCell(
             getDefaultColumnFamily(topic),
             defaultColumnQualifier,
-            timestampMicros,
             ByteString.copyFrom(serialize(rootKafkaValue)));
       }
     }
     return mutationDataBuilder;
   }
 
-  private void writeRootLevelArray(MutationDataBuilder mutationDataBuilder, String columnFamily, Object value, long timestampMicros) {
+  private void writeRootLevelArray(
+      MutationDataBuilder mutationDataBuilder, String columnFamily, Object value) {
     List<?> listValue = (List<?>) value;
     // clear the previous value in case it has more elements than this one
     mutationDataBuilder.deleteFamily(columnFamily);
@@ -174,16 +170,24 @@ public class ValueMapper {
       mutationDataBuilder.setCell(
           columnFamily,
           // pad element names with leading zeros for easier sorting: '000001'
-          ByteString.copyFrom(String.format(ROOT_LEVEL_ARRAY_INDEX_FORMAT, i).getBytes(StandardCharsets.UTF_8)),
-          timestampMicros,
+          ByteString.copyFrom(
+              String.format(ROOT_LEVEL_ARRAY_INDEX_FORMAT, i).getBytes(StandardCharsets.UTF_8)),
           ByteString.copyFrom(serialize(o)));
     }
   }
 
   @VisibleForTesting
-  // Method only needed for use in tests. It could be inlined otherwise.
-  protected MutationDataBuilder createMutationDataBuilder() {
-    return new MutationDataBuilder();
+  protected MutationDataBuilder createMutationDataBuilder(
+      InsertMode insertMode, long timestampMicros) {
+    MutationDataBuilder builder = new MutationDataBuilder(timestampMicros);
+    // Note that we call the method on the builder instead of passing it a set up mutation via
+    // a constructor. This way we ensure that even for an empty (empty Struct, `null` when
+    // the mapper is configured to ignore nulls) input value, the row is deleted, which
+    // is needed for cleaner semantics of the REPLACE_IF_NEWEST mode.
+    if (insertMode == InsertMode.REPLACE_IF_NEWEST) {
+      builder.deleteRow();
+    }
+    return builder;
   }
 
   protected String getDefaultColumnFamily(String topic) {
@@ -193,7 +197,7 @@ public class ValueMapper {
   /**
    * @param struct {@link Struct} whose children we want to list
    * @return {@link List} of pairs of field names and values (with optional schemas) of {@code
-   * struct}'s fields.
+   *     struct}'s fields.
    */
   private static List<Map.Entry<Object, SchemaAndValue>> getChildren(
       Struct struct, Optional<Schema> schema) {
@@ -212,7 +216,7 @@ public class ValueMapper {
   /**
    * @param value Input value.
    * @return Input value's serialization's bytes that will be written to Cloud Bigtable as a cell's
-   * value.
+   *     value.
    */
   private static byte[] serialize(Object value) {
     if (value == null) {

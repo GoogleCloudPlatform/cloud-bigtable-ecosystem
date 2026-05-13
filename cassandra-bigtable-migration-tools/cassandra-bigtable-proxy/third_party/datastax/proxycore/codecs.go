@@ -47,6 +47,9 @@ var primitiveCodecs = map[datatype.DataType]datacodec.Codec{
 }
 
 func EncodeType(dt datatype.DataType, version primitive.ProtocolVersion, val interface{}) ([]byte, error) {
+	if val == nil {
+		return nil, nil
+	}
 	c, err := codecFromDataType(dt)
 	if err != nil {
 		return nil, err

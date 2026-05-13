@@ -1,0 +1,62 @@
+Version 3.1
+# namespace test
++ k S 11 stegosaur-0
++ n test
++ d JbS7Sgq5r/YLnDHm0TY51IaXklM=
++ s herbivores
++ g 1
++ t 0
++ b 5
+- I integer 4120
+- D double 0.11917534488256998
+- S string 18 str-0.475289-hello
+- Z bool T
+- S bytes 22 bytes-0.967072-goodbye
++ k S 13 triceratops-0
++ n test
++ d obR9xp2lNQmsGzOFiZW1ehsa5/A=
++ s herbivores
++ g 1
++ t 0
++ b 5
+- I integer 2345
+- D double 0.0021714941426208556
+- S string 18 str-0.834409-hello
+- Z bool F
+- S bytes 22 bytes-0.808659-goodbye
++ k S 15 dilophosaurus-0
++ n test
++ d 4pbN1ocsJzptkGaqFEKm8fX/1kY=
++ s carnivores
++ g 1
++ t 0
++ b 5
+- I integer 8380
+- D double 0.086559161541659768
+- S string 18 str-0.389949-hello
+- Z bool T
+- S bytes 22 bytes-0.425310-goodbye
++ k S 13 spinosaurus-0
++ n test
++ d r+iWea9jTWj9t33Nuaa/Vb8CyAY=
++ s carnivores
++ g 1
++ t 0
++ b 5
+- I integer 8571
+- D double 0.28229291817631286
+- S string 18 str-0.411967-hello
+- Z bool T
+- S bytes 22 bytes-0.294577-goodbye
++ k S 14 velociraptor-0
++ n test
++ d Qxtqk/TqM6OvyXnV35Eox8rzj+M=
++ s carnivores
++ g 1
++ t 0
++ b 5
+- I integer 4474
+- D double 0.27192371372197655
+- S string 18 str-0.927358-hello
+- Z bool F
+- S bytes 22 bytes-0.551806-goodbye

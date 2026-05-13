@@ -3,6 +3,8 @@ package types
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/datastax/go-cassandra-native-protocol/primitive"
+	"github.com/gocql/gocql"
 	"github.com/google/uuid"
 	"time"
 )
@@ -35,6 +37,10 @@ func (c CqlFuncCode) String() string {
 		return "min"
 	case FuncCodeMax:
 		return "max"
+	case FuncCodeNow:
+		return "now"
+	case FuncCodeToTimestamp:
+		return "totimestamp"
 	default:
 		return "unknown"
 	}
@@ -82,25 +88,33 @@ func GetCqlFunc(code CqlFuncCode) (*CqlFuncSpec, error) {
 }
 
 func now(_ []GoValue) (GoValue, error) {
-	id, err := uuid.NewV7()
-	if err != nil {
-		return nil, err
-	}
-	return id[:], nil
+	// Cassandra's now() function typically returns a timeuuid (UUIDv1 or UUIDv7).
+	// Using gocql.TimeUUID() generates a UUIDv1.
+	u := gocql.TimeUUID()
+	return primitive.UUID(u), nil
 }
 func toTimestamp(args []GoValue) (GoValue, error) {
 	if len(args) != 1 {
-		return nil, fmt.Errorf("invalid argments")
+		return nil, fmt.Errorf("invalid arguments")
 	}
 
-	u, ok := args[0].(uuid.UUID)
+	p, ok := args[0].(primitive.UUID)
 	if !ok {
-		return nil, fmt.Errorf("invalid argment: %T expected uuid", args[0])
+		return nil, fmt.Errorf("invalid argument: %T expected primitive.UUID", args[0])
 	}
-	return getTimeFromUUIDv7(u)
+	u := uuid.UUID(p)
+	if u.Version() == 1 {
+		sec, nsec := u.Time().UnixTime()
+		return time.Unix(sec, nsec).UTC(), nil
+	}
+	if u.Version() == 7 {
+		return GetTimeFromUUIDv7(p)
+	}
+	return nil, fmt.Errorf("unsupported uuid version: %d", u.Version())
 }
 
-func getTimeFromUUIDv7(id uuid.UUID) (time.Time, error) {
+func GetTimeFromUUIDv7(p primitive.UUID) (time.Time, error) {
+	id := uuid.UUID(p)
 	// 1. Check the UUID version. UUIDv7 has the '7' in the 4 most significant bits
 	//    of the 7th byte (index 6). This is a good sanity check.
 	if id.Version() != 7 {
@@ -122,5 +136,5 @@ func getTimeFromUUIDv7(id uuid.UUID) (time.Time, error) {
 	seconds := milliseconds / 1000
 	nanos := (milliseconds % 1000) * int64(time.Millisecond) // Remaining millis * 1,000,000 nanosec/millis
 
-	return time.Unix(seconds, nanos), nil
+	return time.Unix(seconds, nanos).UTC(), nil
 }

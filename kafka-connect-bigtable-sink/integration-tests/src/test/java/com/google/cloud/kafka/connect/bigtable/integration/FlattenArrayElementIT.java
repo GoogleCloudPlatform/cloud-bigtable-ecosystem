@@ -1,4 +1,25 @@
+/*
+ * Copyright 2026 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.google.cloud.kafka.connect.bigtable.integration;
+
+import static com.google.cloud.kafka.connect.bigtable.config.BigtableSinkConfig.*;
+import static org.apache.kafka.connect.runtime.WorkerConfig.KEY_CONVERTER_CLASS_CONFIG;
+import static org.apache.kafka.connect.runtime.WorkerConfig.VALUE_CONVERTER_CLASS_CONFIG;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -9,6 +30,9 @@ import com.google.cloud.kafka.connect.bigtable.config.BigtableErrorMode;
 import com.google.cloud.kafka.connect.bigtable.config.InsertMode;
 import com.google.cloud.kafka.connect.bigtable.transformations.FlattenArrayElement;
 import com.google.protobuf.ByteString;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+import java.util.concurrent.ExecutionException;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -18,30 +42,23 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-import java.nio.charset.StandardCharsets;
-import java.util.*;
-import java.util.concurrent.ExecutionException;
-
-import static com.google.cloud.kafka.connect.bigtable.config.BigtableSinkConfig.*;
-import static org.apache.kafka.connect.runtime.WorkerConfig.KEY_CONVERTER_CLASS_CONFIG;
-import static org.apache.kafka.connect.runtime.WorkerConfig.VALUE_CONVERTER_CLASS_CONFIG;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
 @RunWith(JUnit4.class)
-
 public class FlattenArrayElementIT extends BaseKafkaConnectBigtableIT {
   private static final String KEY1 = "key1";
 
   @Test
-  public void testFlattenArrayElementSmt() throws InterruptedException, ExecutionException, JsonProcessingException {
+  public void testFlattenArrayElementSmt()
+      throws InterruptedException, ExecutionException, JsonProcessingException {
     Map<String, String> props = baseConnectorProps();
     props.put(INSERT_MODE_CONFIG, InsertMode.UPSERT.name());
     props.put("transforms", "flattenElements");
     props.put("transforms.flattenElements.type", FlattenArrayElement.class.getName());
     props.put("transforms.flattenElements." + FlattenArrayElement.ARRAY_FIELD_NAME, "products");
-    props.put("transforms.flattenElements." + FlattenArrayElement.ARRAY_INNER_WRAPPER_FIELD_NAME, "list");
-    props.put("transforms.flattenElements." + FlattenArrayElement.ARRAY_ELEMENT_WRAPPER_FIELD_NAME, "element");
+    props.put(
+        "transforms.flattenElements." + FlattenArrayElement.ARRAY_INNER_WRAPPER_FIELD_NAME, "list");
+    props.put(
+        "transforms.flattenElements." + FlattenArrayElement.ARRAY_ELEMENT_WRAPPER_FIELD_NAME,
+        "element");
     props.put(DEFAULT_COLUMN_FAMILY_CONFIG, "cf");
     props.put(ERROR_MODE_CONFIG, BigtableErrorMode.FAIL.name());
     props.put(KEY_CONVERTER_CLASS_CONFIG, StringConverter.class.getName());
@@ -50,51 +67,63 @@ public class FlattenArrayElementIT extends BaseKafkaConnectBigtableIT {
     String testId = startSingleTopicConnector(props);
     createTablesAndColumnFamilies(Map.of(testId, Set.of(testId, "cf", "products")));
 
-    Schema productSchema = SchemaBuilder.struct()
-        .field("name", Schema.STRING_SCHEMA)
-        .field("id", Schema.STRING_SCHEMA)
-        .field("quantity", Schema.INT32_SCHEMA)
-        .build();
+    Schema productSchema =
+        SchemaBuilder.struct()
+            .field("name", Schema.STRING_SCHEMA)
+            .field("id", Schema.STRING_SCHEMA)
+            .field("quantity", Schema.INT32_SCHEMA)
+            .build();
 
     Schema elementSchema = SchemaBuilder.struct().field("element", productSchema).build();
 
-    Schema schema = SchemaBuilder.struct().optional()
-        .field("orderId", Schema.STRING_SCHEMA)
-        .field("userId", Schema.STRING_SCHEMA)
-        .field("products",
-            SchemaBuilder.struct().field("list", SchemaBuilder.array(elementSchema)).build()
-        )
-        .build();
+    Schema schema =
+        SchemaBuilder.struct()
+            .optional()
+            .field("orderId", Schema.STRING_SCHEMA)
+            .field("userId", Schema.STRING_SCHEMA)
+            .field(
+                "products",
+                SchemaBuilder.struct().field("list", SchemaBuilder.array(elementSchema)).build())
+            .build();
 
     JsonConverter converter = new JsonConverter();
     converter.configure(Collections.singletonMap("schemas.enable", "true"), false);
 
-    Struct productElement1 = new Struct(elementSchema).put("element", new Struct(productSchema)
-        .put("name", "Ball")
-        .put("id", "PROD-123")
-        .put("quantity", 5)
-    );
-    Struct productElement2 = new Struct(elementSchema).put("element", new Struct(productSchema)
-        .put("name", "Car")
-        .put("id", "PROD-456")
-        .put("quantity", 1)
-    );
-    Struct productElement3 = new Struct(elementSchema).put("element", new Struct(productSchema)
-        .put("name", "Tambourine")
-        .put("id", "PROD-789")
-        .put("quantity", 2)
-    );
+    Struct productElement1 =
+        new Struct(elementSchema)
+            .put(
+                "element",
+                new Struct(productSchema)
+                    .put("name", "Ball")
+                    .put("id", "PROD-123")
+                    .put("quantity", 5));
+    Struct productElement2 =
+        new Struct(elementSchema)
+            .put(
+                "element",
+                new Struct(productSchema)
+                    .put("name", "Car")
+                    .put("id", "PROD-456")
+                    .put("quantity", 1));
+    Struct productElement3 =
+        new Struct(elementSchema)
+            .put(
+                "element",
+                new Struct(productSchema)
+                    .put("name", "Tambourine")
+                    .put("id", "PROD-789")
+                    .put("quantity", 2));
 
-    List<Struct> productList = Arrays.stream(new Struct[]{productElement1, productElement2, productElement3}).toList();
+    List<Struct> productList =
+        Arrays.stream(new Struct[] {productElement1, productElement2, productElement3}).toList();
 
-    Struct productsWrapper = new Struct(schema.field("products").schema())
-        .put("list", productList);
+    Struct productsWrapper = new Struct(schema.field("products").schema()).put("list", productList);
 
-    Struct value = new Struct(schema)
-        .put("orderId", "ORD-999")
-        .put("userId", "USER-42")
-        .put("products", productsWrapper);
-
+    Struct value =
+        new Struct(schema)
+            .put("orderId", "ORD-999")
+            .put("userId", "USER-42")
+            .put("products", productsWrapper);
 
     byte[] schemaAsJson = converter.fromConnectData(testId, schema, value);
 

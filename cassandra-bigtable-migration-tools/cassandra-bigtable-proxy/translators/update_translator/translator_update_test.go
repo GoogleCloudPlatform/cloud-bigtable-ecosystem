@@ -538,6 +538,26 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 			wantErr: "unknown column 'column3' in table test_keyspace.test_table",
 			want:    nil,
 		},
+		{
+			name:    "update list with null element (should error)",
+			query:   "UPDATE test_keyspace.test_table SET list_text = ['a', null] WHERE pk1 = 'pk1' AND pk2 = 'pk2';",
+			wantErr: "collection items are not allowed to be null",
+		},
+		{
+			name:    "update set with null element (should error)",
+			query:   "UPDATE test_keyspace.test_table SET set_text = {'a', null} WHERE pk1 = 'pk1' AND pk2 = 'pk2';",
+			wantErr: "collection items are not allowed to be null",
+		},
+		{
+			name:    "update map with null value (should error)",
+			query:   "UPDATE test_keyspace.test_table SET map_text_bool = {'a': null} WHERE pk1 = 'pk1' AND pk2 = 'pk2';",
+			wantErr: "map values cannot be null",
+		},
+		{
+			name:    "update map with null key (should error)",
+			query:   "UPDATE test_keyspace.test_table SET map_text_bool = {null: true} WHERE pk1 = 'pk1' AND pk2 = 'pk2';",
+			wantErr: "map keys cannot be null",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

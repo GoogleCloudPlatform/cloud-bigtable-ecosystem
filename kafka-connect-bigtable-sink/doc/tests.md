@@ -43,8 +43,6 @@ Create a service account and grant it Bigtable Administrator (`roles/bigtable.ad
 Download its key.
 
 ##### Configure the permissions for integration tests
-
-<!-- TODO: update this section when transitioning to kokoro -->
 If you want to use Application Default Credentials, configure the machine appropriately (on a workstation, log in with `gcloud` into an account with Bigtable Administrator permissions to the instance created in one of the previous steps).
 
 Otherwise, you need to use service account's permissions.
@@ -58,12 +56,6 @@ Alternatively, you could point it to [the service account key created before](#o
 <environmentVariables>
 	<GOOGLE_APPLICATION_CREDENTIALS>${user.home}/.config/gcloud/application_default_credentials.json</GOOGLE_APPLICATION_CREDENTIALS>
 </environmentVariables>
-```
-<!-- TODO: update this section when transitioning to kokoro -->
-- Replace the following TODO values with you GCP project ID and Cloud Bigtable instance ID in `BaseIT#baseConnectorProps()` function:
-```java
-result.put(GCP_PROJECT_ID_CONFIG, "todotodo");
-result.put(BIGTABLE_INSTANCE_ID_CONFIG, "todotodo");
 ```
 
 #### Emulator
@@ -93,7 +85,6 @@ docker compose up -d
 Ensure that the sink's [pom.xml](../integration-tests/pom.xml) contains the following section in Failsafe's `<configuration>` section:
 ```xml
 <environmentVariables>
-	<GOOGLE_APPLICATION_CREDENTIALS>target/test-classes/fake_service_key.json</GOOGLE_APPLICATION_CREDENTIALS>
 	<BIGTABLE_EMULATOR_HOST>localhost:8086</BIGTABLE_EMULATOR_HOST>
 </environmentVariables>
 ```
@@ -111,11 +102,11 @@ cbt -project "$PROJECT" -instance "$INSTANCE" ls | xargs -P 0 -I {} cbt -project
 
 ### Command to run the integration tests
 ```bash
-mvn clean verify -DskipUnitTests
+mvn -Pintegration-tests clean verify
 ```
 
 #### To run a specific integration test
 
 ```bash
-mvn clean verify -DskipUnitTests -Dit.test=InsertUpsertIT#testUpsert
+mvn -Pintegration-tests clean verify -Dit.test=InsertUpsertIT#testUpsert
 ```

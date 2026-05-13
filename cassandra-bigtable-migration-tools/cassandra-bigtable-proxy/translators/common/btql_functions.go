@@ -30,6 +30,10 @@ func ParseCqlFunc(f cql.IFunctionCallContext) (types.CqlFuncCode, error) {
 		return types.FuncCodeMin, nil
 	case "max":
 		return types.FuncCodeMax, nil
+	case "now":
+		return types.FuncCodeNow, nil
+	case "totimestamp":
+		return types.FuncCodeToTimestamp, nil
 	default:
 		return types.FuncCodeUnknown, fmt.Errorf("unknown function: '%s'", functionName)
 	}

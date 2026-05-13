@@ -1,5 +1,10 @@
 package types
 
+import (
+	"github.com/datastax/go-cassandra-native-protocol/primitive"
+	"github.com/gocql/gocql"
+)
+
 type DynamicValue interface {
 	GetValue(values *QueryParameterValues) (GoValue, error)
 	IsIdempotent() bool
@@ -34,6 +39,24 @@ func (f *TimestampNowValue) GetValue(values *QueryParameterValues) (GoValue, err
 
 func NewTimestampNowValue() DynamicValue {
 	return &TimestampNowValue{}
+}
+
+type TimeuuidNowValue struct {
+}
+
+func (f *TimeuuidNowValue) IsIdempotent() bool {
+	return false
+}
+
+func (f *TimeuuidNowValue) GetValue(values *QueryParameterValues) (GoValue, error) {
+	// Cassandra's now() function typically returns a timeuuid (UUIDv1 or UUIDv7).
+	// Using gocql.TimeUUID() generates a UUIDv1.
+	u := gocql.TimeUUID()
+	return primitive.UUID(u), nil
+}
+
+func NewTimeuuidNowValue() DynamicValue {
+	return &TimeuuidNowValue{}
 }
 
 type LiteralValue struct {

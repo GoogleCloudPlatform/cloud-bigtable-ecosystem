@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/datastax/go-cassandra-native-protocol/datatype"
 	"github.com/datastax/go-cassandra-native-protocol/primitive"
-	"github.com/google/uuid"
 	"net"
 	"reflect"
 	"time"
@@ -141,7 +140,7 @@ var (
 	TypeText      CqlDataType = newScalarType("text", TEXT, datatype.Varchar, reflect.TypeOf(""), bigtable.StringSQLType{})
 	TypeTime      CqlDataType = newScalarType("time", TIME, datatype.Time, reflect.TypeOf(time.Time{}), bigtable.TimestampSQLType{})
 	TypeTimestamp CqlDataType = newScalarType("timestamp", TIMESTAMP, datatype.Timestamp, reflect.TypeOf(time.Time{}), bigtable.TimestampSQLType{})
-	TypeTimeuuid  CqlDataType = newScalarType("timeuuid", TIMEUUID, datatype.Timeuuid, reflect.TypeOf(uuid.UUID{}), bigtable.BytesSQLType{})
+	TypeTimeuuid  CqlDataType = newScalarType("timeuuid", TIMEUUID, datatype.Timeuuid, reflect.TypeOf(primitive.UUID{}), bigtable.BytesSQLType{})
 	TypeTinyint   CqlDataType = newScalarType("tinyint", TINYINT, datatype.Tinyint, reflect.TypeOf(int8(1)), bigtable.Int64SQLType{})
 	TypeUuid      CqlDataType = newScalarType("uuid", UUID, datatype.Uuid, reflect.TypeOf(primitive.UUID{}), bigtable.BytesSQLType{})
 	TypeVarint    CqlDataType = newScalarType("varint", VARINT, datatype.Varint, reflect.TypeOf(1), bigtable.StringSQLType{})

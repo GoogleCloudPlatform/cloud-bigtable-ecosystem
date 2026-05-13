@@ -17,6 +17,7 @@
 package compliance
 
 import (
+	"github.com/google/uuid"
 	"testing"
 	"time"
 
@@ -180,4 +181,129 @@ func TestNegativeTestCasesForUpdateOperations(t *testing.T) {
 			assert.Contains(t, err.Error(), tc.expectedError)
 		})
 	}
+}
+
+func TestUpdateToEmptyRow(t *testing.T) {
+	t.Parallel()
+
+	pkName := uuid.New().String()
+	pkAge := int64(120)
+
+	// write a row with 1 non-primary key value
+	require.NoError(t, session.Query(`INSERT INTO bigtabledevinstance.user_info (name, age, code) VALUES (?, ?, ?)`,
+		pkName, pkAge, 1).Exec())
+
+	// update the row by deleting the only non-primary key value
+	require.NoError(t, session.Query(`UPDATE bigtabledevinstance.user_info SET code=? WHERE name=? AND age=?`,
+		nil, pkName, pkAge).Exec())
+
+	var name string
+	var age int64
+	var code *int
+	// should still be able to read the empty row
+	err := session.Query(`SELECT name, age, code FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?`, pkName, pkAge).
+		Scan(&name, &age, &code)
+	require.NoError(t, err)
+
+	assert.Equal(t, pkName, name)
+	assert.Equal(t, pkAge, age)
+	assert.Nil(t, code)
+}
+
+func TestUpdateNullValues(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Placeholders", func(t *testing.T) {
+		t.Parallel()
+		pkName := "UpdateNull-Placeholder"
+		pkAge := int64(100)
+
+		// 1. Insert initial record with values
+		tags := []string{"tag1", "tag2"}
+		extraInfo := map[string]string{"k": "v"}
+		listText := []string{"l1"}
+		birthDate := time.Now().Truncate(time.Millisecond)
+		err := session.Query(`INSERT INTO bigtabledevinstance.user_info (name, age, code, credited, text_col, is_active, birth_date, balance, zip_code, tags, extra_info, list_text) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			pkName, pkAge, 123, 456.7, "some text", true, birthDate, float32(10.1), int64(90210), tags, extraInfo, listText).Exec()
+		require.NoError(t, err)
+
+		// 2. Update to null using placeholders
+		err = session.Query(`UPDATE bigtabledevinstance.user_info SET code = ?, credited = ?, text_col = ?, is_active = ?, birth_date = ?, balance = ?, zip_code = ?, tags = ?, extra_info = ?, list_text = ? WHERE name = ? AND age = ?`,
+			nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, pkName, pkAge).Exec()
+		require.NoError(t, err)
+
+		// 3. Validate nulls
+		var code *int
+		var credited *float64
+		var textCol *string
+		var isActive *bool
+		var retrievedBirthDate *time.Time
+		var balance *float32
+		var zipCode *int64
+		var retrievedTags []string
+		var retrievedExtraInfo map[string]string
+		var retrievedListText []string
+
+		err = session.Query(`SELECT code, credited, text_col, is_active, birth_date, balance, zip_code, tags, extra_info, list_text FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?`, pkName, pkAge).
+			Scan(&code, &credited, &textCol, &isActive, &retrievedBirthDate, &balance, &zipCode, &retrievedTags, &retrievedExtraInfo, &retrievedListText)
+		require.NoError(t, err)
+
+		assert.Nil(t, code, "code should be null")
+		assert.Nil(t, credited, "credited should be null")
+		assert.Nil(t, textCol, "text_col should be null")
+		assert.Nil(t, isActive, "is_active should be null")
+		assert.Nil(t, retrievedBirthDate, "birth_date should be null")
+		assert.Nil(t, balance, "balance should be null")
+		assert.Nil(t, zipCode, "zip_code should be null")
+		assert.Empty(t, retrievedTags, "tags should be empty")
+		assert.Empty(t, retrievedExtraInfo, "extra_info should be empty")
+		assert.Empty(t, retrievedListText, "list_text should be empty")
+	})
+
+	t.Run("Literals", func(t *testing.T) {
+		t.Parallel()
+		pkName := "UpdateNull-Literal"
+		pkAge := int64(101)
+
+		// 1. Insert initial record with values
+		tags := []string{"tag1", "tag2"}
+		extraInfo := map[string]string{"k": "v"}
+		listText := []string{"l1"}
+		birthDate := time.Now().Truncate(time.Millisecond)
+		err := session.Query(`INSERT INTO bigtabledevinstance.user_info (name, age, code, credited, text_col, is_active, birth_date, balance, zip_code, tags, extra_info, list_text) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			pkName, pkAge, 123, 456.7, "some text", true, birthDate, float32(10.1), int64(90210), tags, extraInfo, listText).Exec()
+		require.NoError(t, err)
+
+		// 2. Update to null using NULL literals
+		err = session.Query(`UPDATE bigtabledevinstance.user_info SET code = NULL, credited = NULL, text_col = NULL, is_active = NULL, birth_date = NULL, balance = NULL, zip_code = NULL, tags = NULL, extra_info = NULL, list_text = NULL WHERE name = ? AND age = ?`,
+			pkName, pkAge).Exec()
+		require.NoError(t, err)
+
+		// 3. Validate nulls
+		var code *int
+		var credited *float64
+		var textCol *string
+		var isActive *bool
+		var retrievedBirthDate *time.Time
+		var balance *float32
+		var zipCode *int64
+		var retrievedTags []string
+		var retrievedExtraInfo map[string]string
+		var retrievedListText []string
+
+		err = session.Query(`SELECT code, credited, text_col, is_active, birth_date, balance, zip_code, tags, extra_info, list_text FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?`, pkName, pkAge).
+			Scan(&code, &credited, &textCol, &isActive, &retrievedBirthDate, &balance, &zipCode, &retrievedTags, &retrievedExtraInfo, &retrievedListText)
+		require.NoError(t, err)
+
+		assert.Nil(t, code, "code should be null")
+		assert.Nil(t, credited, "credited should be null")
+		assert.Nil(t, textCol, "text_col should be null")
+		assert.Nil(t, isActive, "is_active should be null")
+		assert.Nil(t, retrievedBirthDate, "birth_date should be null")
+		assert.Nil(t, balance, "balance should be null")
+		assert.Nil(t, zipCode, "zip_code should be null")
+		assert.Empty(t, retrievedTags, "tags should be empty")
+		assert.Empty(t, retrievedExtraInfo, "extra_info should be empty")
+		assert.Empty(t, retrievedListText, "list_text should be empty")
+	})
 }

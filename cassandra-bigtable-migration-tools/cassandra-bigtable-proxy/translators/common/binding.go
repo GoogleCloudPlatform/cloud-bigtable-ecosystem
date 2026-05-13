@@ -7,6 +7,7 @@ import (
 	schemaMapping "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/metadata"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/utilities"
 	"github.com/datastax/go-cassandra-native-protocol/primitive"
+	"github.com/google/uuid"
 	"strconv"
 	"time"
 )
@@ -158,6 +159,17 @@ func BindMutations(assignments []types.Assignment, usingTimestamp types.DynamicV
 	return nil
 }
 
+func deleteColumn(col *types.Column) types.IBigtableMutationOp {
+	if col.CQLType.IsCollection() {
+		return types.NewDeleteCellsOp(col.ColumnFamily)
+	} else if col.CQLType.Code() == types.COUNTER {
+		// Counters are stored with an empty qualifier.
+		return types.NewDeleteColumnOp(types.BigtableColumn{Family: col.ColumnFamily, Column: ""})
+	} else {
+		return types.NewDeleteColumnOp(types.BigtableColumn{Family: col.ColumnFamily, Column: types.ColumnQualifier(col.Name)})
+	}
+}
+
 func encodeSetValue(assignment *types.ComplexAssignmentSet, values *types.QueryParameterValues) ([]types.IBigtableMutationOp, error) {
 	col := assignment.Column()
 
@@ -166,6 +178,16 @@ func encodeSetValue(assignment *types.ComplexAssignmentSet, values *types.QueryP
 		// clear what's already there
 		results = append(results, types.NewDeleteCellsOp(col.ColumnFamily))
 	}
+
+	value, err := assignment.Value().GetValue(values)
+	if err != nil {
+		return nil, err
+	}
+	// clear the column if the value is explicitly set to nil
+	if value == nil {
+		return []types.IBigtableMutationOp{deleteColumn(col)}, nil
+	}
+
 	if col.CQLType.Code() == types.MAP {
 		mt := col.CQLType.(*types.MapType)
 		mv, err := utilities.GetValueMap(assignment.Value(), values)
@@ -186,6 +208,9 @@ func encodeSetValue(assignment *types.ComplexAssignmentSet, values *types.QueryP
 	} else if col.CQLType.Code() == types.LIST {
 		lt := col.CQLType.(*types.ListType)
 		lv, err := utilities.GetValueSlice(assignment.Value(), values)
+		if err != nil {
+			return nil, err
+		}
 		mutations, err := addListElements(lv, col.ColumnFamily, lt, false)
 		if err != nil {
 			return nil, err
@@ -314,6 +339,12 @@ func scalarToColumnQualifier(val types.GoValue) (types.ColumnQualifier, error) {
 		return types.ColumnQualifier(strconv.FormatInt(v.UnixMilli(), 10)), nil
 	case time.Time:
 		return types.ColumnQualifier(strconv.FormatInt(v.UnixMilli(), 10)), nil
+	case uuid.UUID:
+		return types.ColumnQualifier(v.String()), nil
+	case [16]byte:
+		return types.ColumnQualifier(uuid.UUID(v).String()), nil
+	case primitive.UUID:
+		return types.ColumnQualifier(uuid.UUID(v).String()), nil
 	default:
 		return "", fmt.Errorf("unsupported type: %T", v)
 	}
