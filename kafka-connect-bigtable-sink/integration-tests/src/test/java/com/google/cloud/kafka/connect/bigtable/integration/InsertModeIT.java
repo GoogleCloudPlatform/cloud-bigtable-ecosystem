@@ -64,17 +64,6 @@ import org.junit.runners.JUnit4;
 public class InsertModeIT extends BaseKafkaConnectBigtableIT {
   private static final ObjectMapper objectMapper = new ObjectMapper();
 
-  private String readResource(String path) {
-    try (InputStream is = getClass().getClassLoader().getResourceAsStream(path)) {
-      if (is == null) {
-        throw new IllegalArgumentException("Resource not found: " + path);
-      }
-      return new String(is.readAllBytes(), StandardCharsets.UTF_8);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
   private static final String KEY1 = "key1";
   private static final String KEY2 = "key2";
   private static final String KEY3 = "key3";
@@ -163,7 +152,7 @@ public class InsertModeIT extends BaseKafkaConnectBigtableIT {
     String testId = startSingleTopicConnector(props);
     createTablesAndColumnFamilies(Map.of(testId, Set.of("cf")));
 
-    String json = readResource("json/order-with-schema.json");
+    String json = TestDataUtil.readResource("json/order-with-schema.json");
     connect.kafka().produce(testId, KEY1, json);
 
     waitUntilBigtableContainsNumberOfRows(testId, 1);
@@ -204,7 +193,7 @@ public class InsertModeIT extends BaseKafkaConnectBigtableIT {
     String testId = startSingleTopicConnector(props);
     createTablesAndColumnFamilies(Map.of(testId, Set.of("cf")));
 
-    String json = readResource("json/order-no-schema.json");
+    String json = TestDataUtil.readResource("json/order-no-schema.json");
     connect.kafka().produce(testId, KEY1, json);
 
     waitUntilBigtableContainsNumberOfRows(testId, 1);
@@ -238,7 +227,7 @@ public class InsertModeIT extends BaseKafkaConnectBigtableIT {
     String testId = startSingleTopicConnector(props);
     createTablesAndColumnFamilies(Map.of(testId, Set.of("cf")));
 
-    String json = readResource("json/order-with-schema.json");
+    String json = TestDataUtil.readResource("json/order-with-schema.json");
     connect.kafka().produce(testId, KEY1, json);
 
     assertSingleDlqEntry(dlqTopic, KEY1, json, DataException.class);
@@ -262,7 +251,7 @@ public class InsertModeIT extends BaseKafkaConnectBigtableIT {
     String testId = startSingleTopicConnector(props);
     createTablesAndColumnFamilies(Map.of(testId, Set.of("cf")));
 
-    String json = readResource("json/order-with-null-product-schema.json");
+    String json = TestDataUtil.readResource("json/order-with-null-product-schema.json");
     connect.kafka().produce(testId, KEY1, json);
 
     // null key values aren't allowed
@@ -278,7 +267,7 @@ public class InsertModeIT extends BaseKafkaConnectBigtableIT {
     props.put("value.converter.schemas.enable", "false");
     props.put("transforms", "applySchema,createKey,flattenElements");
     props.put("transforms.applySchema.type", ApplyJsonSchema.class.getName() + "$Value");
-    props.put("transforms.applySchema.schema.json", readResource("json/applied-schema.json"));
+    props.put("transforms.applySchema.schema.json", TestDataUtil.readResource("json/applied-schema.json"));
     props.put("transforms.createKey.type", "org.apache.kafka.connect.transforms.ValueToKey");
     props.put("transforms.createKey.fields", "userId,orderId");
     props.put("transforms.flattenElements.type", FlattenArrayElement.class.getName());
@@ -298,7 +287,7 @@ public class InsertModeIT extends BaseKafkaConnectBigtableIT {
     String testId = startSingleTopicConnector(props);
     createTablesAndColumnFamilies(Map.of(testId, Set.of("cf", "products")));
 
-    String json = readResource("json/expanded-order.json");
+    String json = TestDataUtil.readResource("json/expanded-order.json");
     connect.kafka().produce(testId, KEY1, json);
 
     waitUntilBigtableContainsNumberOfRows(testId, 1);

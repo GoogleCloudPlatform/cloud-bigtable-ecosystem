@@ -19,6 +19,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.bigtable.data.v2.models.Row;
 import com.google.cloud.bigtable.data.v2.models.RowCell;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -123,4 +127,15 @@ public class TestDataUtil {
   public record Order(String orderId, String userId, OrderProduct[] products) {}
 
   public record OrderProduct(String name, String id, int quantity) {}
+
+  public static String readResource(String path) {
+    try (InputStream is = getClass().getClassLoader().getResourceAsStream(path)) {
+      if (is == null) {
+        throw new IllegalArgumentException("Resource not found: " + path);
+      }
+      return new String(is.readAllBytes(), StandardCharsets.UTF_8);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
 }

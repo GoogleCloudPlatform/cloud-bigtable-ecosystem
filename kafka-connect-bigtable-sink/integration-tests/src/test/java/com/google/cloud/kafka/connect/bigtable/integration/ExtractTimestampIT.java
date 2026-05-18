@@ -26,6 +26,7 @@ import com.google.cloud.bigtable.data.v2.models.RowCell;
 import com.google.cloud.kafka.connect.bigtable.config.InsertMode;
 import com.google.cloud.kafka.connect.bigtable.transformations.ExtractTimestamp;
 import com.google.cloud.kafka.connect.bigtable.transformations.TimestampPrecision;
+import com.google.cloud.kafka.connect.bigtable.util.TestDataUtil;
 import com.google.protobuf.ByteString;
 import java.io.IOException;
 import java.io.InputStream;
@@ -193,7 +194,7 @@ public class ExtractTimestampIT extends BaseKafkaConnectBigtableIT {
     String testId = startSingleTopicConnector(props);
     createTablesAndColumnFamilies(Map.of(testId, Set.of("cf")));
 
-    String json = readResource("json/order-no-schema.json");
+    String json = TestDataUtil.readResource("json/order-no-schema.json");
     String key = "order1";
     connect.kafka().produce(testId, key, json);
 
@@ -208,16 +209,5 @@ public class ExtractTimestampIT extends BaseKafkaConnectBigtableIT {
     List<RowCell> cells = row.getCells("cf", "KAFKA_VALUE");
     assertEquals(1, cells.size());
     assertEquals(expectedTimestampMicros, cells.get(0).getTimestamp());
-  }
-
-  private String readResource(String path) {
-    try (InputStream is = getClass().getClassLoader().getResourceAsStream(path)) {
-      if (is == null) {
-        throw new IllegalArgumentException("Resource not found: " + path);
-      }
-      return new String(is.readAllBytes(), StandardCharsets.UTF_8);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
   }
 }
