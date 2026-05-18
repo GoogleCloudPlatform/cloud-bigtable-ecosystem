@@ -25,7 +25,7 @@ import com.google.cloud.bigtable.data.v2.models.Row;
 import com.google.cloud.bigtable.data.v2.models.RowCell;
 import com.google.cloud.kafka.connect.bigtable.config.InsertMode;
 import com.google.cloud.kafka.connect.bigtable.transformations.ExtractTimestamp;
-import com.google.cloud.kafka.connect.bigtable.transformations.TimestampFormat;
+import com.google.cloud.kafka.connect.bigtable.transformations.TimestampPrecision;
 import com.google.protobuf.ByteString;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
@@ -53,8 +53,8 @@ public class ExtractTimestampIT extends BaseKafkaConnectBigtableIT {
     props.put("transforms.extractTimestamp.type", ExtractTimestamp.Value.class.getName());
     props.put("transforms.extractTimestamp." + ExtractTimestamp.TIMESTAMP_FIELD_CONFIG, "ts");
     props.put(
-        "transforms.extractTimestamp." + ExtractTimestamp.TIMESTAMP_FIELD_FORMAT_CONFIG,
-        TimestampFormat.MILLIS.name());
+        "transforms.extractTimestamp." + ExtractTimestamp.TIMESTAMP_FIELD_PRECISION_CONFIG,
+        TimestampPrecision.MILLIS.name());
     props.put(DEFAULT_COLUMN_FAMILY_CONFIG, "cf");
     props.put(VALUE_CONVERTER_CLASS_CONFIG, JsonConverter.class.getName());
 
@@ -98,8 +98,8 @@ public class ExtractTimestampIT extends BaseKafkaConnectBigtableIT {
     props.put(
         "transforms.extractTimestamp." + ExtractTimestamp.TIMESTAMP_FIELD_CONFIG, "nested.ts");
     props.put(
-        "transforms.extractTimestamp." + ExtractTimestamp.TIMESTAMP_FIELD_FORMAT_CONFIG,
-        TimestampFormat.SECONDS.name());
+        "transforms.extractTimestamp." + ExtractTimestamp.TIMESTAMP_FIELD_PRECISION_CONFIG,
+        TimestampPrecision.SECONDS.name());
     props.put(DEFAULT_COLUMN_FAMILY_CONFIG, "cf");
     props.put(VALUE_CONVERTER_CLASS_CONFIG, JsonConverter.class.getName());
 
