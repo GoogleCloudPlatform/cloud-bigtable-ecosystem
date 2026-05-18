@@ -1,5 +1,10 @@
 package config
 
+import (
+	"fmt"
+	"time"
+)
+
 type yamlProxyConfig struct {
 	CassandraToBigtableConfigs yamlCassandraToBigtableConfigs `yaml:"cassandraToBigtableConfigs"`
 	Listeners                  []yamlListener                 `yaml:"listeners"`
@@ -58,6 +63,8 @@ type yamlBigtable struct {
 	DefaultColumnFamily           string             `yaml:"defaultColumnFamily"`
 	AppProfileID                  string             `yaml:"appProfileID"`
 	EncodeIntRowKeysWithBigEndian bool               `yaml:"encodeIntRowKeysWithBigEndian"`
+	// using a pointer, so we can detect when this setting is not specified in the yaml
+	MetadataRefreshInterval *Duration `yaml:"metadataRefreshInterval"`
 }
 
 type yamlSession struct {
@@ -67,4 +74,23 @@ type yamlSession struct {
 // yamlOtel configures OpenTelemetry features
 type yamlOtel struct {
 	Disabled bool `yaml:"disabled"`
+}
+
+// Duration is a wrapper around time.Duration to support YAML unmarshaling
+type Duration time.Duration
+
+// UnmarshalYAML implements the yaml.Unmarshaler interface
+func (d *Duration) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var s string
+	if err := unmarshal(&s); err != nil {
+		return err
+	}
+
+	dur, err := time.ParseDuration(s)
+	if err != nil {
+		return fmt.Errorf("invalid duration %q: %w", s, err)
+	}
+
+	*d = Duration(dur)
+	return nil
 }

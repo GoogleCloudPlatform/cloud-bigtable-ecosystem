@@ -105,7 +105,7 @@ func (t *TableSchema) SameSchema(other *TableSchema) bool {
 
 	for i, key := range t.PrimaryKeys {
 		otherKey := other.PrimaryKeys[i]
-		if key.Name != otherKey.Name || key.CQLType != otherKey.CQLType {
+		if key.Name != otherKey.Name || !types.CqlTypesEqual(key.CQLType, otherKey.CQLType) {
 			return false
 		}
 	}
@@ -114,7 +114,7 @@ func (t *TableSchema) SameSchema(other *TableSchema) bool {
 		if !ok {
 			return false
 		}
-		if col.Name != otherCol.Name || col.CQLType != otherCol.CQLType {
+		if col.Name != otherCol.Name || !types.CqlTypesEqual(col.CQLType, otherCol.CQLType) {
 			return false
 		}
 	}
