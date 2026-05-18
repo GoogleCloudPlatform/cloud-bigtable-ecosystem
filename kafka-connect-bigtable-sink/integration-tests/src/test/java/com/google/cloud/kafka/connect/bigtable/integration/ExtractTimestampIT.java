@@ -27,6 +27,8 @@ import com.google.cloud.kafka.connect.bigtable.config.InsertMode;
 import com.google.cloud.kafka.connect.bigtable.transformations.ExtractTimestamp;
 import com.google.cloud.kafka.connect.bigtable.transformations.TimestampPrecision;
 import com.google.protobuf.ByteString;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
@@ -171,5 +173,51 @@ public class ExtractTimestampIT extends BaseKafkaConnectBigtableIT {
     List<RowCell> cells = row.getCells("cf", "KAFKA_VALUE");
     assertEquals(1, cells.size());
     assertEquals(timestamp * 1000, cells.get(0).getTimestamp());
+  }
+
+  @Test
+  public void testExtractTimestampFromValueNoSchema() throws Exception {
+    Map<String, String> props = baseConnectorProps();
+    props.put(INSERT_MODE_CONFIG, InsertMode.UPSERT.name());
+    props.put("transforms", "extractTimestamp");
+    props.put("transforms.extractTimestamp.type", ExtractTimestamp.Value.class.getName());
+    props.put(
+        "transforms.extractTimestamp." + ExtractTimestamp.TIMESTAMP_FIELD_CONFIG, "createdAt");
+    props.put(
+        "transforms.extractTimestamp." + ExtractTimestamp.TIMESTAMP_FIELD_PRECISION_CONFIG,
+        TimestampPrecision.SECONDS.name());
+    props.put(DEFAULT_COLUMN_FAMILY_CONFIG, "cf");
+    props.put(VALUE_CONVERTER_CLASS_CONFIG, JsonConverter.class.getName());
+    props.put("value.converter.schemas.enable", "false");
+
+    String testId = startSingleTopicConnector(props);
+    createTablesAndColumnFamilies(Map.of(testId, Set.of("cf")));
+
+    String json = readResource("json/order-no-schema.json");
+    String key = "order1";
+    connect.kafka().produce(testId, key, json);
+
+    waitUntilBigtableContainsNumberOfRows(testId, 1);
+    Map<ByteString, Row> rows = readAllRows(bigtableData, testId);
+    Row row = rows.get(ByteString.copyFrom(key.getBytes(StandardCharsets.UTF_8)));
+    assertNotNull(row);
+
+    // createdAt: 1779122855 (seconds)
+    long expectedTimestampMicros = 1779122855L * 1000 * 1000;
+
+    List<RowCell> cells = row.getCells("cf", "KAFKA_VALUE");
+    assertEquals(1, cells.size());
+    assertEquals(expectedTimestampMicros, cells.get(0).getTimestamp());
+  }
+
+  private String readResource(String path) {
+    try (InputStream is = getClass().getClassLoader().getResourceAsStream(path)) {
+      if (is == null) {
+        throw new IllegalArgumentException("Resource not found: " + path);
+      }
+      return new String(is.readAllBytes(), StandardCharsets.UTF_8);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 }
