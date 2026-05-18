@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/compare/v0.3.1...v0.4.0) (2026-05-18)
+
+
+### Features
+
+* Add time uuid and uuid to java lib ([#202](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/issues/202)) ([e1b1732](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/commit/e1b1732da1893d9b7385c99fe606de73d8452915))
+
 ## [0.3.1](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/compare/v0.3.0...v0.3.1) (2026-02-23)
 
 
