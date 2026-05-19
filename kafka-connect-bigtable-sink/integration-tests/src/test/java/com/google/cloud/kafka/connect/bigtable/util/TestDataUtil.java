@@ -20,9 +20,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.bigtable.data.v2.models.Row;
 import com.google.cloud.bigtable.data.v2.models.RowCell;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -120,7 +122,125 @@ public class TestDataUtil {
     return cells.get(0).getValue().toStringUtf8();
   }
 
-  public record Order(String orderId, String userId, OrderProduct[] products) {}
+  public static class Order {
+    private final String orderId;
+    private final String userId;
+    private final OrderProduct[] products;
 
-  public record OrderProduct(String name, String id, int quantity) {}
+    public Order(String orderId, String userId, OrderProduct[] products) {
+      this.orderId = orderId;
+      this.userId = userId;
+      this.products = products;
+    }
+
+    public String orderId() {
+      return orderId;
+    }
+
+    public String userId() {
+      return userId;
+    }
+
+    public OrderProduct[] products() {
+      return products;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) return true;
+      if (o == null || getClass() != o.getClass()) return false;
+      Order order = (Order) o;
+      return Objects.equals(orderId, order.orderId)
+          && Objects.equals(userId, order.userId)
+          && Arrays.equals(products, order.products);
+    }
+
+    @Override
+    public int hashCode() {
+      int result = Objects.hash(orderId, userId);
+      result = 31 * result + Arrays.hashCode(products);
+      return result;
+    }
+
+    @Override
+    public String toString() {
+      return "Order{"
+          + "orderId='"
+          + orderId
+          + '\''
+          + ", userId='"
+          + userId
+          + '\''
+          + ", products="
+          + Arrays.toString(products)
+          + '}';
+    }
+  }
+
+  public static class OrderProduct {
+    private String name;
+    private String id;
+    private int quantity;
+
+    public OrderProduct() {}
+
+    public OrderProduct(String name, String id, int quantity) {
+      this.name = name;
+      this.id = id;
+      this.quantity = quantity;
+    }
+
+    public String name() {
+      return name;
+    }
+
+    public String id() {
+      return id;
+    }
+
+    public int quantity() {
+      return quantity;
+    }
+
+    public void setName(String name) {
+      this.name = name;
+    }
+
+    public void setId(String id) {
+      this.id = id;
+    }
+
+    public void setQuantity(int quantity) {
+      this.quantity = quantity;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) return true;
+      if (o == null || getClass() != o.getClass()) return false;
+      OrderProduct that = (OrderProduct) o;
+      return quantity == that.quantity
+          && Objects.equals(name, that.name)
+          && Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(name, id, quantity);
+    }
+
+    @Override
+    public String toString() {
+      return "OrderProduct{"
+          + "name='"
+          + name
+          + '\''
+          + ", id='"
+          + id
+          + '\''
+          + ", quantity="
+          + quantity
+          + '}';
+    }
+  }
 }

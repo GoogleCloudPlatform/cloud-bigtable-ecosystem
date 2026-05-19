@@ -41,7 +41,6 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -891,34 +890,31 @@ public class ValueMapperTest {
 
     // use more than 9 elements to we can see what happens when the column qualifier is > 1 digits
     List<Struct> productList =
-        Arrays.stream(
-                new Struct[] {
-                  // 1
-                  productElement1,
-                  // 2
-                  productElement2,
-                  // 3
-                  productElement3,
-                  // 4
-                  productElement3,
-                  // 5
-                  productElement3,
-                  // 6
-                  productElement3,
-                  // 7
-                  productElement3,
-                  // 8
-                  productElement3,
-                  // 9
-                  productElement3,
-                  // 10
-                  productElement3,
-                  // 11
-                  productElement3,
-                  // 12
-                  productElement2
-                })
-            .toList();
+        List.of(
+            // 1
+            productElement1,
+            // 2
+            productElement2,
+            // 3
+            productElement3,
+            // 4
+            productElement3,
+            // 5
+            productElement3,
+            // 6
+            productElement3,
+            // 7
+            productElement3,
+            // 8
+            productElement3,
+            // 9
+            productElement3,
+            // 10
+            productElement3,
+            // 11
+            productElement3,
+            // 12
+            productElement2);
 
     Struct value =
         new Struct(schema)

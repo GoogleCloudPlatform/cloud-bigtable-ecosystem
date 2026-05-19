@@ -43,6 +43,7 @@ import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.json.JsonConverter;
 import org.apache.kafka.connect.json.JsonConverterConfig;
 import org.apache.kafka.connect.runtime.ConnectorConfig;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -179,6 +180,8 @@ public class ResourceAutoCreationIT extends BaseKafkaConnectBigtableIT {
 
   @Test
   public void testCreationOfInvalidTable() throws InterruptedException {
+    Assume.assumeTrue(
+        "Test not supported on emulator", System.getenv("BIGTABLE_EMULATOR_HOST") == null);
     String dlqTopic = createDlq();
     Map<String, String> props = baseConnectorProps();
     String invalidTableName = "T".repeat(MAX_BIGTABLE_TABLE_NAME_LENGTH + 1);
@@ -200,6 +203,8 @@ public class ResourceAutoCreationIT extends BaseKafkaConnectBigtableIT {
 
   @Test
   public void testRowDeletionCreatesTableWhenAutoCreationEnabled() throws InterruptedException {
+    Assume.assumeTrue(
+        "Test not supported on emulator", System.getenv("BIGTABLE_EMULATOR_HOST") == null);
     String dlqTopic = createDlq();
     Map<String, String> props = baseConnectorProps();
     configureDlq(props, dlqTopic);

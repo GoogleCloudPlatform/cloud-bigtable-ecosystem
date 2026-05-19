@@ -50,6 +50,7 @@ import org.apache.kafka.connect.json.JsonConverter;
 import org.apache.kafka.connect.json.JsonConverterConfig;
 import org.apache.kafka.connect.runtime.ConnectorConfig;
 import org.apache.kafka.connect.storage.StringConverter;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -68,6 +69,8 @@ public class ErrorHandlingIT extends BaseKafkaConnectBigtableIT {
 
   @Test
   public void testTooLargeData() throws InterruptedException, ExecutionException {
+    Assume.assumeTrue(
+        "Test not supported on emulator", System.getenv("BIGTABLE_EMULATOR_HOST") == null);
     String dlqTopic = createDlq();
     Map<String, String> props = baseConnectorProps();
     props.put(ConnectorConfig.VALUE_CONVERTER_CLASS_CONFIG, ByteArrayConverter.class.getName());

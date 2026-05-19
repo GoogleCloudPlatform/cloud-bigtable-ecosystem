@@ -389,9 +389,8 @@ The following steps are to run in standalone mode. They can be easily adapted
 for running Kafka Connect in distributed mode using
 the [REST API](http://kafka.apache.org/documentation.html#connect_running).
 
-1. Build the Jar with `mvn clean package -Dmaven.test.skip` from the `sink/`
-   folder.
-2. Copy the `target/sink-1.0.0-SNAPSHOT.jar` JAR file into your
+1. Download the latest `kafka-connect-bigtable-sink.jar` file from the [Releases page](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/releases).
+2. Copy the `kafka-connect-bigtable-sink.jar` JAR file into your
    **plugin directory**. The plugin directory can be any of the directories
    specified by
    the [plugin.path](https://kafka.apache.org/documentation/#connectconfigs_plugin.path)

@@ -87,8 +87,7 @@ public class FlattenArrayElementTest {
                     .put("id", "PROD-789")
                     .put("quantity", 2));
 
-    List<Struct> productList =
-        Arrays.stream(new Struct[] {productElement1, productElement2, productElement3}).toList();
+    List<Struct> productList = List.of(productElement1, productElement2, productElement3);
 
     Struct productsWrapper = new Struct(schema.field("products").schema()).put("list", productList);
 
@@ -377,8 +376,7 @@ public class FlattenArrayElementTest {
                     .put("id", "PROD-789")
                     .put("quantity", 2));
 
-    List<Struct> productList =
-        Arrays.stream(new Struct[] {null, productElement2, productElement3}).toList();
+    List<Struct> productList = Arrays.asList(null, productElement2, productElement3);
 
     Struct productsWrapper = new Struct(schema.field("products").schema()).put("list", productList);
 
@@ -457,8 +455,7 @@ public class FlattenArrayElementTest {
                     .put("id", "PROD-789")
                     .put("quantity", 2));
 
-    List<Struct> productList =
-        Arrays.stream(new Struct[] {productElement1, productElement2, productElement3}).toList();
+    List<Struct> productList = List.of(productElement1, productElement2, productElement3);
 
     Struct productsWrapper = new Struct(schema.field("products").schema()).put("list", productList);
 
