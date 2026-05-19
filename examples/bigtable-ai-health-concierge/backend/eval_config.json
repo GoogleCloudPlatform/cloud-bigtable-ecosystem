@@ -1,0 +1,57 @@
+{
+    "criteria": {
+        "tool_trajectory_avg_score": {
+            "threshold": 1.0,
+            "match_type": "ANY_ORDER"
+        },
+        "hallucinations_v1": {
+            "threshold": 0.5,
+            "evaluate_intermediate_nl_responses": true
+        },
+        "safety_v1": {
+            "threshold": 0.8
+        },
+        "rubric_based_final_response_quality_v1": {
+            "threshold": 0.8,
+            "judge_model_options": {
+                "judge_model": "gemini-2.5-flash",
+                "num_samples": 3
+            },
+            "rubrics": [
+                {
+                    "rubric_id": "data_providing",
+                    "rubric_content": {
+                        "text_property": "The agent's response has specific details about the user's medical records."
+                    }
+                },
+                {
+                    "rubric_id": "data_formatting",
+                    "rubric_content": {
+                        "text_property": "The agent's response highlights important information in bold and uses markdown table format or rechart format as necessary."
+                    }
+                }
+            ]
+        },
+        "rubric_based_tool_use_quality_v1": {
+            "threshold": 1.0,
+            "judge_model_options": {
+                "judge_model": "gemini-2.5-flash",
+                "num_samples": 3
+            },
+            "rubrics": [
+                {
+                    "rubric_id": "search_called",
+                    "rubric_content": {
+                        "text_property": "The agent calls the SearchAgent for medical advice."
+                    }
+                },
+                {
+                    "rubric_id": "medical_records_called",
+                    "rubric_content": {
+                        "text_property": "The agent calls the MedicalRecordsAgent for medical records such as prescriptions, tests, doctor visits,and procedures."
+                    }
+                }
+            ]
+        }
+    }
+}

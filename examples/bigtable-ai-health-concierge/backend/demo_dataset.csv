@@ -1,0 +1,54 @@
+row_key,column_family,column_qualifier,value,timestamp
+john.doe@gmail.com,visits,20230617#Gastroenterologist,"{""doctor"": ""Dr. Sarah Chen"", ""facility"": ""St. Jude Medical Center"", ""reason"": ""Routine endoscopy follow-up"", ""outcome"": ""Blood pressure slightly elevated. Suggested stress management techniques.""}",2023-06-17T00:00:00+00:00
+john.doe@gmail.com,visits,20230805#Endocrinology,"{""doctor"": ""Dr. Elena Rodriguez"", ""facility"": ""City Wellness Clinic"", ""reason"": ""Thyroid level check"", ""outcome"": ""Prescriptions are working as expected. Continue current dosage.""}",2023-08-05T00:00:00+00:00
+john.doe@gmail.com,visits,20231114#Cardiology,"{""doctor"": ""Dr. Michael Ross"", ""facility"": ""Mercy General Hospital"", ""reason"": ""Hypertension management"", ""outcome"": ""Blood pressure slightly elevated. Suggested stress management techniques.""}",2023-11-14T00:00:00+00:00
+john.doe@gmail.com,visits,20231121#Pulmonologist,"{""doctor"": ""Dr. Robert Taylor"", ""facility"": ""City Wellness Clinic"", ""reason"": ""Asthma management"", ""outcome"": ""Prescribed new medication. Recommended increasing daily exercise.""}",2023-11-21T00:00:00+00:00
+john.doe@gmail.com,visits,20231202#Pulmonologist,"{""doctor"": ""Dr. Robert Taylor"", ""facility"": ""Mercy General Hospital"", ""reason"": ""Asthma management"", ""outcome"": ""Prescriptions are working as expected. Continue current dosage.""}",2023-12-02T00:00:00+00:00
+john.doe@gmail.com,visits,20240215#Dermatology,"{""doctor"": ""Dr. Anna Schmidt"", ""facility"": ""Cymbal Health Central"", ""reason"": ""Eczema flare-up"", ""outcome"": ""Follow-up MRI required in 6 months. Advised reducing alcohol intake.""}",2024-02-15T00:00:00+00:00
+john.doe@gmail.com,visits,20240411#Hematology,"{""doctor"": ""Dr. Lisa Wong"", ""facility"": ""Mercy General Hospital"", ""reason"": ""Anemia follow-up"", ""outcome"": ""Recommended getting an ultrasound next week for further investigation.""}",2024-04-11T00:00:00+00:00
+john.doe@gmail.com,visits,20240608#Orthopedics,"{""doctor"": ""Dr. James Wilson"", ""facility"": ""St. Jude Medical Center"", ""reason"": ""Knee pain after running"", ""outcome"": ""Patient is recovering well from surgery. Recommended physical therapy twice a week.""}",2024-06-08T00:00:00+00:00
+john.doe@gmail.com,visits,20241012#Gastroenterologist,"{""doctor"": ""Dr. Sarah Chen"", ""facility"": ""St. Jude Medical Center"", ""reason"": ""Colonoscopy completed. No issues found.""}",2025-05-16T08:00:00+00:00
+john.doe@gmail.com,visits,20241113#Endocrinology,"{""doctor"": ""Dr. Elena Rodriguez"", ""facility"": ""St. Jude Medical Center"", ""reason"": ""Diabetes type 2 follow-up"", ""outcome"": ""Administered flu shot during visit. No immediate concerns.""}",2024-11-13T00:00:00+00:00
+john.doe@gmail.com,visits,20250116#Cardiology,"{""doctor"": ""Dr. Michael Ross"", ""facility"": ""Cymbal Health Central"", ""reason"": ""Hypertension management"", ""outcome"": ""Prescribed new medication. Recommended increasing daily exercise.""}",2025-01-16T00:00:00+00:00
+john.doe@gmail.com,visits,20250521#Radiology,"{""doctor"": ""Dr. David Kim"", ""facility"": ""City Wellness Clinic"", ""reason"": ""X-ray consultation"", ""outcome"": ""Follow-up MRI required in 6 months. Advised reducing alcohol intake.""}",2025-05-21T00:00:00+00:00
+john.doe@gmail.com,visits,20250601#Endocrinology,"{""doctor"": ""Dr. Elena Rodriguez"", ""facility"": ""City Wellness Clinic"", ""reason"": ""Diabetes type 2 follow-up"", ""outcome"": ""Prescriptions are working as expected. Continue current dosage.""}",2025-06-01T00:00:00+00:00
+john.doe@gmail.com,visits,20250606#Pulmonologist,"{""doctor"": ""Dr. Robert Taylor"", ""facility"": ""City Wellness Clinic"", ""reason"": ""Lung function test"", ""outcome"": ""Prescriptions are working as expected. Continue current dosage.""}",2025-06-06T00:00:00+00:00
+john.doe@gmail.com,visits,20250728#Gastroenterologist,"{""doctor"": ""Dr. Sarah Chen"", ""facility"": ""St. Jude Medical Center"", ""reason"": ""Acid reflux checkup"", ""outcome"": ""Administered flu shot during visit. No immediate concerns.""}",2025-07-28T00:00:00+00:00
+john.doe@gmail.com,visits,20251214#Dermatology,"{""doctor"": ""Dr. Anna Schmidt"", ""facility"": ""Mercy General Hospital"", ""reason"": ""Eczema flare-up"", ""outcome"": ""Vital signs stable. Advised healthier diet and reducing sodium intake.""}",2025-12-14T00:00:00+00:00
+john.doe@gmail.com,visits,20260517#Primary_Care,"{ ""doctor"": ""Dr. John Doe"", ""facility"": ""Mt Sinai Hospital"", ""reason"": ""Routine check-up, flu vaccine, blood sugar and lipid panel tests"" }",2026-05-17T14:43:19+00:00
+john.doe@gmail.com,visits,20260209#Primary_Care,"{""doctor"": ""Dr. John Doe"", ""facility"": ""Mt Sinai Hospital"", ""reason"": ""Routine check-up, flu vaccine, blood sugar and lipid panel tests""}",2026-02-09T15:34:19+00:00
+john.doe@gmail.com,profile,birth_year,1979,1970-01-21T14:09:36+00:00
+john.doe@gmail.com,profile,gender,male,1970-01-21T14:09:36+00:00
+john.doe@gmail.com,profile,home_zip,10583,1970-01-21T14:09:36+00:00
+john.doe@gmail.com,profile,work_zip,10011,1970-01-21T14:09:36+00:00
+john.doe@gmail.com,prescriptions,Albuterol,"{""instructions"": ""Take before meals as needed for symptoms."", ""refill_date"": ""2026-02-25""}",1970-01-01T05:00:00+00:00
+john.doe@gmail.com,prescriptions,Amoxicillin,"{""instructions"": ""Take one capsule every 12 hours with plenty of water."", ""refill_date"": ""2026-02-27""}",1970-01-01T05:00:00+00:00
+john.doe@gmail.com,prescriptions,Atorvastatin,"{""instructions"": ""Chew one tablet thoroughly before swallowing after meals."", ""refill_date"": ""2026-03-02""}",1970-01-01T05:00:00+00:00
+john.doe@gmail.com,prescriptions,Ibuprofen,"{""instructions"": ""Take one capsule every 12 hours with plenty of water.""}",1970-01-01T00:00:00+00:00
+john.doe@gmail.com,prescriptions,Lisinopril,"{""instructions"": ""Take before meals as needed for symptoms."", ""refill_date"": ""2026-06-11""}",1970-01-01T05:00:00+00:00
+john.doe@gmail.com,prescriptions,Metformin,"{""instructions"": ""Dissolve one sachet in water and drink immediately twice a day.""}",1970-01-01T00:00:00+00:00
+john.doe@gmail.com,prescriptions,Omeprazole,"{""instructions"": ""Dissolve one sachet in water and drink immediately twice a day.""}",1970-01-01T00:00:00+00:00
+john.doe@gmail.com,tests,albumin,53.95,2020-10-05T08:00:00+00:00
+john.doe@gmail.com,tests,albumin,44.34,2021-10-16T08:00:00+00:00
+john.doe@gmail.com,tests,albumin,37.08,2022-07-06T08:00:00+00:00
+john.doe@gmail.com,tests,albumin,147.8,2023-07-11T08:00:00+00:00
+john.doe@gmail.com,tests,albumin,36.71,2024-08-24T08:00:00+00:00
+john.doe@gmail.com,tests,albumin,95.4,2025-01-25T08:00:00+00:00
+john.doe@gmail.com,tests,albumin,25.12,2026-01-27T08:00:00+00:00
+john.doe@gmail.com,tests,CO2,107.05,2026-01-30T08:00:00+00:00
+john.doe@gmail.com,tests,bilirubin,34.58,2026-01-27T08:00:00+00:00
+john.doe@gmail.com,tests,creatine_kinase,45.39,2026-01-17T08:00:00+00:00
+john.doe@gmail.com,tests,Glucose,33.58,2026-01-14T08:00:00+00:00
+john.doe@gmail.com,tests,globulin,44.95,2026-01-14T08:00:00+00:00
+john.doe@gmail.com,tests,CO2,24.57,2025-04-13T03:12:15+00:00
+john.doe@gmail.com,tests,CO2,77.55,2024-08-24T08:35:15+00:00
+john.doe@gmail.com,tests,CO2,141.74,2023-02-27T01:41:12+00:00
+john.doe@gmail.com,tests,Glucose,33.04,2025-10-13T03:58:43+00:00
+john.doe@gmail.com,tests,Glucose,80.04,2024-04-06T15:20:07+00:00
+john.doe@gmail.com,tests,Glucose,49.1,2023-10-09T23:43:04+00:00
+john.doe@gmail.com,tests,bilirubin,8.25,2025-06-09T20:13:29+00:00
+john.doe@gmail.com,tests,bilirubin,29.33,2024-12-01T00:14:53+00:00
+john.doe@gmail.com,tests,creatine_kinase,37.72,2025-04-20T10:58:43+00:00
+john.doe@gmail.com,tests,creatine_kinase,58.01,2024-06-02T13:39:05+00:00
+john.doe@gmail.com,tests,globulin,141.26,2025-01-28T14:56:37+00:00
+john.doe@gmail.com,tests,globulin,75.31,2024-01-28T10:55:08+00:00

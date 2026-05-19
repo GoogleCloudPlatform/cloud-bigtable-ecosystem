@@ -1,0 +1,803 @@
+{
+  "eval_set_id": "healthcare_assistant_evals",
+  "name": "Personal Healthcare Assistant Evals",
+  "eval_cases": [
+    {
+      "eval_id": "prescription_refills_check",
+      "conversation": [
+        {
+          "invocation_id": "turn_1_medical_records",
+          "user_content": {
+            "parts": [
+              {
+                "text": "Do I have any refills for my heart medication?"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Yes, you have refills for your heart medications: * **Atorvastatin**: Your refill date is **March 2, 2026**. * **Lisinopril**: Your refill date is **June 11, 2026**."
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "args": {
+                  "request": "refills for heart medication"
+                },
+                "name": "MedicalRecordsAgent"
+              }
+            ],
+            "intermediate_responses": [
+              [
+                "MedicalRecordsAgent",
+                [
+                  {
+                    "text": "Here are the refills for your heart medications: Atorvastatin: refill date 2026-03-02 Lisinopril: refill date 2026-06-11"
+                  }
+                ]
+              ]
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "btagent",
+        "user_id": "john.doe@gmail.com",
+        "state": {
+          "_time": "2026-03-04 21:52:10",
+          "_patient_demographics": {
+            "age": "47",
+            "gender": "male",
+            "zip_code_home": "10583",
+            "zip_code_work": "10011"
+          }
+        }
+      },
+      "creation_timestamp": 1772591871.475143
+    },
+    {
+      "eval_id": "routine_procedures_check",
+      "conversation": [
+        {
+          "invocation_id": "turn_1_routine_procedures",
+          "user_content": {
+            "parts": [
+              {
+                "text": "Am I due for a colonoscopy?"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "No, you are not due for a colonoscopy. You had one fairly recently on **May 16, 2025**, and generally, they are recommended every 10 years for individuals with average risk."
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "args": {
+                  "request": "last colonoscopy"
+                },
+                "name": "MedicalRecordsAgent"
+              },
+              {
+                "args": {
+                  "request": "recommended age for colonoscopy and frequency"
+                },
+                "name": "SearchAgent"
+              }
+            ],
+            "intermediate_responses": [
+              [
+                "SearchAgent",
+                [
+                  {
+                    "text": "For a 47-year-old male at average risk for colorectal cancer, current guidelines recommend initiating regular screening. Most individuals in this category should have their first colonoscopy at age 45. If no polyps or abnormalities are found during this initial colonoscopy, the next screening is typically recommended in 10 years. It's important to note that these guidelines are for individuals with an average risk of colorectal cancer. You are considered to be at average risk if you do not have: * A personal history of colorectal cancer or certain types of polyps. * A family history of colorectal cancer. * A personal history of inflammatory bowel disease (such as ulcerative colitis or Crohn's disease). * A confirmed or suspected hereditary colorectal cancer syndrome (like familial adenomatous polyposis (FAP) or Lynch syndrome). * A personal history of radiation to the abdomen or pelvic area to treat a prior cancer. If any of these risk factors apply, you may need to begin screening earlier, be screened more frequently, or undergo specific types of tests. For example, if you have a first-degree relative (parent or sibling) with a history of colorectal cancer, screening might be recommended at age 40, or 10 years younger than the age at which your family member was diagnosed, whichever is earlier. While colonoscopy is considered the \"gold standard\" for colorectal cancer screening, other screening options are available. These include stool-based tests (like FIT or gFOBT annually, or a multi-targeted stool DNA test every three years) and other visual exams (such as CT colonography or flexible sigmoidoscopy every five years). If a non-colonoscopy screening test yields an abnormal result, a follow-up colonoscopy is typically required. For individuals aged 45-75, regular screening is recommended. The decision to continue screening after age 75 should be made in consultation with a doctor, considering individual health and prior screening history."
+                  }
+                ]
+              ],
+              [
+                "MedicalRecordsAgent",
+                [
+                  {
+                    "text": "Your last colonoscopy was on May 16, 2025, at St. Jude Medical Center with Dr. Sarah Chen. The outcome was: Colonoscopy completed. No issues found."
+                  }
+                ]
+              ]
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "btagent",
+        "user_id": "john.doe@gmail.com",
+        "state": {
+          "_time": "2026-03-04 21:52:10",
+          "_patient_demographics": {
+            "age": "47",
+            "gender": "male",
+            "zip_code_home": "10583",
+            "zip_code_work": "10011"
+          }
+        }
+      },
+      "creation_timestamp": 1772591871.475143
+    },
+    {
+      "eval_id": "time_windowed_visit_search",
+      "conversation": [
+        {
+          "invocation_id": "e-59f54b51-f546-4b3d-9e99-f851eadb6d3b",
+          "user_content": {
+            "parts": [
+              {
+                "text": "what doctor visits have I had in the past 12 months?"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "The following are your doctor visits in the past 12 months: On **February 9, 2026**, you had a routine check-up, flu vaccine, blood sugar and lipid panel tests with **Dr. John Doe**, a Primary Care specialist, at **Mt Sinai Hospital**. On **December 14, 2025**, you visited **Dr. Anna Schmidt**, a Dermatology specialist, at **Mercy General Hospital** for an eczema flare-up. You were advised to follow a healthier diet and reduce sodium intake. On **July 28, 2025**, you had an acid reflux checkup with **Dr. Sarah Chen**, a Gastroenterologist, at **St. Jude Medical Center**. During this visit, you also received a flu shot. On **June 6, 2025**, you had a lung function test with **Dr. Robert Taylor**, a Pulmonologist, at **City Wellness Clinic**. Your prescriptions were noted to be working as expected, and you were advised to continue your current dosage. On **June 1, 2025**, you had a Diabetes type 2 follow-up with **Dr. Elena Rodriguez**, an Endocrinology specialist, at **City Wellness Clinic**. Your prescriptions were noted to be working as expected, and you were advised to continue your current dosage. On **May 21, 2025**, you had an X-ray consultation with **Dr. David Kim**, a Radiology specialist, at **City Wellness Clinic**. A follow-up MRI was recommended in 6 months, and you were advised to reduce alcohol intake. On **May 16, 2025**, you had a colonoscopy with **Dr. Sarah Chen**, a Gastroenterologist, at **St. Jude Medical Center**. No issues were found.",
+                "thought_signature": "CrgDAY89a19cHX_FfcHCH79yylmVFAsEGWrZMhHgf0GqoCgZHY2XG3PjHOarTWW_utgVXqlM_8G4i-iKIriYKGs-8T1Ezs3rrxwMIrrK0d3hG7CLLjZWTJfZhl8uNITQ0VsH1t7Xj1XQru-QM96paAja_JimyRRvbYAuL8jvDsLw7U0gkr9tZFbL0x6SHYzPsEY2k0uI5DZ6uemOrpIbypC52CEOaD1t_WCg80j5eCR3q5tr2FAo2SmZQ_MMP3WPsr_6IprORjIG9hu1MujQmfEGgKoqLZvmQUisIxX0EPgX9CDCOtlI__soas44S9bGEa0SOp4_-fqR-0Zlwi9BRmpVIHmPhzcaMEK0TEm6PMsM6pl9EK7mFHgyo7JsuivTQ9MDhZjgbmdzxTvdEQSzMDKJ4Taxh-DBmyG1DBfzDelu7Z0zzg1EZTIMLavnY7lFDEqGhpsoYjrGSuSuxhY7g8byKB6xCBhOY0TIs5QhFxSqCXYt6hpIKW-aKJHzvgk5BHaZAkIYRs3X-WqL316UTU78xxsbdl2Ajfy0JUqjjXpDVNwBaTN5p4EjzVRwhyEslXBY5-X69Tl4-JA="
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "invocation_events": [
+              {
+                "author": "PersonalHealthConcierge",
+                "content": {
+                  "parts": [
+                    {
+                      "function_call": {
+                        "id": "adk-5929e5d1-8ea3-41f4-983a-4a2d53b03ba1",
+                        "args": {
+                          "request": "doctor visits past 12 months"
+                        },
+                        "name": "MedicalRecordsAgent"
+                      },
+                      "thought_signature": "CroCAY89a1_9OvKHDwW37sddrzKsKmwaVcKez7K8Xq5AvH5GYCTbyl-J0FOwPV-b7DNY8BkWLW2p2o6aD3hUjoQWNUkLYegC2PQb_3T40ZzH78fOxtJN6iToCrI-KDpE5RAbhAauM7GvKHjoiWkG71kDe28pW0HfMrUKSPkz7JDMMidYvkw6NbFOvCzlBFj4OClDKNNmKzK41d-AzwYPJ7HhGcWeXD0pPp21GD1TgOp_zWq8kelc5Nz6yxkNk4bB7IRQdffUKDhHCQqD5gNi2wQJjj2BmWpRCbJGv5kwuK1k57y9de777i0VXCSwDLnjmn9YNkemDt1BX6e9pcfzN4H9d8VOtrsDqwCu7NwulA3LeQyE0yLn9r0o05AKZJnCmnCt_Y-UlPh9N4GCWxk6sfz-URxDHKRR8M_pXJ0="
+                    }
+                  ],
+                  "role": "model"
+                }
+              },
+              {
+                "author": "PersonalHealthConcierge",
+                "content": {
+                  "parts": [
+                    {
+                      "function_response": {
+                        "id": "adk-5929e5d1-8ea3-41f4-983a-4a2d53b03ba1",
+                        "name": "MedicalRecordsAgent",
+                        "response": {
+                          "result": "Here are your doctor visits in the past 12 months: **February 9, 2026** * **Doctor:** Dr. John Doe * **Speciality:** Primary Care * **Facility:** Mt Sinai Hospital * **Reason for visit:** Routine check-up, flu vaccine, blood sugar and lipid panel tests * **Outcome/recommendations:** Not specified **December 14, 2025** * **Doctor:** Dr. Anna Schmidt * **Speciality:** Dermatology * **Facility:** Mercy General Hospital * **Reason for visit:** Eczema flare-up * **Outcome/recommendations:** Vital signs stable. Advised healthier diet and reducing sodium intake. **July 28, 2025** * **Doctor:** Dr. Sarah Chen * **Speciality:** Gastroenterologist * **Facility:** St. Jude Medical Center * **Reason for visit:** Acid reflux checkup * **Outcome/recommendations:** Administered flu shot during visit. No immediate concerns. **June 6, 2025** * **Doctor:** Dr. Robert Taylor * **Speciality:** Pulmonologist * **Facility:** City Wellness Clinic * **Reason for visit:** Lung function test * **Outcome/recommendations:** Prescriptions are working as expected. Continue current dosage. **June 1, 2025** * **Doctor:** Dr. Elena Rodriguez * **Speciality:** Endocrinology * **Facility:** City Wellness Clinic * **Reason for visit:** Diabetes type 2 follow-up * **Outcome/recommendations:** Prescriptions are working as expected. Continue current dosage. **May 21, 2025** * **Doctor:** Dr. David Kim * **Speciality:** Radiology * **Facility:** City Wellness Clinic * **Reason for visit:** X-ray consultation * **Outcome/recommendations:** Follow-up MRI required in 6 months. Advised reducing alcohol intake. **May 16, 2025** * **Doctor:** Dr. Sarah Chen * **Speciality:** Gastroenterologist * **Facility:** St. Jude Medical Center * **Reason for visit:** Colonoscopy completed. No issues found. * **Outcome/recommendations:** Not specified"
+                        }
+                      }
+                    }
+                  ],
+                  "role": "user"
+                }
+              }
+            ]
+          },
+          "creation_timestamp": 1772852099.241023
+        }
+      ],
+      "session_input": {
+        "app_name": "backend",
+        "user_id": "john.doe@gmail.com",
+        "state": {
+          "_time": "2026-03-04 21:52:10",
+          "_patient_demographics": {
+            "age": "47",
+            "gender": "male",
+            "zip_code_home": "10583",
+            "zip_code_work": "10011"
+          }
+        }
+      },
+      "creation_timestamp": 1772852119.8038359
+    },
+    {
+      "eval_id": "last_flu_vaccine",
+      "conversation": [
+        {
+          "invocation_id": "e-d9f9f01d-082a-48c5-bb27-6de848039004",
+          "user_content": {
+            "parts": [
+              {
+                "text": "when was my last flu vaccine?"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Your last flu vaccine was administered on **February 9, 2026**, by **Dr. John Doe** at **Mt Sinai Hospital**.",
+                "thought_signature": "CpkDAY89a1_odIqzI-qkseP7jG97UmUq0xjutG4z3FvHd6lulVjadfcI_ZJSJy3NuWAa6qDexQFYC9KnUEcVqrtEyVGmQvGAv9pU505_B7QwNtP9zm_6Qc4l3gHqUmCe_9AHJgqh17VPPe0XPH6oAUG-4ova8FI0C9znUXEc3c2OWMantFnzRNbWza2sZJ5BdOagRLZj-M6kXb8NFgtbdpII6M4f60W0qTTnVbWSOe_bdZ1Tjag10gt13Ahl_4gFCn5jKSBHfq5kjbHK_URXu_8JbLSDlEPOVipIUKfpKSUDNYlTBCMXKG7-FbA9bvDElFirpxIhQo93zMdiLtawRNfCURZ9f4W0Fx8x_1ufDBZuL6U71fFg9q56dYd95kjvZYSBUDGjY0QsltndRjWY9D5zPVhGpvW3vDGVvd2JmRm9Y08Q9KqiXnJvl9vI-n5mjfxQKHpo0xYIyLNBXW__ZE7EPLxhEI7Dv3n2-pS9O_V6DgJ22NyhPzuBdKiDt7KgsRQelJiDiK0cTvmc50gZeApbO5-qyGLftvygAw=="
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "invocation_events": [
+              {
+                "author": "PersonalHealthConcierge",
+                "content": {
+                  "parts": [
+                    {
+                      "function_call": {
+                        "id": "adk-97256419-0c37-4cfb-8d7a-72e1747da832",
+                        "args": {
+                          "request": "last flu vaccine"
+                        },
+                        "name": "MedicalRecordsAgent"
+                      },
+                      "thought_signature": "CuwBAY89a18FZUUJb7Fj5YdOyR6M6kSumWe__PDMmXxG6GgSIkg6s-TWbCdH-mm1vZpCZbo0QI-99rHgEVw-vk2L-HSkrpICSyVZVDa_MPyQueCw-6s68n8W0cVyryxBzFvMbQjXJIVYj0X7yGU1iXju1SwpUwHt8sw4joNoPVroxOcjXlgRJ5TO8meuM1tu8Kx7PXGT1sRKBbrDOcoHIIfo0jXtez2NIp6yEROmqfkvyed9WCWISH1Nu54ogQWDby7NjoISL8MqsOZ2X7gQhvYyXf4ttjVjWY1RVo3CvBSNSLYflMjWi95rlYPMcyw="
+                    }
+                  ],
+                  "role": "model"
+                }
+              },
+              {
+                "author": "PersonalHealthConcierge",
+                "content": {
+                  "parts": [
+                    {
+                      "function_response": {
+                        "id": "adk-97256419-0c37-4cfb-8d7a-72e1747da832",
+                        "name": "MedicalRecordsAgent",
+                        "response": {
+                          "result": "The last flu vaccine was administered by Dr. John Doe, a Primary_Care specialist at Mt Sinai Hospital, on 2026-02-09. The reason for the visit was \"Routine check-up, flu vaccine, blood sugar and lipid panel tests\". No outcome or recommendations were specified."
+                        }
+                      }
+                    }
+                  ],
+                  "role": "user"
+                }
+              }
+            ]
+          },
+          "creation_timestamp": 1772852544.854158
+        }
+      ],
+      "session_input": {
+        "app_name": "backend",
+        "user_id": "john.doe@gmail.com",
+        "state": {
+          "_time": "2026-03-04 21:52:10",
+          "_patient_demographics": {
+            "age": "47",
+            "gender": "male",
+            "zip_code_home": "10583",
+            "zip_code_work": "10011"
+          }
+        }
+      },
+      "creation_timestamp": 1772852636.917183
+    },
+    {
+      "eval_id": "next_flu_vaccine",
+      "conversation": [
+        {
+          "invocation_id": "e-d9f9f01d-082a-48c5-bb27-6de848039004",
+          "user_content": {
+            "parts": [
+              {
+                "text": "when is my next flu vaccine?"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Your next flu vaccine is scheduled for **May 17, 2026**, with **Dr. John Doe** at **Mt Sinai Hospital**.",
+                "thought_signature": "CpkDAY89a1_odIqzI-qkseP7jG97UmUq0xjutG4z3FvHd6lulVjadfcI_ZJSJy3NuWAa6qDexQFYC9KnUEcVqrtEyVGmQvGAv9pU505_B7QwNtP9zm_6Qc4l3gHqUmCe_9AHJgqh17VPPe0XPH6oAUG-4ova8FI0C9znUXEc3c2OWMantFnzRNbWza2sZJ5BdOagRLZj-M6kXb8NFgtbdpII6M4f60W0qTTnVbWSOe_bdZ1Tjag10gt13Ahl_4gFCn5jKSBHfq5kjbHK_URXu_8JbLSDlEPOVipIUKfpKSUDNYlTBCMXKG7-FbA9bvDElFirpxIhQo93zMdiLtawRNfCURZ9f4W0Fx8x_1ufDBZuL6U71fFg9q56dYd95kjvZYSBUDGjY0QsltndRjWY9D5zPVhGpvW3vDGVvd2JmRm9Y08Q9KqiXnJvl9vI-n5mjfxQKHpo0xYIyLNBXW__ZE7EPLxhEI7Dv3n2-pS9O_V6DgJ22NyhPzuBdKiDt7KgsRQelJiDiK0cTvmc50gZeApbO5-qyGLftvygAw=="
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "invocation_events": [
+              {
+                "author": "PersonalHealthConcierge",
+                "content": {
+                  "parts": [
+                    {
+                      "function_call": {
+                        "id": "adk-97256419-0c37-4cfb-8d7a-72e1747da832",
+                        "args": {
+                          "request": "next flu vaccine"
+                        },
+                        "name": "MedicalRecordsAgent"
+                      },
+                      "thought_signature": "CuwBAY89a18FZUUJb7Fj5YdOyR6M6kSumWe__PDMmXxG6GgSIkg6s-TWbCdH-mm1vZpCZbo0QI-99rHgEVw-vk2L-HSkrpICSyVZVDa_MPyQueCw-6s68n8W0cVyryxBzFvMbQjXJIVYj0X7yGU1iXju1SwpUwHt8sw4joNoPVroxOcjXlgRJ5TO8meuM1tu8Kx7PXGT1sRKBbrDOcoHIIfo0jXtez2NIp6yEROmqfkvyed9WCWISH1Nu54ogQWDby7NjoISL8MqsOZ2X7gQhvYyXf4ttjVjWY1RVo3CvBSNSLYflMjWi95rlYPMcyw="
+                    }
+                  ],
+                  "role": "model"
+                }
+              },
+              {
+                "author": "PersonalHealthConcierge",
+                "content": {
+                  "parts": [
+                    {
+                      "function_response": {
+                        "id": "adk-97256419-0c37-4cfb-8d7a-72e1747da832",
+                        "name": "MedicalRecordsAgent",
+                        "response": {
+                          "result": "The next flu vaccine is scheduled to be administered by Dr. John Doe, a Primary_Care specialist at Mt Sinai Hospital, on 2026-05-17."
+                        }
+                      }
+                    }
+                  ],
+                  "role": "user"
+                }
+              }
+            ]
+          },
+          "creation_timestamp": 1772852544.854158
+        }
+      ],
+      "session_input": {
+        "app_name": "backend",
+        "user_id": "john.doe@gmail.com",
+        "state": {
+          "_time": "2026-03-04 21:52:10",
+          "_patient_demographics": {
+            "age": "47",
+            "gender": "male",
+            "zip_code_home": "10583",
+            "zip_code_work": "10011"
+          }
+        }
+      },
+      "creation_timestamp": 1772852636.917183
+    },
+    {
+      "eval_id": "upcoming_appointment_check",
+      "conversation": [
+        {
+          "invocation_id": "e-ed904c9a-8552-44c3-9c9c-a9d92e9b3cd2",
+          "user_content": {
+            "parts": [
+              {
+                "text": "when is my next doctor appointment? Do I have to fast for it?"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Your next doctor's appointment is with **Dr. John Doe** at **Mt Sinai Hospital** on **May 17, 2026**, for a routine check-up, flu vaccine, blood sugar and lipid panel tests. Yes, you will need to fast for this appointment because both blood sugar and lipid panel tests generally require fasting for accurate results. For a blood sugar test, you'll typically need to fast for at least 8 hours, and sometimes up to 12 hours. For a lipid panel test, most healthcare providers will instruct you to fast for 10 to 12 hours beforehand. Fasting means refraining from eating or drinking anything except plain water. Please confirm the exact fasting requirements with your doctor or the hospital.",
+                "thought_signature": "CvgGAY89a1-jCd6tM1Hu8pV-dr8bRMDuMxKhNQKozSeMU7Oi_4d5Mlf4ko_8-2IIS7Tf8og7iJ8TRVNEv6cPYrSLc2A9lQabGGHbpcPN5xVDTdrS57uy_3QqQhDCsqD6wErcozPZl-HmrQD8lDqM6GI7UP6ITThl-fWfXK2o_oWXDhqLTT2d4TpNdYjKd35W1T8TMimS8UbX_lb4g-zizP1T-2-SNgcF18uEJHFk1rpMPuryxo8jK3-eY8grif3HufXNb5SiVUINZLT30AMBJ9O7gocecYTr03shl24wVdoesJgsAZeS8E1YQunYJCvj0ORx_LVwzPqDf51k9ykedGUaE7d1RJ6iBPf8mBKxlJeh1VM5zAQ3L_JC2v5zWKwbqM22-rOlmT18Ym6gx62w37ls86pFK_PybGD5oYaxKCTJGBEfnwXTdYugHgvx3bA_Kachrdkd9_KX_lix5xro00n55ymVu9QMMSJ6ClH236CAvpXo_s461rxT_gV5xc-wsXev4zqyeV5SfnEsESnTE8j1n5iUqkoWXQtPt-m5Y_fOPzJOe009No4os-DiTZ8tiqaf-aEabolW8pjglAnvm02wZ8wHpi4aRNq7ck4fX7amCLDUDHvlmwAcaXBOq73a58DqFIHg9AJ-XcAQQM9S2ca_hzy06d2Um8hPQhedICNzbtds2vrnwRuU9EjuK9xNP7jcTfiZTF4LOtPKbW2Gb_zulN-_khvI1ev454N2ecopg5HnsOKsVyGOGOjKVlyjQ3WODUWozHEV-yuPs20a3O4lL5ITPgY1jbDz5ut81wQL5dBrr2_Y2aG5O-V8vbkrv9-sNhmLFheuYiAV1RwjXjIxU6hWjd9ciV21L8EgWSKtJhKBu5fCkQa3bZ40Asrd_XSWKg7sHzwOWhHemrJ8ZHiiQlo5eNrCq1hkToeGR1KENYp7yqyX0WwEyr7DLFUwX2AIzdMge_UhUoEt7m8YCYuvph8egOCqzi7S_9bsThaztsxPRy00TiWIAmcHwRB5AWXzyp8f9voBLhSJCFuQek6M8VrfEPN-lhd8gNTts8jBmTuyNZ5C79NCjzFQo_7dqRRDcWyUw8skC_lBDPpCpG5OJg5bJYAe3uFkQOmKhsoTWH5aBeDkkWLEqGnoIVgCDZZk5eifbssjaK4zOqsFZn5FEA8KQjpSaeG1"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "invocation_events": [
+              {
+                "author": "PersonalHealthConcierge",
+                "content": {
+                  "parts": [
+                    {
+                      "function_call": {
+                        "id": "adk-8826dc15-d3b5-4039-8b13-9ef37ba2bb11",
+                        "args": {
+                          "request": "next doctor appointment"
+                        },
+                        "name": "MedicalRecordsAgent"
+                      },
+                      "thought_signature": "CocEAY89a18dGG0t482gj96TxRsNF9ornfygpJKzesH98PWs0WDQqKgkpaja3d4tx2qgdYZXKsPvTHNChmKeSLyIRl1wf8zKXp2Xd6CebuNW2Drz_vkcp5zO9o8ctS6AMcMkxRJgZBqalf33tk3zZREWc6nU22xXNKf2qmmAWDcO3vgnhwde0EOgM61HqG4TOnin8DU__cojyqKGScfXRnWmfs0_RPKaMuQ1Oka7xFBOFVlVhD4qnTtD4Du1o4yCFsS7hV-5jIHT1aOO4FHXgDGWJ_1DRpfNYvx1yjZ2BrhjWOKCDBzFasZqXMTEQj0JjwR5-smvusiD7JTQLTWThWxZgnnA6X2Zi0cIGXNN6m1fiSYTM3omZMI3Y0IRAXtwT2Sm2GKqn5zh2jh82Nyp9NLFzrmfPDq6HFSVAau5qhma6N7rXT1KjgIrhpWgkt-a_NljKsmce3bh6FJwHHjXVO_YcCqdkOeZO3rqpDvp-xrzPl-Smd3Mgao_t0xxdk7pOh78Yweu0a1FBB8BNQYlCWS8G-w9KlcaTjJu8AAC5EA1af5WzW3R7nTEPvLwFmjL5C0spCtJXz8ksa-d3uWYANkifh7IqOMfrDa_gNdxotIkorj84D__hEzrMF8-pl5s8rhdtlz6DCR42Dl5tTttiST9HCYpmjGlY6BKsEoGh9bgzNQCVt9jTev_"
+                    }
+                  ],
+                  "role": "model"
+                }
+              },
+              {
+                "author": "PersonalHealthConcierge",
+                "content": {
+                  "parts": [
+                    {
+                      "function_response": {
+                        "id": "adk-8826dc15-d3b5-4039-8b13-9ef37ba2bb11",
+                        "name": "MedicalRecordsAgent",
+                        "response": {
+                          "result": "Your next appointment is a routine check-up, flu vaccine, blood sugar and lipid panel tests with Dr. John Doe at Mt Sinai Hospital on 2026-05-17."
+                        }
+                      }
+                    }
+                  ],
+                  "role": "user"
+                }
+              },
+              {
+                "author": "PersonalHealthConcierge",
+                "content": {
+                  "parts": [
+                    {
+                      "function_call": {
+                        "id": "adk-f20a81a3-f2ac-4f70-b230-42725531bbb0",
+                        "args": {
+                          "request": "Do I need to fast for blood sugar and lipid panel tests?"
+                        },
+                        "name": "SearchAgent"
+                      },
+                      "thought_signature": "CroFAY89a19hyDEDppzjvpwhSx2TBrPnwKVqcsS9S_67Pfb28smdWJuwQoIz29xGfeWawq2h4yQLn6AM_na2ZyvuQefHKwmB4FUxyFz0I5rpy552CRbT-mJOqm8BqR-_RU6d46-wIpqUH2bkQ5nthkiD_bHmWlwLWM0KyD292NEXyJdp2swMceFzLf6e01vn5LPPQNp1hmtlOrRyz52x6Wb89H2cacEqNZ_CCoEUP7o0D6RQ3GW_UtZRxCyPH---xiOtxXKKNdD5OJ16K-cJYUtl5psGFkjWOi11Vzmbgw6pnIN0aXflauy9BeB-N9S9JxZ_63SPjG-ZSddE9lYnYqCHaiiXJ4FMLG6vCLXY07zNcYJmyCp9aacvjwEbPs0rnNkN_rkUpig-M1P4lreEovZWGqaj4cOpGGhNXK8uYJvZ0CxLsmHZyyx44dw9lquC2vd4GG6VvlZo6OA4oZtkOeIanMQeiWqd6QsI6I9_pCaiTBy-cGXWHYq2dHyWm0U4xXutsvczxKwp5vtS8-O7Y0-vY-TwE7ragiSRyHMuCZVSMHQx7GMsO_32q1irWn5gDJ_wmKxHvAmYkYwEkxUhYXPaXttVGWURfNrbRIvPhlrXkFfCgIN8XSRuCCTf_SbzALY87BOSyQFnarwk21IHS4sdQ90VzMCsPo_yYpyBAECc1PL2DI102Qc6EqyEHGEwFqSIGnMTLnckGtr8-QAETDv_2d4QYcGzSPWid3dw4uNxl2TeQ06gL86HFFHSFcUAQbRBpLN4_SMiWASIYrlR-Fxr-cyLNuvoF5_EZoAOqUTn5I6QX8kCWmw1zXJpF3a2D2Qtw7cyPtr6tzQy5BtDC0A2ZQyl8tEwAvMC46pSSJQ5I0Web89rEwp0SLCp51NLQCjkoTL3PZcCksi_dg2KZWhgPkyNYp6VgdiUJkI="
+                    }
+                  ],
+                  "role": "model"
+                }
+              },
+              {
+                "author": "PersonalHealthConcierge",
+                "content": {
+                  "parts": [
+                    {
+                      "function_response": {
+                        "id": "adk-f20a81a3-f2ac-4f70-b230-42725531bbb0",
+                        "name": "SearchAgent",
+                        "response": {
+                          "result": "You generally need to fast for both blood sugar and lipid panel tests, though there are some exceptions and nuances for each. It's always best to confirm specific instructions with your healthcare provider.\n\nFor **blood sugar tests**:\n*   A **fasting blood glucose test** requires you to fast for at least 8 hours, and sometimes up to 12 hours, before the test. During this time, you should not eat or drink anything except water. This helps ensure the test measures your body's natural glucose levels.\n*   An **oral glucose tolerance test (OGTT)** also requires fasting for at least 8 hours prior to the initial blood draw.\n*   Other blood glucose tests, such as a **random blood glucose test** or a **hemoglobin A1C (HbA1c) test**, typically do not require fasting. An A1C test provides an average of your blood glucose levels over the past three months and doesn't require special preparation.\n\nFor **lipid panel tests**:\n*   Most healthcare providers recommend fasting for 8 to 12 hours before a lipid panel test. This is because food and drinks can temporarily alter triglyceride and VLDL cholesterol levels, potentially leading to inaccurate results. Only water is permitted during the fasting period.\n*   Eating before a lipid panel test can cause triglyceride levels to rise temporarily. While total cholesterol and HDL (\"good\") cholesterol levels may not be significantly affected by eating, LDL (\"bad\") cholesterol values might be slightly higher when not fasting.\n*   However, non-fasting lipid panels are becoming an option for routine screenings or when fasting is impractical. Some studies show that differences in LDL cholesterol values between fasting and non-fasting tests are often negligible for most people. If your triglyceride levels are usually normal (below 150 mg/dL), you might not need to fast.\n*   If you have a history of high triglyceride levels, fasting is generally advised for a lipid panel.\n\nTo ensure the most accurate results, it's advisable to follow your doctor's specific instructions regarding fasting before any blood test."
+                        }
+                      }
+                    }
+                  ],
+                  "role": "user"
+                }
+              }
+            ]
+          },
+          "creation_timestamp": 1772947782.942846
+        }
+      ],
+      "session_input": {
+        "app_name": "backend",
+        "user_id": "john.doe@gmail.com",
+        "state": {
+          "_time": "2026-03-04 21:52:10",
+          "_patient_demographics": {
+            "age": "47",
+            "gender": "male",
+            "zip_code_home": "10583",
+            "zip_code_work": "10011"
+          }
+        }
+      },
+      "creation_timestamp": 1772947840.34055
+    },
+    {
+      "eval_id": "latest_glucose_test_result",
+      "conversation": [
+        {
+          "invocation_id": "e-ec1fe2d5-b8e0-470e-82d5-0d832a379f1e",
+          "user_content": {
+            "parts": [
+              {
+                "text": "what's my latest Glucose test result?"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Your latest Glucose test result was **33.58** on **January 14, 2026**."
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "invocation_events": [
+              {
+                "author": "PersonalHealthConcierge",
+                "content": {
+                  "parts": [
+                    {
+                      "function_call": {
+                        "id": "adk-bc9c2036-05d4-42d9-84fd-f6c9c51cf051",
+                        "args": {
+                          "request": "latest Glucose test result"
+                        },
+                        "name": "MedicalRecordsAgent"
+                      },
+                      "thought_signature": "CuQBAY89a18XOomRYaGuECIL7zw5ZObZbEHUOvL154wcLMLoEKDc6zdbyCvVmxDMDQoteJkFybRtnJKQfrvk07_qpG6WXfuP4d3lqonjWopK6zjNyktzaA6NUOjNOMNiBom4VTCTIJBpbtL_bHQlZKfV3MvjKRnIEhX37QsYlDezbsKbXw0QNi2guYeY4K1Pse7g2x79LH0N9HHezw_3wO2jXb0OSYCHbw0162woJSoz_13wFUw7YFDeABpz9dTteBbf9ker4mdF--EHScWi18vZ2JCpMpmZ4sRaHGoMznvwrI-9sJe2"
+                    }
+                  ],
+                  "role": "model"
+                }
+              },
+              {
+                "author": "PersonalHealthConcierge",
+                "content": {
+                  "parts": [
+                    {
+                      "function_response": {
+                        "id": "adk-bc9c2036-05d4-42d9-84fd-f6c9c51cf051",
+                        "name": "MedicalRecordsAgent",
+                        "response": {
+                          "result": "Your latest Glucose test result was 33.58 on January 14, 2026."
+                        }
+                      }
+                    }
+                  ],
+                  "role": "user"
+                }
+              }
+            ]
+          },
+          "creation_timestamp": 1772948250.915929
+        }
+      ],
+      "session_input": {
+        "app_name": "backend",
+        "user_id": "john.doe@gmail.com",
+        "state": {
+          "_time": "2026-03-04 21:52:10",
+          "_patient_demographics": {
+            "age": "47",
+            "gender": "male",
+            "zip_code_home": "10583",
+            "zip_code_work": "10011"
+          }
+        }
+      },
+      "creation_timestamp": 1772948266.081932
+    },
+    {
+      "eval_id": "recent_specialist_visit",
+      "conversation": [
+        {
+          "invocation_id": "e-28d70554-fcba-4098-b988-a1e08e195892",
+          "user_content": {
+            "parts": [
+              {
+                "text": "which specialist did I see most recently about high blood pressure?"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "The most recent specialist you saw for high blood pressure was **Dr. Michael Ross** in Cardiology on **January 16, 2025**, at **Cymbal Health Central**. He prescribed new medication and recommended increasing daily exercise for hypertension management.",
+                "thought_signature": "Cp4DAY89a185akgG3UI7-30MAQG4hVQw6EhE4nNBIh5H69noTbPZF-1ZHhOLxZWOOznt4-CqaGV5ZstNha0kGNEOhLhT4fqFPe6zAO5pbzxZKE9E98vaFAgreTuojpmai0iFy8vC7SqrDZM0O0g28QXuI1jAxT0T-coH_CdV_t1lnyHc-mFtYPsCO_DDMkJ5nHViRwDxnBDEEpnLZkNIwq8OmUfmLSJuQNziyNW0HpquzZX-raHcXjGzVwtF9PQhv-XbWFvH-CJUGCkNhGBD3HjVMiJ8qiiGmNIcPdIrhrw6Xmu-YlMLHaj1V2QtIkItdbdIVeOdweQy-Lg8JNweptVfrrBhtZsZDc4jKOciHHXhSX9m8ixQTtLrNKt64fzBq3vjT5Jkjj1QZu-ej9-TKQG6OfgZEUINz5DT4fYc3JV9Ad5aJMysFHfYeHgQlFMumG-6KlTKpsTlG_94clUhIQokfZL3oGBwvbtBmgDXBuupVjAAqvjqR72M4_sRmE8Jr35o-0HyH1FXjpbqFQUZ09K6r-ie4ymNZrM5in3Rwa-R"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "invocation_events": [
+              {
+                "author": "PersonalHealthConcierge",
+                "content": {
+                  "parts": [
+                    {
+                      "function_call": {
+                        "id": "adk-88599a87-1e3b-4692-bd43-73037804c35f",
+                        "args": {
+                          "request": "most recent specialist for high blood pressure"
+                        },
+                        "name": "MedicalRecordsAgent"
+                      },
+                      "thought_signature": "CvsCAY89a19Tuy9V7XlzkyE_V1XNyx59yPNAaGJ0cP2i2wvjjGTCdX_6_VZ32ZtB5Jcs4g5MnZXDfGLv4AjCCQBXuS8b9tTIi27czy4d1vD3Hy4opymAOGFigHeHhGstNdbhZWJS0p57P0_2xEfM2PYf-HDwkZ72Jje8PT5i-P5Nz4FdrRFOghZTBAuhoVypNHyuc7bT-oWyNyyP37VBEQNs8yrvhI8jMyRYtIK4St2zMHBScXbGQhcvjQrID502qfgjYI14efNJoGUBUaVY7S_9q02UG2iurv8dnX7Yu5mOigA92kmGYPzTX7HRxZHJHqtY4Yv7xV1kfRo7wn1ObPxsBMFCukAO6l5FexVaM42RdVfGSf39Vc6us-9L0NaVMAz9s5R0mHpo6-Fyk3LjjIzH0e05GK6uGhxrVk-_A8H2oQq2YxU_Eo6hhWbkKVbLPsn1uApHfTsTnCJPOS-V-4_MQ4CjSV_XtqxdMIYGUEnWRQ8YQ2NRq7fvaQ32dA=="
+                    }
+                  ],
+                  "role": "model"
+                }
+              },
+              {
+                "author": "PersonalHealthConcierge",
+                "content": {
+                  "parts": [
+                    {
+                      "function_response": {
+                        "id": "adk-88599a87-1e3b-4692-bd43-73037804c35f",
+                        "name": "MedicalRecordsAgent",
+                        "response": {
+                          "result": "The most recent doctor for high blood pressure was Dr. Michael Ross. Speciality: Cardiology Facility: Cymbal Health Central Reason for visit: Hypertension management Date of visit: 2025-01-16 Outcome/Recommendations: Prescribed new medication. Recommended increasing daily exercise."
+                        }
+                      }
+                    }
+                  ],
+                  "role": "user"
+                }
+              }
+            ]
+          },
+          "creation_timestamp": 1772951457.396965
+        }
+      ],
+      "session_input": {
+        "app_name": "backend",
+        "user_id": "john.doe@gmail.com",
+        "state": {
+          "_time": "2026-03-04 21:52:10",
+          "_patient_demographics": {
+            "age": "47",
+            "gender": "male",
+            "zip_code_home": "10583",
+            "zip_code_work": "10011"
+          }
+        }
+      },
+      "creation_timestamp": 1772953595.898674
+    },
+    {
+      "eval_id": "single_test_series",
+      "conversation": [
+        {
+          "invocation_id": "e-9cc208d4-d559-4306-8c81-8975b47b7125",
+          "user_content": {
+            "parts": [
+              {
+                "text": "Can you show me a history of my Albumin tests?"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "```recharts [ {\"date\": \"2020-10-05\", \"value\": 53.95}, {\"date\": \"2021-10-16\", \"value\": 44.34}, {\"date\": \"2022-07-06\", \"value\": 37.08}, {\"date\": \"2023-07-11\", \"value\": 147.8}, {\"date\": \"2024-08-24\", \"value\": 36.71}, {\"date\": \"2025-01-25\", \"value\": 95.4}, {\"date\": \"2026-01-27\", \"value\": 25.12} ] ```",
+                "thought_signature": "CqAHAY89a194KGO64K9LZQfzQBZi-NHApU3pwNOAruj2jRbkknYpTnPC6tUcnODShp7PnUQRKMIuMifpUk7evcsoRtU9VIb9-LHdb3kvIH0zIc4NeHxQdxHg10RbDTRgmcPkoAPaOaLQ4AIjrB4WJLj4zov9UYsVaTE7Pq15Bspnu6HWJ98myDulk_YjSzYgoPiGDOQ07n0Ld18FxJbFVLMOv2AYb-ydxwauyMjpwtmhsPYHuAKd9f-0_mOd0Aon_2LnwS9JzBj6CKVeNGDjFa4u2mxKEejmod8g-k-B_-e18OkAxUwOF0WaqlfbWjhLwikNHQLQtdZdUyxBv_JgA1p21H8DEKWHWvS_-N0Yk9oKgVK3cykllFki3cjSB28P0wa6PSEQCaM_kT-whVhXeEO0rmwP1cKD7Da7Grcdunjd6lN0694BtjjWHSQ5Fr9Bnd96bo2zsFKabpOIE9FHTKpIOgew9Jz8tr3IbaX4htsj2ACjdfG-SpGljhbPT41D7-TRTC5N9aq6upDOjlIYfH4_XtGkmLy2jLRW5GS04Sw6Y5L1DCKmuF4Q4E3wG-skvKbFPleS0XiZ7r_bBLlDSxsDQxsobWvq06F8Abxi9E9FFy2iF6SU1JK2LFK7SvPHv6N_KTNqvSggQhAGK3VUgwy9rDzoNk6daWeWXF87bdr5KFbXl8Yh_S-_oWPDd_ToFf65VlcH1M9guNYzmF12EGfg11_506mU6DXCKYfwnwoz6-uaDzl80YMYd4RuNRJ_JuIqNHv9CSyxb4GCSAS_2Ixc4WXSRtoS6PyMTSUwP6BMOPosiu2Ln6QESdhYE5jJiBypkKl3IApjghzRM8QP1NJ-9cezpPBw2o0y6qR1ZYQc1G3VvsI91kZCt6lGlaDmPgT8bI0tmidYaQkMCEgo2ULYWBYUCMy8smtXRdUYd23pa_8H9H8cUa4JvSN8S489Q6v0U0kN7gMo7cTMwrvZ9TgBfGypH6IWhq8dTQBbWiaWlDpBXhWMepuStS93EpPuew-5JyAvXqPZ064iBcwHzYx6QoP0DatKGn2ADkKgqmJ2qSrdjOzLGcDUfeYSGtGE-BS7qmX4K8XW6-rYjKQuFLn3X4iNtTgjjUpT--w5-tja6UajHZbXAQ4fp5e9ZGUeF2wnvF5PCI2lgsNRe1_g4MFSJ7OYz4Cw-KprIV6aCPt7OZ_9p5nfhw2FFV_RZ7WPxdrcf876m-VF4bYYYuZ_aaGjkg=="
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "invocation_events": [
+              {
+                "author": "PersonalHealthConcierge",
+                "content": {
+                  "parts": [
+                    {
+                      "function_call": {
+                        "id": "adk-584a6626-da6d-4270-9869-cbd38d6d7897",
+                        "args": {
+                          "request": "history of Albumin tests"
+                        },
+                        "name": "MedicalRecordsAgent"
+                      },
+                      "thought_signature": "CqUCAY89a18mhHmf14eKSwRI8BTcOdwKqICmUL32za589cCcwiMyIVOGptKrz8xJ9v7v2x7HZwxrSoNJvn3IzUjbEWWdQd5Hp2V1PMZHZTS29Nuu9MZHoZIIzuOjsj1eU-C0Aihtgc26toAR0E2yrM10kG6vEbWF1KYjjExQedNHPYJIHeAPtIIirQnFvhiSm02TH7f-RbIIRXA-FVgJRV8eh8aHC738zfnHEgdlReUnZimTCPkJWWHc8xKspHb6D-FeXCG3JCtzYB9TsQzWPtJQ9QghWA0LrN2JVv7XnOLlb8Qu5hmI0KheuLnBwSyAazUCZdeKuqTOdLZEYIsNZC6J_JWgjL4p4eFwwDA8v303VC9HpOYc5D-ZLmjIDx88zQ3Zki63WTw="
+                    }
+                  ],
+                  "role": "model"
+                }
+              },
+              {
+                "author": "PersonalHealthConcierge",
+                "content": {
+                  "parts": [
+                    {
+                      "function_response": {
+                        "id": "adk-584a6626-da6d-4270-9869-cbd38d6d7897",
+                        "name": "MedicalRecordsAgent",
+                        "response": {
+                          "result": "Here's your Albumin tests history: * **2026-01-27**: Albumin - 25.12 * **2025-01-25**: Albumin - 95.4 * **2024-08-24**: Albumin - 36.71 * **2023-07-11**: Albumin - 147.8 * **2022-07-06**: Albumin - 37.08 * **2021-10-16**: Albumin - 44.34 * **2020-10-05**: Albumin - 53.95"
+                        }
+                      }
+                    }
+                  ],
+                  "role": "user"
+                }
+              }
+            ]
+          },
+          "creation_timestamp": 1772956046.993883
+        }
+      ],
+      "session_input": {
+        "app_name": "backend",
+        "user_id": "john.doe@gmail.com",
+        "state": {
+          "_time": "2026-03-04 21:52:10",
+          "_patient_demographics": {
+            "age": "47",
+            "gender": "male",
+            "zip_code_home": "10583",
+            "zip_code_work": "10011"
+          }
+        }
+      },
+      "creation_timestamp": 1772956106.649039
+    },
+    {
+      "eval_id": "multiple_tests_time_windowed",
+      "conversation": [
+        {
+          "invocation_id": "e-2d481bd3-f6d0-480e-ab30-8ec334397c7a",
+          "user_content": {
+            "parts": [
+              {
+                "text": "what blood tests did I get in the past 3 months?"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Here are your blood tests from the past 3 months:\n\n| Date | Test | Result |\n|:---|:---|:---|\n| **January 30, 2026** | Co2 | 107.05 |\n| **January 27, 2026** | Albumin | 25.12 |\n| **January 27, 2026** | Bilirubin | 34.58 |\n| **January 17, 2026** | Creatine Kinase | 45.39 |\n| **January 14, 2026** | Glucose | 33.58 |\n| **January 14, 2026** | Globulin | 44.95 |",
+                "thought_signature": "CoIEAY89a1-GNozk2SRF-OomSUTx90JJIZFdZjyCLvwNT1lTpTp5Cy5JAV6nKEoVTIxE0dldSdzKfpA310a21vC4oQcDC89Ufi_LnmAEQbcsqXoB38QKdRLZoXYw0ciO0N468W45-gVIUk-OGsaElzVUSm4ZY2JSJTkbg8gAafB0rU4mz7BQAdkF7zQio9-sx9aru7b4opqGUescQ5BMBSocusuOjJoB3B-FWW_7f011o1mKDxD9sTI7FHRxGXhtBVx9gpmkLm-zvGn5e0vz5PHV30awPg1SCTBCSOt8TtAi_Yq1DdIl5jnVGwnPIJuc7vRLgDSn9m11I52UJBw8p3KIIZkSsLAdxPh4TkNQwOUErtRE-LbhutbKIasrv891NpX273nguJgs4OUva0Du-KOC8cY9MoBXtVKItwaf4PNu21ws9tZB5ImLLtPZNYxwXqmPRbrWk8IfCEW22k2iPFAWwbZhoo2nEtl7mZ-NaF8eP3_8X4taISijhbiSedSIq7Tr2ISa02zD6USamO2toioTkX-gpvjbf4aQH2R5oSMh8qiT3iHclWQIcWOn2ldunlI2J7UbRxZniwNWf1c4wYBEkV3AJ4aQwVpxbrWIAO2sfRI6roTorJTv-6KSvqIGWoq8aDBwloAOquXZLIwV5ibJBTJFbh2vSfXa08ULs6cIOY5MIg=="
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "invocation_events": [
+              {
+                "author": "PersonalHealthConcierge",
+                "content": {
+                  "parts": [
+                    {
+                      "function_call": {
+                        "id": "adk-3042e71c-1ef0-4256-920e-0b3b8fd21ac1",
+                        "args": {
+                          "request": "blood tests in the past 3 months"
+                        },
+                        "name": "MedicalRecordsAgent"
+                      },
+                      "thought_signature": "CoIEAY89a19O9RM0NZIQlJeED-KNnvvHxp-mJ_stbhAM4uL0xMW8bt55x7euNicS1o8widv8FtCrEkjQKk1q4cJSpOMzVEeBdOA3kC7UgAL7sN4_Pzgy1Q5b89FRs-nvqz3VCYm8GHoAXnncN9tyPn1I_Mvp2M8qcMriGLG7qZQnvgFrId2pCVhoevJIbSkL_Pe_7MujMocvRCtHr6hhfHzGbVytLBZIfS4ZnzggyDcFJ15dVP89_5a-KT6CmCHSiNYG3iZnqlwH3I-_PdeTxxotGlQNm1BDZOfMlCl1dT-dg2bnJja6hQacoBgSpKO33leiIyK1oKmlEShhO2c9EzJnhPD0x37vtSHX3vId9yL6UU5eREGvLCINEd7A4y87l9ZCYji3jW37iPV8J42slwC963bPDY87fAsJydUbHZhTyZqRutB4xNPr_HzzvHDN5GcBCq6G0iTflJibhnBc-CQJtHQM6cKhlbWuWhJUysUBaV5_2WyOFzoWc0WgXmNc-8TakCoWOSfBWrdN66UuUtQfo_M4pu8ceAcMv9Zua9ByD-90c2im5t5nY8luKaOwwYKPIX8uV-DBEaKqOQpSlBU7r7Zuc09ahD6t0VAZv9-2vBD9qgkACyH06Kr1q5zruj-uBTQCRcNWwsPdctPFUJGjXf8D_zCE0hfA8F1Lf_cE5lQdjA=="
+                    }
+                  ],
+                  "role": "model"
+                }
+              },
+              {
+                "author": "PersonalHealthConcierge",
+                "content": {
+                  "parts": [
+                    {
+                      "function_response": {
+                        "id": "adk-3042e71c-1ef0-4256-920e-0b3b8fd21ac1",
+                        "name": "MedicalRecordsAgent",
+                        "response": {
+                          "result": "Here are your blood test results from the past 3 months:\n\nOn 2026-01-30:\nCO2: 107.05\n\nOn 2026-01-27:\nAlbumin: 25.12\nBilirubin: 34.58\n\nOn 2026-01-17:\nCreatine Kinase: 45.39\n\nOn 2026-01-14:\nGlucose: 33.58\nGlobulin: 44.95"
+                        }
+                      }
+                    }
+                  ],
+                  "role": "user"
+                }
+              }
+            ]
+          },
+          "creation_timestamp": 1772956486.481573
+        }
+      ],
+      "session_input": {
+        "app_name": "backend",
+        "user_id": "john.doe@gmail.com",
+        "state": {
+          "_time": "2026-03-04 21:52:10",
+          "_patient_demographics": {
+            "age": "47",
+            "gender": "male",
+            "zip_code_home": "10583",
+            "zip_code_work": "10011"
+          }
+        }
+      },
+      "creation_timestamp": 1772956568.5404701
+    }
+  ],
+  "creation_timestamp": 1772591855.741184
+}

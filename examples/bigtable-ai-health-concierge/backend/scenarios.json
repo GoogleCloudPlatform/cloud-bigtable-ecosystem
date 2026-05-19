@@ -1,0 +1,32 @@
+{
+    "scenarios": [
+        {
+            "starting_prompt": "do I have any refills for my heart medication?",
+            "conversation_plan": "Ask the agent what it can do for you. After seeing the respond, as if you have any refills for your heart medication."
+        },
+        {
+            "starting_prompt": "which specialist did I see most recently about high blood pressure?",
+            "conversation_plan": "Ask about the specialist seen recently for high blood pressure. Then as if you have seen any other doctors for hypertension."
+        },
+        {
+            "starting_prompt": "when is my next doctor appointment? Do I have to fast for it?",
+            "conversation_plan": "Ask for the next doctor appointment and if fasting is required."
+        },
+        {
+            "starting_prompt": "what blood tests did I get in the past 3 months?",
+            "conversation_plan": "Ask for blood tests received in the last 3 months. Then pick on of the test types e.g. Albumin and ask for the history of that test."
+        },
+        {
+            "starting_prompt": "Am I due for a colonoscopy?",
+            "conversation_plan": "Ask for the colonoscopy due date. Then ask if there are other routing procedures you should consider this year."
+        },
+        {
+            "starting_prompt": "When is my next flu shot?",
+            "conversation_plan": "Ask for the next flu shot date, then ask if there are other vaccinations due this year."
+        },
+        {
+            "starting_prompt": "What are hospitals within 5 miles of zip code 10583",
+            "conversation_plan": "Ask for nearby hospitals. Then ask for the nearest pharmacies."
+        }
+    ]
+}
