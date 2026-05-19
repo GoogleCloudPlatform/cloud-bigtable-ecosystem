@@ -128,7 +128,8 @@ public class TestDataUtil {
   public record OrderProduct(String name, String id, int quantity) {}
 
   public static String readResource(String path) {
-    try (InputStream is = getClass().getClassLoader().getResourceAsStream(path)) {
+    try (InputStream is =
+        Thread.currentThread().getContextClassLoader().getResourceAsStream(path)) {
       if (is == null) {
         throw new IllegalArgumentException("Resource not found: " + path);
       }
