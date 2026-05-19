@@ -28,8 +28,6 @@ import com.google.cloud.kafka.connect.bigtable.transformations.ExtractTimestamp;
 import com.google.cloud.kafka.connect.bigtable.transformations.TimestampPrecision;
 import com.google.cloud.kafka.connect.bigtable.util.TestDataUtil;
 import com.google.protobuf.ByteString;
-import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;

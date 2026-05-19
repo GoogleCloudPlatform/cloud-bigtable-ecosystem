@@ -37,8 +37,6 @@ import com.google.cloud.kafka.connect.bigtable.util.JsonConverterFactory;
 import com.google.cloud.kafka.connect.bigtable.util.TestDataUtil;
 import com.google.cloud.kafka.connect.bigtable.utils.ByteUtils;
 import com.google.protobuf.ByteString;
-import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.AbstractMap;
@@ -267,7 +265,9 @@ public class InsertModeIT extends BaseKafkaConnectBigtableIT {
     props.put("value.converter.schemas.enable", "false");
     props.put("transforms", "applySchema,createKey,flattenElements");
     props.put("transforms.applySchema.type", ApplyJsonSchema.class.getName() + "$Value");
-    props.put("transforms.applySchema.schema.json", TestDataUtil.readResource("json/applied-schema.json"));
+    props.put(
+        "transforms.applySchema.schema.json",
+        TestDataUtil.readResource("json/applied-schema.json"));
     props.put("transforms.createKey.type", "org.apache.kafka.connect.transforms.ValueToKey");
     props.put("transforms.createKey.fields", "userId,orderId");
     props.put("transforms.flattenElements.type", FlattenArrayElement.class.getName());
