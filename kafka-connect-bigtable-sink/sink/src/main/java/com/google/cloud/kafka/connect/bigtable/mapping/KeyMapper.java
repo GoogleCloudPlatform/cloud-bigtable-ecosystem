@@ -16,6 +16,7 @@
 package com.google.cloud.kafka.connect.bigtable.mapping;
 
 import com.google.cloud.kafka.connect.bigtable.config.BigtableSinkConfig;
+import com.google.cloud.kafka.connect.bigtable.util.SchemaParsingUtils;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -39,7 +40,7 @@ import org.apache.kafka.connect.errors.DataException;
  * SinkRecord(s)} into Cloud Bigtable row keys.
  */
 public class KeyMapper {
-  final List<List<String>> definition;
+  final String[][] definition;
   final byte[] delimiter;
 
   /**
@@ -52,11 +53,7 @@ public class KeyMapper {
    */
   public KeyMapper(String delimiter, List<String> definition) {
     this.delimiter = delimiter.getBytes(StandardCharsets.UTF_8);
-    this.definition =
-        definition.stream()
-            .map(s -> s.split("\\."))
-            .map(Arrays::asList)
-            .collect(Collectors.toList());
+    this.definition = definition.stream().map(s -> s.split("\\.")).toArray(String[][]::new);
   }
 
   /**
@@ -72,35 +69,37 @@ public class KeyMapper {
   public byte[] getKey(SchemaAndValue kafkaKeyAndSchema) {
     Object kafkaKey = kafkaKeyAndSchema.value();
     Optional<Schema> kafkaKeySchema = Optional.ofNullable(kafkaKeyAndSchema.schema());
-    ensureKeyElementIsNotNull(kafkaKey);
+    SchemaParsingUtils.ensureKeyElementIsNotNull(kafkaKey);
     SchemaAndValue keySchemaAndValue = new SchemaAndValue(kafkaKeySchema.orElse(null), kafkaKey);
+
     Stream<byte[]> keyParts =
-        this.getDefinition(kafkaKey).stream()
-            .map((d) -> serializeTopLevelKeyElement(extractField(keySchemaAndValue, d.iterator())));
+        Arrays.stream(this.getDefinition(kafkaKey))
+            .map(
+                (d) ->
+                    serializeTopLevelKeyElement(
+                        SchemaParsingUtils.extractField(keySchemaAndValue, d)));
+
     return concatenateByteArrays(new byte[0], keyParts, delimiter, new byte[0]);
   }
 
   /**
    * Returns key definition as configured during object creation or extracted from the object being
-   * mapped if it's been configured to an empty {@link List}.
+   * mapped if it's been configured to an empty definition.
    *
    * @param kafkaKey {@link org.apache.kafka.connect.sink.SinkRecord SinkRecord's} key.
-   * @return {@link List} containing {@link List Lists} of key fields that need to be retrieved and
-   *     concatenated to construct the Cloud Bigtable row key.
-   *     <p>See {@link KeyMapper#extractField(SchemaAndValue, Iterator)} for details on semantics of
-   *     the inner list.
+   * @return A 2D array of strings containing key fields that need to be retrieved and concatenated
+   *     to construct the Cloud Bigtable row key.
+   *     <p>See {@link SchemaParsingUtils#extractField(SchemaAndValue, String[])} for details on
+   *     semantics of the inner elements.
    */
-  private List<List<String>> getDefinition(Object kafkaKey) {
-    if (this.definition.isEmpty()) {
+  private String[][] getDefinition(Object kafkaKey) {
+    if (this.definition.length == 0) {
       Optional<List<String>> maybeRootFields = getFieldsOfRootValue(kafkaKey);
-      if (maybeRootFields.isEmpty()) {
-        List<String> rootElementDefinition = List.of();
-        return List.of(rootElementDefinition);
-      } else {
-        return maybeRootFields.get().stream()
-            .map(Collections::singletonList)
-            .collect(Collectors.toList());
-      }
+      return maybeRootFields
+          .map(
+              strings ->
+                  strings.stream().map(field -> new String[] {field}).toArray(String[][]::new))
+          .orElseGet(() -> new String[][] {new String[0]});
     }
     return this.definition;
   }
@@ -122,45 +121,9 @@ public class KeyMapper {
     }
   }
 
-  /**
-   * Extract possibly nested fields from the input value.
-   *
-   * @param keySchemaAndValue {@link org.apache.kafka.connect.sink.SinkRecord SinkRecord's} key or
-   *     some its child with corresponding {@link Schema}.
-   * @param fields Fields that need to be accessed before the target value is reached.
-   * @return Extracted nested field.
-   */
-  private SchemaAndValue extractField(SchemaAndValue keySchemaAndValue, Iterator<String> fields) {
-    Object value = keySchemaAndValue.value();
-    Optional<Schema> schema = Optional.ofNullable(keySchemaAndValue.schema());
-    ensureKeyElementIsNotNull(value);
-    LogicalTypeUtils.logIfLogicalTypeUnsupported(schema);
-    if (!fields.hasNext()) {
-      return keySchemaAndValue;
-    }
-    String field = fields.next();
-    if (value instanceof Struct) {
-      // Note that getWithoutDefault() throws if such a field does not exist.
-      Object fieldValue = ((Struct) value).getWithoutDefault(field);
-      Schema fieldSchema = SchemaUtils.maybeExtractFieldSchema(schema, field).orElse(null);
-      return extractField(new SchemaAndValue(fieldSchema, fieldValue), fields);
-    } else if (value instanceof Map<?, ?>) {
-      Object fieldValue = ((Map<?, ?>) value).get(field);
-      Schema fieldSchema = SchemaUtils.maybeExtractFieldSchema(schema, field).orElse(null);
-      return extractField(new SchemaAndValue(fieldSchema, fieldValue), fields);
-    } else {
-      throw new DataException(
-          "Unexpected class `"
-              + value.getClass().getName()
-              + "` doesn't support extracting field `"
-              + field
-              + "` using a dot.");
-    }
-  }
-
   private static byte[] serializeTopLevelKeyElement(SchemaAndValue keyElementAndSchema) {
     Object keyElement = keyElementAndSchema.value();
-    ensureKeyElementIsNotNull(keyElement);
+    SchemaParsingUtils.ensureKeyElementIsNotNull(keyElement);
     return serializeKeyElement(keyElement, Optional.ofNullable(keyElementAndSchema.schema()));
   }
 
@@ -274,13 +237,6 @@ public class KeyMapper {
           "Unsupported serialization of an unexpected class `"
               + keyElement.getClass().getName()
               + "` in key.");
-    }
-  }
-
-  private static void ensureKeyElementIsNotNull(Object value) {
-    if (value == null) {
-      // Matching Confluent's sink behavior.
-      throw new DataException("Error with row key definition: row key fields cannot be null.");
     }
   }
 

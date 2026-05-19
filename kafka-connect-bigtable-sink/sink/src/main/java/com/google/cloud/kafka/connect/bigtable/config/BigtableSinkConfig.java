@@ -28,6 +28,7 @@ import com.google.cloud.bigtable.admin.v2.stub.BigtableTableAdminStubSettings;
 import com.google.cloud.bigtable.data.v2.BigtableDataClient;
 import com.google.cloud.bigtable.data.v2.BigtableDataSettings;
 import com.google.cloud.bigtable.data.v2.stub.EnhancedBigtableStubSettings;
+import com.google.cloud.kafka.connect.bigtable.util.ConfigUtils;
 import com.google.cloud.kafka.connect.bigtable.version.PackageMetadata;
 import com.google.cloud.kafka.connect.bigtable.wrappers.BigtableTableAdminClientInterface;
 import com.google.cloud.kafka.connect.bigtable.wrappers.BigtableTableAdminClientWrapper;
@@ -264,7 +265,7 @@ public class BigtableSinkConfig extends AbstractConfig {
             INSERT_MODE_CONFIG,
             ConfigDef.Type.STRING,
             InsertMode.INSERT.name(),
-            enumValidator(InsertMode.values()),
+            ConfigUtils.enumValidator(InsertMode.values()),
             ConfigDef.Importance.HIGH,
             "Defines the insertion mode to use. Supported modes are:\n"
                 + "- insert - Insert new record only. If the row to be written already exists in"
@@ -289,7 +290,7 @@ public class BigtableSinkConfig extends AbstractConfig {
             VALUE_NULL_MODE_CONFIG,
             ConfigDef.Type.STRING,
             NullValueMode.WRITE.name(),
-            enumValidator(NullValueMode.values()),
+            ConfigUtils.enumValidator(NullValueMode.values()),
             ConfigDef.Importance.MEDIUM,
             "Defines what to do with `null`s within Kafka values. Supported modes are:"
                 + "\n- write - Serialize `null`s to empty byte arrays."
@@ -304,7 +305,7 @@ public class BigtableSinkConfig extends AbstractConfig {
             ERROR_MODE_CONFIG,
             ConfigDef.Type.STRING,
             BigtableErrorMode.FAIL.name(),
-            enumValidator(BigtableErrorMode.values()),
+            ConfigUtils.enumValidator(BigtableErrorMode.values()),
             ConfigDef.Importance.MEDIUM,
             "Specifies how to handle errors that result from writes, after retries. It is ignored"
                 + " if DLQ is configured. Supported modes are:"
@@ -660,11 +661,6 @@ public class BigtableSinkConfig extends AbstractConfig {
     } catch (NullPointerException | IllegalArgumentException e) {
       throw new ConfigException(configName, s);
     }
-  }
-
-  private static ConfigDef.Validator enumValidator(Enum<?>[] enumValues) {
-    return ConfigDef.CaseInsensitiveValidString.in(
-        Arrays.stream(enumValues).map(Enum::name).toArray(String[]::new));
   }
 
   /**

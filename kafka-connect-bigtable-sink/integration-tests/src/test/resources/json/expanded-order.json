@@ -1,6 +1,7 @@
 {
   "orderId": "ORD-999",
   "userId": "USER-42",
+  "createdAt": 1779122855,
   "products": {
     "list": [
       {
