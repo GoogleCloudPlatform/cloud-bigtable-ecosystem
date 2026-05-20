@@ -66,6 +66,7 @@ type BigtableConfig struct {
 	Session                  *Session
 	DefaultColumnFamily      ColumnFamily
 	DefaultIntRowKeyEncoding IntRowKeyEncodingType
+	EnableMetadataRefresh    bool
 }
 
 type Session struct {

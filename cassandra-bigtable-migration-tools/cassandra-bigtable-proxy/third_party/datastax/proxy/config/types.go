@@ -58,6 +58,7 @@ type yamlBigtable struct {
 	DefaultColumnFamily           string             `yaml:"defaultColumnFamily"`
 	AppProfileID                  string             `yaml:"appProfileID"`
 	EncodeIntRowKeysWithBigEndian bool               `yaml:"encodeIntRowKeysWithBigEndian"`
+	EnableMetadataRefresh         *bool              `yaml:"enableMetadataRefresh"`
 }
 
 type yamlSession struct {

@@ -67,6 +67,9 @@ listeners:
       # [Optional] The number of GRPC channels used by the Bigtable client. The default is 1.
       grpcChannels: 4
 
+    # [Optional] Whether to automatically refresh metadata from Bigtable. The default is true.
+    enableMetadataRefresh: true
+
 otel:
   # Set enabled to true or false for OTEL metrics/traces/logs.
   enabled: False

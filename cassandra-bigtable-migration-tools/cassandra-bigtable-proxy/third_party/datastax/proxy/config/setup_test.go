@@ -218,6 +218,7 @@ func TestParseProxyConfig(t *testing.T) {
 						},
 						DefaultColumnFamily:      "cf_default",
 						DefaultIntRowKeyEncoding: types.OrderedCodeEncoding,
+						EnableMetadataRefresh:    true,
 					},
 					OtelConfig: &types.OtelConfig{
 						Enabled: false,
@@ -263,6 +264,7 @@ func TestParseProxyConfig(t *testing.T) {
 						},
 						DefaultColumnFamily:      "cf1",
 						DefaultIntRowKeyEncoding: types.OrderedCodeEncoding,
+						EnableMetadataRefresh:    true,
 					},
 					OtelConfig: &types.OtelConfig{
 						Enabled: false,
@@ -296,6 +298,7 @@ func TestParseProxyConfig(t *testing.T) {
 						},
 						DefaultColumnFamily:      "df",
 						DefaultIntRowKeyEncoding: types.OrderedCodeEncoding,
+						EnableMetadataRefresh:    true,
 					},
 					OtelConfig: &types.OtelConfig{
 						Enabled: false,
@@ -329,6 +332,7 @@ func TestParseProxyConfig(t *testing.T) {
 						},
 						DefaultColumnFamily:      "df",
 						DefaultIntRowKeyEncoding: types.OrderedCodeEncoding,
+						EnableMetadataRefresh:    true,
 					},
 					OtelConfig: &types.OtelConfig{
 						Enabled: false,
@@ -614,6 +618,155 @@ func TestSetupLogger(t *testing.T) {
 			}
 			if got == nil {
 				t.Errorf("SetupLogger() = %v", got)
+			}
+		})
+	}
+}
+
+func TestReadProxyConfig(t *testing.T) {
+	tests := []struct {
+		name    string
+		data    string
+		wantErr string
+		check   func(t *testing.T, cfg *yamlProxyConfig)
+	}{
+		{
+			name: "Valid config with minimal settings",
+			data: `
+listeners:
+  - name: "test-listener"
+    port: 9042
+    bigtable:
+      projectId: "test-project"
+      instances:
+        - bigtableInstance: "test-instance"
+          keyspace: "test-keyspace"
+`,
+			wantErr: "",
+		},
+		{
+			name: "Invalid YAML",
+			data: `
+listeners:
+  - name: "test-listener"
+    port: 9042
+    bigtable:
+      projectId: "test-project"
+      instances
+        - bigtableInstance: "test-instance"
+`,
+			wantErr: "failed to unmarshal config",
+		},
+		{
+			name: "Missing project ID and no global project ID",
+			data: `
+listeners:
+  - name: "test-listener"
+    port: 9042
+    bigtable:
+      instances:
+        - bigtableInstance: "test-instance"
+          keyspace: "test-keyspace"
+`,
+			wantErr: "project id is not defined",
+		},
+		{
+			name: "Valid config with global project ID",
+			data: `
+cassandraToBigtableConfigs:
+  projectId: "global-project"
+listeners:
+  - name: "test-listener"
+    port: 9042
+    bigtable:
+      instances:
+        - bigtableInstance: "test-instance"
+          keyspace: "test-keyspace"
+`,
+			wantErr: "",
+			check: func(t *testing.T, cfg *yamlProxyConfig) {
+				assert.Equal(t, "global-project", cfg.Listeners[0].Bigtable.ProjectID)
+			},
+		},
+		{
+			name: "Default values applied",
+			data: `
+listeners:
+  - name: "test-listener"
+    port: 9042
+    bigtable:
+      projectId: "test-project"
+      instances:
+        - bigtableInstance: "test-instance"
+          keyspace: "test-keyspace"
+`,
+			wantErr: "",
+			check: func(t *testing.T, cfg *yamlProxyConfig) {
+				assert.Equal(t, DefaultBigtableGrpcChannels, cfg.Listeners[0].Bigtable.Session.GrpcChannels)
+				assert.Equal(t, DefaultColumnFamily, cfg.Listeners[0].Bigtable.DefaultColumnFamily)
+				assert.Equal(t, DefaultSchemaMappingTableName, cfg.Listeners[0].Bigtable.SchemaMappingTable)
+				assert.NotNil(t, cfg.Listeners[0].Bigtable.EnableMetadataRefresh)
+				assert.Equal(t, DefaultEnableMetadataRefresh, *cfg.Listeners[0].Bigtable.EnableMetadataRefresh)
+			},
+		},
+		{
+			name: "Both instances and instance_ids set",
+			data: `
+listeners:
+  - name: "test-listener"
+    port: 9042
+    bigtable:
+      projectId: "test-project"
+      instances:
+        - bigtableInstance: "test-instance"
+          keyspace: "test-keyspace"
+      instanceIds: "inst1,inst2"
+`,
+			wantErr: "only one of 'instances' or 'instance_ids' should be set",
+		},
+		{
+			name: "Neither instances nor instance_ids set",
+			data: `
+listeners:
+  - name: "test-listener"
+    port: 9042
+    bigtable:
+      projectId: "test-project"
+`,
+			wantErr: "either 'instances' or 'instance_ids' must be defined",
+		},
+		{
+			name: "Valid EnableMetadataRefresh",
+			data: `
+listeners:
+  - name: "test-listener"
+    port: 9042
+    bigtable:
+      projectId: "test-project"
+      instances:
+        - bigtableInstance: "test-instance"
+          keyspace: "test-keyspace"
+      enableMetadataRefresh: false
+`,
+			wantErr: "",
+			check: func(t *testing.T, cfg *yamlProxyConfig) {
+				assert.Equal(t, false, *cfg.Listeners[0].Bigtable.EnableMetadataRefresh)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := readProxyConfig([]byte(tt.data))
+			if tt.wantErr != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.wantErr)
+			} else {
+				require.NoError(t, err)
+				assert.NotNil(t, got)
+				if tt.check != nil {
+					tt.check(t, got)
+				}
 			}
 		})
 	}

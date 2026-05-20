@@ -244,8 +244,7 @@ listeners:
     # if instanceIds values given here then proxy wont read from the below instances list
     # Note: only either instancesIds or instances can be defined. Defining both is not allowed.
     instanceIds: YOUR_BIGTABLE_INSTANCE 1,YOUR_BIGTABLE_INSTANCE_2
-
-
+    
     # If you want to use multiple instances, define them as a list of objects below.
     instances:
     - # [Required] The name of the Bigtable instance.
@@ -263,6 +262,9 @@ listeners:
     # [Optional] Default column family for primitive data types is "cf1".
     defaultColumnFamily: DEFAULT_COLUMN_FAMILY
 
+    # [Optional] Whether to automatically refresh metadata from Bigtable. The default is true. 
+    enableMetadataRefresh: true
+      
     # Number of grpc channels to be used for Bigtable session.
     Session:
       grpcChannels: 4

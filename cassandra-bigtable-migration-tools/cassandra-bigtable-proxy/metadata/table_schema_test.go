@@ -290,6 +290,58 @@ func Test_SameTableSchema(t *testing.T) {
 			want: false,
 		},
 		{
+			name: "Same schema with collections", // testing collections because comparing those types can't be done with '=='
+			table: NewTableConfig("k1", "t1", "cf1", types.OrderedCodeEncoding, []*types.Column{
+				{
+					Name:         "c1",
+					ColumnFamily: "",
+					CQLType:      types.TypeText,
+					IsPrimaryKey: false,
+					PkPrecedence: 1,
+					KeyType:      types.KeyTypePartition,
+				},
+				{
+					Name:         "c2",
+					ColumnFamily: "cf1",
+					CQLType:      types.TypeInt,
+					IsPrimaryKey: false,
+					PkPrecedence: 1,
+					KeyType:      types.KeyTypeRegular,
+				},
+				{
+					Name:         "map_text",
+					ColumnFamily: "map_text",
+					CQLType:      types.NewMapType(types.TypeText, types.TypeText),
+					KeyType:      types.KeyTypeRegular,
+				},
+			}),
+			other: NewTableConfig("k1", "t1", "cf1", types.OrderedCodeEncoding, []*types.Column{
+				{
+					Name:         "c1",
+					ColumnFamily: "",
+					CQLType:      types.TypeText,
+					IsPrimaryKey: false,
+					PkPrecedence: 1,
+					KeyType:      types.KeyTypePartition,
+				},
+				{
+					Name:         "c2",
+					ColumnFamily: "cf1",
+					CQLType:      types.TypeInt,
+					IsPrimaryKey: false,
+					PkPrecedence: 1,
+					KeyType:      types.KeyTypeRegular,
+				},
+				{
+					Name:         "map_text",
+					ColumnFamily: "map_text",
+					CQLType:      types.NewMapType(types.TypeText, types.TypeText),
+					KeyType:      types.KeyTypeRegular,
+				},
+			}),
+			want: true,
+		},
+		{
 			name: "nil other",
 			table: NewTableConfig("k1", "t1", "cf1", types.OrderedCodeEncoding, []*types.Column{
 				{
