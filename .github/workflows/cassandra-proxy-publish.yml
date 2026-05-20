@@ -11,6 +11,7 @@ permissions:
 jobs:
   build-and-upload:
     name: Build and Upload Binary
+    if: startsWith(github.event.release.tag_name, 'cassandra-bigtable-proxy-v')
     runs-on: ubuntu-latest
 
     defaults:

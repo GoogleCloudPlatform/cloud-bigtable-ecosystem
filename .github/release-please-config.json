@@ -3,10 +3,15 @@
   "last-release-sha": "1a3ddf3a16878a3d34035004b0f81759667a6321",
   "packages": {
     "cassandra-bigtable-migration-tools/cassandra-bigtable-java-client": {
+      "component": "cassandra-bigtable-java-client",
       "release-type": "java-yoshi",
       "extra-files": [
         "cassandra-bigtable-java-client-lib/README.md"
       ]
+    },
+    "cassandra-bigtable-migration-tools/cassandra-bigtable-proxy": {
+      "component": "cassandra-bigtable-proxy",
+      "release-type": "go"
     }
   }
 }
