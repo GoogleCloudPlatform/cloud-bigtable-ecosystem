@@ -1,4 +1,4 @@
 {
-  "cassandra-bigtable-migration-tools/cassandra-bigtable-java-client": "0.4.0",
-  "cassandra-bigtable-migration-tools/cassandra-bigtable-proxy": "0.4.0"
+  "cassandra-bigtable-migration-tools/cassandra-bigtable-java-client": "0.5.0",
+  "cassandra-bigtable-migration-tools/cassandra-bigtable-proxy": "0.5.0"
 }

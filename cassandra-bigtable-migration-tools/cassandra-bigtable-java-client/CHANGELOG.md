@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.5.0](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/compare/cassandra-bigtable-java-client-v0.4.0...cassandra-bigtable-java-client-v0.5.0) (2026-05-20)
+
+
+### Features
+
+* Add time uuid and uuid to java lib ([#202](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/issues/202)) ([e1b1732](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/commit/e1b1732da1893d9b7385c99fe606de73d8452915))
+* set session keyspace on cassandra java client ([#152](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/issues/152)) ([0d5750e](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/commit/0d5750e951e289e5b7c5c3a6398879aa94a30788))
+
+
+### Bug Fixes
+
+* response metadata ([#135](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/issues/135)) ([1be548a](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/commit/1be548a35ab8c7d0446293ce2f4bc91fb4380a3c))
+
+
+### Documentation
+
+* clean up ([#171](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/issues/171)) ([47a9ee6](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/commit/47a9ee6992f3d88cf74f1148cd4965ecb8d6dd28))
+* updating cassandra-bigtable-java-client-lib README ([#141](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/issues/141)) ([3da8491](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/commit/3da8491e0182cf81f0285c1d69010b107d5db320))
+
 ## [0.4.0](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/compare/v0.3.1...v0.4.0) (2026-05-18)
 
 
