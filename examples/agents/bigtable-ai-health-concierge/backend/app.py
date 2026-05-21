@@ -49,7 +49,10 @@ def chat():
     message = data.get("message")
     user_name = session['name']
     #user_id = session['google_id']
-    user_email = os.getenv("DEMO_PATIENT_EMAIL", "john.doe@gmail.com")
+    if os.getenv("USE_DEMO_PATIENT", "true").lower() in ["true", "on", "1"]:
+        user_email = "john.doe@gmail.com"
+    else:
+        user_email = session.get('email', "john.doe@gmail.com")
     access_token = session.get('access_token')
     refresh_token = session.get('refresh_token')
     
