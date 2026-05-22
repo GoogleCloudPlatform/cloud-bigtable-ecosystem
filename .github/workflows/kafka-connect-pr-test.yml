@@ -1,0 +1,16 @@
+name: Kafka Connect Bigtable Sink PR Test
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "kafka-connect-bigtable-sink/**"
+  pull_request:
+    paths:
+      - "kafka-connect-bigtable-sink/**"
+
+jobs:
+  test:
+    # Calls the reusable workflow defined above
+    uses: ./.github/workflows/kafka-connect-ci-reusable.yml

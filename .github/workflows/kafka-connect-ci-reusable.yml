@@ -1,0 +1,40 @@
+name: Kafka Connect Bigtable Sink CI (Reusable)
+
+on:
+  workflow_call:
+
+jobs:
+  ci:
+    name: Check the Kafka Connect Bigtable Sink code
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Formatter
+        working-directory: kafka-connect-bigtable-sink
+        run: mvn -B -ntp spotless:check
+
+      - name: Unit tests
+        working-directory: kafka-connect-bigtable-sink
+        run: mvn clean test -pl sink -am -B -ntp
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          version: latest
+          install_components: beta,bigtable
+
+      - name: Integration Tests (Bigtable Emulator)
+        working-directory: kafka-connect-bigtable-sink
+        run: |
+          set -euo pipefail
+          gcloud beta emulators bigtable start --host-port=0.0.0.0:8086 &
+          BIGTABLE_EMULATOR_HOST=localhost:8086 mvn -Pintegration-tests -B -ntp verify

@@ -1,0 +1,38 @@
+name: Kafka Connect Bigtable Sink Publish
+
+on:
+  release:
+    types: [ published ]
+
+jobs:
+  test:
+    if: startsWith(github.event.release.tag_name, 'kafka-connect-bigtable-sink-v')
+    uses: ./.github/workflows/kafka-connect-ci-reusable.yml
+
+  upload-release-asset:
+    name: Publish Jar
+    needs: test # Waits for the reusable CI job to pass
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build Fat Jar
+        working-directory: kafka-connect-bigtable-sink
+        run: mvn -B -ntp clean package -pl sink -am -DskipTests
+
+      - name: Upload Artifact to Release
+        working-directory: kafka-connect-bigtable-sink
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload ${{ github.event.release.tag_name }} ./sink/target/kafka-connect-bigtable-sink.jar --clobber
