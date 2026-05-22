@@ -108,5 +108,5 @@ mvn -Pintegration-tests clean verify
 #### To run a specific integration test
 
 ```bash
-mvn -Pintegration-tests clean verify -Dit.test=InsertUpsertIT#testUpsert
+mvn -Pintegration-tests clean verify -Dit.test=InsertModeIT#testUpsert
 ```

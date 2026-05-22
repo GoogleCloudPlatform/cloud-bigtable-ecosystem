@@ -19,6 +19,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.bigtable.data.v2.models.Row;
 import com.google.cloud.bigtable.data.v2.models.RowCell;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -241,6 +244,18 @@ public class TestDataUtil {
           + ", quantity="
           + quantity
           + '}';
+    }
+  }
+
+  public static String readResource(String path) {
+    try (InputStream is =
+        Thread.currentThread().getContextClassLoader().getResourceAsStream(path)) {
+      if (is == null) {
+        throw new IllegalArgumentException("Resource not found: " + path);
+      }
+      return new String(is.readAllBytes(), StandardCharsets.UTF_8);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 }

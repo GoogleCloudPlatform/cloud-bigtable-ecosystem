@@ -12,6 +12,11 @@
       "field": "userId"
     },
     {
+      "type": "int64",
+      "optional": false,
+      "field": "createdAt"
+    },
+    {
       "type": "struct",
       "fields": [
         {

@@ -5,12 +5,14 @@
     "fields": [
       { "field": "orderId", "type": "string", "optional": false },
       { "field": "product", "type": "string", "optional": false },
-      { "field": "quantity", "type": "int32", "optional": false }
+      { "field": "quantity", "type": "int32", "optional": false },
+      { "field": "createdAt", "type": "int64", "optional": false }
     ]
   },
   "payload": {
     "orderId": "ORD-12345",
     "product": "ball",
-    "quantity": 2
+    "quantity": 2,
+    "createdAt": 1779122855
   }
 }
