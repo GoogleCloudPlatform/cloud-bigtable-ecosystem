@@ -1,0 +1,8 @@
+# Format:
+# module:released-version:current-version
+
+adapter:0.0.0:0.1.0-SNAPSHOT
+backup-loader:0.0.0:0.1.0-SNAPSHOT
+backup-loader-example:0.0.0:0.1.0-SNAPSHOT
+dataflow-template:0.0.0:0.1.0-SNAPSHOT
+replicator:0.0.0:0.1.0-SNAPSHOT

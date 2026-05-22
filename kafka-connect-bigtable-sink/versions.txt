@@ -1,0 +1,5 @@
+# Format:
+# module:released-version:current-version
+
+sink:0.0.0:1.0.0-SNAPSHOT
+integration-tests:0.0.0:1.0.0-SNAPSHOT
