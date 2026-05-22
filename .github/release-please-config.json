@@ -12,6 +12,14 @@
     "cassandra-bigtable-migration-tools/cassandra-bigtable-proxy": {
       "component": "cassandra-bigtable-proxy",
       "release-type": "go"
+    },
+    "aerospike-bigtable-migration-tools": {
+      "component": "aerospike-migration-tools",
+      "release-type": "java-yoshi"
+    },
+    "kafka-connect-bigtable-sink": {
+      "component": "kafka-connect-bigtable-sink",
+      "release-type": "java-yoshi"
     }
   }
 }

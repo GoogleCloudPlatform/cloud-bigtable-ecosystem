@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.google.cloud.kafka.connect.bigtable</groupId>
     <artifactId>sink-integration-tests</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.0-SNAPSHOT</version><!-- {x-version-update:kafka-connect-bigtable-sink:current} -->
     <packaging>jar</packaging>
     <name>kafka-connect-bigtable-sink-integration-tests</name>
     <description>
@@ -13,7 +13,7 @@
     <parent>
         <groupId>com.google.cloud.kafka.connect.bigtable</groupId>
         <artifactId>sink-parent</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>1.0.0-SNAPSHOT</version><!-- {x-version-update:kafka-connect-bigtable-sink:current} -->
     </parent>
     <properties>
         <!--

@@ -37,7 +37,7 @@ jobs:
         working-directory: aerospike-bigtable-migration-tools
         run: mkdir -p replicator/integration_test_plugins/sink
       - name: Copy sink .jar into directory used by replicator's integration tests
-        run: cp kafka-connect-bigtable-sink/sink/target/sink*.jar aerospike-bigtable-migration-tools/replicator/integration_test_plugins/sink
+        run: cp kafka-connect-bigtable-sink/sink/target/kafka-connect-bigtable-sink.jar aerospike-bigtable-migration-tools/replicator/integration_test_plugins/sink
       - name: Show integration_test_plugins dir contents
         working-directory: aerospike-bigtable-migration-tools
         run: tree --du replicator/integration_test_plugins
