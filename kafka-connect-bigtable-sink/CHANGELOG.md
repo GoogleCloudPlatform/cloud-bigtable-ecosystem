@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/compare/kafka-connect-bigtable-sink-v0.2.0...kafka-connect-bigtable-sink-v0.3.0) (2026-05-22)
+
+
+### Features
+
+* Adds Extract Timestamp SMT to Kafka Connect Sink ([#201](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/issues/201)) ([ba8703f](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/commit/ba8703f83ec3adbaf4adf47b0e13a1b8a519f553))
+
 ## [0.2.0](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/compare/kafka-connect-bigtable-sink-v0.1.0...kafka-connect-bigtable-sink-v0.2.0) (2026-05-22)
 
 
