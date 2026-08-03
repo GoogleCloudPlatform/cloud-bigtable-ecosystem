@@ -55,6 +55,16 @@ codex
 
 See [Cursor Guide](https://cursor.com/docs/skills#installing-skills-from-github)
 
+#### Agent Plugins–compatible clients
+
+This repository is a valid [Agent Plugins](https://github.com/agentplugins/agent-plugins-spec) (v1) plugin. Any [compatible client](https://agent-plugins.org/compatible-clients) (VS Code, Cursor, GitHub Copilot, Codex, Kiro, …) can install it directly using its own built-in plugin command — skills and MCP server included — by pointing at this repository:
+
+```
+https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem
+```
+
+See your agent's documentation for its exact install command.
+
 ## Migrations Tools
 
 *   **[Cassandra-Bigtable Adapter](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/tree/main/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy)** - This Proxy adapter allows existing Cassandra-based applications to connect seamlessly to Bigtable. This adapter functions as a wire-compatible Cassandra interface, enabling interaction via CQL with minimal configuration. It can be deployed on the same compute as your application or standalone.

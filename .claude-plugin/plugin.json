@@ -9,25 +9,5 @@
   "homepage": "https://cloud.google.com/bigtable",
   "license": "Apache-2.0",
   "repository": "https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem",
-  "skills": "./skills/",
-  "userConfig": {
-    "bigtable_project": {
-      "title": "Project ID",
-      "description": "ID of the Google Cloud project",
-      "type": "string",
-      "sensitive": false
-    },
-    "bigtable_instance": {
-      "title": "Instance",
-      "description": "ID of the Bigtable instance",
-      "type": "string",
-      "sensitive": false
-    },
-    "bigtable_cluster": {
-      "title": "Cluster",
-      "description": "ID of the Bigtable cluster (optional)",
-      "type": "string",
-      "sensitive": false
-    }
-  }
+  "skills": "./skills/"
 }
