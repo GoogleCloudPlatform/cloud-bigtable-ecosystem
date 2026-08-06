@@ -21,5 +21,12 @@
       "component": "kafka-connect-bigtable-sink",
       "release-type": "java-yoshi"
     }
-  }
+  },
+  "plugins": [
+    {
+      "type": "linked-versions",
+      "groupName": "cassandra-migration-tools",
+      "components": ["cassandra-bigtable-java-client", "cassandra-bigtable-proxy"]
+    }
+  ]
 }
