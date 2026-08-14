@@ -5,7 +5,6 @@
 
 OpenTelemetry (OTEL) provides a set of tools, APIs, and SDKs to instrument, generate, collect, and export telemetry data (metrics, logs, and traces) for monitoring and troubleshooting your applications. This guide will help you integrate OTEL into your application, enabling you to capture and export metrics and traces.
 
-
 # Setting up the OTEL Collector Service on GCP
 
 This guide provides step-by-step instructions to set up the OpenTelemetry (OTEL) Collector Service on Google Cloud Platform (GCP) using the provided configuration file.
