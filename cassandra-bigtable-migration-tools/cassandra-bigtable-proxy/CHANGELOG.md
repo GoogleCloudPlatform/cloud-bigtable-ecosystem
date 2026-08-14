@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/compare/cassandra-bigtable-proxy-v0.5.1...cassandra-bigtable-proxy-v0.6.0) (2026-08-14)
+
+
+### Features
+
+* removing grcp request size limit ([#239](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/issues/239)) ([2416bfa](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/commit/2416bfab9682a682a1414142a3f03b4c168ab1e2))
+
 ## [0.5.1](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/compare/cassandra-bigtable-proxy-v0.5.0...cassandra-bigtable-proxy-v0.5.1) (2026-07-28)
 
 
