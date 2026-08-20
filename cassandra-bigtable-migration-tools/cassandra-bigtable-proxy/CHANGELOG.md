@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/compare/cassandra-bigtable-proxy-v0.6.0...cassandra-bigtable-proxy-v0.7.0) (2026-08-20)
+
+
+### Features
+
+* version bump proxy ([#245](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/issues/245)) ([15cbe84](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/commit/15cbe849368a3219c63e7bae60418a909aa138b2))
+
 ## [0.6.0](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/compare/cassandra-bigtable-proxy-v0.5.1...cassandra-bigtable-proxy-v0.6.0) (2026-08-14)
 
 
