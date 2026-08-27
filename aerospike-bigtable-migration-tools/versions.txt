@@ -1,8 +1,8 @@
 # Format:
 # module:released-version:current-version
 
-adapter:0.2.0:0.2.0
-backup-loader:0.2.0:0.2.0
-backup-loader-example:0.2.0:0.2.0
-dataflow-template:0.2.0:0.2.0
-replicator:0.2.0:0.2.0
+adapter:0.2.0:0.2.1-SNAPSHOT
+backup-loader:0.2.0:0.2.1-SNAPSHOT
+backup-loader-example:0.2.0:0.2.1-SNAPSHOT
+dataflow-template:0.2.0:0.2.1-SNAPSHOT
+replicator:0.2.0:0.2.1-SNAPSHOT
