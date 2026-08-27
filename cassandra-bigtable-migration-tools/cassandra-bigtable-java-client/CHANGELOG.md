@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/compare/cassandra-bigtable-java-client-v0.6.0...cassandra-bigtable-java-client-v0.7.0) (2026-08-27)
+
+
+### Features
+
+* **cassandra-bigtable-java-client:** remove request size limit ([#247](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/issues/247)) ([c77d900](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/commit/c77d900962da1b3d9f2f1f5aadab352279c2616a))
+
 ## [0.6.0](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/compare/cassandra-bigtable-java-client-v0.5.0...cassandra-bigtable-java-client-v0.6.0) (2026-08-14)
 
 
