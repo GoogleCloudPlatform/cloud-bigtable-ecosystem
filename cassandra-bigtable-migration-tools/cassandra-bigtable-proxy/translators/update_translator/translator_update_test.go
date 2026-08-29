@@ -52,11 +52,11 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 				Table:    "test_table",
 				IfExists: false,
 				Values: []types.Assignment{
-					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"), types.NewLiteralValue([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03})),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"), types.NewLiteralValue([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03}, types.TypeBlob)),
 				},
 				RowKeys: []types.DynamicValue{
-					types.NewLiteralValue("testText"),
-					types.NewLiteralValue("pk2"),
+					types.NewLiteralValue("testText", types.TypeVarchar),
+					types.NewLiteralValue("pk2", types.TypeVarchar),
 				},
 				AllParams: []*types.ParameterMetadata{},
 			},
@@ -69,11 +69,11 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 				Table:    "test_table",
 				IfExists: true,
 				Values: []types.Assignment{
-					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"), types.NewLiteralValue([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03})),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"), types.NewLiteralValue([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03}, types.TypeBlob)),
 				},
 				RowKeys: []types.DynamicValue{
-					types.NewLiteralValue("testText"),
-					types.NewLiteralValue("pk2"),
+					types.NewLiteralValue("testText", types.TypeVarchar),
+					types.NewLiteralValue("pk2", types.TypeVarchar),
 				},
 				AllParams: []*types.ParameterMetadata{},
 			},
@@ -106,11 +106,11 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 					},
 				},
 				Values: []types.Assignment{
-					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"), types.NewParameterizedValue("value0")),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"), types.NewParameterizedValue("value0", types.TypeBlob)),
 				},
 				RowKeys: []types.DynamicValue{
-					types.NewParameterizedValue("value1"),
-					types.NewParameterizedValue("value2"),
+					types.NewParameterizedValue("value1", types.TypeVarchar),
+					types.NewParameterizedValue("value2", types.TypeVarchar),
 				},
 			},
 		},
@@ -142,11 +142,11 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 					},
 				},
 				Values: []types.Assignment{
-					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"), types.NewParameterizedValue("v1")),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"), types.NewParameterizedValue("v1", types.TypeBlob)),
 				},
 				RowKeys: []types.DynamicValue{
-					types.NewParameterizedValue("v2"),
-					types.NewParameterizedValue("v3"),
+					types.NewParameterizedValue("v2", types.TypeVarchar),
+					types.NewParameterizedValue("v3", types.TypeVarchar),
 				},
 			},
 		},
@@ -178,11 +178,11 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 					},
 				},
 				Values: []types.Assignment{
-					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"), types.NewParameterizedValue("value0")),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"), types.NewParameterizedValue("value0", types.TypeBlob)),
 				},
 				RowKeys: []types.DynamicValue{
-					types.NewParameterizedValue("value2"),
-					types.NewParameterizedValue("value1"),
+					types.NewParameterizedValue("value2", types.TypeVarchar),
+					types.NewParameterizedValue("value1", types.TypeVarchar),
 				},
 			},
 		},
@@ -194,11 +194,11 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 				Table:    "test_table",
 				IfExists: false,
 				Values: []types.Assignment{
-					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_bool"), types.NewLiteralValue(true)),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_bool"), types.NewLiteralValue(true, types.TypeBoolean)),
 				},
 				RowKeys: []types.DynamicValue{
-					types.NewLiteralValue("testText"),
-					types.NewLiteralValue("pk2"),
+					types.NewLiteralValue("testText", types.TypeVarchar),
+					types.NewLiteralValue("pk2", types.TypeVarchar),
 				},
 				AllParams: []*types.ParameterMetadata{},
 			},
@@ -210,11 +210,11 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 				Keyspace: "test_keyspace",
 				Table:    "test_table",
 				Values: []types.Assignment{
-					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_ts"), types.NewLiteralValue(time.Date(2024, 8, 12, 12, 34, 56, 0, time.UTC))),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_ts"), types.NewLiteralValue(time.Date(2024, 8, 12, 12, 34, 56, 0, time.UTC), types.TypeTimestamp)),
 				},
 				RowKeys: []types.DynamicValue{
-					types.NewLiteralValue("testText"),
-					types.NewLiteralValue("pk2"),
+					types.NewLiteralValue("testText", types.TypeVarchar),
+					types.NewLiteralValue("pk2", types.TypeVarchar),
 				},
 				AllParams: []*types.ParameterMetadata{},
 			},
@@ -226,11 +226,11 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 				Keyspace: "test_keyspace",
 				Table:    "test_table",
 				Values: []types.Assignment{
-					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_int"), types.NewLiteralValue(int32(123))),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_int"), types.NewLiteralValue(int32(123), types.TypeInt)),
 				},
 				RowKeys: []types.DynamicValue{
-					types.NewLiteralValue("testText"),
-					types.NewLiteralValue("pk2"),
+					types.NewLiteralValue("testText", types.TypeVarchar),
+					types.NewLiteralValue("pk2", types.TypeVarchar),
 				},
 				AllParams: []*types.ParameterMetadata{},
 			},
@@ -242,11 +242,11 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 				Keyspace: "test_keyspace",
 				Table:    "test_table",
 				Values: []types.Assignment{
-					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "set_text"), types.NewLiteralValue([]types.GoValue{"item1", "item2"})),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "set_text"), types.NewLiteralValue([]types.GoValue{"item1", "item2"}, types.NewSetType(types.TypeText))),
 				},
 				RowKeys: []types.DynamicValue{
-					types.NewLiteralValue("testText"),
-					types.NewLiteralValue("pk2"),
+					types.NewLiteralValue("testText", types.TypeVarchar),
+					types.NewLiteralValue("pk2", types.TypeVarchar),
 				},
 				AllParams: []*types.ParameterMetadata{},
 			},
@@ -258,11 +258,11 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 				Keyspace: "test_keyspace",
 				Table:    "test_table",
 				Values: []types.Assignment{
-					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "map_text_bool"), types.NewLiteralValue(map[types.GoValue]types.GoValue{"key1": true, "key2": false})),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "map_text_bool"), types.NewLiteralValue(map[types.GoValue]types.GoValue{"key1": true, "key2": false}, types.NewMapType(types.TypeText, types.TypeBoolean))),
 				},
 				RowKeys: []types.DynamicValue{
-					types.NewLiteralValue("testText"),
-					types.NewLiteralValue("pk2"),
+					types.NewLiteralValue("testText", types.TypeVarchar),
+					types.NewLiteralValue("pk2", types.TypeVarchar),
 				},
 				AllParams: []*types.ParameterMetadata{},
 			},
@@ -274,11 +274,11 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 				Keyspace: "test_keyspace",
 				Table:    "test_table",
 				Values: []types.Assignment{
-					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_bigint"), types.NewLiteralValue(int64(1234567890))),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_bigint"), types.NewLiteralValue(int64(1234567890), types.TypeBigInt)),
 				},
 				RowKeys: []types.DynamicValue{
-					types.NewLiteralValue("testText"),
-					types.NewLiteralValue("pk2"),
+					types.NewLiteralValue("testText", types.TypeVarchar),
+					types.NewLiteralValue("pk2", types.TypeVarchar),
 				},
 				AllParams: []*types.ParameterMetadata{},
 			},
@@ -290,11 +290,11 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 				Keyspace: "test_keyspace",
 				Table:    "test_table",
 				Values: []types.Assignment{
-					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"), types.NewLiteralValue([]byte{0x01})),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"), types.NewLiteralValue([]byte{0x01}, types.TypeBlob)),
 				},
 				RowKeys: []types.DynamicValue{
-					types.NewLiteralValue("abc"),
-					types.NewLiteralValue("pkval"),
+					types.NewLiteralValue("abc", types.TypeVarchar),
+					types.NewLiteralValue("pkval", types.TypeVarchar),
 				},
 				AllParams: []*types.ParameterMetadata{},
 			},
@@ -306,11 +306,11 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 				Keyspace: "test_keyspace",
 				Table:    "test_table",
 				Values: []types.Assignment{
-					types.NewComplexAssignmentAppend(mockdata.GetColumnOrDie("test_keyspace", "test_table", "set_text"), types.PLUS, types.NewLiteralValue([]types.GoValue{"item3"}), false),
+					types.NewComplexAssignmentAppend(mockdata.GetColumnOrDie("test_keyspace", "test_table", "set_text"), types.PLUS, types.NewLiteralValue([]types.GoValue{"item3"}, types.NewSetType(types.TypeText)), false),
 				},
 				RowKeys: []types.DynamicValue{
-					types.NewLiteralValue("testText"),
-					types.NewLiteralValue("pk2"),
+					types.NewLiteralValue("testText", types.TypeVarchar),
+					types.NewLiteralValue("pk2", types.TypeVarchar),
 				},
 				AllParams: []*types.ParameterMetadata{},
 			},
@@ -322,11 +322,11 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 				Keyspace: "test_keyspace",
 				Table:    "test_table",
 				Values: []types.Assignment{
-					types.NewComplexAssignmentAppend(mockdata.GetColumnOrDie("test_keyspace", "test_table", "set_text"), types.MINUS, types.NewLiteralValue([]types.GoValue{"item2"}), false),
+					types.NewComplexAssignmentAppend(mockdata.GetColumnOrDie("test_keyspace", "test_table", "set_text"), types.MINUS, types.NewLiteralValue([]types.GoValue{"item2"}, types.NewSetType(types.TypeText)), false),
 				},
 				RowKeys: []types.DynamicValue{
-					types.NewLiteralValue("testText"),
-					types.NewLiteralValue("pk2"),
+					types.NewLiteralValue("testText", types.TypeVarchar),
+					types.NewLiteralValue("pk2", types.TypeVarchar),
 				},
 				AllParams: []*types.ParameterMetadata{},
 			},
@@ -338,11 +338,11 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 				Keyspace: "test_keyspace",
 				Table:    "test_table",
 				Values: []types.Assignment{
-					types.NewAssignmentCounterIncrement(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_counter"), types.PLUS, types.NewLiteralValue(int64(1))),
+					types.NewAssignmentCounterIncrement(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_counter"), types.PLUS, types.NewLiteralValue(int64(1), types.TypeCounter)),
 				},
 				RowKeys: []types.DynamicValue{
-					types.NewLiteralValue("testText"),
-					types.NewLiteralValue("pk2"),
+					types.NewLiteralValue("testText", types.TypeVarchar),
+					types.NewLiteralValue("pk2", types.TypeVarchar),
 				},
 				AllParams: []*types.ParameterMetadata{},
 			},
@@ -359,11 +359,11 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 				Keyspace: "test_keyspace",
 				Table:    "test_table",
 				Values: []types.Assignment{
-					types.NewAssignmentCounterIncrement(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_counter"), types.MINUS, types.NewLiteralValue(int64(9))),
+					types.NewAssignmentCounterIncrement(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_counter"), types.MINUS, types.NewLiteralValue(int64(9), types.TypeCounter)),
 				},
 				RowKeys: []types.DynamicValue{
-					types.NewLiteralValue("testText"),
-					types.NewLiteralValue("pk2"),
+					types.NewLiteralValue("testText", types.TypeVarchar),
+					types.NewLiteralValue("pk2", types.TypeVarchar),
 				},
 				AllParams: []*types.ParameterMetadata{},
 			},
@@ -375,11 +375,11 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 				Keyspace: "test_keyspace",
 				Table:    "test_table",
 				Values: []types.Assignment{
-					types.NewAssignmentCounterIncrement(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_counter"), types.PLUS, types.NewLiteralValue(int64(-9))),
+					types.NewAssignmentCounterIncrement(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_counter"), types.PLUS, types.NewLiteralValue(int64(-9), types.TypeCounter)),
 				},
 				RowKeys: []types.DynamicValue{
-					types.NewLiteralValue("testText"),
-					types.NewLiteralValue("pk2"),
+					types.NewLiteralValue("testText", types.TypeVarchar),
+					types.NewLiteralValue("pk2", types.TypeVarchar),
 				},
 				AllParams: []*types.ParameterMetadata{},
 			},
@@ -391,11 +391,11 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 				Keyspace: "test_keyspace",
 				Table:    "test_table",
 				Values: []types.Assignment{
-					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"), types.NewLiteralValue([]byte{0x01})),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"), types.NewLiteralValue([]byte{0x01}, types.TypeBlob)),
 				},
 				RowKeys: []types.DynamicValue{
-					types.NewLiteralValue("abc"),
-					types.NewLiteralValue("pkval"),
+					types.NewLiteralValue("abc", types.TypeVarchar),
+					types.NewLiteralValue("pkval", types.TypeVarchar),
 				},
 				AllParams: []*types.ParameterMetadata{},
 			},
@@ -412,11 +412,11 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 				Keyspace: "test_keyspace",
 				Table:    "test_table",
 				Values: []types.Assignment{
-					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "set_text"), types.NewLiteralValue([]types.GoValue{"item1", "item2"})),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "set_text"), types.NewLiteralValue([]types.GoValue{"item1", "item2"}, types.NewSetType(types.TypeText))),
 				},
 				RowKeys: []types.DynamicValue{
-					types.NewLiteralValue("testText"),
-					types.NewLiteralValue("pk2"),
+					types.NewLiteralValue("testText", types.TypeVarchar),
+					types.NewLiteralValue("pk2", types.TypeVarchar),
 				},
 				AllParams: []*types.ParameterMetadata{},
 			},
@@ -428,11 +428,11 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 				Keyspace: "test_keyspace",
 				Table:    "test_table",
 				Values: []types.Assignment{
-					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "map_text_bool"), types.NewLiteralValue(map[types.GoValue]types.GoValue{"key1": true, "key2": false})),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "map_text_bool"), types.NewLiteralValue(map[types.GoValue]types.GoValue{"key1": true, "key2": false}, types.NewMapType(types.TypeText, types.TypeBoolean))),
 				},
 				RowKeys: []types.DynamicValue{
-					types.NewLiteralValue("testText"),
-					types.NewLiteralValue("pk2"),
+					types.NewLiteralValue("testText", types.TypeVarchar),
+					types.NewLiteralValue("pk2", types.TypeVarchar),
 				},
 				AllParams: []*types.ParameterMetadata{},
 			},
@@ -444,11 +444,11 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 				Keyspace: "test_keyspace",
 				Table:    "test_table",
 				Values: []types.Assignment{
-					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "set_text"), types.NewLiteralValue([]types.GoValue{"item1", "item2"})),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "set_text"), types.NewLiteralValue([]types.GoValue{"item1", "item2"}, types.NewSetType(types.TypeText))),
 				},
 				RowKeys: []types.DynamicValue{
-					types.NewLiteralValue("testText"),
-					types.NewLiteralValue("pk2"),
+					types.NewLiteralValue("testText", types.TypeVarchar),
+					types.NewLiteralValue("pk2", types.TypeVarchar),
 				},
 				AllParams: []*types.ParameterMetadata{},
 			},
@@ -477,11 +477,11 @@ func TestTranslator_TranslateUpdateQuerytoBigtable(t *testing.T) {
 				Keyspace: "test_keyspace",
 				Table:    "test_table",
 				Values: []types.Assignment{
-					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"), types.NewLiteralValue([]byte{0x01})),
+					types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"), types.NewLiteralValue([]byte{0x01}, types.TypeBlob)),
 				},
 				RowKeys: []types.DynamicValue{
-					types.NewLiteralValue("abc"),
-					types.NewLiteralValue("pkval"),
+					types.NewLiteralValue("abc", types.TypeVarchar),
+					types.NewLiteralValue("pkval", types.TypeVarchar),
 				},
 				AllParams: []*types.ParameterMetadata{},
 			},

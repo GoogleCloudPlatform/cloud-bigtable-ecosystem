@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/global/types"
 	schemaMapping "github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/metadata"
-	"github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy/utilities"
 	"github.com/datastax/go-cassandra-native-protocol/primitive"
 	"github.com/google/uuid"
 	"strconv"
@@ -20,7 +19,7 @@ func BindMutations(assignments []types.Assignment, usingTimestamp types.DynamicV
 		}
 		switch v := assignment.(type) {
 		case *types.AssignmentCounterIncrement:
-			value, err := utilities.GetValueInt64(v.Value(), values)
+			value, err := values.GetValueInt64(v.Value())
 			if err != nil {
 				return err
 			}
@@ -43,7 +42,7 @@ func BindMutations(assignments []types.Assignment, usingTimestamp types.DynamicV
 			if colType == types.LIST {
 				lt := v.Column().CQLType.(*types.ListType)
 				if v.Operator == types.PLUS {
-					value, err := utilities.GetValueSlice(v.Value(), values)
+					value, err := values.GetValueSlice(v.Value())
 					if err != nil {
 						return err
 					}
@@ -53,7 +52,7 @@ func BindMutations(assignments []types.Assignment, usingTimestamp types.DynamicV
 					}
 					b.AddMutations(mutations...)
 				} else if v.Operator == types.MINUS {
-					value, err := utilities.GetValueSlice(v.Value(), values)
+					value, err := values.GetValueSlice(v.Value())
 					if err != nil {
 						return err
 					}
@@ -71,7 +70,7 @@ func BindMutations(assignments []types.Assignment, usingTimestamp types.DynamicV
 				}
 			} else if colType == types.SET {
 				if v.Operator == types.PLUS {
-					value, err := utilities.GetValueSlice(v.Value(), values)
+					value, err := values.GetValueSlice(v.Value())
 					if err != nil {
 						return err
 					}
@@ -81,7 +80,7 @@ func BindMutations(assignments []types.Assignment, usingTimestamp types.DynamicV
 					}
 					b.AddMutations(ops...)
 				} else if v.Operator == types.MINUS {
-					value, err := utilities.GetValueSlice(v.Value(), values)
+					value, err := values.GetValueSlice(v.Value())
 					if err != nil {
 						return err
 					}
@@ -95,7 +94,7 @@ func BindMutations(assignments []types.Assignment, usingTimestamp types.DynamicV
 			} else if colType == types.MAP {
 				mt := v.Column().CQLType.(*types.MapType)
 				if v.Operator == types.PLUS {
-					value, err := utilities.GetValueMap(v.Value(), values)
+					value, err := values.GetValueMap(v.Value())
 					if err != nil {
 						return err
 					}
@@ -104,7 +103,7 @@ func BindMutations(assignments []types.Assignment, usingTimestamp types.DynamicV
 						return err
 					}
 				} else if v.Operator == types.MINUS {
-					value, err := utilities.GetValueSlice(v.Value(), values)
+					value, err := values.GetValueSlice(v.Value())
 					if err != nil {
 						return err
 					}
@@ -190,7 +189,7 @@ func encodeSetValue(assignment *types.ComplexAssignmentSet, values *types.QueryP
 
 	if col.CQLType.Code() == types.MAP {
 		mt := col.CQLType.(*types.MapType)
-		mv, err := utilities.GetValueMap(assignment.Value(), values)
+		mv, err := values.GetValueMap(assignment.Value())
 		if err != nil {
 			return nil, err
 		}
@@ -207,7 +206,7 @@ func encodeSetValue(assignment *types.ComplexAssignmentSet, values *types.QueryP
 		}
 	} else if col.CQLType.Code() == types.LIST {
 		lt := col.CQLType.(*types.ListType)
-		lv, err := utilities.GetValueSlice(assignment.Value(), values)
+		lv, err := values.GetValueSlice(assignment.Value())
 		if err != nil {
 			return nil, err
 		}
@@ -217,7 +216,7 @@ func encodeSetValue(assignment *types.ComplexAssignmentSet, values *types.QueryP
 		}
 		results = append(results, mutations...)
 	} else if col.CQLType.Code() == types.SET {
-		lv, err := utilities.GetValueSlice(assignment.Value(), values)
+		lv, err := values.GetValueSlice(assignment.Value())
 		if err != nil {
 			return nil, err
 		}
@@ -420,11 +419,11 @@ func BindQueryParams(params *types.QueryParameters, positionalValues []*primitiv
 }
 
 func bindPositionalParams(params *types.QueryParameters, values []*primitive.Value, pv primitive.ProtocolVersion) (*types.QueryParameterValues, error) {
-	if params.Count() != len(values) {
-		return nil, fmt.Errorf("expected %d prepared positional values but got %d", params.Count(), len(values))
+	if params.CountUserParameters() != len(values) {
+		return nil, fmt.Errorf("expected %d prepared positional values but got %d", params.CountUserParameters(), len(values))
 	}
 	result := types.NewQueryParameterValues(params, time.Now())
-	for i, param := range params.Ordered() {
+	for i, param := range params.OrderedUserParams() {
 		goVal, err := cassandraValueToGoValue(param.Type, values[i], pv)
 		if err != nil {
 			return nil, err
@@ -438,8 +437,8 @@ func bindPositionalParams(params *types.QueryParameters, values []*primitive.Val
 }
 
 func bindNamedParams(params *types.QueryParameters, values map[string]*primitive.Value, pv primitive.ProtocolVersion) (*types.QueryParameterValues, error) {
-	if params.Count() != len(values) {
-		return nil, fmt.Errorf("expected %d prepared named values but got %d", params.Count(), len(values))
+	if params.CountUserParameters() != len(values) {
+		return nil, fmt.Errorf("expected %d prepared named values but got %d", params.CountUserParameters(), len(values))
 	}
 	result := types.NewQueryParameterValues(params, time.Now())
 	for param, value := range values {
@@ -466,16 +465,12 @@ func BindSelectColumns(table *schemaMapping.TableSchema, selectedColumns []types
 	var boundColumns []types.BoundSelectColumn
 	for _, selectedColumn := range selectedColumns {
 		var bc types.BoundSelectColumn
-		col, err := table.GetColumn(selectedColumn.ColumnName)
-		if err != nil {
-			return nil, err
-		}
-		if selectedColumn.ListIndex != -1 {
-			bc = types.NewBoundIndexColumn(col, int(selectedColumn.ListIndex))
-		} else if selectedColumn.MapKey != "" {
-			bc = types.NewBoundKeyColumn(col, selectedColumn.MapKey)
+		if li, ok := selectedColumn.Value.(*types.ListElementValue); ok {
+			bc = types.NewBoundIndexColumn(li.Column, int(li.ListIndex))
+		} else if mk, ok := selectedColumn.Value.(*types.MapAccessValue); ok {
+			bc = types.NewBoundKeyColumn(mk.Column, mk.MapKey)
 		} else {
-			return nil, fmt.Errorf("unhandled select column type found binding")
+			return nil, fmt.Errorf("unhandled select column type found binding: %T", selectedColumn)
 		}
 		boundColumns = append(boundColumns, bc)
 	}
@@ -491,7 +486,7 @@ func BindUsingTimestamp(value types.DynamicValue, values *types.QueryParameterVa
 		}, nil
 	}
 
-	t, err := utilities.GetValueInt64(value, values)
+	t, err := values.GetValueInt64(value)
 	if err != nil {
 		return nil, err
 	}

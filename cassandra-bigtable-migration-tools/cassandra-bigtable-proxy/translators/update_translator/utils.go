@@ -22,7 +22,7 @@ func parseUpdateValues(assignments []cql.IAssignmentElementContext, tableConfig 
 			if err != nil {
 				return nil, err
 			}
-			value, err := common.ParseValueAny(assignment.ValueAny(), col.CQLType, params, col)
+			value, err := common.ParseValueAny(assignment.ValueAny(), tableConfig, col.CQLType, types.QueryClauseValues, params, col)
 			if err != nil {
 				return nil, err
 			}
@@ -108,7 +108,7 @@ func ParseAppend(columnContext cql.IColumnContext, op cql.IArithmeticOperatorCon
 		return nil, fmt.Errorf("cannot append on column type: %s", col.CQLType.String())
 	}
 
-	value, err := common.ParseValueAny(valueAny, valueType, params, col)
+	value, err := common.ParseValueAny(valueAny, tableConfig, valueType, types.QueryClauseValues, params, col)
 	if err != nil {
 		return nil, err
 	}

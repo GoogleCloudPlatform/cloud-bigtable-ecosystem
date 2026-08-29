@@ -505,6 +505,12 @@ type CqlParserListener interface {
 	// EnterRelationFunctionCompareFunction is called when entering the relationFunctionCompareFunction production.
 	EnterRelationFunctionCompareFunction(c *RelationFunctionCompareFunctionContext)
 
+	// EnterRelationColumnCompareFunction is called when entering the relationColumnCompareFunction production.
+	EnterRelationColumnCompareFunction(c *RelationColumnCompareFunctionContext)
+
+	// EnterRelationFunctionCompareColumn is called when entering the relationFunctionCompareColumn production.
+	EnterRelationFunctionCompareColumn(c *RelationFunctionCompareColumnContext)
+
 	// EnterRelationBetween is called when entering the relationBetween production.
 	EnterRelationBetween(c *RelationBetweenContext)
 
@@ -532,8 +538,14 @@ type CqlParserListener interface {
 	// EnterFunctionCall is called when entering the functionCall production.
 	EnterFunctionCall(c *FunctionCallContext)
 
+	// EnterFunctionName is called when entering the functionName production.
+	EnterFunctionName(c *FunctionNameContext)
+
 	// EnterFunctionArgs is called when entering the functionArgs production.
 	EnterFunctionArgs(c *FunctionArgsContext)
+
+	// EnterFunctionArg is called when entering the functionArg production.
+	EnterFunctionArg(c *FunctionArgContext)
 
 	// EnterValueAny is called when entering the valueAny production.
 	EnterValueAny(c *ValueAnyContext)
@@ -1444,6 +1456,12 @@ type CqlParserListener interface {
 	// ExitRelationFunctionCompareFunction is called when exiting the relationFunctionCompareFunction production.
 	ExitRelationFunctionCompareFunction(c *RelationFunctionCompareFunctionContext)
 
+	// ExitRelationColumnCompareFunction is called when exiting the relationColumnCompareFunction production.
+	ExitRelationColumnCompareFunction(c *RelationColumnCompareFunctionContext)
+
+	// ExitRelationFunctionCompareColumn is called when exiting the relationFunctionCompareColumn production.
+	ExitRelationFunctionCompareColumn(c *RelationFunctionCompareColumnContext)
+
 	// ExitRelationBetween is called when exiting the relationBetween production.
 	ExitRelationBetween(c *RelationBetweenContext)
 
@@ -1471,8 +1489,14 @@ type CqlParserListener interface {
 	// ExitFunctionCall is called when exiting the functionCall production.
 	ExitFunctionCall(c *FunctionCallContext)
 
+	// ExitFunctionName is called when exiting the functionName production.
+	ExitFunctionName(c *FunctionNameContext)
+
 	// ExitFunctionArgs is called when exiting the functionArgs production.
 	ExitFunctionArgs(c *FunctionArgsContext)
+
+	// ExitFunctionArg is called when exiting the functionArg production.
+	ExitFunctionArg(c *FunctionArgContext)
 
 	// ExitValueAny is called when exiting the valueAny production.
 	ExitValueAny(c *ValueAnyContext)

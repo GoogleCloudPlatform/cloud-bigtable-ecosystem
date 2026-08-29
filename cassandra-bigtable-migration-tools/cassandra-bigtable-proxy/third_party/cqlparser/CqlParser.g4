@@ -789,6 +789,8 @@ relationElement
    | relationBetween
    | relationFunctionCompareConstant
    | relationFunctionCompareFunction
+   | relationColumnCompareFunction
+   | relationFunctionCompareColumn
    | relationContainsKey
    | relationContains
    | relationIn
@@ -810,8 +812,16 @@ relationFunctionCompareFunction
    : functionCall compareOperator functionCall
    ;
 
+relationColumnCompareFunction
+   : column compareOperator functionCall
+   ;
+
+relationFunctionCompareColumn
+   : functionCall compareOperator column
+   ;
+
 relationBetween
-   : column kwBetween constant kwAnd constant
+   : column kwBetween valueAny kwAnd valueAny
    ;
 
 relationCompare
@@ -843,14 +853,23 @@ relationContainsKey
    ;
 
 functionCall
-   : OBJECT_NAME '(' STAR ')'
-   | OBJECT_NAME '(' functionArgs? ')'
-   | K_UUID '(' ')'
-   | K_WRITETIME '(' functionArgs? ')'
+   : functionName '(' functionArgs? ')'
    ;
 
+functionName
+    : OBJECT_NAME
+    | K_UUID
+    | K_WRITETIME
+    ;
+
 functionArgs
-   : (constant | OBJECT_NAME | functionCall) (syntaxComma (constant | OBJECT_NAME | functionCall))*
+   : (functionArg) (syntaxComma functionArg)*
+   ;
+
+functionArg
+   : valueAny
+   | column
+   | STAR
    ;
 
 valueAny

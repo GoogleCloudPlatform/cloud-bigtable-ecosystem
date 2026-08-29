@@ -49,7 +49,7 @@ func parseInsertColumns(input cql.IInsertColumnSpecContext, tableConfig *schemaM
 	return result, nil
 }
 
-func parseInsertValues(input cql.IInsertValuesSpecContext, columns []*types.Column, params *types.QueryParameterBuilder) ([]types.Assignment, error) {
+func parseInsertValues(input cql.IInsertValuesSpecContext, table *schemaMapping.TableSchema, columns []*types.Column, params *types.QueryParameterBuilder) ([]types.Assignment, error) {
 	if input == nil {
 		return nil, errors.New("insert values clause missing or malformed")
 	}
@@ -71,7 +71,7 @@ func parseInsertValues(input cql.IInsertValuesSpecContext, columns []*types.Colu
 	var assignments []types.Assignment
 	for i, v := range allValues {
 		column := columns[i]
-		value, err := common.ParseValueAny(v, column.CQLType, params, column)
+		value, err := common.ParseValueAny(v, table, column.CQLType, types.QueryClauseValues, params, column)
 		if err != nil {
 			return nil, err
 		}

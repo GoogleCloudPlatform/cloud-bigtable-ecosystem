@@ -144,12 +144,35 @@ func TestInsertTimeUuidNull(t *testing.T) {
 	assert.Equal(t, (*gocql.UUID)(nil), got.parentEvent)
 }
 
+func TestValidateMaxAndMin(t *testing.T) {
+	inputTime := time.Date(2025, 12, 12, 13, 20, 42, 456000000, time.UTC)
+
+	minUuid, err := gocql.ParseUUID("5c09c580-d75d-11f0-0000-000000000000")
+	require.NoError(t, err)
+	maxUuid, err := gocql.ParseUUID("5c09ec8f-d75d-11f0-ffff-ffffffffffff")
+	require.NoError(t, err)
+
+	require.NoError(t, session.Query(`INSERT INTO timeuuid_key (pk, id, val, parentEvent) VALUES ('timeuuid-validate', ?, '3', now())`, minUuid).Exec())
+	require.NoError(t, session.Query(`INSERT INTO timeuuid_key (pk, id, val, parentEvent) VALUES ('timeuuid-validate', ?, '3', now())`, maxUuid).Exec())
+
+	var gotMin gocql.UUID
+	require.NoError(t, session.Query(`SELECT id FROM timeuuid_key WHERE pk='timeuuid-validate' AND id = minTimeuuid(?)`, inputTime).Scan(&gotMin))
+	assert.Equal(t, minUuid, gotMin)
+	var gotMax gocql.UUID
+	require.NoError(t, session.Query(`SELECT id FROM timeuuid_key WHERE pk='timeuuid-validate' AND id = maxTimeuuid(?)`, inputTime).Scan(&gotMax))
+	assert.Equal(t, maxUuid, gotMax)
+}
+
 func TestMaxAndMinTimestamp(t *testing.T) {
 	t.Parallel()
 
 	t1, _ := gocql.ParseUUID("7b287b9e-d769-11f0-b949-8e0ad7a51247")
 	t2, _ := gocql.ParseUUID("7e2fcec8-d769-11f0-b94a-8e0ad7a51247")
+	// 2025-12-12 14:47:38.769 +0000
+	// server: 2025-12-12 14:47:38.769 +0000 OK
+	// max: 8133f810-d769-11f0-ffff-ffffffffffff WHAT
 	t3, _ := gocql.ParseUUID("8133fa68-d769-11f0-b94b-8e0ad7a51247")
+
 	t4, _ := gocql.ParseUUID("843a7228-d769-11f0-b94c-8e0ad7a51247")
 	t5, _ := gocql.ParseUUID("87575e30-d769-11f0-b94d-8e0ad7a51247")
 
@@ -187,12 +210,52 @@ func TestMaxAndMinTimestamp(t *testing.T) {
 		assert.Equal(t, []gocql.UUID{t1, t2, t3}, got)
 	})
 
+	t.Run("< minTimeuuid", func(t *testing.T) {
+		t.Parallel()
+		got, err := scanAllTimeuuids(session.Query(`SELECT id FROM timeuuid_key WHERE pk='timeuuid-minmax' AND id < minTimeuuid(?)`, t3.Time()).Iter().Scanner())
+		require.NoError(t, err)
+		assert.NotContains(t, got, t3)
+		assert.Equal(t, []gocql.UUID{t1, t2}, got)
+	})
+
+	t.Run("> minTimeuuid", func(t *testing.T) {
+		t.Parallel()
+		got, err := scanAllTimeuuids(session.Query(`SELECT id FROM timeuuid_key WHERE pk='timeuuid-minmax' AND id > minTimeuuid(?)`, t3.Time()).Iter().Scanner())
+		require.NoError(t, err)
+		assert.Equal(t, []gocql.UUID{t3, t4, t5}, got)
+	})
+
+	t.Run("> maxTimeuuid", func(t *testing.T) {
+		t.Parallel()
+		got, err := scanAllTimeuuids(session.Query(`SELECT id FROM timeuuid_key WHERE pk='timeuuid-minmax' AND id > maxTimeuuid(?)`, t3.Time()).Iter().Scanner())
+		require.NoError(t, err)
+		assert.NotContains(t, got, t3)
+		assert.Equal(t, []gocql.UUID{t4, t5}, got)
+	})
+
+	t.Run("< maxTimeuuid", func(t *testing.T) {
+		t.Parallel()
+		got, err := scanAllTimeuuids(session.Query(`SELECT id FROM timeuuid_key WHERE pk='timeuuid-minmax' AND id < maxTimeuuid(?)`, t3.Time()).Iter().Scanner())
+		require.NoError(t, err)
+		assert.Contains(t, got, t1)
+		assert.Contains(t, got, t2)
+		assert.Contains(t, got, t3)
+		assert.Equal(t, []gocql.UUID{t1, t2, t3}, got)
+	})
+
 	t.Run("between t1 t3", func(t *testing.T) {
 		t.Parallel()
 		got, err := scanAllTimeuuids(session.Query(`SELECT id FROM timeuuid_key WHERE pk='timeuuid-minmax' AND id BETWEEN ? AND ?`, t1, t3).Iter().Scanner())
 		require.NoError(t, err)
 		// between is inclusive
 		assert.Equal(t, []gocql.UUID{t1, t2, t3}, got)
+	})
+
+	t.Run("between min max", func(t *testing.T) {
+		t.Parallel()
+		got, err := scanAllTimeuuids(session.Query(`SELECT id FROM timeuuid_key WHERE pk='timeuuid-minmax' AND id BETWEEN  minTimeuuid(?) AND maxTimeuuid(?)`, t3.Time(), t3.Time()).Iter().Scanner())
+		require.NoError(t, err)
+		assert.Equal(t, []gocql.UUID{t3}, got)
 	})
 }
 
@@ -223,15 +286,15 @@ func TestInsertTimeUuidPrepared(t *testing.T) {
 	got := TimeUuidEvent{}
 	require.NoError(t, session.Query(`SELECT pk, id, val, parentEvent FROM bigtabledevinstance.timeuuid_key WHERE pk = 'timeuuid-prepared'`).Scan(&got.pk, &got.id, &got.val, &got.parentEvent))
 	assert.Equal(t, "timeuuid-prepared", got.pk)
-	assert.Equal(t, t1, *got.id)
+	assert.Equal(t, &t1, got.id)
 	assert.Equal(t, "3", got.val)
-	assert.Equal(t, t2, *got.parentEvent)
+	assert.Equal(t, &t2, got.parentEvent)
 
 	require.NoError(t, session.Query(`SELECT pk, id, val, parentEvent FROM bigtabledevinstance.timeuuid_key WHERE id=? AND parentEvent=?`, t1, t2).Scan(&got.pk, &got.id, &got.val, &got.parentEvent))
 	assert.Equal(t, "timeuuid-prepared", got.pk)
-	assert.Equal(t, t1, *got.id)
+	assert.Equal(t, &t1, got.id)
 	assert.Equal(t, "3", got.val)
-	assert.Equal(t, t2, *got.parentEvent)
+	assert.Equal(t, &t2, got.parentEvent)
 }
 
 type TimeUuidEvent struct {

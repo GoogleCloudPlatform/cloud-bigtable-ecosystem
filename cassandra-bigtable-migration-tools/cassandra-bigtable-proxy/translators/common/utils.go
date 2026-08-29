@@ -12,6 +12,7 @@ import (
 	"github.com/datastax/go-cassandra-native-protocol/primitive"
 	"github.com/google/uuid"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 )
@@ -40,7 +41,7 @@ func ExtractDecimalLiteral(d cql.IDecimalLiteralContext, cqlType types.CqlDataTy
 	if err != nil {
 		return nil, err
 	}
-	return types.NewLiteralValue(val), err
+	return types.NewLiteralValue(val, cqlType), err
 }
 
 func ParseMarker(m cql.IMarkerContext, dt types.CqlDataType, params *types.QueryParameterBuilder, col *types.Column) (types.DynamicValue, error) {
@@ -56,7 +57,7 @@ func ParseMarker(m cql.IMarkerContext, dt types.CqlDataType, params *types.Query
 	if err != nil {
 		return nil, err
 	}
-	return types.NewParameterizedValue(marker), nil
+	return types.NewParameterizedValue(marker, dt), nil
 }
 
 func GetDecimalLiteral(d cql.IDecimalLiteralContext, cqlType types.CqlDataType) (types.GoValue, error) {
@@ -110,6 +111,12 @@ func ParseWhereClause(input cql.IWhereSpecContext, tableConfig *schemaMapping.Ta
 			condition, err = parseWhereLike(val.RelationLike(), tableConfig, params)
 		} else if val.RelationContainsKey() != nil {
 			condition, err = parseWhereContainsKey(val.RelationContainsKey(), tableConfig, params)
+		} else if val.RelationFunctionCompareColumn() != nil {
+			compareFn := val.RelationFunctionCompareColumn()
+			condition, err = parseColumnCompareFunction(compareFn.Column(), compareFn.CompareOperator(), compareFn.FunctionCall(), true, tableConfig, params)
+		} else if val.RelationColumnCompareFunction() != nil {
+			compareFn := val.RelationColumnCompareFunction()
+			condition, err = parseColumnCompareFunction(compareFn.Column(), compareFn.CompareOperator(), compareFn.FunctionCall(), false, tableConfig, params)
 		} else if val.RelationContains() != nil {
 			condition, err = parseWhereContains(val.RelationContains(), tableConfig, params)
 		} else if val.RelationBetween() != nil {
@@ -149,6 +156,30 @@ func parseWhereCompare(compare cql.IRelationCompareContext, tableConfig *schemaM
 		Value:    value,
 	}, nil
 }
+
+func parseColumnCompareFunction(col cql.IColumnContext, op cql.ICompareOperatorContext, f cql.IFunctionCallContext, flip bool, tableConfig *schemaMapping.TableSchema, params *types.QueryParameterBuilder) (types.Condition, error) {
+	column, err := ParseColumnContext(tableConfig, col)
+	if err != nil {
+		return types.Condition{}, err
+	}
+	operator, err := ParseOperator(op)
+	if err != nil {
+		return types.Condition{}, err
+	}
+	if flip {
+		operator = types.FlipOperator(operator)
+	}
+	fn, err := ParseFunctionCall(f, tableConfig, types.QueryClauseWhere, params)
+	if err != nil {
+		return types.Condition{}, err
+	}
+	return types.Condition{
+		Column:   column,
+		Operator: operator,
+		Value:    fn,
+	}, nil
+}
+
 func parseWhereLike(like cql.IRelationLikeContext, tableConfig *schemaMapping.TableSchema, params *types.QueryParameterBuilder) (types.Condition, error) {
 	column, err := ParseColumnContext(tableConfig, like.Column())
 	if err != nil {
@@ -215,15 +246,15 @@ func parseWhereBetween(between cql.IRelationBetweenContext, tableConfig *schemaM
 		return types.Condition{}, err
 	}
 
-	if len(between.AllConstant()) != 2 {
+	if len(between.AllValueAny()) != 2 {
 		return types.Condition{}, fmt.Errorf("BETWEEN condition must have exactly 2 values")
 	}
 
-	v1, err := ParseConstantValue(between.Constant(0), column.CQLType, params, column)
+	v1, err := ParseValueAny(between.ValueAny(0), tableConfig, column.CQLType, types.QueryClauseWhere, params, column)
 	if err != nil {
 		return types.Condition{}, err
 	}
-	v2, err := ParseConstantValue(between.Constant(1), column.CQLType, params, column)
+	v2, err := ParseValueAny(between.ValueAny(1), tableConfig, column.CQLType, types.QueryClauseWhere, params, column)
 	if err != nil {
 		return types.Condition{}, err
 	}
@@ -257,7 +288,7 @@ func ParseTupleValue(tuple cql.ITupleValueContext, lt *types.ListType, params *t
 	}
 
 	valueFn := tuple.FunctionArgs()
-	all := valueFn.AllConstant()
+	all := valueFn.AllFunctionArg()
 	if all == nil || len(all) == 0 {
 		return nil, errors.New("failed to parse values for IN operator")
 	}
@@ -269,10 +300,10 @@ func ParseTupleValue(tuple cql.ITupleValueContext, lt *types.ListType, params *t
 		}
 		inValues = append(inValues, parsed)
 	}
-	return types.NewLiteralValue(inValues), nil
+	return types.NewLiteralValue(inValues, lt), nil
 }
 
-func ParseValueAny(v cql.IValueAnyContext, dt types.CqlDataType, params *types.QueryParameterBuilder, column *types.Column) (types.DynamicValue, error) {
+func ParseValueAny(v cql.IValueAnyContext, table *schemaMapping.TableSchema, dt types.CqlDataType, clause types.QueryClause, params *types.QueryParameterBuilder, column *types.Column) (types.DynamicValue, error) {
 	if v.Marker() != nil {
 		return ParseMarker(v.Marker(), dt, params, column)
 	}
@@ -285,40 +316,127 @@ func ParseValueAny(v cql.IValueAnyContext, dt types.CqlDataType, params *types.Q
 		if err != nil {
 			return nil, err
 		}
-		return types.NewLiteralValue(value), nil
+		return types.NewLiteralValue(value, dt), nil
 	}
 	if v.ValueMap() != nil {
 		value, err := ParseCqlMapAssignment(v.ValueMap(), dt)
 		if err != nil {
 			return nil, err
 		}
-		return types.NewLiteralValue(value), nil
+		return types.NewLiteralValue(value, dt), nil
 	}
 	if v.ValueSet() != nil {
 		value, err := ParseCqlSetAssignment(v.ValueSet(), dt)
 		if err != nil {
 			return nil, err
 		}
-		return types.NewLiteralValue(value), nil
+		return types.NewLiteralValue(value, dt), nil
 	}
 	// todo more robust function handling
 	if v.FunctionCall() != nil {
-		functionName := strings.ToLower(v.FunctionCall().OBJECT_NAME().GetText())
-		if functionName == "totimestamp" {
-			fnArgs := v.FunctionCall().FunctionArgs().AllFunctionCall()
-			if len(fnArgs) == 1 {
-				innerFn := strings.ToLower(fnArgs[0].OBJECT_NAME().GetText())
-				if innerFn == "now" {
-					return types.NewTimestampNowValue(), nil
-				}
-			}
-		}
-		if functionName == "now" && dt.Code() == types.TIMEUUID {
-			return types.NewTimeuuidNowValue(), nil
-		}
-		return nil, fmt.Errorf("unsupported function call: `%s`", v.GetText())
+		return ParseFunctionCall(v.FunctionCall(), table, clause, params)
 	}
 	return nil, fmt.Errorf("unhandled value set `%s`", v.GetText())
+}
+
+func ParseFunctionCall(functionCall cql.IFunctionCallContext, table *schemaMapping.TableSchema, clause types.QueryClause, params *types.QueryParameterBuilder) (*types.FunctionValue, error) {
+	funcSpec, err := ParseFunctionName(functionCall.FunctionName())
+	if err != nil {
+		return nil, err
+	}
+	if !slices.Contains(funcSpec.GetValidClauses(), clause) {
+		return nil, fmt.Errorf("function '%s' cannot be called in %s clause", funcSpec.GetName(), clause.String())
+	}
+
+	var allFunctionArgs []cql.IFunctionArgContext
+	if functionCall.FunctionArgs() == nil {
+		allFunctionArgs = nil
+	} else {
+		allFunctionArgs = functionCall.FunctionArgs().AllFunctionArg()
+	}
+
+	if len(allFunctionArgs) != len(funcSpec.GetParameterTypes()) {
+		return nil, fmt.Errorf("expected %d args for function %s but got %d", len(funcSpec.GetParameterTypes()), funcSpec.GetName(), len(allFunctionArgs))
+	}
+	var args []types.DynamicValue
+	for i, arg := range allFunctionArgs {
+		argSpec := funcSpec.GetParameterTypes()[i]
+		value, err := parseFunctionArg(table, arg, argSpec, clause, params)
+		if err != nil {
+			return nil, err
+		}
+		args = append(args, value)
+	}
+	var p types.Parameter
+	if clause == types.QueryClauseSelect {
+		// we can't use functions here so don't assign a parameter
+		p = ""
+	} else {
+		p, err = params.AddInternalParam(funcSpec.GetReturnType(args))
+		if err != nil {
+			return nil, err
+		}
+	}
+	fv := types.NewFunctionValue(p, funcSpec, args...)
+	err = types.ValidateFunctionArgs(fv)
+	if err != nil {
+		return nil, err
+	}
+	return fv, nil
+}
+
+func ParseFunctionName(f cql.IFunctionNameContext) (types.CqlFunc, error) {
+	functionName := strings.ToLower(f.GetText())
+	switch functionName {
+	case "writetime":
+		return types.WriteTime, nil
+	case "count":
+		return types.Count, nil
+	case "avg":
+		return types.Avg, nil
+	case "sum":
+		return types.Sum, nil
+	case "min":
+		return types.Min, nil
+	case "max":
+		return types.Max, nil
+	case "now":
+		return types.Now, nil
+	case "totimestamp":
+		return types.ToTimestamp, nil
+	case "mintimeuuid":
+		return types.MinTimeuuid, nil
+	case "maxtimeuuid":
+		return types.MaxTimeuuid, nil
+	default:
+		return nil, fmt.Errorf("unknown function: '%s'", functionName)
+	}
+}
+
+func parseFunctionArg(table *schemaMapping.TableSchema, arg cql.IFunctionArgContext, argSpec types.CqlFuncParameter, clause types.QueryClause, params *types.QueryParameterBuilder) (types.DynamicValue, error) {
+	if arg.ValueAny() != nil {
+		value, err := ParseValueAny(arg.ValueAny(), table, argSpec.Types[0], clause, params, nil)
+		if err != nil {
+			return nil, err
+		}
+		return value, nil
+	} else if arg.Column() != nil {
+		if clause != types.QueryClauseSelect {
+			return nil, fmt.Errorf("function calls on columns are not supported outside of the SELECT clause")
+		}
+		col, err := ParseColumnContext(table, arg.Column())
+		if err != nil {
+			return nil, err
+		}
+		return types.NewColumnValue(col), nil
+	} else if arg.STAR() != nil {
+		if clause != types.QueryClauseSelect {
+			return nil, fmt.Errorf("function calls on '*' are not supported outside of the SELECT clause")
+		}
+		return types.NewSelectStarValue(), nil
+	} else {
+		return nil, fmt.Errorf("unsupported function argument: `%s`", arg.GetText())
+	}
 }
 
 func ParseConstantValue(v cql.IConstantContext, dt types.CqlDataType, params *types.QueryParameterBuilder, col *types.Column) (types.DynamicValue, error) {
@@ -330,7 +448,7 @@ func ParseConstantValue(v cql.IConstantContext, dt types.CqlDataType, params *ty
 		return nil, err
 	}
 
-	return types.NewLiteralValue(goValue), nil
+	return types.NewLiteralValue(goValue, dt), nil
 }
 
 func ParseColumnContext(table *schemaMapping.TableSchema, r cql.IColumnContext) (*types.Column, error) {
@@ -859,14 +977,14 @@ func ParseSelectIndex(si cql.ISelectIndexContext, alias string, table *schemaMap
 		if err != nil {
 			return types.SelectedColumn{}, err
 		}
-		return *types.NewSelectedColumnMapElement(si.GetText(), col.Name, alias, mt.ValueType(), colQualifier), nil
+		return types.NewSelectedColumn(si.GetText(), types.NewMapAccessValue(col, mt, colQualifier), alias), nil
 	} else if col.CQLType.Code() == types.LIST {
 		index, err := ParseBigInt(si.Constant().DecimalLiteral())
 		if err != nil {
 			return types.SelectedColumn{}, err
 		}
 		lt := col.CQLType.(*types.ListType)
-		return *types.NewSelectedColumnListElement(si.GetText(), col.Name, alias, lt.ElementType(), index), nil
+		return types.NewSelectedColumn(si.GetText(), types.NewListElementValue(col, lt, index), alias), nil
 	} else {
 		return types.SelectedColumn{}, fmt.Errorf("cannot access index/key of column type %s", col.CQLType.String())
 	}
@@ -877,92 +995,19 @@ func ParseSelectColumn(si cql.ISelectColumnContext, alias string, table *schemaM
 	if err != nil {
 		return types.SelectedColumn{}, err
 	}
-	return *types.NewSelectedColumn(string(col.Name), col.Name, alias, col.CQLType), nil
+	return types.NewSelectedColumn(string(col.Name), types.NewColumnValue(col), alias), nil
 }
 
-func ParseSelectFunction(sf cql.ISelectFunctionContext, alias string, table *schemaMapping.TableSchema) (types.SelectedColumn, error) {
-	f, err := ParseCqlFunc(sf.FunctionCall())
+func ParseSelectFunction(sf cql.ISelectFunctionContext, alias string, table *schemaMapping.TableSchema, params *types.QueryParameterBuilder) (types.SelectedColumn, error) {
+	f, err := ParseFunctionCall(sf.FunctionCall(), table, types.QueryClauseSelect, params)
 	if err != nil {
 		return types.SelectedColumn{}, err
 	}
-	switch f {
-	case types.FuncCodeWriteTime:
-		col, err := parseSingleColumnFunctionArg(sf.FunctionCall(), table)
-		if err != nil {
-			return types.SelectedColumn{}, err
-		}
-		return *types.NewSelectedColumnFunction(sf.FunctionCall().GetText(), col.Name, alias, types.TypeBigInt, f), nil
-	case types.FuncCodeCount:
-		value, err := parseStarOrColumnFunctionArg(sf.FunctionCall(), table)
-		if err != nil {
-			return types.SelectedColumn{}, err
-		}
-		sql := fmt.Sprintf("system.count(%s)", value)
-		return *types.NewSelectedColumnFunction(sql, types.ColumnName(value), alias, types.TypeBigInt, f), nil
-	case types.FuncCodeAvg, types.FuncCodeSum, types.FuncCodeMin, types.FuncCodeMax:
-		col, err := parseSingleColumnFunctionArg(sf.FunctionCall(), table)
-		if err != nil {
-			return types.SelectedColumn{}, err
-		}
-
-		if !isNumericType(col.CQLType) {
-			return types.SelectedColumn{}, fmt.Errorf("invalid aggregate type: %s", col.CQLType.String())
-		}
-
-		resultType := col.CQLType
-		// integer type columns need to have result a result type that captures decimal positionalValues
-		if f == types.FuncCodeAvg && (col.CQLType.Code() == types.BIGINT || col.CQLType.Code() == types.INT || col.CQLType.Code() == types.COUNTER) {
-			resultType = types.TypeDouble
-		}
-
-		// example: system.avg(price)
-		sql := fmt.Sprintf("system.%s(%s)", strings.ToLower(f.String()), col.Name)
-		return *types.NewSelectedColumnFunction(sql, col.Name, alias, resultType, f), nil
-	case types.FuncCodeNow:
-		return *types.NewSelectedColumnFunction("now()", "", alias, types.TypeTimeuuid, f), nil
-	case types.FuncCodeToTimestamp:
-		col, err := parseSingleColumnFunctionArg(sf.FunctionCall(), table)
-		if err != nil {
-			return types.SelectedColumn{}, err
-		}
-		if col.CQLType.Code() != types.TIMEUUID {
-			return types.SelectedColumn{}, fmt.Errorf("totimestamp() argument must be a timeuuid, not %s", col.CQLType.String())
-		}
-		sql := string(col.Name)
-		return *types.NewSelectedColumnFunction(sql, col.Name, alias, types.TypeTimestamp, f), nil
-	default:
-		return types.SelectedColumn{}, fmt.Errorf("unhandled function type `%s`", sf.FunctionCall().GetText())
+	cqlText := sf.GetText()
+	if f.Func.GetCode() == types.FuncCodeCount || f.Func.GetCode() == types.FuncCodeAvg || f.Func.GetCode() == types.FuncCodeMin || f.Func.GetCode() == types.FuncCodeMax || f.Func.GetCode() == types.FuncCodeSum {
+		cqlText = "system." + strings.ToLower(cqlText)
 	}
-}
-
-func isNumericType(t types.CqlDataType) bool {
-	return t.Code() == types.BIGINT || t.Code() == types.INT || t.Code() == types.FLOAT || t.Code() == types.DOUBLE || t.Code() == types.COUNTER
-}
-
-func parseSingleColumnFunctionArg(fn cql.IFunctionCallContext, table *schemaMapping.TableSchema) (*types.Column, error) {
-	if fn.FunctionArgs() == nil || len(fn.FunctionArgs().AllOBJECT_NAME()) != 1 {
-		return nil, fmt.Errorf("expected 1 column argument for `%s`", fn.GetText())
-	}
-	if len(fn.FunctionArgs().AllFunctionCall()) != 0 {
-		return nil, fmt.Errorf("expected 1 column argument for `%s`", fn.GetText())
-	}
-	arg := fn.FunctionArgs().OBJECT_NAME(0).GetText()
-	col, err := table.GetColumn(types.ColumnName(arg))
-	if err != nil {
-		return nil, fmt.Errorf("expected valid column in function arguments `%s`", fn.GetText())
-	}
-	return col, nil
-}
-
-func parseStarOrColumnFunctionArg(fn cql.IFunctionCallContext, table *schemaMapping.TableSchema) (string, error) {
-	if fn.STAR() != nil {
-		return "*", nil
-	}
-	col, err := parseSingleColumnFunctionArg(fn, table)
-	if err != nil {
-		return "", err
-	}
-	return string(col.Name), nil
+	return types.NewSelectedColumn(cqlText, f, alias), nil
 }
 
 func ParseAs(a cql.IAsSpecContext) (string, error) {

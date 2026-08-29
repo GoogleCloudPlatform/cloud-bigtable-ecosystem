@@ -178,6 +178,8 @@ func TestIsSupportedCollectionElementType(t *testing.T) {
 		{"Supported CQLType - Double", datatype.Double, true},
 		{"Supported CQLType - Timestamp", datatype.Timestamp, true},
 		{"Supported CQLType - Boolean", datatype.Boolean, true},
+		{"Supported CQLType - UUID", datatype.Uuid, true},
+		{"Supported CQLType - TimeUUID", datatype.Timeuuid, true},
 		{"Unsupported CQLType - Blob", datatype.Blob, false},
 		{"Unsupported CQLType - Map", datatype.NewMapType(datatype.Varchar, datatype.Int), false},
 		{"Unsupported CQLType - Set", datatype.NewSetType(datatype.Varchar), false},

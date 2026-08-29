@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"reflect"
 	"time"
 )
 
@@ -16,7 +17,8 @@ type ParameterMetadata struct {
 	IsNamed bool
 	Type    CqlDataType
 	// can be null if the placeholder is not related to a specific column
-	Column *Column
+	Column     *Column
+	IsInternal bool
 }
 
 func newParameterMetadata(
@@ -25,8 +27,9 @@ func newParameterMetadata(
 	isNamed bool,
 	tpe CqlDataType,
 	column *Column,
+	isInternal bool,
 ) *ParameterMetadata {
-	return &ParameterMetadata{Key: key, Order: order, IsNamed: isNamed, Type: tpe, Column: column}
+	return &ParameterMetadata{Key: key, Order: order, IsNamed: isNamed, Type: tpe, Column: column, IsInternal: isInternal}
 }
 
 type QueryParameters struct {
@@ -61,10 +64,34 @@ func (q *QueryParameters) Count() int {
 	return len(q.ordered)
 }
 
+func (q *QueryParameters) CountUserParameters() int {
+	result := 0
+	for _, metadata := range q.params {
+		if metadata.IsInternal {
+			continue
+		}
+		result++
+	}
+	return result
+}
+
 func (q *QueryParameters) Ordered() []*ParameterMetadata {
 	result := make([]*ParameterMetadata, len(q.ordered))
 	for _, metadata := range q.params {
 		result[metadata.Order] = metadata
+	}
+	return result
+}
+
+func (q *QueryParameters) OrderedUserParams() []*ParameterMetadata {
+	ordered := q.Ordered()
+	result := make([]*ParameterMetadata, 0, len(ordered))
+	for _, p := range ordered {
+		// don't return internal params because we don't want the user to bind to them
+		if p.IsInternal {
+			continue
+		}
+		result = append(result, p)
 	}
 	return result
 }
@@ -104,4 +131,91 @@ func (q *QueryParameterValues) AllValuesSet() bool {
 }
 func (q *QueryParameterValues) AsMap() map[Parameter]GoValue {
 	return q.values
+}
+func (q *QueryParameterValues) GetValueInt32(dv DynamicValue) (int32, error) {
+	value, err := dv.GetValue(q)
+	if err != nil {
+		return 0, err
+	}
+	intVal, ok := value.(int32)
+	if !ok {
+		return 0, fmt.Errorf("query value is a %T, not an int32", value)
+	}
+	return intVal, nil
+}
+
+func (q *QueryParameterValues) GetValueInt64(dv DynamicValue) (int64, error) {
+	v, err := dv.GetValue(q)
+	if err != nil {
+		return 0, err
+	}
+	intVal, ok := v.(int64)
+	if !ok {
+		return 0, fmt.Errorf("query value is a %T, not an int64", v)
+	}
+	return intVal, nil
+}
+
+func (q *QueryParameterValues) GetValueTime(dv DynamicValue) (time.Time, error) {
+	v, err := dv.GetValue(q)
+	if err != nil {
+		return time.Time{}, err
+	}
+	t, ok := v.(time.Time)
+	if !ok {
+		return time.Time{}, fmt.Errorf("query value is a %T, not a time", v)
+	}
+	return t, nil
+}
+
+func (q *QueryParameterValues) GetValueSlice(dv DynamicValue) ([]GoValue, error) {
+	v, err := dv.GetValue(q)
+	if err != nil {
+		return nil, err
+	}
+
+	val := reflect.ValueOf(v)
+
+	if val.Kind() != reflect.Slice {
+		return nil, fmt.Errorf("query value is a %T, not a slice", v)
+	}
+
+	length := val.Len()
+	result := make([]GoValue, length)
+
+	for i := 0; i < length; i++ {
+		result[i] = val.Index(i).Interface()
+	}
+
+	return result, nil
+}
+
+func (q *QueryParameterValues) GetValueMap(dv DynamicValue) (map[GoValue]GoValue, error) {
+	v, err := dv.GetValue(q)
+	if err != nil {
+		return nil, err
+	}
+	val := reflect.ValueOf(v)
+
+	if val.Kind() != reflect.Map {
+		return nil, fmt.Errorf("value is a %T, not a map", v)
+	}
+
+	result := make(map[GoValue]GoValue, val.Len())
+
+	// 3. Iterate over the keys of the original map
+	iter := val.MapRange()
+	for iter.Next() {
+		// Get the reflection Placeholder for the key and the value
+		keyVal := iter.Key()
+		valueVal := iter.Value()
+
+		// 4. Use .Interface() to convert the concrete key/value to an any (interface{})
+		keyAny := keyVal.Interface()
+		valueAny := valueVal.Interface()
+
+		// 5. Add to the new map[any]any
+		result[keyAny] = valueAny
+	}
+	return result, nil
 }

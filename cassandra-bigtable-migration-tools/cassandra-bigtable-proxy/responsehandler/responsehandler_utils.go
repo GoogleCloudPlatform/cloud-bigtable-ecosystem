@@ -76,7 +76,7 @@ func BuildPreparedResultResponse(id [16]byte, query types.IPreparedQuery) (*mess
 func buildPreparedResult(query types.IPreparedQuery) ([]*message.ColumnMetadata, []uint16) {
 	var variableMetadata []*message.ColumnMetadata
 	var pkIndices []uint16
-	for i, md := range query.Parameters().Ordered() {
+	for i, md := range query.Parameters().OrderedUserParams() {
 		var col = message.ColumnMetadata{
 			Keyspace: string(query.Keyspace()),
 			Table:    string(query.Table()),

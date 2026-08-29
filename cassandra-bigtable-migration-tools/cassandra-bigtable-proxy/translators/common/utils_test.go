@@ -102,8 +102,8 @@ func Test_validateRequiredPrimaryKeys(t *testing.T) {
 			name:  "success",
 			table: mockdata.GetTableOrDie("test_keyspace", "test_table"),
 			assignments: []types.Assignment{
-				types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk1"), types.NewParameterizedValue("value1")),
-				types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk2"), types.NewParameterizedValue("value2")),
+				types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk1"), types.NewParameterizedValue("value1", types.TypeVarchar)),
+				types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk2"), types.NewParameterizedValue("value2", types.TypeVarchar)),
 			},
 			err: "",
 		},
@@ -111,7 +111,7 @@ func Test_validateRequiredPrimaryKeys(t *testing.T) {
 			name:  "missing pk2",
 			table: mockdata.GetTableOrDie("test_keyspace", "test_table"),
 			assignments: []types.Assignment{
-				types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk1"), types.NewParameterizedValue("value1")),
+				types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk1"), types.NewParameterizedValue("value1", types.TypeVarchar)),
 			},
 			err: "missing primary key: 'pk2'",
 		},
@@ -119,9 +119,9 @@ func Test_validateRequiredPrimaryKeys(t *testing.T) {
 			name:  "extra columns ok",
 			table: mockdata.GetTableOrDie("test_keyspace", "test_table"),
 			assignments: []types.Assignment{
-				types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk1"), types.NewParameterizedValue("value1")),
-				types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk2"), types.NewParameterizedValue("value2")),
-				types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"), types.NewParameterizedValue("value3")),
+				types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk1"), types.NewParameterizedValue("value1", types.TypeVarchar)),
+				types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk2"), types.NewParameterizedValue("value2", types.TypeVarchar)),
+				types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"), types.NewParameterizedValue("value3", types.TypeBlob)),
 			},
 			err: "",
 		},
@@ -129,9 +129,9 @@ func Test_validateRequiredPrimaryKeys(t *testing.T) {
 			name:  "out of order ok",
 			table: mockdata.GetTableOrDie("test_keyspace", "test_table"),
 			assignments: []types.Assignment{
-				types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"), types.NewParameterizedValue("value0")),
-				types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk2"), types.NewParameterizedValue("value1")),
-				types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk1"), types.NewParameterizedValue("value2")),
+				types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "col_blob"), types.NewParameterizedValue("value0", types.TypeBlob)),
+				types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk2"), types.NewParameterizedValue("value1", types.TypeVarchar)),
+				types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "test_table", "pk1"), types.NewParameterizedValue("value2", types.TypeVarchar)),
 			},
 			err: "",
 		},
@@ -139,8 +139,8 @@ func Test_validateRequiredPrimaryKeys(t *testing.T) {
 			name:  "mixed types ok",
 			table: mockdata.GetTableOrDie("test_keyspace", "user_info"),
 			assignments: []types.Assignment{
-				types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "user_info", "age"), types.NewParameterizedValue("value1")),
-				types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "user_info", "name"), types.NewParameterizedValue("value2")),
+				types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "user_info", "age"), types.NewParameterizedValue("value1", types.TypeBigInt)),
+				types.NewComplexAssignmentSet(mockdata.GetColumnOrDie("test_keyspace", "user_info", "name"), types.NewParameterizedValue("value2", types.TypeVarchar)),
 			},
 			err: "",
 		},
@@ -179,7 +179,7 @@ func TestCreateOrderedCodeKey(t *testing.T) {
 				{Name: "user_id", CQLType: types.TypeVarchar, KeyType: types.KeyTypePartition, PkPrecedence: 1},
 			}),
 			values: []*types.TypedGoValue{types.NewTypedGoValue("user1", types.TypeVarchar)},
-			rowKey: []types.DynamicValue{types.NewParameterizedValue("value0")},
+			rowKey: []types.DynamicValue{types.NewParameterizedValue("value0", types.TypeVarchar)},
 			want:   "user1",
 		},
 		{
@@ -188,7 +188,7 @@ func TestCreateOrderedCodeKey(t *testing.T) {
 				{Name: "user_id", CQLType: types.TypeBigInt, KeyType: types.KeyTypePartition, PkPrecedence: 1},
 			}),
 			values: []*types.TypedGoValue{types.NewTypedGoValue(int64(1), types.TypeBigInt)},
-			rowKey: []types.DynamicValue{types.NewParameterizedValue("value0")},
+			rowKey: []types.DynamicValue{types.NewParameterizedValue("value0", types.TypeBigInt)},
 			want:   "\x81",
 		},
 		{
@@ -197,7 +197,7 @@ func TestCreateOrderedCodeKey(t *testing.T) {
 				{Name: "user_id", CQLType: types.TypeInt, KeyType: types.KeyTypePartition, PkPrecedence: 1},
 			}),
 			values: []*types.TypedGoValue{types.NewTypedGoValue(int32(1), types.TypeInt)},
-			rowKey: []types.DynamicValue{types.NewParameterizedValue("value0")},
+			rowKey: []types.DynamicValue{types.NewParameterizedValue("value0", types.TypeInt)},
 			want:   "\x81",
 		},
 		{
@@ -206,7 +206,7 @@ func TestCreateOrderedCodeKey(t *testing.T) {
 				{Name: "user_id", CQLType: types.TypeInt, KeyType: types.KeyTypePartition, PkPrecedence: 1},
 			}),
 			values: []*types.TypedGoValue{types.NewTypedGoValue(int32(1), types.TypeInt)},
-			rowKey: []types.DynamicValue{types.NewParameterizedValue("value0")},
+			rowKey: []types.DynamicValue{types.NewParameterizedValue("value0", types.TypeInt)},
 			want:   "\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x01",
 		},
 		{
@@ -215,7 +215,7 @@ func TestCreateOrderedCodeKey(t *testing.T) {
 				{Name: "user_id", CQLType: types.TypeInt, KeyType: types.KeyTypePartition, PkPrecedence: 1},
 			}),
 			values: []*types.TypedGoValue{types.NewTypedGoValue(int64(2147483647), types.TypeBigInt)},
-			rowKey: []types.DynamicValue{types.NewParameterizedValue("value0")},
+			rowKey: []types.DynamicValue{types.NewParameterizedValue("value0", types.TypeBigInt)},
 			want:   "\x00\xff\x00\xff\x00\xff\x00\xff\x7f\xff\xff\xff",
 		},
 		{
@@ -224,7 +224,7 @@ func TestCreateOrderedCodeKey(t *testing.T) {
 				{Name: "user_id", CQLType: types.TypeBigInt, KeyType: types.KeyTypePartition, PkPrecedence: 1},
 			}),
 			values: []*types.TypedGoValue{types.NewTypedGoValue(int64(9223372036854775807), types.TypeBigInt)},
-			rowKey: []types.DynamicValue{types.NewParameterizedValue("value0")},
+			rowKey: []types.DynamicValue{types.NewParameterizedValue("value0", types.TypeBigInt)},
 			want:   "\x7f\xff\xff\xff\xff\xff\xff\xff",
 		},
 		{
@@ -233,7 +233,7 @@ func TestCreateOrderedCodeKey(t *testing.T) {
 				{Name: "user_id", CQLType: types.TypeBigInt, KeyType: types.KeyTypePartition, PkPrecedence: 1},
 			}),
 			values: []*types.TypedGoValue{types.NewTypedGoValue(int64(-1), types.TypeBigInt)},
-			rowKey: []types.DynamicValue{types.NewParameterizedValue("value0")},
+			rowKey: []types.DynamicValue{types.NewParameterizedValue("value0", types.TypeBigInt)},
 			want:   "\x7f",
 		},
 		{
@@ -242,7 +242,7 @@ func TestCreateOrderedCodeKey(t *testing.T) {
 				{Name: "user_id", CQLType: types.TypeBigInt, KeyType: types.KeyTypePartition, PkPrecedence: 1},
 			}),
 			values:  []*types.TypedGoValue{types.NewTypedGoValue(int64(-1), types.TypeBigInt)},
-			rowKey:  []types.DynamicValue{types.NewParameterizedValue("value0")},
+			rowKey:  []types.DynamicValue{types.NewParameterizedValue("value0", types.TypeBigInt)},
 			want:    "",
 			wantErr: "row keys with big endian encoding cannot contain negative integer values",
 		},
@@ -252,7 +252,7 @@ func TestCreateOrderedCodeKey(t *testing.T) {
 				{Name: "user_id", CQLType: types.TypeBigInt, KeyType: types.KeyTypePartition, PkPrecedence: 1},
 			}),
 			values: []*types.TypedGoValue{types.NewTypedGoValue(int64(0), types.TypeBigInt)},
-			rowKey: []types.DynamicValue{types.NewParameterizedValue("value0")},
+			rowKey: []types.DynamicValue{types.NewParameterizedValue("value0", types.TypeBigInt)},
 			want:   "\x80",
 		},
 		{
@@ -261,7 +261,7 @@ func TestCreateOrderedCodeKey(t *testing.T) {
 				{Name: "user_id", CQLType: types.TypeBigInt, KeyType: types.KeyTypePartition, PkPrecedence: 1},
 			}),
 			values: []*types.TypedGoValue{types.NewTypedGoValue(int64(math.MinInt64), types.TypeBigInt)},
-			rowKey: []types.DynamicValue{types.NewParameterizedValue("value0")},
+			rowKey: []types.DynamicValue{types.NewParameterizedValue("value0", types.TypeBigInt)},
 			want:   "\x00\xff\x3f\x80\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff",
 		},
 		{
@@ -270,7 +270,7 @@ func TestCreateOrderedCodeKey(t *testing.T) {
 				{Name: "user_id", CQLType: types.TypeBigInt, KeyType: types.KeyTypePartition, PkPrecedence: 1},
 			}),
 			values: []*types.TypedGoValue{types.NewTypedGoValue(int64(-922337203685473), types.TypeBigInt)},
-			rowKey: []types.DynamicValue{types.NewParameterizedValue("value0")},
+			rowKey: []types.DynamicValue{types.NewParameterizedValue("value0", types.TypeBigInt)},
 			want:   "\x00\xff\xfc\xb9\x23\xa2\x9c\x77\x9f",
 		},
 		{
@@ -279,7 +279,7 @@ func TestCreateOrderedCodeKey(t *testing.T) {
 				{Name: "user_id", CQLType: types.TypeInt, KeyType: types.KeyTypePartition, PkPrecedence: 1},
 			}),
 			values: []*types.TypedGoValue{types.NewTypedGoValue(int64(math.MinInt32), types.TypeInt)},
-			rowKey: []types.DynamicValue{types.NewParameterizedValue("value0")},
+			rowKey: []types.DynamicValue{types.NewParameterizedValue("value0", types.TypeInt)},
 			want:   "\x07\x80\x00\xff\x00\xff\x00\xff",
 		},
 		{
@@ -295,9 +295,9 @@ func TestCreateOrderedCodeKey(t *testing.T) {
 				types.NewTypedGoValue("id123", types.TypeVarchar),
 			},
 			rowKey: []types.DynamicValue{
-				types.NewParameterizedValue("value0"),
-				types.NewParameterizedValue("value1"),
-				types.NewParameterizedValue("value2"),
+				types.NewParameterizedValue("value0", types.TypeBigInt),
+				types.NewParameterizedValue("value1", types.TypeInt),
+				types.NewParameterizedValue("value2", types.TypeVarchar),
 			},
 			want: "\x00\xff\x3f\x80\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x00\x01\x07\x80\x00\xff\x00\xff\x00\xff\x00\x01\x69\x64\x31\x32\x33",
 		},
@@ -308,8 +308,8 @@ func TestCreateOrderedCodeKey(t *testing.T) {
 				{Name: "other_id", CQLType: types.TypeInt, KeyType: types.KeyTypePartition, PkPrecedence: 2},
 			}),
 			rowKey: []types.DynamicValue{
-				types.NewLiteralValue(int64(-43232545)),
-				types.NewLiteralValue(int64(-12451)),
+				types.NewLiteralValue(int64(-43232545), types.TypeBigInt),
+				types.NewLiteralValue(int64(-12451), types.TypeInt),
 			},
 			want: "\x0d\x6c\x52\xdf\x00\x01\x1f\xcf\x5d",
 		},
@@ -319,7 +319,7 @@ func TestCreateOrderedCodeKey(t *testing.T) {
 				{Name: "user_id", CQLType: types.TypeBigInt, KeyType: types.KeyTypePartition, PkPrecedence: 1},
 			}),
 			rowKey: []types.DynamicValue{
-				types.NewLiteralValue(int64(0)),
+				types.NewLiteralValue(int64(0), types.TypeBigInt),
 			},
 			want: "\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff",
 		},
@@ -336,9 +336,9 @@ func TestCreateOrderedCodeKey(t *testing.T) {
 				types.NewTypedGoValue("new york", types.TypeVarchar),
 			},
 			rowKey: []types.DynamicValue{
-				types.NewParameterizedValue("value0"),
-				types.NewParameterizedValue("value1"),
-				types.NewParameterizedValue("value2"),
+				types.NewParameterizedValue("value0", types.TypeVarchar),
+				types.NewParameterizedValue("value1", types.TypeBigInt),
+				types.NewParameterizedValue("value2", types.TypeVarchar),
 			},
 			want: "user1\x00\x01\x81\x00\x01new york",
 		},
@@ -350,9 +350,9 @@ func TestCreateOrderedCodeKey(t *testing.T) {
 				{Name: "city", CQLType: types.TypeVarchar, KeyType: types.KeyTypeClustering, PkPrecedence: 3},
 			}),
 			rowKey: []types.DynamicValue{
-				types.NewLiteralValue("user1"),
-				types.NewLiteralValue(int64(1)),
-				types.NewLiteralValue("new york"),
+				types.NewLiteralValue("user1", types.TypeVarchar),
+				types.NewLiteralValue(int64(1), types.TypeBigInt),
+				types.NewLiteralValue("new york", types.TypeVarchar),
 			},
 			want: "user1\x00\x01\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x01\x00\x01new york",
 		},
@@ -364,9 +364,9 @@ func TestCreateOrderedCodeKey(t *testing.T) {
 				{Name: "city", CQLType: types.TypeVarchar, KeyType: types.KeyTypeClustering, PkPrecedence: 3},
 			}),
 			rowKey: []types.DynamicValue{
-				types.NewLiteralValue("user1"),
-				types.NewLiteralValue(int64(1)),
-				types.NewLiteralValue("new york"),
+				types.NewLiteralValue("user1", types.TypeVarchar),
+				types.NewLiteralValue(int64(1), types.TypeBigInt),
+				types.NewLiteralValue("new york", types.TypeVarchar),
 			},
 			want:    "",
 			wantErr: "unhandled int encoding type",
@@ -386,10 +386,10 @@ func TestCreateOrderedCodeKey(t *testing.T) {
 				types.NewTypedGoValue("", types.TypeVarchar),
 			},
 			rowKey: []types.DynamicValue{
-				types.NewParameterizedValue("value0"),
-				types.NewParameterizedValue("value1"),
-				types.NewParameterizedValue("value2"),
-				types.NewParameterizedValue("value3"),
+				types.NewParameterizedValue("value0", types.TypeVarchar),
+				types.NewParameterizedValue("value1", types.TypeBigInt),
+				types.NewParameterizedValue("value2", types.TypeVarchar),
+				types.NewParameterizedValue("value3", types.TypeVarchar),
 			},
 			want: "user3\x00\x01\x83",
 		},
@@ -408,10 +408,10 @@ func TestCreateOrderedCodeKey(t *testing.T) {
 				types.NewTypedGoValue("", types.TypeVarchar),
 			},
 			rowKey: []types.DynamicValue{
-				types.NewParameterizedValue("value0"),
-				types.NewParameterizedValue("value1"),
-				types.NewParameterizedValue("value2"),
-				types.NewParameterizedValue("value3"),
+				types.NewParameterizedValue("value0", types.TypeVarchar),
+				types.NewParameterizedValue("value1", types.TypeBigInt),
+				types.NewParameterizedValue("value2", types.TypeVarchar),
+				types.NewParameterizedValue("value3", types.TypeVarchar),
 			},
 			want: "user3\x00\x01\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x03",
 		},
@@ -428,9 +428,9 @@ func TestCreateOrderedCodeKey(t *testing.T) {
 				types.NewTypedGoValue("\xb7", types.TypeBlob),
 			},
 			rowKey: []types.DynamicValue{
-				types.NewParameterizedValue("value0"),
-				types.NewParameterizedValue("value1"),
-				types.NewParameterizedValue("value2"),
+				types.NewParameterizedValue("value0", types.TypeBlob),
+				types.NewParameterizedValue("value1", types.TypeBlob),
+				types.NewParameterizedValue("value2", types.TypeBlob),
 			},
 			want: "\xa2\x00\x01\x00\x00\x00\x01\xb7",
 		},
@@ -440,7 +440,7 @@ func TestCreateOrderedCodeKey(t *testing.T) {
 				{Name: "user_id", CQLType: types.TypeBlob, KeyType: types.KeyTypePartition, PkPrecedence: 1},
 			}),
 			rowKey: []types.DynamicValue{
-				types.NewLiteralValue("\x80\x00\x01\x81"),
+				types.NewLiteralValue("\x80\x00\x01\x81", types.TypeBlob),
 			},
 			want: "\x80\x00\xff\x01\x81",
 		},
@@ -453,10 +453,10 @@ func TestCreateOrderedCodeKey(t *testing.T) {
 				{Name: "borough", CQLType: types.TypeBlob, KeyType: types.KeyTypeClustering, PkPrecedence: 4},
 			}),
 			rowKey: []types.DynamicValue{
-				types.NewLiteralValue("\xa2"),
-				types.NewLiteralValue(""),
-				types.NewLiteralValue(""),
-				types.NewLiteralValue("\xb7"),
+				types.NewLiteralValue("\xa2", types.TypeBlob),
+				types.NewLiteralValue("", types.TypeBlob),
+				types.NewLiteralValue("", types.TypeBlob),
+				types.NewLiteralValue("\xb7", types.TypeBlob),
 			},
 			want: "\xa2\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\xb7",
 		},
@@ -467,8 +467,8 @@ func TestCreateOrderedCodeKey(t *testing.T) {
 				{Name: "city", CQLType: types.TypeBlob, KeyType: types.KeyTypeClustering, PkPrecedence: 2},
 			}),
 			rowKey: []types.DynamicValue{
-				types.NewLiteralValue("\xa5"),
-				types.NewLiteralValue("\x90"),
+				types.NewLiteralValue("\xa5", types.TypeBlob),
+				types.NewLiteralValue("\x90", types.TypeBlob),
 			},
 			want: "\xa5\x00\x01\x90",
 		},
@@ -479,8 +479,8 @@ func TestCreateOrderedCodeKey(t *testing.T) {
 				{Name: "city", CQLType: types.TypeBlob, KeyType: types.KeyTypeClustering, PkPrecedence: 2},
 			}),
 			rowKey: []types.DynamicValue{
-				types.NewLiteralValue(""),
-				types.NewLiteralValue("\xaa"),
+				types.NewLiteralValue("", types.TypeVarchar),
+				types.NewLiteralValue("\xaa", types.TypeBlob),
 			},
 			want: "\x00\x00\x00\x01\xaa",
 		},
@@ -492,9 +492,9 @@ func TestCreateOrderedCodeKey(t *testing.T) {
 				{Name: "borough", CQLType: types.TypeVarchar, KeyType: types.KeyTypeClustering, PkPrecedence: 3},
 			}),
 			rowKey: []types.DynamicValue{
-				types.NewLiteralValue("nn"),
-				types.NewLiteralValue("t\x00t"),
-				types.NewLiteralValue("end"),
+				types.NewLiteralValue("nn", types.TypeVarchar),
+				types.NewLiteralValue("t\x00t", types.TypeVarchar),
+				types.NewLiteralValue("end", types.TypeVarchar),
 			},
 			want: "nn\x00\x01t\x00\xfft\x00\x01end",
 		},
@@ -506,9 +506,9 @@ func TestCreateOrderedCodeKey(t *testing.T) {
 				{Name: "city", CQLType: types.TypeVarchar, KeyType: types.KeyTypeClustering, PkPrecedence: 3},
 			}),
 			rowKey: []types.DynamicValue{
-				types.NewLiteralValue("abcd"),
-				types.NewLiteralValue(int64(45)),
-				types.NewLiteralValue("name"),
+				types.NewLiteralValue("abcd", types.TypeVarchar),
+				types.NewLiteralValue(int64(45), types.TypeBigInt),
+				types.NewLiteralValue("name", types.TypeVarchar),
 			},
 			want: "abcd\x00\x01\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x00\xff\x2d\x00\x01name",
 		},
@@ -518,7 +518,7 @@ func TestCreateOrderedCodeKey(t *testing.T) {
 				{Name: "user_id", CQLType: types.TypeVarchar, KeyType: types.KeyTypePartition, PkPrecedence: 1},
 			}),
 			rowKey: []types.DynamicValue{
-				types.NewLiteralValue("\x00\x01"),
+				types.NewLiteralValue("\x00\x01", types.TypeVarchar),
 			},
 			want: "\x00\xff\x01",
 		},
@@ -529,7 +529,7 @@ func TestCreateOrderedCodeKey(t *testing.T) {
 			}),
 			values: []*types.TypedGoValue{},
 			rowKey: []types.DynamicValue{
-				types.NewParameterizedValue("value1"),
+				types.NewParameterizedValue("value1", types.TypeVarchar),
 			},
 			want:    "",
 			wantErr: "no query param for value1",
@@ -540,7 +540,7 @@ func TestCreateOrderedCodeKey(t *testing.T) {
 				{Name: "user_id", CQLType: types.TypeVarchar, KeyType: types.KeyTypePartition, PkPrecedence: 1},
 			}),
 			rowKey: []types.DynamicValue{
-				types.NewLiteralValue(nil),
+				types.NewLiteralValue(nil, types.TypeVarchar),
 			},
 			want:    "",
 			wantErr: "value cannot be null for primary key 'user_id'",
@@ -550,6 +550,16 @@ func TestCreateOrderedCodeKey(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			values, err := mockdata.CreateQueryParams(tt.values)
 			require.NoError(t, err)
+
+			// We need to ensure that literal values in tt.rowKey also have types if they are used
+			for i, rv := range tt.rowKey {
+				if lit, ok := rv.(*types.LiteralValue); ok {
+					if i < len(tt.tableConfig.PrimaryKeys) {
+						tt.rowKey[i] = types.NewLiteralValue(lit.Value, tt.tableConfig.PrimaryKeys[i].CQLType)
+					}
+				}
+			}
+
 			got, err := BindRowKey(tt.tableConfig, tt.rowKey, values)
 			if tt.wantErr != "" {
 				require.Error(t, err)
@@ -748,12 +758,12 @@ func TestRelationFragment(t *testing.T) {
 	require.NoError(t, err)
 	param, ok := result.(*types.ParameterizedValue)
 	assert.True(t, ok)
-	assert.Equal(t, types.Parameter("my_marker_1"), param.Parameter)
+	assert.Equal(t, types.Parameter("my_marker_1"), param.GetParameter())
 
 	builtParams, err := qp.Build()
 	assert.NoError(t, err)
 
-	metadata, err := builtParams.GetMetadata(param.Parameter)
+	metadata, err := builtParams.GetMetadata(param.GetParameter())
 	require.NoError(t, err)
 	assert.Equal(t, types.Parameter("my_marker_1"), metadata.Key)
 	assert.Equal(t, types.TypeText, metadata.Type)

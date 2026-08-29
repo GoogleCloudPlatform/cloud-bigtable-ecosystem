@@ -133,7 +133,7 @@ func (btc *BigtableAdapter) convertResultRow(resultRow bigtable.ResultRow, query
 			// use the result name because that applies the correct alias
 			key = query.ResultColumnMetadata[i].Name
 			// use the selected column because that has the CQLType
-			expectedType = query.SelectClause.Columns[i].ResultType
+			expectedType = query.SelectClause.Columns[i].GetType()
 		}
 
 		if _, ok := result[key]; ok {
