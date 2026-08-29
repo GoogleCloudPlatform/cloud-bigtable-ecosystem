@@ -14,6 +14,8 @@ table. Each Cassandra keyspace is mapped to a Bigtable Instance and each table g
 information for a table is stored in a schemaMapping.TableConfig object. The table schema information is cached in a
 global schema-mapping/SchemaMappingConfig object. The cache is refreshed whenever a DDL operation is run.
 
+See [architecture.md](./architecture.md) for more details.
+
 ## Supported CQL Queries
 
 * SELECT - uses the Bigtable SQL API to query data in a table
@@ -58,4 +60,3 @@ handler located in the mem_table/ module.
 - The translators/ module handles converting CQL into intermediate structs. Translators prepare queries and bind
   parameters into executable queries.
 - The executors/ module handles running executable queries.
-
