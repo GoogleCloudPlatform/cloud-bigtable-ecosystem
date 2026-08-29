@@ -61,8 +61,12 @@ func (btc *BigtableAdapter) ExecutePreparedStatement(ctx context.Context, query 
 
 	var processingErr error
 	var rows []types.GoRow
+	var processingDuration time.Duration
+	executeStart := time.Now()
 	executeErr := boundStmt.Execute(ctx, func(resultRow bigtable.ResultRow) bool {
+		processingStart := time.Now()
 		r, convertErr := btc.convertResultRow(resultRow, query) // Call the implemented helper
+		processingDuration += time.Since(processingStart)
 		if convertErr != nil {
 			btc.Logger.Error("Failed to convert result row", zap.Error(convertErr), zap.String("btql", query.TranslatedQuery))
 			processingErr = convertErr // Capture the error
@@ -71,6 +75,7 @@ func (btc *BigtableAdapter) ExecutePreparedStatement(ctx context.Context, query 
 		rows = append(rows, r)
 		return true // Continue processing
 	})
+	totalExecuteDuration := time.Since(executeStart)
 	if executeErr != nil {
 		btc.Logger.Error("Failed to execute prepared statement", zap.Error(executeErr))
 		return nil, fmt.Errorf("failed to execute prepared statement: %w", executeErr)
@@ -79,7 +84,27 @@ func (btc *BigtableAdapter) ExecutePreparedStatement(ctx context.Context, query 
 		return nil, fmt.Errorf("failed during row processing: %w", processingErr)
 	}
 
-	return responsehandler.BuildRowsResultResponse(query, rows, query.ProtocolVersion)
+	buildResponseStart := time.Now()
+	rowsResult, buildErr := responsehandler.BuildRowsResultResponse(query, rows, query.ProtocolVersion)
+	processingDuration += time.Since(buildResponseStart)
+
+	bigtableLatency := totalExecuteDuration - processingDuration
+	if bigtableLatency < 0 {
+		bigtableLatency = 0
+	}
+
+	btc.otelInst.RecordBigtableLatencyMetric(ctx, time.Now().Add(-bigtableLatency), otelgo.Attributes{
+		Method:    "ExecutePreparedStatement",
+		QueryType: query.QueryType().String(),
+		Keyspace:  string(query.Keyspace()),
+	})
+	btc.otelInst.RecordProcessingLatencyMetric(ctx, time.Now().Add(-processingDuration), otelgo.Attributes{
+		Method:    "ExecutePreparedStatement",
+		QueryType: query.QueryType().String(),
+		Keyspace:  string(query.Keyspace()),
+	})
+
+	return rowsResult, buildErr
 }
 
 func (btc *BigtableAdapter) convertResultRow(resultRow bigtable.ResultRow, query *types.ExecutableSelectQuery) (types.GoRow, error) {

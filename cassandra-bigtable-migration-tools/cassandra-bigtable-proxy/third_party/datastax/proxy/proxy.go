@@ -117,16 +117,6 @@ func NewProxy(ctx context.Context, logger *zap.Logger, config *types.ProxyInstan
 		return nil, err
 	}
 
-	metadataStore := schemaMapping.NewMetadataStore(logger, clientManager, config.BigtableConfig)
-	err = metadataStore.Initialize(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	bigtableClient := bigtableModule.NewBigtableClient(clientManager, logger, config.BigtableConfig, metadataStore)
-
-	translator := translators.NewTranslatorManager(logger, metadataStore.Schemas(), config.BigtableConfig)
-
 	// Enable OpenTelemetry traces by setting environment variable GOOGLE_API_GO_EXPERIMENTAL_TELEMETRY_PLATFORM_TRACING to the case-insensitive value "opentelemetry" before loading the client library.
 	otelConfig := &otelgo.OTelConfig{}
 	otelInst := &otelgo.OpenTelemetry{Config: &otelgo.OTelConfig{OTELEnabled: false}}
@@ -152,6 +142,16 @@ func NewProxy(ctx context.Context, logger *zap.Logger, config *types.ProxyInstan
 		logger.Error("Failed to enable the OTEL: " + err.Error())
 		return nil, err
 	}
+
+	metadataStore := schemaMapping.NewMetadataStore(logger, clientManager, config.BigtableConfig, otelInst)
+	err = metadataStore.Initialize(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	bigtableClient := bigtableModule.NewBigtableClient(clientManager, logger, config.BigtableConfig, metadataStore, otelInst)
+
+	translator := translators.NewTranslatorManager(logger, metadataStore.Schemas(), config.BigtableConfig)
 
 	systemTables := system_tables.NewSystemTableManager(metadataStore, logger)
 
@@ -475,11 +475,17 @@ func (c *client) Receive(reader io.Reader) error {
 }
 
 func (c *client) handlePrepare(raw *frame.RawFrame, msg *message.Prepare) {
+	startTime := time.Now()
 	id := c.getQueryId(msg)
 	if response, found := c.proxy.queryMetadataCache.Load(id); found {
 		c.sender.Send(raw.Header, response)
 		return
 	}
+
+	otelCtx, span := c.proxy.otelInst.StartSpan(c.proxy.ctx, "Prepare", []attribute.KeyValue{
+		attribute.String(Query, msg.Query),
+	})
+	defer c.proxy.otelInst.EndSpan(span)
 
 	c.proxy.logger.Debug("preparing query", zap.String(Query, msg.Query), zap.Int16("stream", raw.Header.StreamId))
 
@@ -488,16 +494,27 @@ func (c *client) handlePrepare(raw *frame.RawFrame, msg *message.Prepare) {
 		keyspace = types.Keyspace(msg.Keyspace)
 	}
 
+	parsingStart := time.Now()
 	p := parser.NewParser(msg.Query)
 	qt, err := parseQueryType(p)
 	if err != nil {
 		c.proxy.logger.Error("error parsing query to see if it's handled", zap.String(Query, msg.Query), zap.Error(err))
 		c.sender.Send(raw.Header, &message.Invalid{ErrorMessage: err.Error()})
+		c.proxy.otelInst.RecordError(span, err)
 		return
 	}
 	rawQuery := types.NewRawQuery(raw.Header, keyspace, msg.Query, p, qt)
 
+	var otelErr error
+	defer c.proxy.otelInst.RecordMetrics(otelCtx, "Prepare", startTime, rawQuery.QueryType().String(), c.sessionKeyspace, otelErr)
+
 	c.handleServerPreparedQuery(rawQuery, id)
+
+	c.proxy.otelInst.RecordParsingLatencyMetric(otelCtx, parsingStart, otelgo.Attributes{
+		Method:    "Prepare",
+		QueryType: rawQuery.QueryType().String(),
+		Keyspace:  string(c.sessionKeyspace),
+	})
 }
 
 func parseQueryType(p *parser.ProxyCqlParser) (types.QueryType, error) {
@@ -577,7 +594,7 @@ func (c *client) prepareQuery(query *types.RawQuery) (types.IPreparedQuery, erro
 
 // handleExecute for prepared query
 func (c *client) handleExecute(raw *frame.RawFrame, msg *partialExecute) {
-	ctx := context.Background()
+	startTime := time.Now()
 	id := preparedIdKey(msg.queryId)
 
 	preparedStmt, ok := c.proxy.preparedQueryCache.Load(id)
@@ -587,17 +604,35 @@ func (c *client) handleExecute(raw *frame.RawFrame, msg *partialExecute) {
 		return
 	}
 
+	otelCtx, span := c.proxy.otelInst.StartSpan(c.proxy.ctx, "Execute", []attribute.KeyValue{
+		attribute.String(Query, preparedStmt.CqlQuery()),
+	})
+	defer c.proxy.otelInst.EndSpan(span)
+
+	var otelErr error
+	defer c.proxy.otelInst.RecordMetrics(otelCtx, "Execute", startTime, preparedStmt.QueryType().String(), c.sessionKeyspace, otelErr)
+
+	parsingStart := time.Now()
 	boundQuery, err := c.proxy.translator.BindQuery(preparedStmt, msg.PositionalValues, msg.NamedValues, raw.Header.Version)
 	if err != nil {
 		c.proxy.logger.Error(errorWhileDecoding, zap.String(Query, preparedStmt.CqlQuery()), zap.Error(err))
 		c.sender.Send(raw.Header, &message.ConfigError{ErrorMessage: err.Error()})
+		otelErr = err
+		c.proxy.otelInst.RecordError(span, otelErr)
 		return
 	}
+	c.proxy.otelInst.RecordParsingLatencyMetric(otelCtx, parsingStart, otelgo.Attributes{
+		Method:    "Execute",
+		QueryType: preparedStmt.QueryType().String(),
+		Keyspace:  string(c.sessionKeyspace),
+	})
 
-	results, err := c.proxy.executor.Execute(ctx, c, boundQuery)
+	results, err := c.proxy.executor.Execute(otelCtx, c, boundQuery)
 	if err != nil {
 		c.proxy.logger.Error(errorAtBigtable, zap.String(Query, preparedStmt.CqlQuery()), zap.String(Query, preparedStmt.BigtableQuery()), zap.Error(err))
 		c.sender.Send(raw.Header, &message.ConfigError{ErrorMessage: err.Error()})
+		otelErr = err
+		c.proxy.otelInst.RecordError(span, otelErr)
 		return
 	}
 	if preparedStmt.QueryType().IsDDLType() {
@@ -615,6 +650,8 @@ func (c *client) handleBatch(raw *frame.RawFrame, msg *partialBatch) {
 	defer c.proxy.otelInst.EndSpan(span)
 	var otelErr error
 	defer c.proxy.otelInst.RecordMetrics(otelCtx, handleBatch, startTime, handleBatch, c.sessionKeyspace, otelErr)
+
+	parsingStart := time.Now()
 	bulkMutations, keyspace, err := c.bindBulkOperations(msg, raw.Header.Version)
 	if err != nil {
 		c.proxy.logger.Error("Error preparing batch query metadata", zap.Error(err))
@@ -623,6 +660,12 @@ func (c *client) handleBatch(raw *frame.RawFrame, msg *partialBatch) {
 		c.proxy.otelInst.RecordError(span, otelErr)
 		return
 	}
+	c.proxy.otelInst.RecordParsingLatencyMetric(otelCtx, parsingStart, otelgo.Attributes{
+		Method:    handleBatch,
+		QueryType: handleBatch,
+		Keyspace:  string(c.sessionKeyspace),
+	})
+
 	otelgo.AddAnnotation(otelCtx, sendingBulkApplyMutation)
 	var errs []string
 	for tableName, mutations := range bulkMutations.Mutations() {
@@ -682,6 +725,7 @@ func (c *client) handleQuery(raw *frame.RawFrame, msg *partialQuery) {
 		attribute.String("CqlQuery", msg.query),
 	})
 
+	parsingStart := time.Now()
 	p := parser.NewParser(msg.query)
 	qt, err := parseQueryType(p)
 	if err != nil {
@@ -709,6 +753,11 @@ func (c *client) handleQuery(raw *frame.RawFrame, msg *partialQuery) {
 		c.sender.Send(raw.Header, &message.Invalid{ErrorMessage: err.Error()})
 		return
 	}
+	c.proxy.otelInst.RecordParsingLatencyMetric(otelCtx, parsingStart, otelgo.Attributes{
+		Method:    handleQuery,
+		QueryType: rawQuery.QueryType().String(),
+		Keyspace:  string(c.sessionKeyspace),
+	})
 
 	otelgo.AddAnnotation(otelCtx, executingBigtableSQLAPIRequestEvent)
 	selectResult, err := c.proxy.executor.Execute(otelCtx, c, executableQuery)

@@ -20,14 +20,15 @@ import (
 )
 
 type MetadataStore struct {
-	logger  *zap.Logger
-	clients *types.BigtableClientManager
-	schemas *SchemaMetadata
-	config  *types.BigtableConfig
+	logger   *zap.Logger
+	clients  *types.BigtableClientManager
+	schemas  *SchemaMetadata
+	config   *types.BigtableConfig
+	otelInst *otelgo.OpenTelemetry
 }
 
-func NewMetadataStore(logger *zap.Logger, clients *types.BigtableClientManager, config *types.BigtableConfig) *MetadataStore {
-	return &MetadataStore{logger: logger, clients: clients, config: config, schemas: NewSchemaMetadata(config.DefaultColumnFamily, nil)}
+func NewMetadataStore(logger *zap.Logger, clients *types.BigtableClientManager, config *types.BigtableConfig, otelInst *otelgo.OpenTelemetry) *MetadataStore {
+	return &MetadataStore{logger: logger, clients: clients, config: config, schemas: NewSchemaMetadata(config.DefaultColumnFamily, nil), otelInst: otelInst}
 }
 
 const (
@@ -334,6 +335,7 @@ func (b *MetadataStore) updateTableSchema(ctx context.Context, keyspace types.Ke
 }
 
 func (b *MetadataStore) AlterTable(ctx context.Context, data *types.AlterTableStatementMap) (*message.SchemaChangeResult, error) {
+	btStart := time.Now()
 	adminClient, err := b.clients.GetAdmin(data.Keyspace())
 	if err != nil {
 		return nil, err
@@ -367,16 +369,30 @@ func (b *MetadataStore) AlterTable(ctx context.Context, data *types.AlterTableSt
 	if err != nil {
 		return nil, err
 	}
-	return &message.SchemaChangeResult{
+	b.otelInst.RecordBigtableLatencyMetric(ctx, btStart, otelgo.Attributes{
+		Method:    "AlterTable",
+		QueryType: "Alter",
+		Keyspace:  string(data.Keyspace()),
+	})
+
+	procStart := time.Now()
+	res := &message.SchemaChangeResult{
 		ChangeType: primitive.SchemaChangeTypeUpdated,
 		Target:     primitive.SchemaChangeTargetTable,
 		Keyspace:   string(data.Keyspace()),
 		Object:     string(data.Table()),
 		Arguments:  nil,
-	}, nil
+	}
+	b.otelInst.RecordProcessingLatencyMetric(ctx, procStart, otelgo.Attributes{
+		Method:    "AlterTable",
+		QueryType: "Alter",
+		Keyspace:  string(data.Keyspace()),
+	})
+	return res, nil
 }
 
 func (b *MetadataStore) DropTable(ctx context.Context, data *types.DropTableQuery) (*message.SchemaChangeResult, error) {
+	btStart := time.Now()
 	_, err := b.schemas.GetTableSchema(data.Keyspace(), data.Table())
 	if err != nil && !data.IfExists {
 		return nil, err
@@ -439,13 +455,26 @@ func (b *MetadataStore) DropTable(ctx context.Context, data *types.DropTableQuer
 			return nil, err
 		}
 	}
-	return &message.SchemaChangeResult{
+	b.otelInst.RecordBigtableLatencyMetric(ctx, btStart, otelgo.Attributes{
+		Method:    "DropTable",
+		QueryType: "Drop",
+		Keyspace:  string(data.Keyspace()),
+	})
+
+	procStart := time.Now()
+	res := &message.SchemaChangeResult{
 		ChangeType: primitive.SchemaChangeTypeDropped,
 		Target:     primitive.SchemaChangeTargetTable,
 		Keyspace:   string(data.Keyspace()),
 		Object:     string(data.Table()),
 		Arguments:  nil,
-	}, nil
+	}
+	b.otelInst.RecordProcessingLatencyMetric(ctx, procStart, otelgo.Attributes{
+		Method:    "DropTable",
+		QueryType: "Drop",
+		Keyspace:  string(data.Keyspace()),
+	})
+	return res, nil
 }
 
 func (b *MetadataStore) createSchemaMappingTableMaybe(ctx context.Context, keyspace types.Keyspace) error {
@@ -484,6 +513,7 @@ func (b *MetadataStore) createSchemaMappingTableMaybe(ctx context.Context, keysp
 }
 
 func (b *MetadataStore) CreateTable(ctx context.Context, data *types.CreateTableStatementMap) (*message.SchemaChangeResult, error) {
+	btStart := time.Now()
 	client, err := b.clients.GetClient(data.Keyspace())
 	if err != nil {
 		return nil, err
@@ -543,14 +573,26 @@ func (b *MetadataStore) CreateTable(ctx context.Context, data *types.CreateTable
 			return nil, err
 		}
 	}
+	b.otelInst.RecordBigtableLatencyMetric(ctx, btStart, otelgo.Attributes{
+		Method:    "CreateTable",
+		QueryType: "Create",
+		Keyspace:  string(data.Keyspace()),
+	})
 
-	return &message.SchemaChangeResult{
+	procStart := time.Now()
+	res := &message.SchemaChangeResult{
 		ChangeType: primitive.SchemaChangeTypeCreated,
 		Target:     primitive.SchemaChangeTargetTable,
 		Keyspace:   string(data.Keyspace()),
 		Object:     string(data.Table()),
 		Arguments:  nil,
-	}, nil
+	}
+	b.otelInst.RecordProcessingLatencyMetric(ctx, procStart, otelgo.Attributes{
+		Method:    "CreateTable",
+		QueryType: "Create",
+		Keyspace:  string(data.Keyspace()),
+	})
+	return res, nil
 }
 
 func (b *MetadataStore) addColumnFamilies(columns []types.CreateColumn) (map[string]bigtable.Family, error) {

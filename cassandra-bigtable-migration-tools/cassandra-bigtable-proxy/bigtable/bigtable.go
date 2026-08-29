@@ -42,14 +42,16 @@ type BigtableAdapter struct {
 	sqlClient     btpb.BigtableClient
 	config        *types.BigtableConfig
 	schemaManager *metadata.MetadataStore
+	otelInst      *otelgo.OpenTelemetry
 }
 
-func NewBigtableClient(clients *types.BigtableClientManager, logger *zap.Logger, config *types.BigtableConfig, schemaManager *metadata.MetadataStore) *BigtableAdapter {
+func NewBigtableClient(clients *types.BigtableClientManager, logger *zap.Logger, config *types.BigtableConfig, schemaManager *metadata.MetadataStore, otelInst *otelgo.OpenTelemetry) *BigtableAdapter {
 	return &BigtableAdapter{
 		clients:       clients,
 		Logger:        logger,
 		config:        config,
 		schemaManager: schemaManager,
+		otelInst:      otelInst,
 	}
 }
 
@@ -105,11 +107,14 @@ func (btc *BigtableAdapter) mutateRow(ctx context.Context, input *types.Bigtable
 		return nil, err
 	}
 
+	processingStart := time.Now()
 	err = btc.buildMutation(ctx, tbl, input, mut, schema)
 	if err != nil {
 		return nil, err
 	}
+	processingDuration := time.Since(processingStart)
 
+	btStart := time.Now()
 	if input.IfSpec.IfExists || input.IfSpec.IfNotExists {
 		predicateFilter := bigtable.CellsPerRowLimitFilter(1)
 		matched := true
@@ -121,20 +126,49 @@ func (btc *BigtableAdapter) mutateRow(ctx context.Context, input *types.Bigtable
 		err := tbl.Apply(ctx, string(input.RowKey()), conditionalMutation, bigtable.GetCondMutationResult(&matched))
 		otelgo.AddAnnotation(ctx, bigtableMutationApplied)
 		if err != nil {
+			btc.otelInst.RecordBigtableLatencyMetric(ctx, btStart, otelgo.Attributes{
+				Method:    "mutateRow",
+				QueryType: input.QueryType().String(),
+				Keyspace:  string(input.Keyspace()),
+			})
 			return nil, err
 		}
+		btc.otelInst.RecordBigtableLatencyMetric(ctx, btStart, otelgo.Attributes{
+			Method:    "mutateRow",
+			QueryType: input.QueryType().String(),
+			Keyspace:  string(input.Keyspace()),
+		})
 
-		return GenerateAppliedRowsResult(input.Keyspace(), input.Table(), input.IfSpec.IfExists == matched), nil
+		procStart := time.Now()
+		res := GenerateAppliedRowsResult(input.Keyspace(), input.Table(), input.IfSpec.IfExists == matched)
+		btc.otelInst.RecordProcessingLatencyMetric(ctx, time.Now().Add(-(processingDuration + time.Since(procStart))), otelgo.Attributes{
+			Method:    "mutateRow",
+			QueryType: input.QueryType().String(),
+			Keyspace:  string(input.Keyspace()),
+		})
+		return res, nil
 	}
 
 	// If no conditions, apply the mutation directly
 	err = tbl.Apply(ctx, string(input.RowKey()), mut)
 	otelgo.AddAnnotation(ctx, bigtableMutationApplied)
+	btc.otelInst.RecordBigtableLatencyMetric(ctx, btStart, otelgo.Attributes{
+		Method:    "mutateRow",
+		QueryType: input.QueryType().String(),
+		Keyspace:  string(input.Keyspace()),
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	return &message.VoidResult{}, nil
+	procStart := time.Now()
+	res := &message.VoidResult{}
+	btc.otelInst.RecordProcessingLatencyMetric(ctx, time.Now().Add(-(processingDuration + time.Since(procStart))), otelgo.Attributes{
+		Method:    "mutateRow",
+		QueryType: input.QueryType().String(),
+		Keyspace:  string(input.Keyspace()),
+	})
+	return res, nil
 }
 
 func emptyRowsResult() *message.RowsResult {
@@ -186,6 +220,7 @@ func (btc *BigtableAdapter) buildMutation(ctx context.Context, table *bigtable.T
 }
 
 func (btc *BigtableAdapter) DropAllRows(ctx context.Context, data *types.TruncateTableStatementMap) error {
+	btStart := time.Now()
 	_, err := btc.schemaManager.Schemas().GetTableSchema(data.Keyspace(), data.Table())
 	if err != nil {
 		return err
@@ -197,6 +232,11 @@ func (btc *BigtableAdapter) DropAllRows(ctx context.Context, data *types.Truncat
 		return err
 	}
 	if !hasRows {
+		btc.otelInst.RecordBigtableLatencyMetric(ctx, btStart, otelgo.Attributes{
+			Method:    "DropAllRows",
+			QueryType: "Truncate",
+			Keyspace:  string(data.Keyspace()),
+		})
 		return nil
 	}
 
@@ -207,6 +247,11 @@ func (btc *BigtableAdapter) DropAllRows(ctx context.Context, data *types.Truncat
 
 	btc.Logger.Info("truncate table: dropping all bigtable rows")
 	err = adminClient.DropAllRows(ctx, string(data.Table()))
+	btc.otelInst.RecordBigtableLatencyMetric(ctx, btStart, otelgo.Attributes{
+		Method:    "DropAllRows",
+		QueryType: "Truncate",
+		Keyspace:  string(data.Keyspace()),
+	})
 	if status.Code(err) == codes.NotFound {
 		// Table doesn't exist in config, which is fine for a truncate.
 		btc.Logger.Info("truncate table: table not found in bigtable, nothing to drop", zap.String("table", string(data.Table())))
@@ -284,32 +329,61 @@ func (btc *BigtableAdapter) DeleteRow(ctx context.Context, deleteQueryData *type
 	table := client.Open(string(deleteQueryData.Table()))
 	mut := bigtable.NewMutation()
 
+	processingStart := time.Now()
 	err = btc.buildDeleteMutation(ctx, table, deleteQueryData, mut)
 	if err != nil {
 		return nil, err
 	}
+	processingDuration := time.Since(processingStart)
+
+	btStart := time.Now()
 	if deleteQueryData.IfExists {
 		predicateFilter := bigtable.CellsPerRowLimitFilter(1)
 		conditionalMutation := bigtable.NewCondMutation(predicateFilter, mut, nil)
 		matched := true
 		err := table.Apply(ctx, string(deleteQueryData.RowKey()), conditionalMutation, bigtable.GetCondMutationResult(&matched))
+		btc.otelInst.RecordBigtableLatencyMetric(ctx, btStart, otelgo.Attributes{
+			Method:    "DeleteRow",
+			QueryType: deleteQueryData.QueryType().String(),
+			Keyspace:  string(deleteQueryData.Keyspace()),
+		})
 		if err != nil {
 			return nil, err
 		}
 
+		procStart := time.Now()
+		var res message.Message
 		if !matched {
-			return GenerateAppliedRowsResult(deleteQueryData.Keyspace(), deleteQueryData.Table(), false), nil
+			res = GenerateAppliedRowsResult(deleteQueryData.Keyspace(), deleteQueryData.Table(), false)
 		} else {
-			return GenerateAppliedRowsResult(deleteQueryData.Keyspace(), deleteQueryData.Table(), true), nil
+			res = GenerateAppliedRowsResult(deleteQueryData.Keyspace(), deleteQueryData.Table(), true)
 		}
+		btc.otelInst.RecordProcessingLatencyMetric(ctx, time.Now().Add(-(processingDuration + time.Since(procStart))), otelgo.Attributes{
+			Method:    "DeleteRow",
+			QueryType: deleteQueryData.QueryType().String(),
+			Keyspace:  string(deleteQueryData.Keyspace()),
+		})
+		return res, nil
 	} else {
 		err := table.Apply(ctx, string(deleteQueryData.RowKey()), mut)
+		btc.otelInst.RecordBigtableLatencyMetric(ctx, btStart, otelgo.Attributes{
+			Method:    "DeleteRow",
+			QueryType: deleteQueryData.QueryType().String(),
+			Keyspace:  string(deleteQueryData.Keyspace()),
+		})
 		if err != nil {
 			return nil, err
 		}
 	}
 	otelgo.AddAnnotation(ctx, deleteMutationApplied)
-	return &message.VoidResult{}, nil
+	procStart := time.Now()
+	res := &message.VoidResult{}
+	btc.otelInst.RecordProcessingLatencyMetric(ctx, time.Now().Add(-(processingDuration + time.Since(procStart))), otelgo.Attributes{
+		Method:    "DeleteRow",
+		QueryType: deleteQueryData.QueryType().String(),
+		Keyspace:  string(deleteQueryData.Keyspace()),
+	})
+	return res, nil
 }
 
 func (btc *BigtableAdapter) buildDeleteMutation(ctx context.Context, table *bigtable.Table, deleteQueryData *types.BoundDeleteQuery, mut *bigtable.Mutation) error {
@@ -361,6 +435,7 @@ func (btc *BigtableAdapter) ApplyBulkMutation(ctx context.Context, keyspace type
 		}, err
 	}
 
+	processingStart := time.Now()
 	rowKeyToMutationMap := make(map[types.RowKey]*bigtable.Mutation)
 	for _, md := range mutationData {
 		rowKey := md.RowKey()
@@ -398,15 +473,23 @@ func (btc *BigtableAdapter) ApplyBulkMutation(ctx context.Context, keyspace type
 		mutations = append(mutations, mutation)
 		rowKeys = append(rowKeys, string(key))
 	}
+	processingDuration := time.Since(processingStart)
 	otelgo.AddAnnotation(ctx, applyingBulkMutation)
 
+	btStart := time.Now()
 	errs, err := table.ApplyBulk(ctx, rowKeys, mutations)
+	btc.otelInst.RecordBigtableLatencyMetric(ctx, btStart, otelgo.Attributes{
+		Method:    "ApplyBulkMutation",
+		QueryType: "Batch",
+		Keyspace:  string(keyspace),
+	})
 	if err != nil {
 		return BulkOperationResponse{
 			FailedRows: "All Rows are failed",
 		}, fmt.Errorf("ApplyBulk: %w", err)
 	}
 
+	procStart := time.Now()
 	var failedRows []string
 	for i, e := range errs {
 		if e != nil {
@@ -424,6 +507,11 @@ func (btc *BigtableAdapter) ApplyBulkMutation(ctx context.Context, keyspace type
 		}
 	}
 	otelgo.AddAnnotation(ctx, bulkMutationApplied)
+	btc.otelInst.RecordProcessingLatencyMetric(ctx, time.Now().Add(-(processingDuration + time.Since(procStart))), otelgo.Attributes{
+		Method:    "ApplyBulkMutation",
+		QueryType: "Batch",
+		Keyspace:  string(keyspace),
+	})
 	return res, nil
 }
 
@@ -525,7 +613,13 @@ func (btc *BigtableAdapter) PrepareStatement(ctx context.Context, query types.IP
 		btc.Logger.Error("Failed to prepare statement", zap.String("query", query.BigtableQuery()), zap.Error(err))
 		return nil, err
 	}
+	btStart := time.Now()
 	preparedStatement, err := client.PrepareStatement(ctx, query.BigtableQuery(), paramTypes)
+	btc.otelInst.RecordBigtableLatencyMetric(ctx, btStart, otelgo.Attributes{
+		Method:    "PrepareStatement",
+		QueryType: query.QueryType().String(),
+		Keyspace:  string(query.Keyspace()),
+	})
 	if err != nil {
 		btc.Logger.Error("Failed to prepare statement", zap.String("query", query.BigtableQuery()), zap.Error(err))
 		return nil, fmt.Errorf("failed to prepare statement '%s': %w", query.CqlQuery(), err)

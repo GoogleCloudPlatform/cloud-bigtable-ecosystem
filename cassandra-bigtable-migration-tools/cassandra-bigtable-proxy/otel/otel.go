@@ -71,17 +71,23 @@ type OTelConfig struct {
 }
 
 const (
-	requestCountMetric = "bigtable/cassandra_adapter/request_count"
-	latencyMetric      = "bigtable/cassandra_adapter/roundtrip_latencies"
+	requestCountMetric      = "bigtable/cassandra_adapter/request_count"
+	latencyMetric           = "bigtable/cassandra_adapter/roundtrip_latencies"
+	parsingLatencyMetric    = "bigtable/cassandra_adapter/parsing_latencies"
+	bigtableLatencyMetric   = "bigtable/cassandra_adapter/bigtable_latencies"
+	processingLatencyMetric = "bigtable/cassandra_adapter/processing_latencies"
 )
 
 // OpenTelemetry provides methods to setup tracing and metrics.
 type OpenTelemetry struct {
-	Config         *OTelConfig
-	tracer         trace.Tracer
-	requestCount   metric.Int64Counter
-	requestLatency metric.Int64Histogram
-	logger         *zap.Logger
+	Config            *OTelConfig
+	tracer            trace.Tracer
+	requestCount      metric.Int64Counter
+	requestLatency    metric.Int64Histogram
+	parsingLatency    metric.Int64Histogram
+	bigtableLatency   metric.Int64Histogram
+	processingLatency metric.Int64Histogram
+	logger            *zap.Logger
 }
 
 // NewOpenTelemetry() initializes OpenTelemetry tracing and metrics components.
@@ -143,19 +149,49 @@ func NewOpenTelemetry(ctx context.Context, config *OTelConfig, logger *zap.Logge
 		logger.Error("error during registering instrument for metric bigtable/cassandra_adapter/request_count", zap.Error(err))
 		return nil, nil, err
 	}
+	boundaries := []float64{0.0, 0.0010, 0.0013, 0.0016, 0.0020, 0.0024, 0.0031, 0.0038, 0.0048, 0.0060,
+		0.0075, 0.0093, 0.0116, 0.0146, 0.0182, 0.0227, 0.0284, 0.0355, 0.0444, 0.0555, 0.0694, 0.0867,
+		0.1084, 0.1355, 0.1694, 0.2118, 0.2647, 0.3309, 0.4136, 0.5170, 0.6462, 0.8078, 1.0097, 1.2622,
+		1.5777, 1.9722, 2.4652, 3.0815, 3.8519, 4.8148, 6.0185, 7.5232, 9.4040, 11.7549, 14.6937, 18.3671,
+		22.9589, 28.6986, 35.8732, 44.8416, 56.0519, 70.0649, 87.5812, 109.4764, 136.8456, 171.0569, 213.8212,
+		267.2765, 334.0956, 417.6195, 522.0244, 652.5304}
+
 	otelInst.requestLatency, err = meter.Int64Histogram(latencyMetric,
 		metric.WithDescription("Records latency for all query operations"),
-		metric.WithExplicitBucketBoundaries(0.0, 0.0010, 0.0013, 0.0016, 0.0020, 0.0024, 0.0031, 0.0038, 0.0048, 0.0060,
-			0.0075, 0.0093, 0.0116, 0.0146, 0.0182, 0.0227, 0.0284, 0.0355, 0.0444, 0.0555, 0.0694, 0.0867,
-			0.1084, 0.1355, 0.1694, 0.2118, 0.2647, 0.3309, 0.4136, 0.5170, 0.6462, 0.8078, 1.0097, 1.2622,
-			1.5777, 1.9722, 2.4652, 3.0815, 3.8519, 4.8148, 6.0185, 7.5232, 9.4040, 11.7549, 14.6937, 18.3671,
-			22.9589, 28.6986, 35.8732, 44.8416, 56.0519, 70.0649, 87.5812, 109.4764, 136.8456, 171.0569, 213.8212,
-			267.2765, 334.0956, 417.6195, 522.0244, 652.5304),
+		metric.WithExplicitBucketBoundaries(boundaries...),
 		metric.WithUnit("ms"))
 	if err != nil {
 		logger.Error("error during registering instrument for metric bigtable/cassandra_adapter/roundtrip_latencies", zap.Error(err))
 		return nil, nil, err
 	}
+
+	otelInst.parsingLatency, err = meter.Int64Histogram(parsingLatencyMetric,
+		metric.WithDescription("Records latency for query parsing"),
+		metric.WithExplicitBucketBoundaries(boundaries...),
+		metric.WithUnit("ms"))
+	if err != nil {
+		logger.Error("error during registering instrument for metric bigtable/cassandra_adapter/parsing_latencies", zap.Error(err))
+		return nil, nil, err
+	}
+
+	otelInst.bigtableLatency, err = meter.Int64Histogram(bigtableLatencyMetric,
+		metric.WithDescription("Records latency for bigtable calls"),
+		metric.WithExplicitBucketBoundaries(boundaries...),
+		metric.WithUnit("ms"))
+	if err != nil {
+		logger.Error("error during registering instrument for metric bigtable/cassandra_adapter/bigtable_latencies", zap.Error(err))
+		return nil, nil, err
+	}
+
+	otelInst.processingLatency, err = meter.Int64Histogram(processingLatencyMetric,
+		metric.WithDescription("Records latency for results processing"),
+		metric.WithExplicitBucketBoundaries(boundaries...),
+		metric.WithUnit("ms"))
+	if err != nil {
+		logger.Error("error during registering instrument for metric bigtable/cassandra_adapter/processing_latencies", zap.Error(err))
+		return nil, nil, err
+	}
+
 	return otelInst, shutdown, nil
 }
 
@@ -394,17 +430,55 @@ func (o *OpenTelemetry) RecordLatencyMetric(ctx context.Context, startTime time.
 		attributeKeyMethod.String(attrs.Method),
 		attributeKeyQueryType.String(attrs.QueryType),
 	}
-	attr = append(attr, attributeKeyMethod.String(attrs.Method))
-	attr = append(attr, attributeKeyQueryType.String(attrs.QueryType))
 	o.requestLatency.Record(ctx, int64(time.Since(startTime).Milliseconds()), metric.WithAttributes(attr...))
 }
 
+// RecordParsingLatencyMetric() records the latency of the query parsing phase.
+func (o *OpenTelemetry) RecordParsingLatencyMetric(ctx context.Context, startTime time.Time, attrs Attributes) {
+	if !o.Config.OTELEnabled {
+		return
+	}
+
+	attr := []attribute.KeyValue{
+		attributeKeyInstance.String(attrs.Keyspace),
+		attributeKeyDatabase.String(o.Config.Database),
+		attributeKeyMethod.String(attrs.Method),
+		attributeKeyQueryType.String(attrs.QueryType),
+	}
+	o.parsingLatency.Record(ctx, int64(time.Since(startTime).Milliseconds()), metric.WithAttributes(attr...))
+}
+
+// RecordBigtableLatencyMetric() records the latency of the Bigtable call phase.
+func (o *OpenTelemetry) RecordBigtableLatencyMetric(ctx context.Context, startTime time.Time, attrs Attributes) {
+	if !o.Config.OTELEnabled {
+		return
+	}
+
+	attr := []attribute.KeyValue{
+		attributeKeyInstance.String(attrs.Keyspace),
+		attributeKeyDatabase.String(o.Config.Database),
+		attributeKeyMethod.String(attrs.Method),
+		attributeKeyQueryType.String(attrs.QueryType),
+	}
+	o.bigtableLatency.Record(ctx, int64(time.Since(startTime).Milliseconds()), metric.WithAttributes(attr...))
+}
+
+// RecordProcessingLatencyMetric() records the latency of the result processing phase.
+func (o *OpenTelemetry) RecordProcessingLatencyMetric(ctx context.Context, startTime time.Time, attrs Attributes) {
+	if !o.Config.OTELEnabled {
+		return
+	}
+
+	attr := []attribute.KeyValue{
+		attributeKeyInstance.String(attrs.Keyspace),
+		attributeKeyDatabase.String(o.Config.Database),
+		attributeKeyMethod.String(attrs.Method),
+		attributeKeyQueryType.String(attrs.QueryType),
+	}
+	o.processingLatency.Record(ctx, int64(time.Since(startTime).Milliseconds()), metric.WithAttributes(attr...))
+}
+
 // RecordRequestCountMetric() increments the request count metric in OpenTelemetry.
-// It dynamically builds metric attributes before sending the recorded value.
-//
-// Parameters:
-//   - ctx: The execution context.
-//   - attrs: Attributes associated with the request (e.g., method, status).
 func (o *OpenTelemetry) RecordRequestCountMetric(ctx context.Context, attrs Attributes) {
 	if !o.Config.OTELEnabled {
 		return
@@ -418,9 +492,6 @@ func (o *OpenTelemetry) RecordRequestCountMetric(ctx context.Context, attrs Attr
 		attributeKeyQueryType.String(attrs.QueryType),
 		attributeKeyStatus.String(attrs.Status),
 	}
-	attr = append(attr, attributeKeyMethod.String(attrs.Method))
-	attr = append(attr, attributeKeyQueryType.String(attrs.QueryType))
-	attr = append(attr, attributeKeyStatus.String(attrs.Status))
 	o.requestCount.Add(ctx, 1, metric.WithAttributes(attr...))
 }
 
