@@ -1,4 +1,4 @@
-# ADK Agent Web Chat with Memory Bank
+# ADK Agent Web Chat with Bigtable and Memory Bank
 
 This project implements a personalized AI agent using Google Cloud's Agent Development Kit (ADK) and Agent Platform Memory Bank, integrated into a Next.js web application with Google OAuth 2.0 login.
 
@@ -25,7 +25,11 @@ GOOGLE_CLIENT_ID=your-client-id
 GOOGLE_CLIENT_SECRET=your-client-secret
 GOOGLE_CALLBACK_URL=http://127.0.0.1:5000/auth/callback
 BIGTABLE_INSTANCE_ID=your-bigtable-instance-id
+USE_DEMO_PATIENT=true
 ```
+
+> [!NOTE]
+> Setting **`USE_DEMO_PATIENT=true`** forces the agent to query the default hardcoded demo patient profile (`john.doe@gmail.com`). Set this to `false` in your `.env` file to instruct the agent to dynamically utilize the email address of the logged-in Google OAuth user instead.
 
 ### 2. Backend Setup (Flask)
 
