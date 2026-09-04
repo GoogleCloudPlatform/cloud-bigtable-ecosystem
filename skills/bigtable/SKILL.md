@@ -46,6 +46,7 @@ SQL API doesn't support DDL operations. Table creation, deletion, updates should
 - **Querying & Code**:
   - [sql_guide.md](references/sql_guide.md) - Querying structured row keys via SQL and CLI.
   - [client_libraries.md](references/client_libraries.md) - Patterns for high-performance Go/Java/Python code.
+  - [sdks.md](references/sdks.md) - Open-source SDKs, connectors, and GitHub repository links.
 
 ## Common Workflows
 
