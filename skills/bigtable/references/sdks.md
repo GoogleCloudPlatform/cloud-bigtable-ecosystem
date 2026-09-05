@@ -10,7 +10,7 @@ This document provides the canonical GitHub repository links, monorepo subdirect
 | **Java (HBase Client)** | https://github.com/googleapis/java-bigtable-hbase | HBase 1.x and 2.x compatible client for Bigtable |
 | **Go** | https://github.com/googleapis/google-cloud-go/tree/main/bigtable | Official Go client (`cloud.google.com/go/bigtable`) |
 | **Python** | https://github.com/googleapis/google-cloud-python/tree/main/packages/google-cloud-bigtable | Official Python client (`google-cloud-bigtable`) |
-| **Node.js (TS/JS)** | https://github.com/googleapis/nodejs-bigtable | Official Node.js client (`@google-cloud/bigtable`) |
+| **Node.js (TS/JS)** | https://github.com/googleapis/google-cloud-node/tree/main/handwritten/bigtable | Official Node.js client (`@google-cloud/bigtable`) |
 | **C++** | https://github.com/googleapis/google-cloud-cpp/tree/main/google/cloud/bigtable | Official C++ client |
 | **.NET (C#)** | https://github.com/googleapis/google-cloud-dotnet/tree/main/apis/Google.Cloud.Bigtable.V2 | Official .NET client (`Google.Cloud.Bigtable.V2`) |
 | **Ruby** | https://github.com/googleapis/google-cloud-ruby/tree/main/google-cloud-bigtable | Official Ruby gem (`google-cloud-bigtable`) |
