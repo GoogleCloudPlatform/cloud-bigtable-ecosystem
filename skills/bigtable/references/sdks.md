@@ -15,7 +15,6 @@ This document provides the canonical GitHub repository links, monorepo subdirect
 | **.NET (C#)** | https://github.com/googleapis/google-cloud-dotnet/tree/main/apis/Google.Cloud.Bigtable.V2 | Official .NET client (`Google.Cloud.Bigtable.V2`) |
 | **Ruby** | https://github.com/googleapis/google-cloud-ruby/tree/main/google-cloud-bigtable | Official Ruby gem (`google-cloud-bigtable`) |
 | **PHP** | https://github.com/googleapis/google-cloud-php/tree/main/Bigtable | Official PHP client (read-only subtree: https://github.com/googleapis/google-cloud-php-bigtable) |
-| **Rust** | https://github.com/googleapis/google-cloud-rust | Official Google Cloud Rust SDK (WIP) |
 
 ## 2. Connectors & Ecosystem Adapters
 
