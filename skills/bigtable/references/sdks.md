@@ -25,6 +25,7 @@ This document provides the canonical GitHub repository links, monorepo subdirect
 | **Apache Beam / Dataflow (Java)** | https://github.com/apache/beam/tree/master/sdks/java/io/google-cloud-platform/src/main/java/org/apache/beam/sdk/io/gcp/bigtable | Beam Java SDK Bigtable IO connector |
 | **Apache Beam / Dataflow (Python)** | https://github.com/apache/beam/blob/master/sdks/python/apache_beam/io/gcp/bigtableio.py | Beam Python SDK Bigtable IO connector |
 | **Kafka Connect Sink** | https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/tree/main/kafka-connect-bigtable-sink | Official Kafka Connect sink connector for Bigtable |
+| **Apache Flink Connector** | https://github.com/google/flink-connector-gcp/tree/main/connectors/bigtable | Official Flink connector for Bigtable |
 
 ## 3. CLI & Developer Tools
 
