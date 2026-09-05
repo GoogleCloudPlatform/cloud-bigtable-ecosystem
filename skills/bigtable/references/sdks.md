@@ -6,7 +6,7 @@ This document provides the canonical GitHub repository links, monorepo subdirect
 
 | SDK / Language | Primary GitHub Repository / Monorepo Path | Notes |
 | :--- | :--- | :--- |
-| **Java (Veneer/gRPC)** | https://github.com/googleapis/java-bigtable | Standalone repo (also mirrored at https://github.com/googleapis/google-cloud-java/tree/main/java-bigtable) |
+| **Java (Veneer/gRPC)** | https://github.com/googleapis/google-cloud-java/tree/main/java-bigtable | Official Java client |
 | **Java (HBase Client)** | https://github.com/googleapis/java-bigtable-hbase | HBase 1.x and 2.x compatible client for Bigtable |
 | **Go** | https://github.com/googleapis/google-cloud-go/tree/main/bigtable | Official Go client (`cloud.google.com/go/bigtable`) |
 | **Python** | https://github.com/googleapis/google-cloud-python/tree/main/packages/google-cloud-bigtable | Official Python client (`google-cloud-bigtable`) |
