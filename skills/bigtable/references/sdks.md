@@ -24,7 +24,7 @@ This document provides the canonical GitHub repository links, monorepo subdirect
 | **Cassandra Adapter & Ecosystem** | https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem | Cassandra-Bigtable proxy adapter and ecosystem tools |
 | **Apache Beam / Dataflow (Java)** | https://github.com/apache/beam/tree/master/sdks/java/io/google-cloud-platform/src/main/java/org/apache/beam/sdk/io/gcp/bigtable | Beam Java SDK Bigtable IO connector |
 | **Apache Beam / Dataflow (Python)** | https://github.com/apache/beam/blob/master/sdks/python/apache_beam/io/gcp/bigtableio.py | Beam Python SDK Bigtable IO connector |
-| **Kafka Connect Sink** | https://github.com/GoogleCloudPlatform/kafka-connect-bigtable-sink | Official Kafka Connect sink connector for Bigtable |
+| **Kafka Connect Sink** | https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/tree/main/kafka-connect-bigtable-sink | Official Kafka Connect sink connector for Bigtable |
 
 ## 3. CLI & Developer Tools
 
