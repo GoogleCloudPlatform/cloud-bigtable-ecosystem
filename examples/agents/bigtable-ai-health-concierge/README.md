@@ -63,8 +63,10 @@ python app.py
 ```
 The backend will run on `http://127.0.0.1:5000`.
 
-
-
+*(Optional)* To start the backend with a pre-configured demo user identity (`john.doe@gmail.com`) so it skips the login step by default:
+```bash
+python app.py --user john.doe@gmail.com
+```
 
 ### 3. Frontend Setup (Next.js)
 ```bash
@@ -72,10 +74,21 @@ cd frontend
 npm install
 npm run dev
 ```
-The frontend will run on `http://127.0.0.1:3000`.
+The frontend will run on `http://127.0.0.1:3000` (or `http://localhost:3000`).
+
+### 4. Accessing the App & Demo Login Bypass (`?user=`)
+
+- **Standard Google OAuth Login (Forced when no identity is provided)**:
+  Open `http://localhost:3000` (or `http://127.0.0.1:3000`). When no user identity is present in the session or URL, the app forces the login page where you can click **Sign in with Google** (requires `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` configured in `.env`).
+- **Demo User Parameter Bypass (`?user=john.doe@gmail.com`)**:
+  To skip the Google OAuth login page and sign in directly as the seeded demo patient (`john.doe@gmail.com`), pass the `user` query parameter in the URL:
+  ```text
+  http://localhost:3000/?user=john.doe@gmail.com
+  ```
+  (or `http://localhost:3000/chat?user=john.doe@gmail.com`). Clicking **Logout** in the chat header will clear the session and return you to the login screen.
 
 ## How it Works
 
-1.  **Login**: Users sign in via Google. The backend handles the OAuth flow and retrieves the user's name and ID.
-2.  **Personalized Greeting**: Upon entering the chat, the agent greets the user by name (extracted from Google profile).
-3.  **Memory Bank**: Every message is passed to the ADK Agent, which uses `VertexAiMemoryBankService`. The `session_id` is set to the user's Google ID, ensuring that the agent remembers specific context for that user across different turns and sessions.
+1.  **Login & Dynamic User Identity**: Users sign in via Google OAuth (or pass `?user=john.doe@gmail.com` for demo mode). The backend resolves the active user's email and passes it into the ADK `Runner` (`user_id`), which propagates it via `CallbackContext` and `ToolContext` into all Bigtable queries.
+2.  **Personalized Greeting**: Upon entering the chat, the agent greets the user by name and loads their profile from Bigtable.
+3.  **Memory Bank**: Every message is passed to the ADK Agent, which uses `VertexAiMemoryBankService`. The `session_id` is scoped to the user's session, ensuring that the agent remembers specific context for that user across turns.

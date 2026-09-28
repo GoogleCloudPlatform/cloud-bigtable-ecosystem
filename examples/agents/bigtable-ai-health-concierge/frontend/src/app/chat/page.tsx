@@ -37,12 +37,23 @@ export default function ChatPage() {
     const [input, setInput] = useState('');
     const [user, setUser] = useState<{ name: string, email: string } | null>(null);
     const [isTyping, setIsTyping] = useState(false);
+    const [backendBase, setBackendBase] = useState('http://127.0.0.1:5000');
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const router = useRouter();
 
     useEffect(() => {
+        const host = typeof window !== 'undefined' ? window.location.hostname : '127.0.0.1';
+        const base = `http://${host}:5000`;
+        setBackendBase(base);
+
+        const params = new URLSearchParams(window.location.search);
+        const userParam = params.get('user')?.trim();
+        const userUrl = userParam
+            ? `${base}/api/user?user=${encodeURIComponent(userParam)}`
+            : `${base}/api/user`;
+
         // Check if user is logged in
-        fetch('http://127.0.0.1:5000/api/user', { credentials: 'include' })
+        fetch(userUrl, { credentials: 'include' })
             .then(res => {
                 if (res.status === 401) {
                     router.push('/');
@@ -79,10 +90,10 @@ export default function ChatPage() {
         setIsTyping(true);
 
         try {
-            const response = await fetch('http://127.0.0.1:5000/api/chat', {
+            const response = await fetch(`${backendBase}/api/chat`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: input }),
+                body: JSON.stringify({ message: input, user: user?.email }),
                 credentials: 'include'
             });
             const data = await response.json();
@@ -95,7 +106,7 @@ export default function ChatPage() {
     };
 
     const logout = () => {
-        fetch('http://127.0.0.1:5000/api/logout', { credentials: 'include' })
+        fetch(`${backendBase}/api/logout`, { credentials: 'include' })
             .then(() => router.push('/'));
     };
 
