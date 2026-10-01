@@ -13,6 +13,7 @@ os.environ['GRPC_VERBOSITY'] = 'ERROR'
 # Explicitly disable mTLS certificate discovery and exponential tenacity retry loops
 os.environ['GOOGLE_API_USE_CLIENT_CERTIFICATE'] = 'false'
 os.environ['GOOGLE_API_USE_MTLS_ENDPOINT'] = 'never'
+os.environ.setdefault('OTEL_SDK_DISABLED', 'true')
 
 from flask import Flask, jsonify, request, session, redirect
 from flask_cors import CORS
@@ -22,9 +23,15 @@ from dotenv import load_dotenv
 
 load_dotenv(os.path.join(os.path.dirname(__file__), '../.env'))
 
+import re
+
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "super-secret-key-for-btagent")
-CORS(app, supports_credentials=True, origins=["http://localhost:3000", "http://127.0.0.1:3000"])
+CORS(
+    app,
+    supports_credentials=True,
+    origins=[re.compile(r"^http://(localhost|127\.0\.0\.1)(:\d+)?$")],
+)
 
 # Optional identity parameter (can be set via --user CLI flag or DEMO_PATIENT_EMAIL in .env)
 DEMO_PATIENT_EMAIL = os.getenv("DEMO_PATIENT_EMAIL", "").strip() or None
