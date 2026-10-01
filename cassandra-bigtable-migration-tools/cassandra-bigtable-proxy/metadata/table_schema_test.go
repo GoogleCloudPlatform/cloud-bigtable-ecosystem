@@ -373,3 +373,100 @@ func Test_SameTableSchema(t *testing.T) {
 		})
 	}
 }
+
+func TestTableConfig_GetMetadata(t *testing.T) {
+	table := NewTableConfig("keyspace1", "table1", "cf1", types.OrderedCodeEncoding, []*types.Column{
+		{
+			Name:         "zebra",
+			ColumnFamily: "cf1",
+			CQLType:      types.TypeVarchar,
+			IsPrimaryKey: false,
+			PkPrecedence: 0,
+			KeyType:      types.KeyTypeRegular,
+		},
+		{
+			Name:         "b_ck2",
+			ColumnFamily: "",
+			CQLType:      types.TypeInt,
+			IsPrimaryKey: true,
+			PkPrecedence: 4,
+			KeyType:      types.KeyTypeClustering,
+		},
+		{
+			Name:         "apple",
+			ColumnFamily: "cf1",
+			CQLType:      types.TypeInt,
+			IsPrimaryKey: false,
+			PkPrecedence: 0,
+			KeyType:      types.KeyTypeRegular,
+		},
+		{
+			Name:         "m_pk2",
+			ColumnFamily: "",
+			CQLType:      types.TypeVarchar,
+			IsPrimaryKey: true,
+			PkPrecedence: 2,
+			KeyType:      types.KeyTypePartition,
+		},
+		{
+			Name:         "mango",
+			ColumnFamily: "mango",
+			CQLType:      types.NewListType(types.TypeText),
+			IsPrimaryKey: false,
+			PkPrecedence: 0,
+			KeyType:      types.KeyTypeRegular,
+		},
+		{
+			Name:         "z_pk1",
+			ColumnFamily: "",
+			CQLType:      types.TypeBigInt,
+			IsPrimaryKey: true,
+			PkPrecedence: 1,
+			KeyType:      types.KeyTypePartition,
+		},
+		{
+			Name:         "x_ck1",
+			ColumnFamily: "",
+			CQLType:      types.TypeVarchar,
+			IsPrimaryKey: true,
+			PkPrecedence: 3,
+			KeyType:      types.KeyTypeClustering,
+		},
+		{
+			Name:         "banana",
+			ColumnFamily: "cf1",
+			CQLType:      types.TypeBoolean,
+			IsPrimaryKey: false,
+			PkPrecedence: 0,
+			KeyType:      types.KeyTypeRegular,
+		},
+	})
+
+	wantColumnNames := []string{
+		"z_pk1",
+		"m_pk2",
+		"x_ck1",
+		"b_ck2",
+		"apple",
+		"banana",
+		"mango",
+		"zebra",
+	}
+
+	// Verify deterministic ordering across multiple calls despite map backing
+	for i := 0; i < 10; i++ {
+		gotMetadata := table.GetMetadata()
+		var gotNames []string
+		for _, md := range gotMetadata {
+			gotNames = append(gotNames, md.Name)
+		}
+		assert.Equal(t, wantColumnNames, gotNames)
+
+		gotCols := table.AllColumns()
+		var gotColNames []string
+		for _, col := range gotCols {
+			gotColNames = append(gotColNames, string(col.Name))
+		}
+		assert.Equal(t, wantColumnNames, gotColNames)
+	}
+}

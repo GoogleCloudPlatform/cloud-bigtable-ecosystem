@@ -138,6 +138,53 @@ func TestSelectStarWithAllDatatypes(t *testing.T) {
 	iter := session.Query(`SELECT * FROM bigtabledevinstance.user_info WHERE name = ? AND age = ?`, "TestUserStar", int64(25)).Iter()
 	require.NotNil(t, iter)
 
+	var gotColumns []string
+	for _, col := range iter.Columns() {
+		gotColumns = append(gotColumns, col.Name)
+	}
+	assert.Equal(t, []string{
+		"age",
+		"name",
+		"balance",
+		"birth_date",
+		"code",
+		"credited",
+		"extra_info",
+		"is_active",
+		"list_ascii",
+		"list_bigint",
+		"list_boolean",
+		"list_double",
+		"list_float",
+		"list_int",
+		"list_text",
+		"list_timestamp",
+		"map_ascii",
+		"map_text_bigint",
+		"map_text_boolean",
+		"map_text_double",
+		"map_text_float",
+		"map_text_int",
+		"map_text_ts",
+		"set_ascii",
+		"set_bigint",
+		"set_boolean",
+		"set_double",
+		"set_float",
+		"set_int",
+		"set_timestamp",
+		"tags",
+		"text_col",
+		"ts_bigint_map",
+		"ts_boolean_map",
+		"ts_double_map",
+		"ts_float_map",
+		"ts_int_map",
+		"ts_text_map",
+		"ts_ts_map",
+		"zip_code",
+	}, gotColumns)
+
 	resultMap := make(map[string]interface{})
 	if !iter.MapScan(resultMap) {
 		t.Fatal("MapScan failed to retrieve any data")

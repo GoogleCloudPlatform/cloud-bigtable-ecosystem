@@ -1479,3 +1479,39 @@ func TestTranslator_TranslateSelectQuerytoBigtable(t *testing.T) {
 		})
 	}
 }
+
+func TestTranslator_SelectStarColumnOrder(t *testing.T) {
+	tr := NewSelectTranslator(mockdata.GetSchemaMappingConfig())
+	query := "SELECT * FROM test_keyspace.test_table WHERE pk1 = 'test';"
+
+	wantColumns := []string{
+		"pk1",
+		"pk2",
+		"col_ascii",
+		"col_bigint",
+		"col_blob",
+		"col_bool",
+		"col_counter",
+		"col_double",
+		"col_float",
+		"col_int",
+		"col_ts",
+		"list_text",
+		"map_text_bool",
+		"map_text_text",
+		"map_varchar_bool",
+		"set_text",
+	}
+
+	for i := 0; i < 10; i++ {
+		got, err := tr.Translate(types.NewRawQuery(nil, "test_keyspace", query, parser.NewParser(query), types.QueryTypeSelect), "test_keyspace")
+		require.NoError(t, err)
+		gotSelect := got.(*types.PreparedSelectQuery)
+
+		var gotColumns []string
+		for _, col := range gotSelect.ResponseColumns() {
+			gotColumns = append(gotColumns, col.Name)
+		}
+		assert.Equal(t, wantColumns, gotColumns)
+	}
+}
