@@ -1,3 +1,6 @@
+import copy
+import json
+import logging
 import os
 from datetime import datetime
 import google.auth
@@ -5,6 +8,7 @@ from google.auth.credentials import Credentials
 from google.adk.agents.callback_context import CallbackContext
 from google.adk.agents import Agent
 from google.adk.models import Gemini
+from google.adk.sessions.session import Session
 from google.adk.tools import agent_tool
 from google.adk.tools.bigtable.settings import BigtableToolSettings
 from google.adk.tools.bigtable import BigtableCredentialsConfig
@@ -14,7 +18,6 @@ from google.adk.tools.bigtable import query_tool
 from dotenv import load_dotenv
 from model_armor_guard import create_model_armor_guard
 from vertex_gemini import VertexGemini
-import json
 
 from sub_agents.agent_search import Agent_Search
 from sub_agents.agent_query import Agent_Query
@@ -63,9 +66,6 @@ async def get_profile_info(callback_context: CallbackContext):
 async def generate_memories_callback(callback_context: CallbackContext):
     """Extracts user preferences and context from recent events and updates Memory Bank in the background."""
     try:
-        import copy
-        from google.adk.sessions.session import Session
-        
         # 1. Create a clean, E2E-aligned session object
         clean_session = Session(
             app_name=callback_context.session.app_name,
@@ -98,15 +98,14 @@ async def generate_memories_callback(callback_context: CallbackContext):
                         
                     clean_session.events.append(clean_event)
 
-        # 3. Dispatch memory generation to Vertex AI Memory Bank without blocking the HTTP response
+        # 3. Dispatch memory generation to Memory Bank without blocking the HTTP response
         if clean_session.events:
             await callback_context.add_events_to_memory(
                 events=clean_session.events,
                 custom_metadata={"wait_for_completion": False}
             )
     except Exception as e:
-        import logging
-        logging.warning("Failed to update Vertex AI Memory Bank: %s", e)
+        logging.warning("Failed to update Memory Bank: %s", e)
     return None
 
 

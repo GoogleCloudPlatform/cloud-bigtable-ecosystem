@@ -96,6 +96,8 @@ async def chat_with_agent(user_email, message, access_token=None, refresh_token=
             user_id=user_email,
         )
         _AGENT_ENGINE_SESSION_IDS[(user_email, session_id)] = existing_session.id
+        if len(_AGENT_ENGINE_SESSION_IDS) > 1000:
+            _AGENT_ENGINE_SESSION_IDS.pop(next(iter(_AGENT_ENGINE_SESSION_IDS)))
 
     active_session_id = existing_session.id
     credential_service = ScopedCredentialService(access_token, refresh_token)
