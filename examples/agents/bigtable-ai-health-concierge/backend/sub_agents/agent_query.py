@@ -35,14 +35,28 @@ bigtable_toolset = BigtableToolset(
     bigtable_tool_settings=tool_settings
 )
 
+def _get_patient_key(tool_context: ToolContext) -> str:
+    """Extracts and sanitizes the user identity from ToolContext."""
+    if not tool_context:
+        raise ValueError("ToolContext is required.")
+    user_id = getattr(tool_context, "user_id", None)
+    if not user_id:
+        session = getattr(tool_context, "session", None)
+        if session:
+            user_id = getattr(session, "user_id", None)
+    if not user_id:
+        raise ValueError("No user identity found in ToolContext.")
+    return str(user_id).replace("'", "''")
+
+
 @validate_call(config={"arbitrary_types_allowed": True})
 async def get_test_results(
     credentials: Credentials,
     settings: BigtableToolSettings,
     tool_context: ToolContext,
-    before:datetime = datetime.max, 
-    after:datetime = datetime.fromisoformat("1970-01-01T00:00:00Z"),
-    num_tests:int = 60
+    before: datetime = datetime.max,
+    after: datetime = datetime.fromisoformat("1970-01-01T00:00:00Z"),
+    num_tests: int = 60,
 ):
     """Returns a list of all medical tests such as blood pressure, glucose, globulin, bilirubin, albumin, co2, creatine kinase blood tests, their results and dates in the provided date range sorted in reverse chronological order (newest first). 
         Args:
@@ -50,7 +64,8 @@ async def get_test_results(
         after (datetime): The ISO 8601 datetime after which the tests should be returned.
         num_tests (int): The number of test results to return in reverse chronological order. Set to 1 for the most recent test result.
     """
-    query = f"SELECT tests as results, DATE(_timestamp) as date FROM UNPACK((SELECT tests FROM `patients`(WITH_HISTORY=>TRUE, before=>TIMESTAMP('{before}'), after=>TIMESTAMP('{after}'), latest_n=>{num_tests}) WHERE _key='john.doe@gmail.com')) ORDER BY _timestamp DESC LIMIT 300"  
+    patient_key = _get_patient_key(tool_context)
+    query = f"SELECT tests as results, DATE(_timestamp) as date FROM UNPACK((SELECT tests FROM `patients`(WITH_HISTORY=>TRUE, before=>TIMESTAMP('{before}'), after=>TIMESTAMP('{after}'), latest_n=>{num_tests}) WHERE _key='{patient_key}')) ORDER BY _timestamp DESC LIMIT 300"
     res = await query_tool.execute_sql(
         project_id=PROJECT_ID,
         instance_id=BIGTABLE_INSTANCE_ID,
@@ -60,6 +75,7 @@ async def get_test_results(
         tool_context=tool_context,
     )
     return res
+
 
 async def get_prescriptions(
     credentials: Credentials,
@@ -67,7 +83,8 @@ async def get_prescriptions(
     tool_context: ToolContext,
 ):
     """Returns a list of prescriptions, refill dates in YYYY-MM-DD format and doctor notes."""
-    query = f"SELECT prescriptions FROM patients(WITH_HISTORY=>FALSE) WHERE _key='john.doe@gmail.com' LIMIT 300"  
+    patient_key = _get_patient_key(tool_context)
+    query = f"SELECT prescriptions FROM patients(WITH_HISTORY=>FALSE) WHERE _key='{patient_key}' LIMIT 300"
     res = await query_tool.execute_sql(
         project_id=PROJECT_ID,
         instance_id=BIGTABLE_INSTANCE_ID,
@@ -78,13 +95,14 @@ async def get_prescriptions(
     )
     return res
 
+
 @validate_call(config={"arbitrary_types_allowed": True})
 async def get_visits(
     credentials: Credentials,
     settings: BigtableToolSettings,
     tool_context: ToolContext,
-    before:datetime = datetime.max, 
-    after:datetime = datetime.fromisoformat("1970-01-01 00:00:00Z"),
+    before: datetime = datetime.max,
+    after: datetime = datetime.fromisoformat("1970-01-01 00:00:00Z"),
 ):
     """Returns a list of doctor or hospital visits, procedures, screenings, shots, vaccinations, including past and upcoming events, with doctor name, facility, reason for visit, date of visit and outcome/recommendation in the provided date range sorted in reverse chronological order (newest first). 
     Speciality covers medical specialities like cardiology, dermatology, neurology, orthopedics, etc. 
@@ -92,7 +110,8 @@ async def get_visits(
         before (datetime): The ISO 8601 datetime before which the visits should be returned.
         after (datetime): The ISO 8601 datetime after which the visits should be returned.
     """
-    query = f"SELECT visits, DATE(_timestamp) as date FROM UNPACK((SELECT visits FROM patients(WITH_HISTORY=>TRUE, before=>TIMESTAMP('{before}'), after=>TIMESTAMP('{after}')) WHERE _key='john.doe@gmail.com')) ORDER BY _timestamp DESC LIMIT 300" 
+    patient_key = _get_patient_key(tool_context)
+    query = f"SELECT visits, DATE(_timestamp) as date FROM UNPACK((SELECT visits FROM patients(WITH_HISTORY=>TRUE, before=>TIMESTAMP('{before}'), after=>TIMESTAMP('{after}')) WHERE _key='{patient_key}')) ORDER BY _timestamp DESC LIMIT 300"
     res = await query_tool.execute_sql(
         project_id=PROJECT_ID,
         instance_id=BIGTABLE_INSTANCE_ID,
@@ -108,10 +127,10 @@ async def get_test_results_specific_test(
     credentials: Credentials,
     settings: BigtableToolSettings,
     tool_context: ToolContext,
-    test_name: Literal[ "all", "CO2", "Glucose", "albumin", "bilirubin", "creatine_kinase", "globulin" ],
-    before:datetime = datetime.max, 
-    after:datetime = datetime.fromisoformat("1970-01-01T00:00:00Z"),
-    num_tests:int = 60,
+    test_name: Literal["all", "CO2", "Glucose", "albumin", "bilirubin", "creatine_kinase", "globulin"],
+    before: datetime = datetime.max,
+    after: datetime = datetime.fromisoformat("1970-01-01T00:00:00Z"),
+    num_tests: int = 60,
 ):
     """Returns a list of a specific medical test including blood tests, their results and dates in the provided date range sorted in reverse chronological order (newest first). 
         Args:
@@ -120,7 +139,8 @@ async def get_test_results_specific_test(
         after (datetime): The ISO 8601 datetime after which the tests should be returned.
         num_tests (int): The number of test results to return in reverse chronological order. Set to 1 for the most recent test result.
     """
-    query = f"SELECT {'tests' if test_name == 'all' else 'tests['+test_name+']'} as results, DATE(_timestamp) as date FROM UNPACK((SELECT tests FROM `patients`(WITH_HISTORY=>TRUE, before=>TIMESTAMP('{before}'), after=>TIMESTAMP('{after}'), latest_n=>{num_tests}) WHERE _key='john.doe@gmail.com')) ORDER BY _timestamp DESC LIMIT 300"   
+    patient_key = _get_patient_key(tool_context)
+    query = f"SELECT {'tests' if test_name == 'all' else 'tests['+test_name+']'} as results, DATE(_timestamp) as date FROM UNPACK((SELECT tests FROM `patients`(WITH_HISTORY=>TRUE, before=>TIMESTAMP('{before}'), after=>TIMESTAMP('{after}'), latest_n=>{num_tests}) WHERE _key='{patient_key}')) ORDER BY _timestamp DESC LIMIT 300"
     res = await query_tool.execute_sql(
         project_id=PROJECT_ID,
         instance_id=BIGTABLE_INSTANCE_ID,
@@ -130,6 +150,7 @@ async def get_test_results_specific_test(
         tool_context=tool_context,
     )
     return res
+
 
 Agent_Query = Agent(
     model=VertexGemini(model='gemini-2.5-flash'),

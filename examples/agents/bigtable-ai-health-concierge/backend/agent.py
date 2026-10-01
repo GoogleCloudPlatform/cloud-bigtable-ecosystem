@@ -48,7 +48,13 @@ async def get_profile_info(callback_context: CallbackContext):
     """Returns the patient's demographic information such as age, gender, home zip code, and work zip code to help personalize responses. Use zip codes when searching for nearby medical facilities and pharmacies."""
     if callback_context.state.get("_patient_demographics"):
         return None
-    query = f"SELECT profile FROM patients WHERE _key='john.doe@gmail.com'"  
+    user_id = getattr(callback_context, "user_id", None)
+    if not user_id:
+        session = getattr(callback_context, "session", None)
+        if session:
+            user_id = getattr(session, "user_id", None)
+    patient_key = str(user_id or "").replace("'", "''")
+    query = f"SELECT profile FROM patients WHERE _key='{patient_key}'"
     res = await query_tool.execute_sql(
         project_id=PROJECT_ID,
         instance_id=BIGTABLE_INSTANCE_ID,
@@ -57,8 +63,10 @@ async def get_profile_info(callback_context: CallbackContext):
         settings=tool_settings,
         tool_context=ToolContext(invocation_context=callback_context)
     )
-    callback_context.state["_patient_demographics"] = json.dumps(res['rows'][0])
-
+    if res and res.get("rows"):
+        callback_context.state["_patient_demographics"] = json.dumps(res["rows"][0])
+    else:
+        callback_context.state["_patient_demographics"] = "{}"
 
 async def generate_memories_callback(callback_context: CallbackContext):
     """Extracts user preferences and context from recent events and updates Memory Bank in the background."""
