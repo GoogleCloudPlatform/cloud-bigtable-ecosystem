@@ -37,9 +37,13 @@ bigtable_toolset = BigtableToolset(
 
 def _get_patient_key(tool_context: ToolContext) -> str:
     """Extracts and sanitizes the user identity from ToolContext."""
+    if not tool_context:
+        raise ValueError("ToolContext is required.")
     user_id = getattr(tool_context, "user_id", None)
-    if not user_id and getattr(tool_context, "session", None):
-        user_id = tool_context.session.user_id
+    if not user_id:
+        session = getattr(tool_context, "session", None)
+        if session:
+            user_id = getattr(session, "user_id", None)
     if not user_id:
         raise ValueError("No user identity found in ToolContext.")
     return str(user_id).replace("'", "''")

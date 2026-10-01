@@ -62,6 +62,8 @@ def _resolve_identity():
 @app.route('/auth/login')
 def login():
     frontend_host = request.host.split(':')[0] if request.host else '127.0.0.1'
+    if frontend_host not in ('localhost', '127.0.0.1'):
+        frontend_host = '127.0.0.1'
     user_param = request.args.get('user', '').strip()
     if user_param:
         session.pop('force_login', None)
@@ -96,8 +98,9 @@ def get_user():
 def chat():
     _, user_email = _resolve_identity()
     data = request.json or {}
-    if not user_email and data.get("user"):
-        user_email = data.get("user").strip()
+    user_val = data.get("user")
+    if not user_email and isinstance(user_val, str) and user_val.strip():
+        user_email = user_val.strip()
         session['email'] = user_email
         session['name'] = _format_display_name(user_email)
 

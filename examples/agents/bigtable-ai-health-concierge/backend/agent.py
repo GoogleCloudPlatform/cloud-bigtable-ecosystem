@@ -48,7 +48,11 @@ async def get_profile_info(callback_context: CallbackContext):
     """Returns the patient's demographic information such as age, gender, home zip code, and work zip code to help personalize responses. Use zip codes when searching for nearby medical facilities and pharmacies."""
     if callback_context.state.get("_patient_demographics"):
         return None
-    user_id = getattr(callback_context, "user_id", None) or callback_context.session.user_id
+    user_id = getattr(callback_context, "user_id", None)
+    if not user_id:
+        session = getattr(callback_context, "session", None)
+        if session:
+            user_id = getattr(session, "user_id", None)
     patient_key = str(user_id or "").replace("'", "''")
     query = f"SELECT profile FROM patients WHERE _key='{patient_key}'"
     res = await query_tool.execute_sql(
