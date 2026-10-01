@@ -78,4 +78,6 @@ The frontend will run on `http://127.0.0.1:3000`.
 
 1.  **Login**: Users sign in via Google. The backend handles the OAuth flow and retrieves the user's name and ID.
 2.  **Personalized Greeting**: Upon entering the chat, the agent greets the user by name (extracted from Google profile).
-3.  **Memory Bank**: Every message is passed to the ADK Agent, which uses `VertexAiMemoryBankService`. The `session_id` is set to the user's Google ID, ensuring that the agent remembers specific context for that user across different turns and sessions.
+3.  **Memory Bank (`VertexAiSessionService` + `VertexAiMemoryBankService`)**:
+    *   **`VertexAiSessionService`**: Persists conversation sessions, turn events, and session state in your Vertex AI Agent Engine (`VERTEX_AI_AGENT_ENGINE_ID`) rather than local process memory.
+    *   **`VertexAiMemoryBankService`**: Extracts and consolidates long-term user facts and preferences across sessions in Vertex AI Memory Bank (`after_agent_callback`), and retrieves relevant memories for each user via `PreloadMemoryTool` and `LoadMemoryTool`.

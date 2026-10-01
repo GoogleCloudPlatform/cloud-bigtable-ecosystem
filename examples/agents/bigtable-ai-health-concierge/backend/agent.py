@@ -104,8 +104,9 @@ async def generate_memories_callback(callback_context: CallbackContext):
                 events=clean_session.events,
                 custom_metadata={"wait_for_completion": True}
             )
-    except Exception:
-        pass
+    except Exception as e:
+        import logging
+        logging.warning("Failed to update Vertex AI Memory Bank: %s", e)
     return None
 
 
