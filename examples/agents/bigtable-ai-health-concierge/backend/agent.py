@@ -98,11 +98,11 @@ async def generate_memories_callback(callback_context: CallbackContext):
                         
                     clean_session.events.append(clean_event)
 
-        # 3. Synchronously dispatch and await cloud delivery using wait_for_completion
+        # 3. Dispatch memory generation to Vertex AI Memory Bank without blocking the HTTP response
         if clean_session.events:
             await callback_context.add_events_to_memory(
                 events=clean_session.events,
-                custom_metadata={"wait_for_completion": True}
+                custom_metadata={"wait_for_completion": False}
             )
     except Exception as e:
         import logging

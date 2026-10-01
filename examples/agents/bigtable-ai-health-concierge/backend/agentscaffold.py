@@ -15,12 +15,13 @@ from google.genai.types import Content, Part
 from agent import create_adk_agent
 
 load_dotenv(os.path.join(os.path.dirname(__file__), '../.env'))
+os.environ.setdefault("OTEL_SDK_DISABLED", "true")
 
 APP_NAME = "btagent"
 CONCIERGE_AGENT = None
 
-# Maps (user_email, client_session_id) -> Vertex AI Agent Engine session ID
-_VERTEX_SESSION_IDS: dict[tuple[str, str], str] = {}
+# Maps (user_email, client_session_id) -> Agent Engine session ID
+_AGENT_ENGINE_SESSION_IDS: dict[tuple[str, str], str] = {}
 
 
 class ScopedCredentialService(BaseCredentialService):
@@ -54,7 +55,7 @@ class ScopedCredentialService(BaseCredentialService):
 
 async def chat_with_agent(user_email, message, access_token=None, refresh_token=None, session_id=None):
     """
-    Handles a chat turn with the agent using VertexAiSessionService + VertexAiMemoryBankService.
+    Handles a chat turn with the agent using Agent Engine Sessions and Memory Bank.
     """
     global CONCIERGE_AGENT
 
@@ -65,7 +66,7 @@ async def chat_with_agent(user_email, message, access_token=None, refresh_token=
     location = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
     agent_engine_id = os.getenv("VERTEX_AI_AGENT_ENGINE_ID")
 
-    # Instantiate Vertex AI Session Service and Memory Bank Service bound to the current request event loop
+    # Instantiate Agent Engine Session Service and Memory Bank Service bound to the current request event loop
     session_service = VertexAiSessionService(
         project=project,
         location=location,
@@ -77,14 +78,14 @@ async def chat_with_agent(user_email, message, access_token=None, refresh_token=
         agent_engine_id=agent_engine_id,
     )
 
-    vertex_session_id = _VERTEX_SESSION_IDS.get((user_email, session_id))
+    engine_session_id = _AGENT_ENGINE_SESSION_IDS.get((user_email, session_id))
     existing_session = None
-    if vertex_session_id:
+    if engine_session_id:
         try:
             existing_session = await session_service.get_session(
                 app_name=APP_NAME,
                 user_id=user_email,
-                session_id=vertex_session_id,
+                session_id=engine_session_id,
             )
         except Exception:
             existing_session = None
@@ -94,7 +95,7 @@ async def chat_with_agent(user_email, message, access_token=None, refresh_token=
             app_name=APP_NAME,
             user_id=user_email,
         )
-        _VERTEX_SESSION_IDS[(user_email, session_id)] = existing_session.id
+        _AGENT_ENGINE_SESSION_IDS[(user_email, session_id)] = existing_session.id
 
     active_session_id = existing_session.id
     credential_service = ScopedCredentialService(access_token, refresh_token)
