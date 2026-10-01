@@ -1,17 +1,17 @@
-# ADK Agent Web Chat with Cloud Bigtable & Memory Bank
+# ADK Agent Web Chat with Bigtable & Memory Bank
 
-This project implements a personalized AI Health Concierge agent using Google Cloud's Agent Development Kit (ADK), **Cloud Bigtable**, and **Agent Platform (Agent Engine Sessions & Memory Bank)**, integrated into a Next.js web application with Google OAuth 2.0 login and a built-in demo user bypass.
+This project implements a personalized AI Health Concierge agent using Google Cloud's Agent Development Kit (ADK), **Bigtable**, and **Agent Platform (Agent Engine Sessions & Memory Bank)**, integrated into a Next.js web application with Google OAuth 2.0 login and a built-in demo user bypass.
 
 ## Prerequisites
 
 1. **Google Cloud Project**:
    * Enable the **Agent Platform API**.
-   * Enable the **Cloud Bigtable API** (`bigtable.googleapis.com`) and **Cloud Bigtable Admin API** (`bigtableadmin.googleapis.com`).
+   * Enable the **Bigtable API** (`bigtable.googleapis.com`) and **Bigtable Admin API** (`bigtableadmin.googleapis.com`).
    * Enable the **Google Calendar API** (`calendar-json.googleapis.com`) *(optional, required only if using Google Calendar integration)*.
-   * Create a Cloud Bigtable instance in your project.
+   * Create a Bigtable instance in your project.
 
 2. **Local Google Cloud Authentication (ADC)**:
-   Authenticate your local environment so the backend can access Cloud Bigtable and Agent Platform:
+   Authenticate your local environment so the backend can access Bigtable and Agent Platform:
    ```bash
    gcloud auth application-default login
    ```
@@ -70,7 +70,7 @@ Copy the `VERTEX_AI_AGENT_ENGINE_ID` printed in the terminal and set it in your 
 > 2. Look in the side navigation menu under **Deployments** (or **Agent Engine**).
 > 3. Click on your active `health_concierge_memory_engine` instance. The ID is the last numeric segment of the full instance resource name (e.g. `1234567890123456`).
 
-#### 2.3 Initialize Cloud Bigtable and seed demo data
+#### 2.3 Initialize Bigtable and seed demo data
 Create the required Bigtable tables (`user_profiles`, `wearable_metrics`, `health_knowledge`) and seed sample health records for the demo user (`john.doe@gmail.com`):
 ```bash
 python setup_demo_bigtable.py
@@ -98,7 +98,7 @@ The frontend runs on `http://localhost:3000` and automatically proxies `/api/*` 
 ## Logging In: Demo User Bypass vs. Google OAuth
 
 ### Option 1: Demo User Bypass (`john.doe@gmail.com`)
-To test the agent immediately with the pre-seeded Cloud Bigtable dataset without configuring Google OAuth:
+To test the agent immediately with the pre-seeded Bigtable dataset without configuring Google OAuth:
 * Open **`http://localhost:3000/?user=john.doe@gmail.com`** in your browser.
 * Passing `?user=<email>` skips the login page, sets the active session user to `john.doe@gmail.com`, and opens the chat interface directly.
 * Alternatively, you can launch the backend with `python app.py --user john.doe@gmail.com` (or set `DEFAULT_USER_EMAIL=john.doe@gmail.com` in `.env`) and visit `http://localhost:3000/`.
@@ -112,9 +112,9 @@ To test the agent immediately with the pre-seeded Cloud Bigtable dataset without
 
 ## How It Works
 
-1. **Dynamic User Identity in Cloud Bigtable Queries**:
+1. **Dynamic User Identity in Bigtable Queries**:
    * Upon entering the chat, the backend passes the authenticated user's email into the ADK session state (`user_email`).
-   * Both the root agent's profile lookup (`get_profile_info`) and the Bigtable sub-agent (`get_wearable_metrics`, `get_health_knowledge`) dynamically read `user_email` from ADK's `CallbackContext` / `ToolContext` to query Cloud Bigtable rows scoped to that specific user (`WHERE _key = '<user_email>'`).
+   * Both the root agent's profile lookup (`get_profile_info`) and the Bigtable sub-agent (`get_wearable_metrics`, `get_health_knowledge`) dynamically read `user_email` from ADK's `CallbackContext` / `ToolContext` to query Bigtable rows scoped to that specific user (`WHERE _key = '<user_email>'`).
 
 2. **Persistent Sessions & Long-Term Memory (Agent Engine & Memory Bank)**:
    * **Session Persistence (`VertexAiSessionService`)**: Persists conversation sessions, turn-by-turn events, and session state in your Agent Engine instance (`VERTEX_AI_AGENT_ENGINE_ID`) rather than ephemeral local memory.
