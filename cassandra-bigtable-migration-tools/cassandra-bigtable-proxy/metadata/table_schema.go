@@ -125,14 +125,15 @@ func (t *TableSchema) AllColumns() []*types.Column {
 	cols := maps.Values(t.Columns)
 	slices.SortFunc(cols, func(a, b *types.Column) int {
 		if a.IsPrimaryKey && b.IsPrimaryKey {
-			return a.PkPrecedence - b.PkPrecedence
+			if a.PkPrecedence != b.PkPrecedence {
+				return a.PkPrecedence - b.PkPrecedence
+			}
 		} else if a.IsPrimaryKey {
 			return -1
 		} else if b.IsPrimaryKey {
 			return 1
-		} else {
-			return strings.Compare(string(a.Name), string(b.Name))
 		}
+		return strings.Compare(string(a.Name), string(b.Name))
 	})
 	return cols
 }
