@@ -122,7 +122,20 @@ func (t *TableSchema) SameSchema(other *TableSchema) bool {
 }
 
 func (t *TableSchema) AllColumns() []*types.Column {
-	return maps.Values(t.Columns)
+	cols := maps.Values(t.Columns)
+	slices.SortFunc(cols, func(a, b *types.Column) int {
+		if a.IsPrimaryKey && b.IsPrimaryKey {
+			if a.PkPrecedence != b.PkPrecedence {
+				return a.PkPrecedence - b.PkPrecedence
+			}
+		} else if a.IsPrimaryKey {
+			return -1
+		} else if b.IsPrimaryKey {
+			return 1
+		}
+		return strings.Compare(string(a.Name), string(b.Name))
+	})
+	return cols
 }
 
 func (t *TableSchema) GetPkByTableNameWithFilter(filterPrimaryKeys []types.ColumnName) []*types.Column {
@@ -277,7 +290,7 @@ func (t *TableSchema) GetColumnType(columnName types.ColumnName) (types.CqlDataT
 
 func (t *TableSchema) GetMetadata() []*message.ColumnMetadata {
 	var results []*message.ColumnMetadata
-	for _, c := range t.Columns {
+	for _, c := range t.AllColumns() {
 		results = append(results, &c.Metadata)
 	}
 	return results
