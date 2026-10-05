@@ -102,7 +102,7 @@ async def get_visits(
     settings: BigtableToolSettings,
     tool_context: ToolContext,
     before: datetime = datetime.max,
-    after: datetime = datetime.fromisoformat("1970-01-01 00:00:00Z"),
+    after: datetime = datetime.fromisoformat("1970-01-01T00:00:00+00:00"),
 ):
     """Returns a list of doctor or hospital visits, procedures, screenings, shots, vaccinations, including past and upcoming events, with doctor name, facility, reason for visit, date of visit and outcome/recommendation in the provided date range sorted in reverse chronological order (newest first). 
     Speciality covers medical specialities like cardiology, dermatology, neurology, orthopedics, etc. 

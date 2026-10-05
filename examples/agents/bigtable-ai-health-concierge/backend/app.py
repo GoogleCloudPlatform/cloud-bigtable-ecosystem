@@ -108,6 +108,8 @@ def chat():
         return jsonify({"error": "Unauthorized"}), 401
 
     message = data.get("message")
+    if not message or not isinstance(message, str) or not message.strip():
+        return jsonify({"error": "Bad Request: 'message' is required and must be a non-empty string"}), 400
     access_token = session.get('access_token')
     refresh_token = session.get('refresh_token')
 

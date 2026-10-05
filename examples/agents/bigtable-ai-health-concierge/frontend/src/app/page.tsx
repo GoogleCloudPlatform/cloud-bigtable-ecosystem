@@ -11,7 +11,6 @@ export default function LoginPage() {
     const params = new URLSearchParams(window.location.search);
     const userParam = params.get('user')?.trim();
     if (userParam) {
-      fetch(`/api/user?user=${encodeURIComponent(userParam)}`, { credentials: 'include' }).catch(() => {});
       router.replace(`/chat?user=${encodeURIComponent(userParam)}`);
       return;
     }
