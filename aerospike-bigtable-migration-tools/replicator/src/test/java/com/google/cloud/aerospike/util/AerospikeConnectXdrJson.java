@@ -82,11 +82,15 @@ public class AerospikeConnectXdrJson {
         binsValue(bins));
   }
 
-  public static String deleteMessage(Long timestamp, ByteString key) {
-    return MOSHI.adapter(Map.class).toJson(deleteMessageMap(timestamp, key.toByteArray()));
+  public static String deleteMessage(Long timestamp, ByteString rowKey) {
+    return MOSHI
+        .adapter(Map.class)
+        .toJson(deleteMessageMap(timestamp, Base64.getDecoder().decode(rowKey.toByteArray())));
   }
 
-  public static String writeMessage(Long timestamp, ByteString key, List<Bin> bins) {
-    return MOSHI.adapter(Map.class).toJson(writeMessageMap(timestamp, key.toByteArray(), bins));
+  public static String writeMessage(Long timestamp, ByteString rowKey, List<Bin> bins) {
+    return MOSHI
+        .adapter(Map.class)
+        .toJson(writeMessageMap(timestamp, Base64.getDecoder().decode(rowKey.toByteArray()), bins));
   }
 }
