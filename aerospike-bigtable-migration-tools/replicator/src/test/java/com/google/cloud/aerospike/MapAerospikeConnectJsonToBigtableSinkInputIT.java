@@ -427,7 +427,7 @@ public class MapAerospikeConnectJsonToBigtableSinkInputIT {
   private static ByteString createRandomRowKey() {
     byte[] result = new byte[20];
     RANDOM.nextBytes(result);
-    return ByteString.copyFrom(result);
+    return ByteString.copyFrom(Base64.getEncoder().encode(result));
   }
 
   // TODO: check NaN/+Inf/-Inf once we receive an Aerospike Enterprise license key.
@@ -450,7 +450,9 @@ public class MapAerospikeConnectJsonToBigtableSinkInputIT {
     String floatBin = "myFloat";
 
     Long lastUpdateTimestamp = 1617167159548L;
-    ByteString key = ByteString.copyFromUtf8("abcdefghijklmnopqrst");
+    ByteString key =
+        ByteString.copyFrom(
+            Base64.getEncoder().encode("abcdefghijklmnopqrst".getBytes(StandardCharsets.UTF_8)));
 
     String stringValue = "a string value";
     ByteString blobValue = ByteString.copyFromUtf8("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
@@ -751,8 +753,7 @@ public class MapAerospikeConnectJsonToBigtableSinkInputIT {
             "{\"msg\":\"write\",\"key\":[\"test\",\"myset\",\"8Tvgv1f5PaBuA2Zuh7w767AciFA=\",null],\"gen\":3,\"exp\":0,\"lut\":1742850250806,\"bins\":[{\"name\":\"age\",\"type\":\"int\",\"value\":25}]}");
     waitUntilBigtableContainsNumberOfRows(testId, 1);
 
-    ByteString key =
-        ByteString.copyFrom(Base64.getDecoder().decode("8Tvgv1f5PaBuA2Zuh7w767AciFA="));
+    ByteString key = ByteString.copyFromUtf8("8Tvgv1f5PaBuA2Zuh7w767AciFA=");
 
     Map<ByteString, Row> rows = readAllRows(bigtableData, testId);
     assertEquals(Set.of(key), rows.keySet());
