@@ -12,7 +12,7 @@ This repository serves as a central hub for resources related to Google Cloud Bi
 
 *   **[Bigtable Skills](./skills/bigtable)** - A collection of skills and reference materials that enable AI agents (such as Antigravity, Gemini, Claude, and Cursor) to assist with Bigtable-related tasks, including schema design, SQL querying, and infrastructure management.
 
-*   **[HBase to Bigtable Migration Skill (Preview)](./skills/bigtable-migration)** - Enables AI agents (such as Antigravity, Gemini, Claude, and Cursor) to streamline the database migration journey from Apache HBase to Bigtable — leveraging tools on your local machine to assess source clusters, plan target schemas and capacity, orchestrate offline or online data migration, and validate data parity. Support for Cassandra to Bigtable and Aerospike to Bigtable migrations is coming soon.
+*   **[Bigtable Migration Skill (Preview)](./skills/bigtable-migration)** - Enables AI agents (such as Antigravity, Gemini, Claude, and Cursor) to streamline the database migration journey from Apache HBase to Bigtable — leveraging tools on your local machine to assess source clusters, plan target schemas and capacity, orchestrate offline or online data migration, and validate data parity. Support for Cassandra to Bigtable and Aerospike to Bigtable migrations is coming soon.
 
 ### Installation
 
@@ -70,7 +70,7 @@ See your agent's documentation for its exact install command.
 
 ## Migration Tools
 
-*   **[HBase to Bigtable Migration Skill (Preview)](./skills/bigtable-migration)** - Enables AI agents to streamline the database migration journey from Apache HBase to Bigtable across cluster assessment (`hbase_extractor.py`), schema and capacity planning, offline or online data migration, and post-migration validation.
+*   **[Bigtable Migration Skill (Preview)](./skills/bigtable-migration)** - Enables AI agents to streamline the database migration journey from Apache HBase to Bigtable across cluster assessment (`hbase_extractor.py`), schema and capacity planning, offline or online data migration, and post-migration validation.
 
 *   **[Cassandra-Bigtable Adapter](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/tree/main/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy)** - This Proxy adapter allows existing Cassandra-based applications to connect seamlessly to Bigtable. This adapter functions as a wire-compatible Cassandra interface, enabling interaction via CQL with minimal configuration. It can be deployed on the same compute as your application or standalone.
 

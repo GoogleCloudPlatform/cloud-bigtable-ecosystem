@@ -1,4 +1,4 @@
-# HBase to Bigtable Migration Skill
+# Bigtable Migration Skill
 
 > [!NOTE]
 > **Preview:** This skill is currently in **Preview**. While we encourage you
