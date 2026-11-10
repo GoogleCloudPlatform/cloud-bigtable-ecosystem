@@ -4,7 +4,9 @@
 > **Preview:** This skill is currently in **Preview**. While we encourage you
 > to try it out and provide feedback, it is not yet considered generally
 > available (GA) for production workloads. The included skills, scripts, and
-> behaviors are subject to change without notice.
+> behaviors are subject to change without notice. Additionally, please be aware
+> that this plugin may utilize Bigtable migration features and tools that are
+> also currently in Preview.
 
 ## Overview
 
