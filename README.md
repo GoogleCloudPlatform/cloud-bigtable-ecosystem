@@ -10,9 +10,16 @@ This repository serves as a central hub for resources related to Google Cloud Bi
 
 ## AI Agent Skills
 
-* **[Bigtable Skills](./skills/bigtable)** - A collection of skills and reference materials that enable AI agents (such as Gemini, Claude, and Cursor) to assist with Bigtable-related tasks, including schema design, SQL querying, and infrastructure management.
+* **[Bigtable Skills](./skills/bigtable)** - A collection of skills and reference materials that enable AI agents (such as Antigravity, Gemini, Claude, and Cursor) to assist with Bigtable-related tasks, including schema design, SQL querying, and infrastructure management.
+* **[Bigtable Migration Agent Skill (Preview)](./skills/bigtable-migration)** - End-to-end migration skill package (starting with Apache HBase to Cloud Bigtable in [`references/hbase`](./skills/bigtable-migration/references/hbase) and [`scripts/hbase`](./skills/bigtable-migration/scripts/hbase)) covering cluster assessment, schema & capacity planning, offline/online data migration, and post-migration parity validation.
 
 ### Installation
+
+#### Antigravity CLI (agy) Installation
+
+```bash
+agy plugin install https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem
+```
 
 #### Gemini CLI Installation
 
@@ -27,16 +34,11 @@ gemini extensions install https://github.com/GoogleCloudPlatform/cloud-bigtable-
 Claude Code utilizes a marketplace system for plugins.
 
 ```bash
-## Option 1. Install marketplace from CLI
+# Step 1. Add the Bigtable marketplace
 claude plugin marketplace add GoogleCloudPlatform/cloud-bigtable-ecosystem
 
-## Option 2. Install marketplace from Claude
-/plugin marketplace add https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem.git
-
-# Step 2. List plugins
-claude
-/plugin
-
+# Step 2. Install the Bigtable plugin
+claude plugin install bigtable@bigtable-marketplace
 ```
 
 #### Codex Installation
@@ -65,7 +67,7 @@ https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem
 
 See your agent's documentation for its exact install command.
 
-## Migrations Tools
+## Migration Tools
 
 *   **[Cassandra-Bigtable Adapter](https://github.com/GoogleCloudPlatform/cloud-bigtable-ecosystem/tree/main/cassandra-bigtable-migration-tools/cassandra-bigtable-proxy)** - This Proxy adapter allows existing Cassandra-based applications to connect seamlessly to Bigtable. This adapter functions as a wire-compatible Cassandra interface, enabling interaction via CQL with minimal configuration. It can be deployed on the same compute as your application or standalone.
 

@@ -1,7 +1,7 @@
 {
   "name": "bigtable",
   "version": "0.0.1",
-  "description": "Official plugin for Google Cloud Bigtable. Manage instances/tables, design schemas, query data using SQL or client libraries, and more.",
+  "description": "Official plugin for Google Cloud Bigtable. Manage instances/tables, design schemas, query data using SQL or client libraries, and migrate from Apache HBase to Bigtable.",
   "author": {
     "name": "Google LLC",
     "email": "bigtable-cloud@google.com"
@@ -12,12 +12,14 @@
   "keywords": [
     "bigtable",
     "google-cloud",
-    "database"
+    "database",
+    "hbase",
+    "migration"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Bigtable",
-    "shortDescription": "Official plugin for Google Cloud Bigtable. Manage instances/tables, design schemas, query data using SQL or client libraries, and more.",
+    "shortDescription": "Official plugin for Google Cloud Bigtable. Manage instances/tables, design schemas, query data using SQL or client libraries, and migrate from Apache HBase to Bigtable.",
     "developerName": "Google LLC",
     "category": "Database"
   }

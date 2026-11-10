@@ -1,0 +1,63 @@
+{
+  "hosting": "Unknown",
+  "replication_peers": [],
+  "tables": {
+    "my_test_table": {
+      "column_families": {
+        "prescriptions": {
+          "TTL": "FOREVER",
+          "VERSIONS": "1",
+          "COMPRESSION": "NONE",
+          "BLOOMFILTER": "ROW",
+          "IN_MEMORY": "false",
+          "BLOCKCACHE": "true"
+        },
+        "profile": {
+          "TTL": "FOREVER",
+          "VERSIONS": "1",
+          "COMPRESSION": "NONE",
+          "BLOOMFILTER": "ROW",
+          "IN_MEMORY": "false",
+          "BLOCKCACHE": "true"
+        },
+        "tests": {
+          "TTL": "FOREVER",
+          "VERSIONS": "1",
+          "COMPRESSION": "NONE",
+          "BLOOMFILTER": "ROW",
+          "IN_MEMORY": "false",
+          "BLOCKCACHE": "true"
+        },
+        "visits": {
+          "TTL": "FOREVER",
+          "VERSIONS": "1",
+          "COMPRESSION": "NONE",
+          "BLOOMFILTER": "ROW",
+          "IN_MEMORY": "false",
+          "BLOCKCACHE": "true"
+        }
+      },
+      "coprocessors": [],
+      "regional_setup": {
+        "region_count": 1,
+        "split_keys_sample": []
+      },
+      "stats": {
+        "row_count_estimate": "Proxy via Size/Regions",
+        "table_size_bytes": "Unknown",
+        "row_counter_command": "hbase org.apache.hadoop.hbase.mapreduce.RowCounter my_test_table"
+      },
+      "naming_warnings": []
+    }
+  },
+  "unsupported_features_detected": [],
+  "checks_performed": [
+    "Coprocessors",
+    "Custom Filters",
+    "Namespaces",
+    "Column Family Naming Conventions",
+    "Garbage Collection (TTL/VERSIONS)",
+    "Replication Peers",
+    "Region Distribution & Splits"
+  ]
+}
