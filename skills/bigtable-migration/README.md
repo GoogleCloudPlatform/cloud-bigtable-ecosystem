@@ -4,9 +4,7 @@
 > **Preview:** This skill is currently in **Preview**. While we encourage you
 > to try it out and provide feedback, it is not yet considered generally
 > available (GA) for production workloads. The included skills, scripts, and
-> behaviors are subject to change without notice. Additionally, please be aware
-> that this skill may use Google Cloud Bigtable migration tools and features
-> that are also currently in Preview.
+> behaviors are subject to change without notice.
 
 ## Overview
 
