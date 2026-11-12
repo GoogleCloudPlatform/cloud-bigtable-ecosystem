@@ -41,7 +41,7 @@ following operational patterns:
 
 --------------------------------------------------------------------------------
 
-### Operational Pattern B: Live Sync Validation via "Quiet Period" (RECOMMENDED / DEFAULT)
+### Operational Pattern 1: Live Sync Validation via "Quiet Period" (RECOMMENDED / DEFAULT)
 
 This is the most robust validation method. It validates the absolute latest
 state of your synchronized data (including all replayed WAL buffer writes) by
@@ -99,14 +99,17 @@ briefly pausing application writes.
         --region=<REGION>
     ```
 
-5.  **Evaluate Results**: Verify that `ranges_not_matched = 0` in the Dataflow
-    custom counters (or in GCS output files).
+5.  **Evaluate Results**: Open the Dataflow job's **Custom counters** section
+    and verify that **`ranges_matched`** has a positive count and
+    **`ranges_not_matched` is `0`**. If `ranges_not_matched` is non-zero, filter
+    Dataflow **Worker Logs** by **`Mismatch on range`** or inspect the JSON
+    mismatch records written under `--outputPrefix`.
 
 6.  **Resume writes** and cut over immediately.
 
 --------------------------------------------------------------------------------
 
-### Operational Pattern A: Static Bootstrap Validation (Zero-Downtime Alternative)
+### Operational Pattern 2: Static Bootstrap Validation (Zero-Downtime Alternative)
 
 If your application cannot tolerate a write pause, you must validate the static
 historical snapshot *before* replaying the WAL buffer (while the target Bigtable
@@ -145,7 +148,7 @@ is still in a static, offline state).
         ```
 
 4.  **Run SyncTable on Dataflow** against Bigtable using the `sync-table`
-    command from Operational Pattern B (Step 4) above.
+    command from Operational Pattern 1 (Step 4) above.
 
 5.  Once validation is complete, **delete the temporary table** in HBase:
 
@@ -188,5 +191,5 @@ If row counts or data do not match:
 
 ## References
 
-*   Refer to standard HBase documentation for `RowCounter`.
-*   [Bigtable Documentation](https://cloud.google.com/bigtable/docs)
+*   [Migrate data from HBase to Bigtable offline — Validate the imported data](https://cloud.google.com/bigtable/docs/migrate-hbase-data-to-bigtable#verify-hbase-data)
+*   [Differences between HBase and Cloud Bigtable](https://cloud.google.com/bigtable/docs/hbase-differences)

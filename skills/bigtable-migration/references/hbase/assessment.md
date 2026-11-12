@@ -59,7 +59,9 @@ following critical inputs from the cluster:
     *   Are **Coprocessors** used?
     *   Are **Custom Filters** deployed?
     *   Are **Namespaces** configured?
-*   Column Family names (must match regex `[_a-zA-Z0-9][-_.a-zA-Z0-9]*`).
+*   Table IDs (up to 50 characters; `:` from HBase namespaces and `#` are not
+    permitted) and Column Family names (up to 64 characters; both must match
+    regex `[_a-zA-Z0-9][-_.a-zA-Z0-9]*`).
 *   Estimated table row counts and physical byte volume.
 
 ## Transition to Planning
@@ -93,8 +95,9 @@ When a user initiates the Automated Assessment workflow:
         the table structures and replication peer settings.
     *   Use search tools to look up documentation if needed for specific GC
         policy calculations or secondary access advice.
-    *   Identify schema risks: Column Family names violating regex
-        `[_a-zA-Z0-9][-_.a-zA-Z0-9]*`, detected Coprocessors, Custom Filters, or
-        explicit Namespaces.
+    *   Identify schema risks: Table IDs or Column Family names violating regex
+        `[_a-zA-Z0-9][-_.a-zA-Z0-9]*` (or table IDs exceeding 50 characters /
+        containing `:` from HBase namespaces), detected Coprocessors, Custom
+        Filters, or explicit Namespaces.
     *   Route directly to Phase 2 (Planning) to generate the formal
         `migration_plan.md` plan.

@@ -60,23 +60,40 @@ def parse_hbase_assessment_json(json_string: str) -> Dict[str, Any]:
           ),
       }
 
+    replication_peers = data.get("replication_peers")
+    if not isinstance(replication_peers, list):
+      replication_peers = []
+    unsupported_features = data.get("unsupported_features_detected")
+    if not isinstance(unsupported_features, list):
+      unsupported_features = []
+
     parsed_summary: Dict[str, Any] = {
         "status": "success",
-        "hosting": data.get("hosting", "Unknown"),
+        "hosting": data.get("hosting") or "Unknown",
         "total_tables": len(data["tables"]),
-        "replication_peers": data.get("replication_peers", []),
-        "unsupported_features": data.get("unsupported_features_detected", []),
+        "replication_peers": replication_peers,
+        "unsupported_features": unsupported_features,
         "tables_analyzed": [],
     }
 
     for table_name, table_data in data["tables"].items():
       if not isinstance(table_data, dict):
         continue
-      column_families = table_data.get("column_families", {})
-      coprocessors = table_data.get("coprocessors", [])
-      stats = table_data.get("stats", {})
-      regional_setup = table_data.get("regional_setup", {})
-      naming_warnings = table_data.get("naming_warnings", [])
+      column_families = table_data.get("column_families")
+      if not isinstance(column_families, dict):
+        column_families = {}
+      coprocessors = table_data.get("coprocessors")
+      if not isinstance(coprocessors, list):
+        coprocessors = []
+      stats = table_data.get("stats")
+      if not isinstance(stats, dict):
+        stats = {}
+      regional_setup = table_data.get("regional_setup")
+      if not isinstance(regional_setup, dict):
+        regional_setup = {}
+      naming_warnings = table_data.get("naming_warnings")
+      if not isinstance(naming_warnings, list):
+        naming_warnings = []
 
       table_summary = {
           "table_name": table_name,
@@ -119,10 +136,17 @@ def main() -> None:
   args = parser.parse_args()
 
   if args.input_file:
-    with open(args.input_file, "r", encoding="utf-8") as f:
-      raw_json = f.read()
-  else:
+    try:
+      with open(args.input_file, "r", encoding="utf-8") as f:
+        raw_json = f.read()
+    except OSError as e:
+      sys.stderr.write(f"Error reading '{args.input_file}': {e}\n")
+      sys.exit(1)
+  elif not sys.stdin.isatty():
     raw_json = sys.stdin.read()
+  else:
+    parser.print_help()
+    sys.exit(1)
 
   result = parse_hbase_assessment_json(raw_json)
   sys.stdout.write(json.dumps(result, indent=2) + "\n")

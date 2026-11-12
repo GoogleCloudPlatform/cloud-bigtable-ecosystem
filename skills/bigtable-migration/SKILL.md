@@ -33,7 +33,8 @@ tool:
     *   Generating a data-driven Bigtable `migration_plan.md` from
         `hbase_assessment_input.json` (using
         [`scripts/hbase/hbase_json_parser.py`](scripts/hbase/hbase_json_parser.py))
-        and pre-splitting tables with `cbt addsplits`.
+        and pre-splitting destination tables at creation time (`cbt createtable
+        ... splits=...`).
     *   Executing Offline (`ExportSnapshot` / `Export` to GCS + Dataflow
         `bigtable-beam-import`) or Online (`bigtable-hbase-replication` library)
         data migrations.

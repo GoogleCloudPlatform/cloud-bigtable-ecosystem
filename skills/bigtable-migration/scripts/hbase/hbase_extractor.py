@@ -92,7 +92,7 @@ def escape_hbase_ruby_str(value: str) -> str:
   return value.replace("\\", "\\\\").replace("'", "\\'")
 
 
-def get_hdfs_table_size(table_name: str) -> str:
+def get_hdfs_table_size(table_name: str, timeout: int = 15) -> str:
   """Attempts to get table size in bytes using Hadoop fs -du."""
   print_step(f"Retrieving HDFS size for '{table_name}'...")
   if ":" in table_name:
@@ -105,15 +105,20 @@ def get_hdfs_table_size(table_name: str) -> str:
   for base_dir in dirs:
     path = f"{base_dir}/{tbl}"
     output, rc = run_command_with_timeout(
-        ["hadoop", "fs", "-du", "-s", path], timeout=15
+        ["hadoop", "fs", "-du", "-s", path], timeout=timeout
     )
     if rc == 0 and output and "No such file" not in output:
-      try:
-        size = output.split()[0]
+      for raw_line in output.splitlines():
+        parts = raw_line.strip().split()
+        if parts and parts[0].isdigit() and path in raw_line:
+          size = parts[0]
+          print_success(f"HDFS size for '{table_name}': {size} bytes")
+          return size
+      numeric_tokens = [t for t in output.split() if t.isdigit()]
+      if numeric_tokens:
+        size = numeric_tokens[0]
         print_success(f"HDFS size for '{table_name}': {size} bytes")
         return size
-      except Exception:  # pylint: disable=broad-except
-        pass
 
   print_warning(
       f"Could not retrieve HDFS size for '{table_name}' (Paths checked: {dirs})"
@@ -149,13 +154,59 @@ def ask_user_yes_no(question: str, default: bool = False) -> bool:
     sys.stdout.flush()
 
 
-def parse_describe_attribute(desc_output: str, attribute: str) -> str:
-  """Extracts a specific attribute (e.g., TTL, VERSIONS) from HBase describe output."""
-  pattern = r"\b" + re.escape(attribute) + r"\s*=>\s*['\"]?([^,'\"\s\}]+)['\"]?"
-  match = re.search(pattern, desc_output)
+def parse_describe_attribute(desc_block: str, attribute: str) -> str:
+  """Extracts a specific attribute (e.g., TTL, VERSIONS) from an HBase CF block."""
+  pattern = (
+      r"\b"
+      + re.escape(attribute)
+      + r"\s*=>\s*(?:'([^']*)'|\"([^\"]*)\"|([^,\s\}]+))"
+  )
+  match = re.search(pattern, desc_block)
   if match:
-    return match.group(1).strip()
+    val = next((g for g in match.groups() if g is not None), "")
+    return val.strip()
   return "Default/Unknown"
+
+
+def extract_cf_blocks(desc_output: str) -> List[str]:
+  """Extracts column family attribute blocks from HBase `describe` output.
+
+  Handles single-line comma-separated descriptors, multi-line wrapped output,
+  and nested HBase 2.x `CONFIGURATION => {...}` / `METADATA => {...}` maps.
+  """
+  blocks: List[str] = []
+  stack: List[List[str]] = []
+  in_quote: Optional[str] = None
+  escaped = False
+
+  for ch in desc_output:
+    if in_quote:
+      if stack:
+        stack[-1].append(ch)
+      if escaped:
+        escaped = False
+      elif ch == "\\":
+        escaped = True
+      elif ch == in_quote:
+        in_quote = None
+      continue
+
+    if ch in ("'", '"'):
+      in_quote = ch
+      if stack:
+        stack[-1].append(ch)
+    elif ch == "{":
+      stack.append([])
+    elif ch == "}":
+      if stack:
+        candidate = "".join(stack.pop())
+        if re.search(r"(?:^|,)\s*NAME\s*=>", candidate):
+          blocks.append(candidate)
+    else:
+      if stack:
+        stack[-1].append(ch)
+
+  return blocks
 
 
 def parse_list_peers_output(peers_output: str) -> List[str]:
@@ -210,6 +261,7 @@ def extract_metadata(
     scan_hdfs: bool,
     include_tables: Optional[List[str]] = None,
     table_regex: Optional[str] = None,
+    timeout: int = 30,
 ) -> Dict[str, Any]:
   """Extracts tables, column families, regional setups, and meta from HBase."""
   metadata: Dict[str, Any] = {
@@ -219,9 +271,8 @@ def extract_metadata(
       "unsupported_features_detected": [],
       "checks_performed": [
           "Coprocessors",
-          "Custom Filters",
           "Namespaces",
-          "Column Family Naming Conventions",
+          "Table & Column Family Naming Conventions",
           "Garbage Collection (TTL/VERSIONS)",
           "Replication Peers",
           "Region Distribution & Splits",
@@ -230,18 +281,28 @@ def extract_metadata(
 
   # 1. Extract Replication Peers
   print_step("Checking HBase Replication Peers...")
-  peers_output, _ = run_hbase_shell_command("list_peers")
-  metadata["replication_peers"] = parse_list_peers_output(peers_output)
-  if metadata["replication_peers"]:
-    print_success(
-        f"Found Replication Peers: {len(metadata['replication_peers'])}"
-    )
+  peers_output, peers_rc = run_hbase_shell_command(
+      "list_peers", timeout=timeout
+  )
+  if peers_rc != 0:
+    print_warning("Failed to query HBase replication peers via 'list_peers'.")
   else:
-    print_success("No Replication Peers detected.")
+    metadata["replication_peers"] = parse_list_peers_output(peers_output)
+    if metadata["replication_peers"]:
+      print_success(
+          f"Found Replication Peers: {len(metadata['replication_peers'])}"
+      )
+    else:
+      print_success("No Replication Peers detected.")
 
   # 2. List Tables
   print_step("Listing HBase tables...")
-  tables_output, _ = run_hbase_shell_command("list")
+  tables_output, list_rc = run_hbase_shell_command("list", timeout=timeout)
+  if list_rc != 0:
+    print_warning(
+        "Failed to connect to HBase or execute 'list' command. Aborting."
+    )
+    sys.exit(1)
 
   all_tables: List[str] = []
   parsed_table_list = False
@@ -301,7 +362,9 @@ def extract_metadata(
 
     escaped_table = escape_hbase_ruby_str(table)
     print_step(f"\nAnalyzing Table: '{table}'")
-    desc_output, _ = run_hbase_shell_command(f"describe '{escaped_table}'")
+    desc_output, desc_rc = run_hbase_shell_command(
+        f"describe '{escaped_table}'", timeout=timeout
+    )
 
     metadata["tables"][table] = {
         "column_families": {},
@@ -318,10 +381,55 @@ def extract_metadata(
         "naming_warnings": [],
     }
 
+    # Check HBase namespace and Bigtable table ID rules
+    if ":" in table:
+      ns, bare_tbl = table.split(":", 1)
+      if ns != "default":
+        ns_warning = (
+            f"Table '{table}' uses non-default HBase namespace '{ns}'."
+            " Bigtable does not support explicit namespaces and ':' is illegal"
+            f" in Bigtable table IDs (rename e.g. to '{ns}_{bare_tbl}' or"
+            f" '{ns}__{bare_tbl}', or consolidate with '{ns}#<rowkey>'"
+            " prefixes)."
+        )
+      else:
+        ns_warning = (
+            f"Table '{table}' includes explicit 'default:' namespace prefix;"
+            f" strip 'default:' to '{bare_tbl}' for Bigtable."
+        )
+      print_warning(ns_warning)
+      if ns_warning not in metadata["unsupported_features_detected"]:
+        metadata["unsupported_features_detected"].append(ns_warning)
+      metadata["tables"][table]["naming_warnings"].append(ns_warning)
+      candidate_table_id = f"{ns}_{bare_tbl}" if ns != "default" else bare_tbl
+    else:
+      candidate_table_id = table
+
+    if (
+        not re.fullmatch(r"[_a-zA-Z0-9][-_.a-zA-Z0-9]*", candidate_table_id)
+        or len(candidate_table_id) > 50
+    ):
+      tbl_warning = (
+          f"Table ID '{candidate_table_id}' violates Bigtable table ID rules"
+          " (regex [_a-zA-Z0-9][-_.a-zA-Z0-9]*, max 50 characters)."
+      )
+      print_warning(tbl_warning)
+      metadata["tables"][table]["naming_warnings"].append(tbl_warning)
+      if tbl_warning not in metadata["unsupported_features_detected"]:
+        metadata["unsupported_features_detected"].append(tbl_warning)
+
+    if desc_rc != 0:
+      desc_err = f"Failed to describe table '{table}'; schema details unavailable."
+      print_warning(desc_err)
+      metadata["tables"][table]["naming_warnings"].append(desc_err)
+      if desc_err not in metadata["unsupported_features_detected"]:
+        metadata["unsupported_features_detected"].append(desc_err)
+      continue
+
     # Extract Region Count and Split Keys using 'get_splits' command
     print_step(f"Retrieving Region and Split metadata for '{table}'...")
     splits_output, splits_rc = run_hbase_shell_command(
-        f"get_splits '{escaped_table}'"
+        f"get_splits '{escaped_table}'", timeout=timeout
     )
     if splits_rc == 0 and splits_output:
       split_keys = parse_splits_output(splits_output)
@@ -339,49 +447,82 @@ def extract_metadata(
 
     # Get HDFS Size
     if scan_hdfs:
-      size_bytes = get_hdfs_table_size(table)
+      size_bytes = get_hdfs_table_size(table, timeout=max(15, timeout // 2))
       metadata["tables"][table]["stats"]["table_size_bytes"] = size_bytes
     else:
       print_step(f"Skipping HDFS sizing for '{table}' as requested.")
 
     # Parse column families, GC policies, and storage policies from describe
-    for raw_line in desc_output.splitlines():
-      line = raw_line.strip()
-      if "NAME =>" in line:
-        try:
-          family = line.split("NAME =>")[1].split(",")[0].strip(" '\"")
+    reserved_cf_names = {"_key", "_timestamp", "_exists"}
+    for cf_block in extract_cf_blocks(desc_output):
+      try:
+        family = parse_describe_attribute(cf_block, "NAME")
+        if family == "Default/Unknown" or not family:
+          continue
 
-          ttl = parse_describe_attribute(line, "TTL")
-          versions = parse_describe_attribute(line, "VERSIONS")
-          compression = parse_describe_attribute(line, "COMPRESSION")
-          bloomfilter = parse_describe_attribute(line, "BLOOMFILTER")
-          in_memory = parse_describe_attribute(line, "IN_MEMORY")
-          blockcache = parse_describe_attribute(line, "BLOCKCACHE")
+        ttl = parse_describe_attribute(cf_block, "TTL")
+        versions = parse_describe_attribute(cf_block, "VERSIONS")
+        compression = parse_describe_attribute(cf_block, "COMPRESSION")
+        bloomfilter = parse_describe_attribute(cf_block, "BLOOMFILTER")
+        in_memory = parse_describe_attribute(cf_block, "IN_MEMORY")
+        blockcache = parse_describe_attribute(cf_block, "BLOCKCACHE")
 
-          metadata["tables"][table]["column_families"][family] = {
-              "TTL": ttl,
-              "VERSIONS": versions,
-              "COMPRESSION": compression,
-              "BLOOMFILTER": bloomfilter,
-              "IN_MEMORY": in_memory,
-              "BLOCKCACHE": blockcache,
-          }
+        metadata["tables"][table]["column_families"][family] = {
+            "TTL": ttl,
+            "VERSIONS": versions,
+            "COMPRESSION": compression,
+            "BLOOMFILTER": bloomfilter,
+            "IN_MEMORY": in_memory,
+            "BLOCKCACHE": blockcache,
+        }
 
-          # Bigtable Regex check: [_a-zA-Z0-9][-_.a-zA-Z0-9]*
-          if not re.fullmatch(r"[_a-zA-Z0-9][-_.a-zA-Z0-9]*", family):
-            warning = (
-                f"Column Family '{family}' violates Bigtable regex"
-                " [_a-zA-Z0-9][-_.a-zA-Z0-9]*"
-            )
-            print_warning(warning)
-            metadata["tables"][table]["naming_warnings"].append(warning)
-        except Exception:  # pylint: disable=broad-except
-          pass
-      if "coprocessor" in line.lower():
-        warning = f"Table '{table}' uses Coprocessors."
-        print_warning(warning)
+        # Bigtable Column Family ID rules: 1-64 chars, regex, no reserved names
+        cf_warning: Optional[str] = None
+        if (
+            not re.fullmatch(r"[_a-zA-Z0-9][-_.a-zA-Z0-9]*", family)
+            or len(family) > 64
+        ):
+          cf_warning = (
+              f"Column Family '{family}' on table '{table}' violates Bigtable"
+              " rules (regex [_a-zA-Z0-9][-_.a-zA-Z0-9]*, max 64 characters)."
+          )
+        elif family.lower().startswith("__bti_") or (
+            family.lower() in reserved_cf_names
+        ):
+          cf_warning = (
+              f"Column Family '{family}' on table '{table}' uses a reserved"
+              " Bigtable system/SQL identifier."
+          )
+        if cf_warning:
+          print_warning(cf_warning)
+          metadata["tables"][table]["naming_warnings"].append(cf_warning)
+          if cf_warning not in metadata["unsupported_features_detected"]:
+            metadata["unsupported_features_detected"].append(cf_warning)
+      except Exception:  # pylint: disable=broad-except
+        pass
+
+    cp_matches = re.findall(
+        r"coprocessor\$\d+\s*=>\s*(?:'[^']*'|\"[^\"]*\"|[^,\}]+)",
+        desc_output,
+        re.IGNORECASE,
+    )
+    if cp_matches:
+      warning = f"Table '{table}' uses Coprocessors."
+      print_warning(warning)
+      if warning not in metadata["unsupported_features_detected"]:
         metadata["unsupported_features_detected"].append(warning)
-        metadata["tables"][table]["coprocessors"].append(line)
+      metadata["tables"][table]["coprocessors"].extend(
+          m.strip() for m in cp_matches
+      )
+    else:
+      for raw_line in desc_output.splitlines():
+        line = raw_line.strip()
+        if "coprocessor" in line.lower():
+          warning = f"Table '{table}' uses Coprocessors."
+          print_warning(warning)
+          if warning not in metadata["unsupported_features_detected"]:
+            metadata["unsupported_features_detected"].append(warning)
+          metadata["tables"][table]["coprocessors"].append(line)
 
   return metadata
 
@@ -418,7 +559,11 @@ def generate_human_readable_report(data: Dict[str, Any]) -> str:
   else:
     report.append("\n## Supported Features Check: OK")
     report.append(" - No Coprocessors detected.")
-    report.append(" - No Custom Filters detected in top-level schema.")
+    report.append(" - No non-default Namespaces or Naming Violations detected.")
+    report.append(
+        " - Note: Custom client-side Filters are not stored in HBase table"
+        " descriptors and must be audited in application code."
+    )
 
   report.append("\n## Table Details, Sizing, & Policy Analysis:")
   for table, details in data.get("tables", {}).items():
@@ -448,7 +593,9 @@ def generate_human_readable_report(data: Dict[str, Any]) -> str:
       for w in details["naming_warnings"]:
         report.append(f"    - {w}")
     else:
-      report.append("  Column Family Naming: OK (Matches Bigtable conventions)")
+      report.append(
+          "  Table & Column Family Naming: OK (Matches Bigtable conventions)"
+      )
 
     if details.get("coprocessors"):
       report.append(
@@ -472,8 +619,8 @@ def generate_human_readable_report(data: Dict[str, Any]) -> str:
     if splits_sample:
       report.append(f"    * Sample Split Key: '{splits_sample[0]}'")
       report.append(
-          "    -> Action: These keys will be mapped to 'cbt addsplits' in"
-          " Phase 2 (Planning)."
+          "    -> Action: Pass split keys at table creation time"
+          " ('cbt createtable ... splits=...') in Phase 2 (Planning)."
       )
 
     report.append(
@@ -526,6 +673,18 @@ def main() -> None:
       dest="scan_hdfs",
       action="store_false",
       help="Skip physical HDFS table sizing scan without prompting",
+  )
+  parser.add_argument(
+      "--output-dir",
+      type=str,
+      default=".",
+      help="Directory to write JSON and text assessment outputs (default: .)",
+  )
+  parser.add_argument(
+      "--timeout",
+      type=int,
+      default=30,
+      help="Per-command timeout in seconds for HBase shell queries (default: 30)",
   )
   args = parser.parse_args()
 
@@ -583,13 +742,19 @@ def main() -> None:
       scan_hdfs=scan_hdfs,
       include_tables=parsed_include_tables,
       table_regex=args.table_regex,
+      timeout=args.timeout,
   )
 
-  json_output_file = "hbase_assessment_input.json"
+  os.makedirs(args.output_dir, exist_ok=True)
+  json_output_file = os.path.join(
+      args.output_dir, "hbase_assessment_input.json"
+  )
   with open(json_output_file, "w", encoding="utf-8") as f:
     json.dump(data, f, indent=2)
 
-  readable_output_file = "hbase_assessment_report.txt"
+  readable_output_file = os.path.join(
+      args.output_dir, "hbase_assessment_report.txt"
+  )
   report_content = generate_human_readable_report(data)
   with open(readable_output_file, "w", encoding="utf-8") as f:
     f.write(report_content)

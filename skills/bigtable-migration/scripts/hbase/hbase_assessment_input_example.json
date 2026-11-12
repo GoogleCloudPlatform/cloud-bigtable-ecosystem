@@ -53,9 +53,8 @@
   "unsupported_features_detected": [],
   "checks_performed": [
     "Coprocessors",
-    "Custom Filters",
     "Namespaces",
-    "Column Family Naming Conventions",
+    "Table & Column Family Naming Conventions",
     "Garbage Collection (TTL/VERSIONS)",
     "Replication Peers",
     "Region Distribution & Splits"

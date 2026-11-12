@@ -31,17 +31,18 @@ hbase org.apache.hadoop.hbase.mapreduce.Export <tablename> <output_directory_uri
 
 #### 2. Importing to Bigtable
 
-Use the standard Cloud Dataflow template **`SequenceFile_to_Cloud_Bigtable`**:
+Use the Cloud Dataflow **`GCS_SequenceFile_to_Cloud_Bigtable`** template:
 
 ```bash
-gcloud dataflow jobs run JOB_NAME \
-    --gcs-location gs://dataflow-templates-<REGION>/latest/SequenceFile_to_Cloud_Bigtable \
+gcloud dataflow jobs run <JOB_NAME> \
+    --gcs-location gs://dataflow-templates-<REGION>/latest/GCS_SequenceFile_to_Cloud_Bigtable \
     --region <REGION> \
     --parameters \
-        bigtableProject=<PROJECT_ID>,\
-        bigtableInstanceId=<INSTANCE_ID>,\
-        bigtableTableId=<TABLE_ID>,\
-        sourcePattern=gs://<BUCKET>/<PATH>/part-*
+bigtableProject=<PROJECT_ID>,\
+bigtableInstanceId=<INSTANCE_ID>,\
+bigtableTableId=<TABLE_ID>,\
+bigtableAppProfileId=<APPLICATION_PROFILE_ID>,\
+sourcePattern=gs://<BUCKET>/<PATH>/part-*
 ```
 
 --------------------------------------------------------------------------------
@@ -81,26 +82,31 @@ Then, export the snapshot.
     directory and hidden files (like `.hbase-snapshot`):
 
     ```bash
-    gsutil rsync -r /<local_path> gs://<bucket>/snapshots
+    gsutil rsync -r /<local_path> gs://<BUCKET>/hbase-migration-snap/data
     ```
 
 *   **Exporting directly to GCS (if GCS Connector is installed)**:
 
     ```bash
     hbase org.apache.hadoop.hbase.snapshot.ExportSnapshot \
-        -snapshot <snapshot_name> \
-        -copy-to gs://<bucket>/snapshots/ \
-        -mappers 16
+        -Dhbase.zookeeper.quorum=<ZOOKEEPER_QUORUM>:<ZOOKEEPER_PORT> \
+        -snapshot <SNAPSHOT_NAME> \
+        -copy-from <MIGRATION_SOURCE_DIRECTORY> \
+        -copy-to gs://<BUCKET>/hbase-migration-snap/data
     ```
+
+    *Tip*: To limit production network and I/O impact, pass `-mappers <N>` and
+    `-bandwidth <MB_PER_SEC>` (for example, `-mappers 20 -bandwidth 50` caps
+    total export throughput at 1,000 MB/sec).
 
 #### 2. Importing to Bigtable
 
 Because snapshots are raw HFiles, they cannot be imported via standard
-SequenceFile templates. You must download and run the open-source
-**`bigtable-beam-import`** tool on Cloud Dataflow:
+SequenceFile templates. Download and run the open-source
+**`bigtable-beam-import`** shaded JAR on Cloud Dataflow:
 
 ```bash
-# Download the tool
+# Download the shaded JAR from Maven Central (e.g., version 2.20.2)
 wget https://repo1.maven.org/maven2/com/google/cloud/bigtable/bigtable-beam-import/<VERSION>/bigtable-beam-import-<VERSION>-shaded.jar
 
 # Run the import job
@@ -109,46 +115,100 @@ java -jar bigtable-beam-import-<VERSION>-shaded.jar importsnapshot \
     --project=<PROJECT_ID> \
     --bigtableInstanceId=<INSTANCE_ID> \
     --bigtableTableId=<TABLE_ID> \
-    --hbaseSnapshotSourceDir=gs://<bucket>/snapshots \
-    --snapshotName=<snapshot_name> \
-    --stagingLocation=gs://<bucket>/staging \
-    --tempLocation=gs://<bucket>/temp \
-    --maxNumWorkers=<3 * Bigtable Nodes> \
+    --hbaseSnapshotSourceDir=gs://<BUCKET>/hbase-migration-snap/data \
+    --snapshotName=<SNAPSHOT_NAME> \
+    --stagingLocation=gs://<BUCKET>/hbase-migration-snap/staging \
+    --tempLocation=gs://<BUCKET>/hbase-migration-snap/temp \
+    --maxNumWorkers=$((3 * <CLUSTER_NUM_NODES>)) \
     --region=<REGION>
 ```
 
-### Pre-import Step: Pre-splitting Bigtable
+*   **Snappy-compressed tables**: If the source HBase table uses Snappy
+    compression, append `--enableSnappy=true` (requires Apache Beam SDK 2.30.0+
+    on Dataflow Runner v2 and HBase client for Java 2.3.0+).
 
-To avoid hotspotting a single node during a bulk import, pre-split the Bigtable
-table based on expected row key distribution (matching your source HBase region
-boundaries).
+### Pre-import Step: Creating Destination Tables and Splits
 
-*   Use `cbt createtable <table-id>` and then `cbt addsplits <table-id>
-    <row-key>...`
+Before running the import job, create the destination table in Bigtable and
+pre-split it based on your source HBase region boundaries to avoid hotspotting a
+single node during bulk load. Note that Bigtable only accepts manual split keys
+**at table creation time** (manual splits cannot be added after a table is
+created, and the Google Cloud Console does not support pre-splitting):
+
+*   **Using the Cloud Bigtable Schema Translation tool (when keeping matching
+    schema and table name)**: Automatically copies the HBase table name, column
+    families, garbage collection policies, and region splits to Bigtable:
+
+    ```bash
+    # Download JAR with dependencies from Maven Central (e.g., version 2.20.2)
+    wget https://repo1.maven.org/maven2/com/google/cloud/bigtable/bigtable-hbase-1.x-tools/<VERSION>/bigtable-hbase-1.x-tools-<VERSION>-jar-with-dependencies.jar
+
+    java \
+        -Dgoogle.bigtable.project.id=<PROJECT_ID> \
+        -Dgoogle.bigtable.instance.id=<INSTANCE_ID> \
+        -Dgoogle.bigtable.table.filter=<TABLE_NAME> \
+        -Dhbase.zookeeper.quorum=<ZOOKEEPER_QUORUM> \
+        -Dhbase.zookeeper.property.clientPort=<ZOOKEEPER_PORT> \
+        -jar bigtable-hbase-1.x-tools-<VERSION>-jar-with-dependencies.jar
+    ```
+
+*   **Using `cbt` CLI (when customizing the schema or renaming tables)**:
+
+    ```bash
+    cbt createtable <TABLE_ID> "families=<FAMILY_ID>:maxage=<AGE>||maxversions=<N>" splits=<SPLIT_KEY_1>,<SPLIT_KEY_2>
+    ```
+
+*   **Using `gcloud` CLI**:
+
+    ```bash
+    gcloud bigtable instances tables create <TABLE_ID> \
+        --instance=<INSTANCE_ID> \
+        --project=<PROJECT_ID> \
+        --column-families="<FAMILY_ID>:maxage=<AGE>" \
+        --splits=<SPLIT_KEY_1>,<SPLIT_KEY_2>
+    ```
 
 ## Online Migration: Bigtable HBase Replication Library
 
-For zero-downtime migration, use the open-source Bigtable HBase replication
-library.
+For online migration with almost no downtime, use the open-source Cloud Bigtable
+HBase replication library (`bigtable-hbase-1.x-replication` or
+`bigtable-hbase-2.x-replication`).
 
 ### Steps:
 
-1.  **Add Peer**: Enable `REPLICATION_SCOPE => '1'` on column families and
-    register the Cloud Bigtable replication endpoint in HBase shell:
+1.  **Configure `hbase-site.xml` and Install the Replication JAR**:
+    *   Create a Bigtable app profile configured with **single-cluster routing**
+        (required to preserve write ordering) and set
+        `google.bigtable.project.id`, `google.bigtable.instance.id`,
+        `google.bigtable.app_profile.id`, and
+        `google.bigtable.auth.json.keyfile` in `hbase-site.xml` across all HBase
+        servers.
+    *   Copy `bigtable-hbase-<1.x|2.x>-replication-<VERSION>-jar-with-dependencies.jar`
+        onto the HBase classpath (for example, `/usr/lib/hbase/lib/`) on every
+        HBase master and RegionServer, then restart HBase servers.
+2.  **Add Peer**: Register the Cloud Bigtable replication endpoint in HBase
+    shell:
 
     ```hbase
-    # For HBase 2.x (use hbase1_x for HBase 1.x)
+    # Use hbase1_x for HBase 1.x or hbase2_x for HBase 2.x (HBase 3.x is not supported)
     add_peer '1', ENDPOINT_CLASSNAME => 'com.google.cloud.bigtable.hbase2_x.replication.HbaseToCloudBigtableReplicationEndpoint'
     ```
 
-2.  **Buffer Writes**: Disable the peer (`disable_peer '1'`) to let live writes
-    buffer safely in the WAL while historical data is migrated.
+3.  **Buffer Writes & Enable Table Replication**: Disable the peer
+    (`disable_peer '1'`) so new writes buffer safely in the HBase WAL, then
+    enable table replication for each table:
 
-3.  **Migrate Snapshot**: Use Pathway B (`ExportSnapshot` +
+    ```hbase
+    disable_peer '1'
+    enable_table_replication '<TABLE_NAME>'
+    ```
+
+4.  **Migrate Snapshot**: Follow Pathway B (`ExportSnapshot` +
     `bigtable-beam-import`) to migrate a snapshot of the historical data.
 
-4.  **Drain Buffer**: Re-enable the peer (`enable_peer '1'`) to let the buffered
-    writes replay onto Bigtable.
+5.  **Drain Buffer**: Re-enable the peer (`enable_peer '1'`) to let buffered WAL
+    writes replay onto Bigtable, validate parity, and switch application traffic
+    to Bigtable.
 
 ## Semi-Autonomous Execution with Human-in-the-Loop (HITL)
 
@@ -215,10 +275,12 @@ After the user authorizes a step and the agent executes it:
 *   **Cell Size Limits**: Bigtable has a hard limit of 100 MB per cell. If your
     HBase data has cells larger than this, the import will fail. You must filter
     or truncate these before importing.
-*   **Timestamp Resolution**: Bigtable uses microsecond resolution for
-    timestamps, while HBase typically uses milliseconds. The Bigtable HBase
-    client usually handles this by multiplying by 1000, but verify this if you
-    are doing custom imports.
+*   **Timestamp Resolution**: Bigtable stores timestamps in microseconds, while
+    HBase stores timestamps in milliseconds. The Cloud Bigtable HBase client
+    converts between milliseconds and microseconds automatically, but because
+    the largest HBase timestamp Bigtable can store is `Long.MAX_VALUE / 1000`,
+    any larger value (such as large reversed timestamps) is capped at
+    `Long.MAX_VALUE / 1000` and may not convert as expected.
 *   **Mutations per Row**: Bigtable has a limit of 100,000 mutations per row in
     a single transaction. If you have extremely wide rows with many versions,
     you might hit this limit during import.

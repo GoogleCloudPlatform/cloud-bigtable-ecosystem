@@ -2,7 +2,7 @@
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "bigtable",
   "version": "0.0.1",
-  "description": "Official plugin for Google Cloud Bigtable. Manage instances/tables, design schemas, query data using SQL or client libraries, and plan/execute migrations from Apache HBase to Bigtable.",
+  "description": "Official plugin for Google Cloud Bigtable. Manage instances/tables, design schemas, query data using SQL or client libraries, migrate databases, and more.",
   "author": {
     "name": "Google LLC",
     "email": "bigtable-cloud@google.com"

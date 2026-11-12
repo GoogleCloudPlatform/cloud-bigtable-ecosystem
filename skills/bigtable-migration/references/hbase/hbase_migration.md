@@ -74,8 +74,11 @@ export and import strategies.
     Dataflow templates (`HBase to Bigtable`), Bigtable HBase Replication Library
     for zero-downtime online migration, or pre-splitting tables.
 *   **Core Technical Insights**:
-    *   **Pre-splitting**: Always use `cbt addsplits` before bulk-importing to
-        prevent node hotspotting.
+    *   **Pre-splitting**: Specify initial split keys **when creating** the
+        destination table (`cbt createtable <table-id> ... splits=<key1>,<key2>`
+        or `gcloud bigtable instances tables create ... --splits=...`) before
+        bulk-importing to prevent single-tablet hotspotting. Bigtable does not
+        support adding manual splits after table creation.
     *   **Gotchas**: Watch out for **Millisecond (HBase) to Microsecond
         (Bigtable)** timestamp translation, and the difference in
         **Deletes-mask-Puts** execution ordering.
