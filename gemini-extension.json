@@ -1,8 +1,7 @@
 {
   "name": "bigtable",
   "version": "0.0.1",
-  "description": "Manage Google Cloud Bigtable instances/tables, design schemas, and query data using SQL or client libraries.",
-  "contextFileName": "SKILL.md",
+  "description": "Manage Google Cloud Bigtable instances/tables, design schemas, query data using SQL or client libraries, migrate databases, and more.",
   "settings": [
     {
       "name": "Project ID",

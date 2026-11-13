@@ -9,7 +9,7 @@
     "email": "bigtable-cloud@google.com"
   },
   "metadata": {
-    "description": "Official Claude plugin for Google Cloud Bigtable. Manage instances/tables, design schemas, query data using SQL or client libraries, and more"
+    "description": "Official Claude plugin for Google Cloud Bigtable. Manage instances/tables, design schemas, query data using SQL or client libraries, migrate databases, and more."
   },
   "plugins": [
     {
