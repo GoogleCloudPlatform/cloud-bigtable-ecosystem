@@ -20,7 +20,14 @@ from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(__file__), '../.env'))
 
 app = Flask(__name__)
-app.secret_key = os.getenv("FLASK_SECRET_KEY", "super-secret-key-for-btagent")
+flask_secret_key = os.getenv("FLASK_SECRET_KEY", "").strip()
+if not flask_secret_key:
+    raise RuntimeError(
+        "FLASK_SECRET_KEY environment variable must be set and non-empty. "
+        "Generate one with: "
+        'python3 -c "import secrets; print(secrets.token_hex(32))"'
+    )
+app.secret_key = flask_secret_key
 CORS(app, supports_credentials=True, origins=["http://localhost:3000", "http://127.0.0.1:3000"])
 
 @app.route('/auth/login')
