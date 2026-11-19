@@ -318,6 +318,14 @@ class TestAgentQuerySecurity(unittest.IsolatedAsyncioTestCase):
                 self.mock_creds,
                 self.mock_settings,
                 self.mock_context,
+                before="2025-01-01') OR 1=1 --",
+            )
+
+        with self.assertRaises(ValidationError):
+            await agent_query.get_visits(
+                self.mock_creds,
+                self.mock_settings,
+                self.mock_context,
                 after="1970-01-01') OR 1=1 --",
             )
 

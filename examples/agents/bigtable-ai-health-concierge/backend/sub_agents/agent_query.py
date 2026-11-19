@@ -60,6 +60,7 @@ def _format_sql_timestamp(value: datetime) -> str:
     return value.isoformat()
 
 
+# Kept alongside Field(ge=1, le=MAX_NUM_TESTS) to guard direct callers of _query_test_results.
 def _validate_num_tests(value: int) -> int:
     """Validates latest_n is an integer within [1, MAX_NUM_TESTS]."""
     if isinstance(value, bool) or not isinstance(value, int):
