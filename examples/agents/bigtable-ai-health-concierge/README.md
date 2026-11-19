@@ -38,8 +38,7 @@ GOOGLE_CLOUD_LOCATION=us-central1
 VERTEX_AI_AGENT_ENGINE_ID=your-agent-engine-id
 BIGTABLE_INSTANCE_ID=your-bigtable-instance-id
 
-# Required: Cryptographically random secret key for signing Flask session cookies
-# Generate with: python3 -c "import secrets; print(secrets.token_hex(32))"
+# Flask Session Secret Key (Required - see note below)
 FLASK_SECRET_KEY=
 
 # Required for Google OAuth Login (optional when using ?user=john.doe@gmail.com bypass)
@@ -52,7 +51,7 @@ GOOGLE_CALLBACK_URL=http://127.0.0.1:5000/auth/callback
 ```
 
 > [!IMPORTANT]
-> **`FLASK_SECRET_KEY` is required.** The Flask backend enforces fail-fast startup and will raise a `RuntimeError` if `FLASK_SECRET_KEY` is unset or empty. Generate a strong random value before starting the server:
+> **`FLASK_SECRET_KEY` is required.** The Flask backend enforces fail-fast startup and will raise a `RuntimeError` if `FLASK_SECRET_KEY` is unset or empty. Generate a strong random key with:
 > ```bash
 > python3 -c "import secrets; print(secrets.token_hex(32))"
 > ```
