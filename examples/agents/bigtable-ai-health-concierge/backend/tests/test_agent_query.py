@@ -213,6 +213,14 @@ class TestAgentQuerySecurity(unittest.IsolatedAsyncioTestCase):
             {"patient_key": b"john.doe@gmail.com", "test_name": b"Glucose"},
         )
 
+    def test_naive_datetime_normalized_to_utc(self):
+        """Naive datetimes default to UTC to avoid Bigtable TIMESTAMP ambiguity."""
+        naive = datetime(2025, 6, 1, 12, 30, 0)
+        self.assertEqual(
+            agent_query._format_sql_timestamp(naive),
+            "2025-06-01T12:30:00+00:00",
+        )
+
     @patch.object(
         agent_query.query_tool, "execute_sql", new_callable=AsyncMock
     )
@@ -230,6 +238,22 @@ class TestAgentQuerySecurity(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("Bigtable SQL", res["error_details"])
         self.assertEqual(
             res["error_details"], "Failed to retrieve medical records."
+        )
+
+        # Verify raised exceptions are also caught and sanitized
+        mock_execute_sql.reset_mock()
+        mock_execute_sql.side_effect = RuntimeError(
+            "Raw gRPC connection failure"
+        )
+
+        res_exc = await agent_query.get_prescriptions(
+            self.mock_creds, self.mock_settings, self.mock_context
+        )
+
+        self.assertEqual(res_exc["status"], "ERROR")
+        self.assertNotIn("gRPC", res_exc["error_details"])
+        self.assertEqual(
+            res_exc["error_details"], "Failed to retrieve medical records."
         )
 
     @patch.object(

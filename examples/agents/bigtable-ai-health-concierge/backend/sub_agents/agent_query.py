@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 from datetime import datetime, timezone
@@ -47,10 +48,15 @@ credentials_config = BigtableCredentialsConfig(
 )
 
 
+logger = logging.getLogger(__name__)
+
+
 def _format_sql_timestamp(value: datetime) -> str:
-    """Formats a validated datetime as a strict ISO 8601 literal for Bigtable TVF."""
+    """Formats a validated datetime as a strict ISO 8601 UTC literal for Bigtable TVF."""
     if not isinstance(value, datetime):
         raise ValueError("Timestamp must be a datetime instance.")
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
     return value.isoformat()
 
 
@@ -71,15 +77,23 @@ async def _execute_scoped_sql(
     parameters: dict[str, Any],
 ) -> dict[str, Any]:
     """Executes a scoped Bigtable SQL query and sanitizes error responses."""
-    res = await query_tool.execute_sql(
-        project_id=PROJECT_ID,
-        instance_id=BIGTABLE_INSTANCE_ID,
-        query=query,
-        credentials=credentials,
-        settings=settings,
-        tool_context=tool_context,
-        parameters=parameters,
-    )
+    try:
+        res = await query_tool.execute_sql(
+            project_id=PROJECT_ID,
+            instance_id=BIGTABLE_INSTANCE_ID,
+            query=query,
+            credentials=credentials,
+            settings=settings,
+            tool_context=tool_context,
+            parameters=parameters,
+        )
+    except Exception:
+        logger.exception("Bigtable SQL query execution failed")
+        return {
+            "status": "ERROR",
+            "error_details": "Failed to retrieve medical records.",
+        }
+
     if isinstance(res, dict) and res.get("status") == "ERROR":
         return {
             "status": "ERROR",
