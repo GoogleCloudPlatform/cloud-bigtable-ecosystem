@@ -49,6 +49,7 @@ public class MapAerospikeConnectJsonToBigtableSinkInputTest {
   private static final AtomicInteger KAFKA_OFFSET = new AtomicInteger(0);
   private static final long DEFAULT_START_LUT_MILLIS = 1000L;
   private static final byte[] DEFAULT_DIGEST = new byte[20];
+  private static final byte[] DEFAULT_ROW_KEY = Base64.getEncoder().encode(DEFAULT_DIGEST);
 
   private static final MapAerospikeConnectJsonToBigtableSinkInput<SinkRecord>
       AEROSPIKE_CONNECT_JSON_TO_BIGTABLE_SINK_INPUT_TRANSFORMER =
@@ -94,7 +95,7 @@ public class MapAerospikeConnectJsonToBigtableSinkInputTest {
             123456L);
     SinkRecord result = AEROSPIKE_CONNECT_JSON_TO_BIGTABLE_SINK_INPUT_TRANSFORMER.apply(delete);
     assertEquals(DEFAULT_START_LUT_MILLIS, result.timestamp());
-    assertArrayEquals(DEFAULT_DIGEST, assertInstanceOf(byte[].class, result.key()));
+    assertArrayEquals(DEFAULT_ROW_KEY, assertInstanceOf(byte[].class, result.key()));
     assertNull(result.value());
   }
 
@@ -142,7 +143,7 @@ public class MapAerospikeConnectJsonToBigtableSinkInputTest {
     SinkRecord input = record(value, 123456L);
     SinkRecord output = AEROSPIKE_CONNECT_JSON_TO_BIGTABLE_SINK_INPUT_TRANSFORMER.apply(input);
     assertEquals(DEFAULT_START_LUT_MILLIS, output.timestamp());
-    assertArrayEquals(DEFAULT_DIGEST, assertInstanceOf(byte[].class, output.key()));
+    assertArrayEquals(DEFAULT_ROW_KEY, assertInstanceOf(byte[].class, output.key()));
     Struct outputValue = assertInstanceOf(Struct.class, output.value());
     assertEquals(outputValue.schema(), output.valueSchema());
 

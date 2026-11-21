@@ -18,6 +18,7 @@ package com.google.cloud.aerospike;
 import com.google.cloud.aerospike.config.Config;
 import com.google.cloud.aerospike.exception.InvalidMessageException;
 import com.google.cloud.aerospike.mapping.SinkMutationBuilder;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -117,7 +118,7 @@ public class MapAerospikeConnectJsonToBigtableSinkInput<R extends ConnectRecord<
       log.trace(
           "Dropping an XDR record with (base64-encoded) digest '{}' due to a too low LUT of {},"
               + " which is lower than minimal LUT of {}",
-          Base64.getEncoder().encodeToString(digest),
+          new String(digest, StandardCharsets.UTF_8),
           timestamp,
           minimalAllowedTimestamp);
       return null;
@@ -258,7 +259,7 @@ public class MapAerospikeConnectJsonToBigtableSinkInput<R extends ConnectRecord<
         if (digest.length != DIGEST_LENGTH) {
           throw new IllegalArgumentException();
         }
-        return digest;
+        return Base64.getEncoder().encode(digest);
       } else {
         throw new IllegalArgumentException();
       }
